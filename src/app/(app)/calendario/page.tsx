@@ -1,0 +1,321 @@
+import Link from 'next/link';
+import { requireUser } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { eventiPerLista, filtroVisibilita } from '@/lib/query';
+import { etichettaEvento, isAdmin, tonoEvento } from '@/lib/domain';
+import { fmtDateTime, umanizza } from '@/lib/format';
+import { Badge, Intestazione, Elenco, Vuoto } from '@/components/ui';
+import { CardEvento, ContoAdesioni, RigaEvento } from '@/components/CardEvento';
+import { Naviga } from '@/components/Naviga';
+import { AdesioneEvento } from '@/components/AdesioneEvento';
+import { FormAzione, Fisarmonica } from '@/components/Form';
+import { Invia } from '@/components/Bottone';
+import { FormEvento } from '@/components/FormEvento';
+import { AzioniEvento } from '@/components/AzioniEvento';
+import { CalendarioMese, type GiornoEvento } from '@/components/CalendarioMese';
+import { salvaEvento } from '@/actions/eventi';
+import { listinoAttivo } from '@/lib/quote';
+import { stagioneAttiva } from '@/lib/stagioni';
+
+export default async function CalendarioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string }>;
+}) {
+  const me = await requireUser();
+  const { vista } = await searchParams;
+  const attuale = vista === 'passati' ? 'passati' : vista === 'lista' ? 'lista' : 'mese';
+  const admin = isAdmin(me.roles);
+
+  // il listino serve al modulo di creazione: le quote si compongono da lì
+  const [campi, tipologie, listino, stagione] = admin
+    ? await Promise.all([
+        prisma.field.findMany({ where: { attivo: true }, orderBy: { nome: 'asc' } }),
+        prisma.tipoAttivita.findMany({
+          where: { attivo: true },
+          orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
+          select: { id: true, nome: true },
+        }),
+        listinoAttivo(),
+        stagioneAttiva(),
+      ])
+    : [[], [], [], null];
+
+  // legenda dei colori: sempre visibile, anche a chi non gestisce il calendario
+  const legenda = await prisma.tipoAttivita.findMany({
+    where: { attivo: true },
+    orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
+    select: { nome: true, colore: true },
+  });
+
+  // il mese mostra tutto, le liste filtrano su futuro/passato
+  const perMese =
+    attuale === 'mese'
+      ? await prisma.event.findMany({
+          where: filtroVisibilita(me.stato, admin),
+          orderBy: { inizio: 'asc' },
+          select: {
+            id: true,
+            titolo: true,
+            tipo: { select: { nome: true, colore: true } },
+            status: true,
+            visibilita: true,
+            inizio: true,
+            fine: true,
+            rsvps: { where: { userId: me.id }, select: { status: true } },
+          },
+        })
+      : [];
+
+  const eventiMese: GiornoEvento[] = perMese.map((e) => ({
+    id: e.id,
+    titolo: e.titolo,
+    tipo: e.tipo?.nome ?? 'Senza tipologia',
+    colore: e.tipo?.colore ?? 'grigio',
+    status: e.status,
+    visibilita: e.visibilita,
+    inizio: e.inizio.toISOString(),
+    fine: e.fine ? e.fine.toISOString() : null,
+    mioStato: e.rsvps[0]?.status ?? null,
+  }));
+
+  const lista =
+    attuale === 'mese'
+      ? []
+      : await eventiPerLista({
+          stato: me.stato,
+          userId: me.id,
+          vedeBozze: admin,
+          dove:
+            attuale === 'passati'
+              ? { inizio: { lt: new Date() } }
+              : { inizio: { gte: new Date() } },
+          ordine: attuale === 'passati' ? 'desc' : 'asc',
+        });
+
+  // colonna laterale: sempre i prossimi in programma, anche in vista mese
+  const prossimi = await eventiPerLista({
+    stato: me.stato,
+    userId: me.id,
+    vedeBozze: admin,
+    dove: { inizio: { gte: new Date() }, status: { not: 'ANNULLATA' } },
+    limite: 6,
+  });
+
+  const VISTE = [
+    { chiave: 'mese', href: '/calendario', testo: 'Mese' },
+    { chiave: 'lista', href: '/calendario?vista=lista', testo: 'In programma' },
+    { chiave: 'passati', href: '/calendario?vista=passati', testo: 'Storico' },
+  ];
+
+  const bozze = eventiMese.filter((e) => e.status === 'CREATA').length;
+
+  return (
+    <>
+      <Intestazione
+        titolo="Calendario"
+        sottotitolo={
+          attuale === 'mese'
+            ? admin
+              ? 'Clicca un giorno per vedere le attività o aggiungerne una'
+              : 'Clicca un giorno per vedere le attività'
+            : attuale === 'passati'
+              ? 'Attività già svolte'
+              : 'Attività in programma: rispondi per far sapere se ci sei'
+        }
+        azioni={
+          <div className="flex rounded-md border border-line p-0.5">
+            {VISTE.map((v) => (
+              <Link
+                key={v.chiave}
+                href={v.href}
+                className={`rounded px-3 py-1.5 text-xs ${
+                  attuale === v.chiave ? 'bg-nvg/15 text-nvg' : 'text-muted'
+                }`}
+              >
+                {v.testo}
+              </Link>
+            ))}
+          </div>
+        }
+      />
+
+      {admin && bozze > 0 && attuale === 'mese' && (
+        <div className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">
+          {bozze === 1 ? "C'è 1 attività in bozza" : `Ci sono ${bozze} attività in bozza`}: finché
+          non le rilasci nessuno le vede.
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">
+          {attuale === 'mese' ? (
+            <CalendarioMese
+              eventi={eventiMese}
+              legenda={legenda}
+              nuovoEvento={
+                admin ? (
+                  <FormAzione azione={salvaEvento}>
+                    <FormEvento
+                      campi={campi}
+                      tipologie={tipologie}
+                      listino={listino}
+                      stagioneId={stagione?.id ?? null}
+                      compatto
+                    />
+                    <Invia icona="aggiungi">Crea attività</Invia>
+                    <p className="text-xs text-muted">
+                      Nasce in bozza: sceglierai dopo se rilasciarla alla squadra o a tutti.
+                    </p>
+                  </FormAzione>
+                ) : undefined
+              }
+            />
+          ) : (
+            <>
+              {admin && (
+                <Fisarmonica titolo="Nuova attività">
+                  <FormAzione azione={salvaEvento}>
+                    <FormEvento
+                      campi={campi}
+                      tipologie={tipologie}
+                      listino={listino}
+                      stagioneId={stagione?.id ?? null}
+                    />
+                    <Invia icona="aggiungi">Crea attività</Invia>
+                    <p className="text-xs text-muted">
+                      Nasce in bozza: sceglierai dopo se rilasciarla alla squadra o a tutti.
+                    </p>
+                  </FormAzione>
+                </Fisarmonica>
+              )}
+
+              {lista.length === 0 ? (
+                <Vuoto
+                  testo={
+                    attuale === 'passati'
+                      ? 'Nessuna attività nello storico.'
+                      : 'Nessuna attività in programma.'
+                  }
+                />
+              ) : (
+                <Elenco
+                  cards={lista.map((e) => (
+                    <CardEvento
+                      key={e.id}
+                      e={e}
+                      azioni={
+                        admin ? (
+                          <AzioniEvento
+                            id={e.id}
+                            titolo={e.titolo}
+                            status={e.status}
+                            visibilita={e.visibilita}
+                            compatto
+                          />
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                  tabella={
+                    <table className="tabella">
+                      <thead>
+                        <tr>
+                          <th>Attività</th>
+                          <th>Quando</th>
+                          <th>Campo</th>
+                          <th>Adesioni</th>
+                          <th>Quota</th>
+                          <th>Stato</th>
+                          <th>Tu</th>
+                          {admin && <th>Azioni</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lista.map((e) => (
+                          <RigaEvento
+                            key={e.id}
+                            e={e}
+                            azioni={
+                              admin ? (
+                                <AzioniEvento
+                                  id={e.id}
+                                  titolo={e.titolo}
+                                  status={e.status}
+                                  visibilita={e.visibilita}
+                                  compatto
+                                />
+                              ) : undefined
+                            }
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  }
+                />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ---------------------------------------------- prossimi eventi (desktop) */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-6">
+            <h2 className="titolo-sezione mb-3">Prossime attività</h2>
+            {prossimi.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-line px-4 py-6 text-center text-xs text-muted">
+                Nessuna attività in programma.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {prossimi.map((e) => (
+                  <div
+                    key={e.id}
+                    className="rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors hover:border-nvgdim"
+                  >
+                  <Link href={`/calendario/${e.id}`} className="block">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{e.titolo}</p>
+                      {e.status !== 'RILASCIATA' && (
+                        <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
+                          {etichettaEvento[e.status]}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted num">{fmtDateTime(e.inizio)}</p>
+                    <p className="text-[11px] text-muted">
+                      {e.tipo}
+                      {e.campo ? ` · ${e.campo}` : ''}
+                    </p>
+                    <div className="mt-1.5">
+                      <ContoAdesioni e={e} size={13} />
+                    </div>
+                  </Link>
+
+                  {((e.lat != null && e.lng != null) || e.indirizzo) && (
+                    <div className="mt-2 border-t border-line pt-2">
+                      <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
+                    </div>
+                  )}
+
+                  {e.adesioniAperte && (
+                    <div className="mt-2 border-t border-line pt-2">
+                      <AdesioneEvento
+                        eventId={e.id}
+                        scelta={e.mioStato}
+                        nota={e.miaNota}
+                        pieno={!!e.maxPartecipanti && e.presenti >= e.maxPartecipanti}
+                        compatta
+                      />
+                    </div>
+                  )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+    </>
+  );
+}

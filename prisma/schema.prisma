@@ -1,0 +1,658 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- ruoli e stati
+
+/// Un operatore può avere più ruoli contemporaneamente (es. ATLETA + TL).
+enum Role {
+  ADMIN // gestisce tutto
+  AMMINISTRAZIONE // iscrizioni, certificati medici, tessere FIGT
+  SEGRETERIA // pagamenti e quote
+  TL // team leader: schiera titolari e riserve negli eventi
+  ATLETA // membro effettivo della squadra
+}
+
+/// Percorso di un operatore, dal primo contatto all'ingresso in squadra.
+enum StatoOperatore {
+  NUOVO // si sta approcciando al team, viene alle open
+  ATTESA_COMPILAZIONE // ha ricevuto l'invito di iscrizione, deve compilare
+  ATTESA_ACCETTAZIONE // ha inviato il modulo, attende la valutazione
+  SQUADRA // membro effettivo
+  DA_RICONFERMARE // era in squadra: aperta la nuova stagione attende il reinvito
+  RIFIUTATO // valutazione negativa: si conserva lo storico
+  SOSPESO // in squadra ma temporaneamente fuori
+  DISABILITATO // non accede più
+}
+
+enum CertStatus {
+  IN_ATTESA
+  VALIDO
+  SCADUTO
+  RIFIUTATO
+}
+
+enum CertType {
+  NON_AGONISTICO
+  AGONISTICO
+}
+
+/// A chi è rilasciata l'attività. Si decide al momento del rilascio.
+enum EventVisibility {
+  TEAM // solo la squadra
+  TUTTI // aperta anche ai nuovi
+}
+
+enum EventStatus {
+  CREATA // bozza: la vede solo chi gestisce il calendario
+  RILASCIATA // pubblicata secondo la visibilità scelta
+  CONCLUSA
+  ANNULLATA
+}
+
+enum RsvpStatus {
+  PRESENTE
+  ASSENTE
+  FORSE
+}
+
+/// Schieramento deciso dal TL a partire dalle adesioni.
+enum Assegnazione {
+  NON_ASSEGNATO
+  TITOLARE
+  RISERVA
+}
+
+enum FieldType {
+  BOSCHIVO
+  URBANO
+  CQB
+  INDOOR
+  MISTO
+}
+
+/// Tipo di richiesta inviata dall'amministrazione: determina la quota.
+enum TipoIscrizione {
+  ISCRIZIONE // primo tesseramento
+  REISCRIZIONE // rinnovo di chi c'era già l'anno prima
+}
+
+enum MembershipStatus {
+  INVITATA // l'amministrazione ha inoltrato la richiesta
+  COMPILATA // l'operatore ha inviato il modulo, attende accettazione
+  ATTIVA // approvata
+  RIFIUTATA // respinta, resta a storico
+  SCADUTA
+}
+
+enum FigtStatus {
+  DA_RECUPERARE // codice ancora da prendere dal portale
+  ATTIVA
+  SCADUTA
+  REVOCATA
+}
+
+enum PaymentType {
+  ISCRIZIONE
+  TESSERA_FIGT
+  TORNEO
+  GARA
+  ALLENAMENTO
+  EVENTO
+  RIMBORSO // somma da restituire, tenuta separata dagli incassi
+  ALTRO
+}
+
+enum PaymentStatus {
+  DA_PAGARE
+  PARZIALE
+  PAGATO
+  ANNULLATO
+}
+
+// ---------------------------------------------------------------- operatori
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  passwordHash    String
+  nome            String
+  cognome         String
+  callsign        String?
+  /// Password generata dall'admin: finche' e' vero l'operatore non va da
+  /// nessuna parte se non a cambiarla. Serve perche' non si mandano email:
+  /// la password viaggia a voce, e a voce non deve restare.
+  deveCambiarePassword Boolean @default(false)
+  /// Una riga scelta dall'operatore, sotto al nome: motto, ruolo in squadra,
+  /// quello che vuole. Serve solo a farsi riconoscere, non a nient'altro.
+  frase           String?
+  telefono        String?
+  dataNascita     DateTime?
+  luogoNascita    String?
+  codiceFiscale   String?
+  indirizzo       String?
+  citta           String?
+  cap             String?
+  provincia       String?
+  emergenzaNome   String?
+  emergenzaTel    String?
+  gruppoSanguigno String?
+  allergie        String? // allergie e note mediche, su più righe
+  /// Foto del profilo: percorso relativo dentro UPLOAD_DIR.
+  fotoPath        String?
+  roles           Role[]         @default([])
+  stato           StatoOperatore @default(NUOVO)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  disabledAt      DateTime?
+  ultimoAccesso   DateTime?
+
+  // --- GDPR: consensi raccolti e tracciati con data e versione dell'informativa
+  privacyAccettataIl  DateTime?
+  privacyVersione     String?
+  consensoImmagini    Boolean   @default(false)
+  consensoImmaginiIl  DateTime?
+  consensoComunicaz   Boolean   @default(false)
+  consensoComunicazIl DateTime?
+  cancellazioneChiesta DateTime?
+
+  certificates   MedicalCertificate[] @relation("CertOwner")
+  reviewedCerts  MedicalCertificate[] @relation("CertReviewer")
+  rsvps          EventRsvp[]
+  payments       Payment[]            @relation("PaymentUser")
+  recordedPays   Payment[]            @relation("PaymentRecorder")
+  memberships    Membership[]         @relation("MembershipUser")
+  invitiInviati  Membership[]         @relation("MembershipInviter")
+  decisiMships   Membership[]         @relation("MembershipDecider")
+  figtCards      FigtCard[]
+  tesseramentiImportati TesseramentoImportato[] @relation("TesseramentoImportato")
+  giornaliere    TesseraGiornaliera[] @relation("GiornaliereUtente")
+  letturaDaAltri LetturaProfilo[] @relation("ProfiloLetto")
+  profiliLetti   LetturaProfilo[] @relation("Lettore")
+  notesAbout     PlayerNote[]         @relation("NoteSubject")
+  notesWritten   PlayerNote[]         @relation("NoteAuthor")
+  eventsCreated  Event[]              @relation("EventCreator")
+  movimentiCassa MovimentoCassa[]     @relation("CassaRegistrante")
+
+  @@index([stato])
+}
+
+// ---------------------------------------------------------------- certificati medici
+
+model MedicalCertificate {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation("CertOwner", fields: [userId], references: [id], onDelete: Cascade)
+  tipo          CertType   @default(NON_AGONISTICO)
+  status        CertStatus @default(IN_ATTESA)
+  rilasciatoIl  DateTime?
+  scadeIl       DateTime?
+  fileName      String
+  filePath      String
+  mimeType      String
+  fileSize      Int
+  note          String?
+  motivoRifiuto String?
+  reviewedById  String?
+  reviewedBy    User?      @relation("CertReviewer", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  createdAt     DateTime   @default(now())
+
+  @@index([userId, status])
+  @@index([scadeIl])
+}
+
+// ---------------------------------------------------------------- squadre esterne
+
+/// Altri team: gestiscono campi, organizzano eventi, ci si gioca insieme.
+model SquadraEsterna {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  referente String?
+  telefono  String?
+  email     String?
+  sito      String?
+  citta     String?
+  provincia String?
+  note      String?
+  attiva    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  campi Field[]
+
+  @@index([attiva, nome])
+}
+
+// ---------------------------------------------------------------- campi da gioco
+
+model Field {
+  id        String    @id @default(cuid())
+  nome      String
+  tipo      FieldType @default(BOSCHIVO)
+  indirizzo String?
+  citta     String?
+  provincia String?
+  lat       Float?
+  lng       Float?
+  referente String?
+  telefono  String?
+  sito      String?
+  costo     Decimal?  @db.Decimal(10, 2)
+  note      String?
+  attivo    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  /// Squadra che lo gestisce, quando il campo non è nostro.
+  squadraId String?
+  squadra   SquadraEsterna? @relation(fields: [squadraId], references: [id], onDelete: SetNull)
+
+  events Event[]
+
+  @@index([squadraId])
+}
+
+// ---------------------------------------------------------------- anagrafiche di base
+
+/// Tipologie di attività, gestite dall'admin nei dati di base.
+/// Chi ha gia' aperto la scheda di chi. Serve al pallino sui "Nuovi": una
+/// registrazione resta segnalata finche' non la si e' andata a leggere, e
+/// vale per lettore, non per tutti: se la apre un admin, l'altro deve
+/// comunque vederla segnalata.
+model LetturaProfilo {
+  id        String   @id @default(cuid())
+  profiloId String
+  profilo   User     @relation("ProfiloLetto", fields: [profiloId], references: [id], onDelete: Cascade)
+  lettoreId String
+  lettore   User     @relation("Lettore", fields: [lettoreId], references: [id], onDelete: Cascade)
+  lettoIl   DateTime @default(now())
+
+  @@unique([profiloId, lettoreId])
+  @@index([lettoreId])
+}
+
+/// Credenziali del portale federale ASNWG/FIGT, salvate da un admin.
+/// La password serve in chiaro per fare il login sul portale, quindi non si
+/// puo' usare un hash: viene cifrata con AES-GCM e la chiave sta nell'ambiente.
+/// Riga unica: il collegamento e' uno solo per tutta l'associazione.
+model CredenzialeFigt {
+  id           String   @id @default("figt")
+  login        String
+  /// Password cifrata: iv, tag e testo cifrato in un'unica stringa.
+  passwordCifrata String
+  idAnagrafica String
+  /// Id affiliazione: serve alle polizze prova, ed e' un numero diverso
+  /// dall'id anagrafica usato per i tesseramenti annuali.
+  idAffiliazione String?
+  salvataDa    String?
+  salvataIl    DateTime @default(now())
+  ultimoAccesso DateTime?
+  ultimoEsito  String?
+  /// Polizze prova prepagate ancora da usare, come le conta il portale.
+  /// Sono soldi già spesi: la cassa le mostra insieme al saldo.
+  polizzeResidue Int?
+  polizzeAssegnate Int?
+  polizzeLetteIl DateTime?
+}
+
+/// Stato della copertura assicurativa per una singola partecipazione.
+enum StatoAssicurazione {
+  NON_ASSICURATO // serve la giornaliera e non e' ancora stata emessa
+  RICHIESTA // richiesta partita verso il portale, si aspetta risposta
+  ASSICURATO // giornaliera emessa: c'e' il codice
+  ERRORE // il portale ha rifiutato: si riprova o si fa a mano
+}
+
+/// Tessera giornaliera FIGT: la copertura di chi viene a giocare senza avere
+/// la tessera annuale. Vale per quella singola attivita' e per quel giorno,
+/// quindi vive attaccata alla coppia persona + attivita'.
+///
+/// Come la tessera annuale, non la emettiamo noi: il numero arriva dal portale
+/// federale. Qui si tiene traccia di dove sta la pratica.
+model TesseraGiornaliera {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation("GiornaliereUtente", fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  stato     StatoAssicurazione @default(NON_ASSICURATO)
+  /// Numero della polizza prova restituito dal portale.
+  codice    String?
+  /// Numero della polizza infortuni della compagnia (AIG), come lo scrive il portale.
+  polizzaInfortuni String?
+  /// Fino a quando copre: la polizza vale fino alle 24:00 del giorno della prova.
+  valeIl    DateTime?
+  /// Id della pratica sul portale, per risalire alla scheda.
+  idPortale String?
+  richiestaIl DateTime?
+  emessaIl  DateTime?
+  /// Esito dell'ultimo tentativo, per capire cosa e' andato storto.
+  esito     String?
+  /// Chi ha fatto partire la richiesta.
+  richiestaDaId String?
+  createdAt DateTime           @default(now())
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+/// Quello che il portale federale ha restituito, riga per riga. Si conserva
+/// per poter associare a mano i tesseramenti che l'abbinamento automatico non
+/// ha saputo attribuire, senza dover interrogare di nuovo il portale.
+model TesseramentoImportato {
+  id          String   @id @default(cuid())
+  numero      String   @unique
+  nominativo  String
+  email       String?
+  comune      String?
+  qualifica   String?
+  stato       String
+  tesseraAcsi String?
+  anno        Int
+  idPortale   String?
+  /// Operatore a cui e' stata attribuita, quando ci si e' riusciti.
+  userId      String?
+  user        User?    @relation("TesseramentoImportato", fields: [userId], references: [id], onDelete: SetNull)
+  lettoIl     DateTime @default(now())
+
+  @@index([anno])
+  @@index([userId])
+}
+
+/// Anagrafica delle stagioni sportive. Iscrizioni, tessere e attività vivono
+/// dentro una stagione: aprirne una nuova azzera la rosa, che si ricompone
+/// reinvitando gli operatori uno a uno.
+model Stagione {
+  id       String   @id @default(cuid())
+  nome     String   @unique // "2026/2027"
+  inizio   DateTime
+  fine     DateTime
+  /// La stagione in corso: una sola, è quella che il gestionale propone ovunque.
+  corrente Boolean  @default(false)
+  chiusa   Boolean  @default(false)
+  note     String?
+  createdAt DateTime @default(now())
+
+  memberships Membership[]
+  figtCards   FigtCard[]
+  eventi      Event[]
+  tariffe     Tariffa[]
+
+  @@index([corrente])
+}
+
+/// A cosa serve una tariffa dentro il gestionale. E' facoltativa: serve solo
+/// quando l'importo deve essere pescato da solo in qualche automatismo.
+enum VoceTariffa {
+  ISCRIZIONE // proposta come quota nelle richieste di primo tesseramento
+  REISCRIZIONE // proposta come quota nei rinnovi
+  TESSERA_FIGT // proposta quando si registra una tessera federale
+  GIOCATA_NUOVO // giocata degli esterni: arriva gia' spuntata creando un'attivita'
+  AFFITTO // noleggio attrezzatura
+  ATTIVITA // compare fra le voci con cui si compongono le quote di un'attivita'
+}
+
+/// Listino: quanto costa una cosa. Il nome e' libero, cosi' in una stagione
+/// possono convivere "Reiscrizione" e "Cassa comune".
+///
+/// Gli usi sono un insieme, non uno solo: un rinnovo puo' essere fatto di piu'
+/// voci (lo spaccato della quota) e la stessa voce puo' valere sia per
+/// l'iscrizione sia per la reiscrizione. Un automatismo propone la somma di
+/// tutte le voci che lo dichiarano.
+///
+/// La stagione e' facoltativa: senza, l'importo vale sempre; con la stagione
+/// vale solo per quella e ha la precedenza.
+model Tariffa {
+  id         String        @id @default(cuid())
+  nome       String
+  usi        VoceTariffa[]
+  stagioneId String?
+  stagione   Stagione?    @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
+  importo    Decimal      @db.Decimal(10, 2)
+  note       String?
+  attiva     Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+
+  @@index([nome])
+}
+
+model TipoAttivita {
+  id          String       @id @default(cuid())
+  nome        String       @unique
+  descrizione String?
+  colore      String       @default("verde") // tinta usata nel calendario
+  /// Categoria con cui nascono le quote generate da questa tipologia.
+  tipoQuota   PaymentType  @default(EVENTO)
+  /// Solo per le tipologie a formazione (gare, tornei): il TL schiera titolari
+  /// e riserve. Per allenamenti e simili non ha senso e non viene mostrato.
+  riserve     Boolean      @default(false)
+  /// Attività riservata alla squadra: non può essere rilasciata a tutti.
+  soloInterno Boolean      @default(false)
+  /// Richiede il certificato AGONISTICO: con il solo non agonistico non si entra.
+  certAgonistico Boolean   @default(false)
+  ordine      Int          @default(0)
+  attivo      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+
+  events Event[]
+
+  @@index([attivo, ordine])
+}
+
+/// Modalità con cui si incassa una quota, gestite nei dati di base.
+model MetodoPagamento {
+  id          String   @id @default(cuid())
+  nome        String   @unique
+  descrizione String?
+  /// Indicazioni per chi paga: IBAN, numero Satispay, e simili.
+  istruzioni  String?
+  /// Se vero l'operatore può dichiararlo da sé quando salda.
+  selfService Boolean  @default(false)
+  ordine      Int      @default(0)
+  attivo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  payments   Payment[]
+  movimenti  MovimentoCassa[]
+
+  @@index([attivo, ordine])
+}
+
+// ---------------------------------------------------------------- eventi
+
+model Event {
+  id                 String          @id @default(cuid())
+  titolo             String
+  descrizione        String?
+  tipoId             String?
+  tipo               TipoAttivita?   @relation(fields: [tipoId], references: [id])
+  stagioneId         String?
+  stagione           Stagione?       @relation(fields: [stagioneId], references: [id])
+  visibilita         EventVisibility? // obbligatoria solo al rilascio
+  status             EventStatus     @default(CREATA)
+  inizio             DateTime
+  fine               DateTime?
+  ritrovo            String?
+  oraRitrovo         DateTime?
+  fieldId            String?
+  field              Field?          @relation(fields: [fieldId], references: [id])
+  /// Quota di chi è in squadra. Nulla = attività gratuita per loro; si compone
+  /// dalle voci di listino come le iscrizioni, e `dettaglio` racconta di cosa
+  /// è fatta ("Contributo campo 5,00 €").
+  costo              Decimal?        @db.Decimal(10, 2)
+  dettaglioCosto     String?
+  /// Quota di chi in squadra non è (i "nuovi" che vengono alle aperte).
+  /// Nulla = pagano come la squadra; zero = la giocata è offerta.
+  costoEsterni       Decimal?        @db.Decimal(10, 2)
+  dettaglioCostoEsterni String?
+  maxPartecipanti    Int?
+  chiusuraIscrizioni DateTime?
+  note               String?
+  createdById        String?
+  createdBy          User?           @relation("EventCreator", fields: [createdById], references: [id])
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  rsvps       EventRsvp[]
+  payments    Payment[]
+  giornaliere TesseraGiornaliera[]
+
+  @@index([inizio])
+}
+
+model EventRsvp {
+  id           String       @id @default(cuid())
+  eventId      String
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       RsvpStatus
+  assegnazione Assegnazione @default(NON_ASSEGNATO)
+  presente     Boolean? // presenza effettiva, registrata a evento concluso
+  note         String?
+  respondedAt  DateTime     @default(now())
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- iscrizioni
+
+model Membership {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  stagioneId  String
+  stagione    Stagione         @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
+  tipo        TipoIscrizione   @default(ISCRIZIONE)
+  status      MembershipStatus @default(INVITATA)
+  quota       Decimal?         @db.Decimal(10, 2)
+  /// Di cosa è fatta la quota, quando nasce da più voci di listino:
+  /// "Reiscrizione 50 € + Cassa comune 25 €". Serve a chi la riceve per capire
+  /// cosa sta pagando, e a noi per ricostruirlo a distanza di un anno.
+  dettaglioQuota String?
+  messaggio   String? // testo dell'invito
+  compilato   String? // note lasciate dall'operatore in fase di compilazione
+  note        String? // esito / motivo del rifiuto
+  invitataIl  DateTime         @default(now())
+  invitedById String?
+  invitedBy   User?            @relation("MembershipInviter", fields: [invitedById], references: [id])
+  compilataIl DateTime?
+  decisaIl    DateTime?
+  decidedById String?
+  decidedBy   User?            @relation("MembershipDecider", fields: [decidedById], references: [id])
+  scadeIl     DateTime?
+
+  payments Payment[]
+
+  @@unique([userId, stagioneId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------- tessere FIGT
+
+model FigtCard {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codice       String? // n° tessera FIGT recuperato dal portale ASNWG, es. "2026-02885"
+  /// Anno di tesseramento federale: la tessera vale fino al 31 dicembre di quell'anno.
+  anno         Int?
+  /// Id del tesseramento sul portale, per risalire alla scheda originale.
+  idPortale    String?
+  /// Nominativo come lo scrive il portale: serve a rivedere gli abbinamenti.
+  nominativo   String?
+  stagioneId   String
+  stagione     Stagione   @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
+  status       FigtStatus @default(DA_RECUPERARE)
+  scadeIl      DateTime?
+  verificatoIl DateTime?
+  note         String?
+  createdAt    DateTime   @default(now())
+
+  payments Payment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------- pagamenti
+
+model Payment {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation("PaymentUser", fields: [userId], references: [id], onDelete: Cascade)
+  tipo         PaymentType
+  descrizione  String
+  importo      Decimal        @db.Decimal(10, 2)
+  pagato       Decimal        @default(0) @db.Decimal(10, 2)
+  status       PaymentStatus    @default(DA_PAGARE)
+  metodoId     String?
+  metodo       MetodoPagamento? @relation(fields: [metodoId], references: [id])
+  scadenza     DateTime?
+  pagatoIl     DateTime?
+  /// Quando l'operatore ha dichiarato di aver pagato: resta da confermare.
+  dichiaratoIl DateTime?
+  note         String?
+  eventId      String?
+  event        Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  membershipId String?
+  membership   Membership?    @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  figtCardId   String?
+  figtCard     FigtCard?      @relation(fields: [figtCardId], references: [id], onDelete: SetNull)
+  recordedById String?
+  recordedBy   User?          @relation("PaymentRecorder", fields: [recordedById], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  /// Quota di cui questo movimento è il rimborso.
+  rimborsoDiId String?    @unique
+  rimborsoDi   Payment?   @relation("Rimborso", fields: [rimborsoDiId], references: [id], onDelete: Cascade)
+  rimborso     Payment?   @relation("Rimborso")
+
+  @@index([userId, status])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------- cassa
+
+enum TipoMovimento {
+  ENTRATA
+  USCITA
+}
+
+/// Movimenti di cassa inseriti a mano: quello che non nasce dalle attività.
+model MovimentoCassa {
+  id             String           @id @default(cuid())
+  tipo           TipoMovimento
+  descrizione    String
+  importo        Decimal          @db.Decimal(10, 2)
+  data           DateTime         @default(now())
+  categoria      String?
+  note           String?
+  metodoId       String?
+  metodo         MetodoPagamento? @relation(fields: [metodoId], references: [id])
+  registratoById String?
+  registratoBy   User?            @relation("CassaRegistrante", fields: [registratoById], references: [id])
+  createdAt      DateTime         @default(now())
+
+  @@index([data])
+}
+
+// ---------------------------------------------------------------- note interne
+
+model PlayerNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("NoteSubject", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("NoteAuthor", fields: [authorId], references: [id])
+  testo     String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

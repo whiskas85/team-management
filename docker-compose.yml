@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ${NOME_STACK:-zd}-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zerodark}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zerodark}
+      POSTGRES_DB: ${POSTGRES_DB:-zerodark}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zerodark} -d ${POSTGRES_DB:-zerodark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: ${NOME_STACK:-zd}-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zerodark}:${POSTGRES_PASSWORD:-zerodark}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:-cambia-questa-chiave-in-produzione-almeno-32-char}
+      # metti 1 solo quando l'app sta dietro HTTPS, altrimenti in LAN il login non tiene
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      # 1 = mostra i pulsanti di accesso rapido per figura nella pagina di login
+      DEBUG_LOGIN: ${DEBUG_LOGIN:-0}
+      UPLOAD_DIR: /data/uploads
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@zerodark.team}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ZeroDark2026!}
+      NODE_ENV: production
+      # "prod" o "test": in test il gestionale mostra una fascia di avviso e
+      # rifiuta le operazioni che consumano risorse vere sul portale federale
+      AMBIENTE: ${AMBIENTE:-prod}
+      # senza fuso esplicito il container gira in UTC e gli orari degli eventi
+      # slittano rispetto a quelli digitati dagli operatori
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+volumes:
+  db-data:
+  uploads:

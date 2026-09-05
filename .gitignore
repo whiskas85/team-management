@@ -1,0 +1,10 @@
+node_modules
+.next
+uploads
+*.log
+tsconfig.tsbuildinfo
+
+# Segreti: nel repo va solo il modello, .env.example.
+.env
+.env.*
+!.env.example

@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Palette estratta dal logo Zero Dark Team: fondo nero, verde visore notturno,
+   bianco osso e il tricolore come dettaglio. */
+:root {
+  --bg: #050605;
+  --surface: #0e110e;
+  --surface-2: #151a15;
+  --border: #232a23;
+  --text: #e7ede7;
+  --muted: #7f8a7f;
+  --nvg: #4cff00;
+  --nvg-dim: #34ad00;
+  --it-green: #008c45;
+  --it-red: #cd212a;
+  --warn: #ffb300;
+  --danger: #ff4438;
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image:
+    radial-gradient(900px 500px at 50% -10%, rgba(76, 255, 0, 0.06), transparent 70%),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.014) 0px,
+      rgba(255, 255, 255, 0.014) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  background-attachment: fixed;
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-line bg-surface p-4;
+  }
+
+  .card-hover {
+    @apply transition-colors hover:border-nvgdim hover:bg-surface2;
+  }
+
+  .titolo-sezione {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-muted;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-medium text-muted;
+  }
+
+  /* cifre allineate in colonna, senza ricorrere a un monospace */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .input {
+    @apply w-full rounded-md border border-line bg-surface2 px-3 py-2 text-sm text-ink
+           outline-none transition-colors placeholder:text-muted/60
+           focus:border-nvg focus:ring-1 focus:ring-nvg/40;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm
+           font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-nvg text-black hover:bg-[#63ff26];
+  }
+
+  .btn-ghost {
+    @apply btn border border-line bg-surface2 text-ink hover:border-nvgdim hover:text-nvg;
+  }
+
+  .btn-danger {
+    @apply btn border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20;
+  }
+
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5
+           text-[11px] font-medium;
+  }
+
+  .tabella {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .tabella thead th {
+    @apply border-b border-line px-3 py-2.5 text-left text-[11px] font-semibold
+           uppercase tracking-[0.06em] text-muted;
+  }
+
+  .tabella tbody td {
+    @apply border-b border-line/60 px-3 py-3 align-middle;
+  }
+
+  .tabella tbody tr {
+    @apply transition-colors hover:bg-surface2/70;
+  }
+}
+
+/* barre di scorrimento coerenti col tema */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nvg-dim);
+}
