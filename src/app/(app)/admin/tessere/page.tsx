@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { elencoOperatori } from '@/lib/query';
-import { URL_ASNWG, puoAmministrare, tonoFigt } from '@/lib/domain';
+import { URL_ASNWG, puoAmministrare, tonoFigt, vedeAreaTesseramento } from '@/lib/domain';
 import { fmtDate, giorniA, nomeCompleto, umanizza } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
@@ -20,6 +20,7 @@ import {
   scollegaFigt,
 } from '@/actions/figt';
 import { AbbinaTessere } from '@/components/AbbinaTessere';
+import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
 
 export default async function TesserePage() {
   await requirePermesso(puoAmministrare);
@@ -44,6 +45,12 @@ export default async function TesserePage() {
   // quelle che il portale ha dato ma che nessuno ha ancora attribuito
   const daAssociare = importate.filter((t) => !t.userId);
 
+  // La tessera federale riguarda chi è in squadra. Un contatto che viene alle
+  // aperte non sarà mai tesserato — gioca con la giornaliera — e chi è da
+  // riconfermare lo sarà semmai dopo aver rinnovato: segnalarli come "senza
+  // tessera" riempie la pagina di allarmi su cui non c'è niente da fare.
+  const daTesserare = operatori.filter((o) => vedeAreaTesseramento(o.stato));
+
   // e le persone che aspettano una tessera: due liste che si guardano
   const conTessera = new Set(tessere.map((t) => t.userId));
   const senzaTessera = operatori
@@ -65,7 +72,7 @@ export default async function TesserePage() {
   const conRiga = new Set(
     tessere.filter((t) => t.stagione.nome === stagione.nome).map((t) => t.userId),
   );
-  const senzaRiga = operatori.filter((o) => !conRiga.has(o.id));
+  const senzaRiga = daTesserare.filter((o) => !conRiga.has(o.id));
 
   return (
     <>
@@ -258,7 +265,7 @@ export default async function TesserePage() {
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Statistica etichetta="Attive" valore={attive.length} tono="ok" />
         <Statistica
           etichetta="Codice da recuperare"
@@ -277,11 +284,15 @@ export default async function TesserePage() {
           dettaglio={`stagione ${stagione.nome}`}
           tono={senzaRiga.length ? 'warn' : 'ok'}
         />
+        <GiacenzaPolizze />
       </div>
 
       {senzaRiga.length > 0 && (
         <div className="mb-6 rounded-md border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
-          {senzaRiga.length} operatori non risultano tesserati per la stagione {stagione.nome}:{' '}
+          {senzaRiga.length === 1
+            ? '1 operatore in squadra non risulta tesserato'
+            : `${senzaRiga.length} operatori in squadra non risultano tesserati`}{' '}
+          per la stagione {stagione.nome}:{' '}
           {senzaRiga.map((o) => `${o.nome} ${o.cognome}`).join(', ')}. Se sul portale la tessera
           c’è, rilancia l’importazione; altrimenti va richiesta alla federazione.
         </div>

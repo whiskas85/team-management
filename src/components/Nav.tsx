@@ -11,7 +11,13 @@ export type VoceMenu = {
   href: string;
   label: string;
   icona: NomeIcona;
-  gruppo: 'principale' | 'amministrazione' | 'segreteria' | 'comando';
+  gruppo:
+    | 'principale'
+    | 'mercatino'
+    | 'regolamenti'
+    | 'amministrazione'
+    | 'segreteria'
+    | 'comando';
   badge?: number;
 };
 
@@ -23,6 +29,8 @@ type Props = {
 
 const ETICHETTA_GRUPPO: Record<string, string> = {
   principale: 'Operativo',
+  mercatino: 'Mercatino',
+  regolamenti: 'Regolamenti',
   amministrazione: 'Amministrazione',
   segreteria: 'Segreteria',
   comando: 'Comando',
@@ -40,8 +48,15 @@ export function Nav({ voci, utente, esci }: Props) {
   // pannello non resterebbe alcun segnale che qualcosa aspetta una risposta
   const daVedere = voci.reduce((t, v) => t + (v.badge ?? 0), 0);
 
-  const gruppi = ['principale', 'amministrazione', 'segreteria', 'comando'].filter((g) =>
-    voci.some((v) => v.gruppo === g),
+  const gruppi = [
+    'principale',
+    'mercatino',
+    'regolamenti',
+    'amministrazione',
+    'segreteria',
+    'comando',
+  ].filter(
+    (g) => voci.some((v) => v.gruppo === g),
   );
   // sul telefono la barra in basso tiene le quattro voci più usate
   const rapide = voci.filter((v) => v.gruppo === 'principale').slice(0, 4);

@@ -1,7 +1,7 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin, statoEffettivo } from '@/lib/domain';
-import { fmtDate } from '@/lib/format';
+import { fmtDate, fmtDateTime } from '@/lib/format';
 import { Campo, Intestazione, Statistica } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
@@ -13,9 +13,12 @@ import { creaOperatore } from '@/actions/operatori';
 export default async function OperatoriPage() {
   await requirePermesso(isAdmin);
 
-  // qui vivono gli atleti registrati: i contatti da valutare stanno in "Nuovi"
+  // Qui vivono gli atleti registrati: i contatti da valutare stanno in "Nuovi".
+  // Chi è da riconfermare va tenuto dentro: aprendo una stagione tutta la rosa
+  // passa in quello stato, e finché non compariva qui restava invisibile —
+  // impossibile riconfermarlo, modificarlo o cancellarlo dall'applicazione.
   const operatori = await prisma.user.findMany({
-    where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DISABILITATO'] } },
+    where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO'] } },
     orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
     include: {
       certificates: { select: { status: true, scadeIl: true }, orderBy: { createdAt: 'desc' } },
@@ -39,7 +42,9 @@ export default async function OperatoriPage() {
       presenze: o.rsvps.filter((r) => r.presente === true).length,
       certStato: cert ? statoEffettivo(cert) : null,
       certScade: cert?.scadeIl ? fmtDate(cert.scadeIl) : null,
-      ultimoAccesso: o.ultimoAccesso ? fmtDate(o.ultimoAccesso) : null,
+      // con l'ora: sapere se è entrato stamattina o tre settimane fa cambia
+      ultimoAccesso: o.ultimoAccesso ? fmtDateTime(o.ultimoAccesso) : null,
+      ultimoAccessoIl: o.ultimoAccesso ? o.ultimoAccesso.getTime() : null,
       daSaldare: o.payments
         .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
         .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0),
@@ -47,6 +52,7 @@ export default async function OperatoriPage() {
   });
 
   const inSquadra = righe.filter((r) => r.stato === 'SQUADRA').length;
+  const daRiconfermare = righe.filter((r) => r.stato === 'DA_RICONFERMARE').length;
   const senzaCertificato = righe.filter((r) => r.certStato !== 'VALIDO').length;
   const conDebito = righe.filter((r) => r.daSaldare > 0).length;
   const teamLeader = righe.filter((r) => r.roles.includes('TL')).length;
@@ -95,7 +101,12 @@ export default async function OperatoriPage() {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Statistica etichetta="In squadra" valore={inSquadra} tono="ok" />
+        <Statistica
+          etichetta="In squadra"
+          valore={inSquadra}
+          dettaglio={daRiconfermare > 0 ? `${daRiconfermare} da riconfermare` : undefined}
+          tono="ok"
+        />
         <Statistica etichetta="Team leader" valore={teamLeader} tono="warn" />
         <Statistica
           etichetta="Senza certificato valido"
@@ -109,7 +120,12 @@ export default async function OperatoriPage() {
         />
       </div>
 
-      <ElencoOperatori righe={righe} statiFiltrabili={['SQUADRA', 'SOSPESO', 'DISABILITATO']} />
+      <ElencoOperatori
+        righe={righe}
+        statiFiltrabili={['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO']}
+        puoEliminare
+        puoAssegnareRuoli
+      />
     </>
   );
 }

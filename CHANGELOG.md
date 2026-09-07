@@ -1,0 +1,462 @@
+# Registro delle modifiche
+
+Le versioni seguono `MAJOR.MINOR.PATCH`, come spiegato nel README: **major**
+quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
+correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
+accanto a ZERO DARK.
+
+## 1.16.2 — 7 settembre 2026
+
+### Cambiato
+
+- **Il conteggio sulle card dice un'altra cosa.** *3/2* faceva sembrare che tre
+  persone fossero entrate in due posti. Ora si legge **4 (1/2)**: quattro
+  disponibili, uno schierato, due posti. Sono le due domande che ci si fa
+  guardando una card — c'è gente, e la formazione è ancora da fare.
+- **Dove i posti sono contati si schiera**, anche se la tipologia non prevede le
+  riserve: un limite che nessuno può far rispettare non è un limite, e il numero
+  degli schierati sarebbe rimasto fermo a zero per sempre.
+
+### Aggiunto
+
+- **Pallino su *Miei pagamenti*** con quante quote hai aperte. Una quota appena
+  addebitata restava invisibile finché non si apriva la pagina per caso. I
+  rimborsi non contano: sono soldi in arrivo, non una cosa da fare.
+## 1.16.1 — 7 settembre 2026
+
+### Corretto
+
+- **Le riserve non pagano più niente.** Su un'attività con formazione la quota
+  la deve **chi scende in campo**: chi resta riserva al club non deve nulla,
+  perché non gioca. Prima la quota nasceva al momento della disponibilità, e
+  chi non veniva schierato se la ritrovava addebitata lo stesso.
+- **Il badge “quota da saldare” guardava il costo dell'attività**, non la quota
+  di quella persona: compariva anche a chi non aveva nessun pagamento aperto.
+  Ora segue il pagamento vero, quindi dice sempre la verità.
+- **Essere schierato titolare adesso genera la quota**, e la si trova subito in
+  *Miei pagamenti*. Toglierlo dalla formazione la fa sparire — finché non è
+  stato incassato niente, come per ogni altro pagamento.
+- **La quota nasce anche se il costo arriva dopo.** Prima si calcolava solo
+  quando uno rispondeva: se l'attività veniva creata gratuita e il prezzo si
+  metteva più tardi, non si generava più niente per nessuno. Ora salvare
+  l'attività rimette in pari le quote di tutti.
+- **Togliere un partecipante porta via la sua quota**, che prima restava
+  addebitata a chi non era più nell'elenco.
+## 1.16.0 — 7 settembre 2026
+
+### Cambiato
+
+- **I posti non chiudono più le adesioni.** Chiunque può dare la propria
+  disponibilità: il tetto vale **al momento di schierare**, che è quando
+  qualcuno decide davvero, non quando uno alza la mano. Se i posti sono due e i
+  disponibili sono tre, il terzo resta **riserva** — e nemmeno un team leader
+  può farne entrare uno in più di quelli previsti.
+- **Mercatino e merchandising sono due voci separate**, in un raggruppamento
+  loro. Non è un filtro dello stesso elenco: nell'usato la roba passa di mano
+  fra soci e il gestionale non tocca i soldi, nel merchandising vende il team e
+  l'incasso finirà in cassa.
+- **Il merchandising lo vede solo chi è nel club.** Le magliette le fa fare e le
+  paga la squadra: chi al team non appartiene ancora non ne sfoglia il catalogo.
+  L'usato invece resta aperto a tutti, contatti compresi.
+- **Gli esiti dei pulsanti compaiono in un avviso in basso**, non più dentro la
+  riga. Il testo allargava la riga e per far posto si accorciava il nome della
+  persona — *«Marc…»*: il messaggio ha bisogno di spazio che la riga non ha.
+
+### Aggiunto
+
+- **Conto alla rovescia per la chiusura delle adesioni**: un badge che dice
+  quanto manca (*adesioni: 2g 4h*) e si scalda avvicinandosi, poi diventa
+  **adesioni chiuse**. Una data costringe a fare il conto a mente ogni volta.
+## 1.15.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Il mercatino, prima parte.** Una bacheca interna: chi ha roba da vendere la
+  mette, chi la cerca la trova. **La vedono tutti**, contatti compresi;
+  pubblicare invece è di chi è in squadra, e per i nuovi c'è un interruttore che
+  l'admin accende quando vuole.
+- **Un annuncio è un lotto, non un oggetto.** *«Vendo tutto: torcia 50, tattico
+  100, mesh 150»* è un annuncio solo con tre voci, ognuna con prezzo e
+  descrizione sue. In bacheca si legge l'intervallo, e quando resta solo la mesh
+  si legge il suo prezzo — non continua a dire *da 50*.
+- **Due nature di merce.** Il **pezzo unico** si prenota e si vende, e finisce
+  lì; la **merce riordinabile** — magliette, mimetiche — non ha stato di
+  vendita, perché non c'è niente da esaurire.
+- **La copertina la scegli tu** fra le foto caricate: è la sola cosa che si vede
+  prima di decidere se aprire.
+- **Le foto si rimpiccioliscono nel browser** prima di partire, e ne parte anche
+  una miniatura per le card. Venti foto intere in una pagina, da telefono dentro
+  ZeroTier, davano un sito che sembrava rotto senza esserlo.
+- **Ricerca e filtri** dal primo giorno, e due scaffali distinti: *usato della
+  squadra* e *merchandising*.
+
+### Corretto
+
+- **I certificati medici si possono eliminare.** Un doppione andava *rifiutato*
+  per toglierlo di mezzo, e restava in elenco una riga rossa che raccontava una
+  bocciatura mai avvenuta. Ora chi amministra i certificati può eliminarne uno
+  qualsiasi — anche già approvato, con l'avviso che se è l'unico la persona
+  risulterà scoperta. Insieme alla riga sparisce il file allegato.
+## 1.14.1 — 7 settembre 2026
+
+### Cambiato
+
+- **Regolamenti e statuto hanno un raggruppamento loro nel menu**, fra
+  *Operativo* e *Amministrazione*: sono testi che si consultano, non cose da
+  fare, e in mezzo alle voci operative si perdevano.
+## 1.14.0 — 7 settembre 2026
+
+### Cambiato
+
+- **Statuto e regolamenti si sono divisi in due sezioni.** Stavano nella stessa
+  pagina e avevano la stessa porta, ma non sono la stessa cosa: **i regolamenti
+  li legge chiunque abbia un account**, contatti compresi — sono quello che si
+  mostra a chi si sta affacciando — mentre **lo statuto resta di chi è dentro**,
+  perché dice come funziona il team.
+- **I regolamenti sono un elenco, non un testo solo.** Se ne creano quanti
+  servono, ognuno con titolo, sottotitolo e ordine: quello di condotta, quello
+  del mercatino, quelli che verranno. Li scrivono comando, amministrazione e
+  segreteria, e ogni salvataggio lascia il nome di chi l'ha fatto.
+- **I testi sono passati dai file al database.** Due file andavano bene finché
+  erano due; per un elenco servivano titolo e ordine, e un indice a fianco dei
+  file sarebbe stata una tabella scritta peggio. Quello che c'era nei file
+  viene importato al primo avvio, e i file restano dove sono.
+
+### Aggiunto
+
+- **Piano del mercatino** in `DA-FARE.md`: cosa si costruisce, in che ordine, e
+  le scelte già prese con le loro ragioni.
+## 1.13.0 — 6 settembre 2026
+
+### Cambiato
+
+- **Lo storico di una persona non contiene più il futuro.** Un'uscita fra tre
+  settimane compariva in mezzo alle partecipazioni passate, e di storico non
+  aveva niente. Ora sono due elenchi: **in programma** e **già fatte**. Un'
+  attività di cui è stato fatto l'appello passa fra quelle fatte anche se è di
+  oggi — altrimenti si leggerebbe *c'era* sotto il titolo *in programma*.
+- **Dalle righe dello storico si va sull'attività**: prima erano solo testo.
+- **Un badge solo anche qui**, come sulla pagina dell'attività: la risposta
+  finché l'appello non è fatto, poi **c'era** o **non c'era**.
+
+### Rimosso
+
+- **Il pulsante che toglieva la copertura assicurativa.** Un'attivazione sul
+  portale federale consuma una polizza vera e non si annulla: cancellare la
+  nostra riga faceva risultare la persona scoperta mentre la polizza restava
+  spesa. Tolto il pulsante e tolta l'azione dietro — una regola che vale solo
+  finché nessuno trova il pulsante non è una regola.
+## 1.12.2 — 6 settembre 2026
+
+### Corretto
+
+- **Il pulsante *Togli* accanto a un assicurato non diceva cosa toglieva.** Sta
+  a fianco del cestino che rimuove la persona, e si prestava a essere letto
+  come “togli il partecipante”. Ora è **Togli copertura**, e la conferma dice
+  la cosa che conta davvero: qui la persona torna non assicurata, ma **la
+  polizza sul portale federale resta consumata** — un'attivazione non si
+  annulla, quindi non è un ripensamento gratis.
+## 1.12.1 — 6 settembre 2026
+
+### Cambiato
+
+- **Un badge solo per partecipante.** Dopo l'appello ce n'erano due quasi
+  uguali — *presente* e *Presente* — e toccava indovinare quale parlasse della
+  risposta e quale della presenza vera. Ora prima dell'appello si legge cosa ha
+  risposto (*Presente*, *Forse*, *Assente*) e dopo l'appello **c'era** o **non
+  c'era**, che è l'unica cosa che conta ancora.
+## 1.12.0 — 6 settembre 2026
+
+### Aggiunto
+
+- **Il pulsante *Nota* dice quante ne hai già su quella persona** (*Nota · 2*):
+  si vede se c'è qualcosa da rileggere senza doverlo aprire per scoprirlo.
+  Contano sia le note appuntate a lei sia quelle che la nominano, esattamente
+  come sulla sua scheda — se contassero in modo diverso il numero non tornerebbe
+  con quello che poi si apre.
+- **Le note precedenti si sfogliano mentre ne scrivi una nuova**: sotto al
+  modulo, in riquadri che si aprono uno alla volta, con accanto la data e
+  l'attività a cui erano legate. Serve a non ripetersi e a ricordare com'era
+  finita l'altra volta.
+
+### Cambiato
+
+- **Ogni nota porta scritto “privato”**, non solo l'intestazione dell'elenco.
+  Una nota la si rilegge da sola, magari mesi dopo: scrivere di qualcuno
+  credendo che sia privato quando non lo è sarebbe il modo peggiore di
+  scoprirlo, quindi la regola sta attaccata alla nota e non altrove.
+## 1.11.1 — 6 settembre 2026
+
+### Aggiunto
+
+- **Nota rapida su una persona dall'attività**: accanto a ogni partecipante c'è
+  il pulsante *Nota*, e quello che scrivi nasce già legato **a lei e a quella
+  giocata**. È il momento in cui ci si ricorda cos'è successo — chiederlo dopo
+  dalla scheda vorrebbe dire riscrivere anche dov'era. La nota si ritrova da
+  tutte e due le parti, con scritto sopra su chi e su cosa.
+
+### Corretto
+
+- **Dall'attività non si apriva la scheda di un contatto**, nemmeno per chi i
+  contatti li segue: il nome era cliccabile solo fra membri della squadra. Ora
+  la regola è la stessa di ogni altro elenco — comando, amministrazione e
+  segreteria aprono anche i nuovi, il team leader legge il nome e basta.
+- Il segnaposto della casella delle note non racconta più un litigio.
+## 1.11.0 — 6 settembre 2026
+
+### Aggiunto
+
+- **Note private** per chi ha un incarico — comando, amministrazione,
+  segreteria, team leader. Hanno un titolo e un testo, si appuntano a una
+  persona o a un'attività, e **le legge solo chi le ha scritte**: nessun altro,
+  admin compreso. È il patto che le rende utili — una nota su una lite la si
+  scrive com'è andata solo se non finisce sotto gli occhi di altri.
+- **Chiocciole nelle note.** Scrivendo `@` compare l'elenco delle persone; chi
+  nomini se la ritrova sulla propria scheda, sempre e solo sotto i tuoi occhi.
+  Così una nota scritta su una giocata — *«@vipera ha coperto bene il fianco destro»* —
+  la ritrovi anche aprendo l'uno o l'altro, senza riscriverla due volte.
+- **Pagina Note**, dove ci sono tutte le tue con la ricerca nel titolo e nel
+  testo: prima o poi si cerca qualcosa senza ricordarsi dove lo si era scritto.
+- **Editor Markdown** con i pulsanti per grassetto, corsivo, titoli, elenchi e
+  collegamenti, e l'anteprima che usa lo stesso motore che poi mostra il testo
+  per davvero. Vale per le note e anche per **statuto e regolamento**.
+- **Commenti e “mi piace” sulle attività, per tutti.** Se l'attività la vedi,
+  puoi dire la tua: è la regola più semplice da spiegare. Il proprio commento si
+  cancella sempre, quello altrui solo l'admin.
+
+### Cambiato
+
+- **Le vecchie note interne sull'operatore non ci sono più.** Erano senza
+  titolo, stavano solo sulle persone ed erano leggibili da chiunque potesse
+  aprire la scheda. Le nuove fanno tutto quello che facevano loro, e in più
+  sono private davvero.
+
+### Corretto
+
+- **Niente più riquadro di conferma dopo un “mi piace” o un commento**: la cosa
+  si vede fatta, dirlo anche a parole era rumore.
+## 1.10.0 — 6 settembre 2026
+
+### Aggiunto
+
+- **Assistenti collegati al gestionale (MCP).** Ognuno, dalla voce *Assistente*,
+  può creare una chiave personale e collegarci un assistente: quello che
+  l'assistente sa fare è **esattamente quello che saprebbe fare quella persona**
+  con il suo account, né più né meno.
+- **I permessi sono quelli veri, non una copia.** Un assistente che lavora per
+  un atleta vede il calendario, le sue quote, i suoi certificati e risponde alle
+  attività; per la segreteria vede anche quote aperte e cassa; per l'admin crea
+  attività e registra incassi. Gli strumenti che non competono alla persona non
+  compaiono nemmeno nell'elenco, e se domani cambia un ruolo le chiavi già fatte
+  cambiano con lui: non c'è un secondo elenco di permessi da tenere allineato.
+- **Le regole restano le regole.** Chi si segna a un'attività da un assistente
+  passa dagli stessi controlli del gestionale — adesioni aperte, posti, quota
+  addebitata, certificato medico dove serve — perché è lo stesso codice, non una
+  seconda versione scritta apposta.
+- **La pagina dice cosa stai dando.** Sotto le chiavi c'è l'elenco degli
+  strumenti calcolato sui tuoi ruoli, con evidenziati quelli che modificano i
+  dati. Della chiave si conserva solo l'impronta: si vede una volta sola, e chi
+  la perde ne fa un'altra invece di farsela ridire.
+
+### Note
+
+- Una chiave vale quanto una password: chi ce l'ha lavora a nome di chi l'ha
+  creata. Si revoca dalla stessa pagina, e da quel momento non apre più niente.
+- L'indirizzo è `/api/mcp` sullo stesso gestionale: ci arriva chi è dentro
+  ZeroTier, come per tutto il resto.
+## 1.9.0 — 6 settembre 2026
+
+### Aggiunto
+
+- **Messaggi WhatsApp nei gruppi**, in `Comando → Messaggi WhatsApp`: auguri di
+  compleanno, promemoria dell'attività del giorno dopo con indirizzo e link alla
+  mappa, solleciti delle quote aperte e dei certificati in scadenza.
+- **Modelli a rotazione.** Dello stesso tipo se ne scrivono quanti si vuole: il
+  gestionale usa a turno quello fermo da più tempo, così dieci auguri di fila non
+  sono dieci volte la stessa frase. Nel testo si mettono segnaposto come
+  `{nome}`, `{callsign}`, `{attivita}`, `{indirizzo}`, `{mappa}`.
+- **Si prepara, si guarda, poi si manda.** I messaggi non partono da soli: prima
+  compaiono in elenco con il testo definitivo. Un messaggio automatico sbagliato
+  non si corregge dopo — è già sul telefono di qualcuno.
+- **Ogni invio lascia traccia** con l'esito riga per riga, e un doppione è
+  impossibile: compleanno una volta l'anno, promemoria una volta per attività,
+  garantito dal database e non dalla buona memoria.
+
+### Corretto
+
+- **Dopo un aggiornamento il sito poteva rispondere "502"** finché non si
+  riavviava a mano il proxy: nginx risolveva l'indirizzo dell'applicazione una
+  volta sola all'avvio e si teneva quello vecchio. Ora lo richiede al momento.
+
+### Note
+
+- Il collegamento a WhatsApp **è di una persona, non di un ruolo**: la sessione
+  la rivendica chi ha inquadrato il codice, e nessun altro amministratore può
+  mandare messaggi da quel numero. Deve scollegare e collegare il proprio.
+- Il canale non è l'interfaccia ufficiale di Meta, che nei gruppi non scrive: il
+  gestionale si collega come farebbe un telefono, il che è fuori dai termini di
+  servizio di WhatsApp. Va usato un **numero dedicato**, mai quello personale.
+- La sessione vive in un servizio a parte che non pubblica porte: nessun token
+  finisce nel database né sotto gli occhi di altri utenti.
+
+## 1.8.0 — 6 settembre 2026
+
+### Aggiunto
+
+- **L'attività di oggi ha il suo posto in dashboard**, staccata da quelle che
+  verranno. La finestra parte da mezzanotte e non da adesso: un'attività
+  cominciata stamattina è ancora quella di oggi, e toglierla dalla pagina
+  proprio mentre si sta giocando sarebbe il momento peggiore per farlo.
+- **Appello diviso fra squadra e nuovi**, come già l'elenco dei partecipanti:
+  hanno adempimenti diversi — i nuovi vanno assicurati con la giornaliera — e
+  in una lista sola non si vede più chi è chi.
+- **Foto e frase sulla scheda di un compagno**, che prima mostrava solo le
+  iniziali; la foto compare anche nella scheda vista dallo staff.
+
+### Corretto
+
+- **Su telefono il nome dei partecipanti spariva.** Nome, badge e pulsanti
+  stavano su una riga sola: il nome poteva stringersi fino a zero, badge e
+  pulsanti no. Ora il nome ha la sua riga e i comandi vanno a capo sotto; su
+  schermo largo resta tutto in linea come prima.
+
+## 1.7.0 — 5 settembre 2026
+
+### Cambiato
+
+- **Statuto e regolamento li aggiornano anche amministrazione e segreteria**,
+  non più il solo admin: sono i testi che si ritrovano fra le mani quando cambia
+  una quota o una regola di condotta, e farli passare ogni volta da chi ha le
+  chiavi di tutto vuol dire che restano vecchi. Leggerli resta di tutta la
+  squadra.
+
+### Corretto
+
+- **Nome della stagione calcolato invece che letto.** In dashboard, statistiche
+  e richieste di iscrizione compariva "2026/2027" — dedotto dal calendario —
+  mentre la stagione aperta si chiama "2026". Ora si legge il nome che le ha
+  dato chi l'ha aperta, che è l'unico che la squadra riconosce.
+
+## 1.6.0 — 5 settembre 2026
+
+### Aggiunto
+
+- **Installabile come applicazione** su Android, iPhone e computer: icona sulla
+  schermata iniziale, avvio a schermo intero senza barra degli indirizzi,
+  scorciatoie a calendario e pagamenti. Le pagine non vengono tenute in memoria
+  di proposito — qui dentro ci sono elenchi di persone, quote e dati sanitari, e
+  una pagina salvata sul telefono resterebbe leggibile dopo la disconnessione
+  mostrando numeri vecchi come se fossero quelli di adesso. Senza rete si vede
+  una schermata che lo dice, invece dell'errore del browser.
+
+## 1.5.0 — 5 settembre 2026
+
+### Aggiunto
+
+- **Statuto e regolamento**, in una pagina riservata a chi è dentro il gruppo:
+  chi non è ancora in squadra non ha motivo di leggere come si viene
+  sanzionati. I due testi sono file Markdown nel volume degli allegati — si
+  aprono e si leggono anche senza il gestionale acceso, e finiscono nel backup
+  insieme a certificati e foto. Li scrive solo l'admin, in una casella di
+  testo; il Markdown viene reso senza librerie e senza HTML da iniettare, così
+  quello che si scrive resta testo.
+
+## 1.4.0 — 5 settembre 2026
+
+### Aggiunto
+
+- **Credenziali da copiare** dopo il reset della password: utente e password in
+  un riquadro, con il pulsante per copiare il singolo campo o un messaggio già
+  scritto — indirizzo del gestionale compreso — da incollare in chat.
+  Ricopiare a mano una password di dodici caratteri davanti a chi aspetta è il
+  modo più sicuro per sbagliarla. La finestra non si chiude più da sola finché
+  quelle credenziali sono a video: sono mostrate una volta e basta.
+
+## 1.3.0 — 5 settembre 2026
+
+### Aggiunto
+
+- **Ordinamento cliccando l'intestazione** nell'elenco operatori: nome, stato,
+  certificato, presenze, ultimo accesso e quote da saldare. Chi non ha il dato
+  — mai entrato, nessun certificato — finisce sempre in fondo in entrambi i
+  versi: sono le righe di cui non si sa niente, e portarle in cima solo perché
+  "vuoto viene prima" sposterebbe l'attenzione sulle persone sbagliate.
+- **Ultimo accesso con l'ora**, non più solo la data: sapere se qualcuno è
+  entrato stamattina o tre settimane fa cambia quello che ci si fa.
+
+## 1.2.0 — 5 settembre 2026
+
+### Aggiunto
+
+- **Ultimo accesso nell'elenco operatori**, in tabella e su card: chi non è mai
+  entrato è segnalato in ambra, perché è quello il dato che serve quando si
+  distribuiscono le credenziali.
+
+### Corretto
+
+- **Pagina che si rompeva "a casaccio" durante la navigazione.** Succedeva a
+  chi aveva schede aperte mentre il gestionale veniva aggiornato: la pagina
+  continuava a chiedere i pezzi della versione precedente, che nella nuova non
+  esistono più, e Next mostrava un errore in inglese senza via d'uscita. Ora
+  quel caso viene riconosciuto e la pagina si ricarica da sola una volta; per
+  gli errori veri resta un messaggio comprensibile con il riferimento da citare.
+
+## 1.1.0 — 5 settembre 2026
+
+### Aggiunto
+
+- **Identità protetta dei contatti.** Nome e cognome per intero di chi non è
+  ancora in squadra, e la sua scheda, restano ad admin, amministrazione e
+  segreteria. Per tutti gli altri — team leader compresi — un contatto è il suo
+  callsign, oppure "Mario R.".
+- **Quote doppie sulle attività**, squadra ed esterni, composte dal tariffario
+  come le iscrizioni: si spuntano le voci o si scrive l'importo, che vince. Più
+  voci fanno un pagamento solo, con lo spaccato scritto sotto.
+- **Uso "per le attività"** nel tariffario: nel comporre le quote compaiono solo
+  le voci che c'entrano, non iscrizioni e tessere federali.
+- **Giacenza delle polizze prova** in Cassa e in Tessere FIGT, letta dal portale
+  federale e aggiornata da sola a ogni attivazione.
+- **Pagina Ruoli**: cosa può fare ciascuno e quante persone ce l'hanno.
+- **Assegnazione dei ruoli in blocco** dall'elenco operatori, con la selezione
+  che resta fra un'assegnazione e l'altra.
+- **Riordino delle tipologie** trascinando la maniglia.
+- **Certificato medico per tipologia**: si spegne dove non si gioca — riunioni,
+  cene — e chi non ce l'ha può segnarsi lo stesso.
+- **Badge della propria risposta** in testa alla scheda dell'attività, foto e
+  frase del profilo accanto ai partecipanti.
+- **Callsign unico**, controllato in tutti i punti in cui se ne scrive uno e
+  garantito da un indice nel database: con il callsign si accede, due uguali
+  rendevano l'accesso ambiguo.
+- **HTTPS** con certificato proprio davanti all'applicazione, per non far
+  viaggiare le password in chiaro sulla rete ZeroTier.
+- **Badge di versione** accanto a ZERO DARK, nel menu e nella pagina di accesso.
+
+### Cambiato
+
+- **Le quote non si configurano più sulla tipologia.** Il flag "tariffa nuovi"
+  è sparito: quanto costa un'attività si decide creando l'attività, in un posto
+  solo invece di due.
+- **L'admin di partenza si congeda.** Nasce solo se non esiste alcun
+  amministratore e se ne va appena ne compare uno vero; non lo si riconosce
+  dall'email ma da un marchio sul record, così un account cancellato resta
+  cancellato. L'ultimo amministratore non si può più cancellare né declassare.
+- **Elenco operatori**: compaiono anche quelli da riconfermare, che prima
+  esistevano senza essere in nessuna lista, e si elimina dalla riga.
+- Stato e destinatari di un'attività si mostrano solo a chi gestisce il
+  calendario: a un operatore non dicevano niente.
+- La sezione Nuovi è aperta anche ad amministrazione e segreteria.
+
+### Corretto
+
+- **Pagina di accesso**: era statica, quindi `DEBUG_LOGIN` restava quello di
+  chi costruiva l'immagine invece dell'ambiente. In test i pulsanti di accesso
+  rapido erano spariti per questo.
+- **Tessere FIGT**: l'avviso "non risultano tesserati" contava anche i contatti
+  e chi è da riconfermare, gente che una tessera non l'avrà mai.
+- Link al portale federale corretto in `intranetasnwg.it`.
+- La chiave di firma delle sessioni non è più quella d'esempio.
+
+## 1.0.0 — 4 settembre 2026
+
+Prima versione in uso: operatori, calendario con adesioni e formazione, campi,
+certificati medici, iscrizioni stagionali, tessere federali, pagamenti e cassa.

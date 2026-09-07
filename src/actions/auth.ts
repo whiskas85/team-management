@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { createSession, destroySession, hashPassword, verifyPassword } from '@/lib/auth';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
 
@@ -84,6 +85,12 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
 
   const esistente = await prisma.user.findUnique({ where: { email } });
   if (esistente) return { errore: 'Esiste già un account con questa email.' };
+
+  // il callsign serve anche per entrare: due uguali e l'accesso diventa ambiguo
+  if (callsign) {
+    const preso = await callsignOccupato(callsign);
+    if (preso) return { errore: CALLSIGN_PRESO(callsign, preso) };
+  }
 
   const adesso = new Date();
   const consensoImmagini = flag(fd, 'immagini');

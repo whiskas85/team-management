@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useState, type ReactNode } from 'react';
 import { Icona, type NomeIcona } from './Icona';
 import { useModale } from './Modale';
+import { Credenziali } from './Credenziali';
+import { ChiaveMcp } from './ChiaveMcp';
 import type { StatoForm } from '@/lib/form';
 
 type Azione = (prev: StatoForm, fd: FormData) => Promise<StatoForm>;
@@ -16,20 +18,23 @@ export function FormAzione({
   children,
   className = 'space-y-4',
   restaAperto = false,
+  indirizzo,
 }: {
   azione: Azione;
   children: ReactNode;
   className?: string;
   /** Nelle finestre dove si fanno più inserimenti di fila. */
   restaAperto?: boolean;
+  /** Indirizzo del gestionale, da mettere nel messaggio delle credenziali. */
+  indirizzo?: string;
 }) {
   const [stato, action] = useActionState(azione, {} as StatoForm);
   const modale = useModale();
 
   // salvato: la finestra si chiude da sola sui dati ormai aggiornati
   useEffect(() => {
-    if (stato.ok && modale && !restaAperto) modale.chiudi();
-  }, [stato.ok, modale, restaAperto]);
+    if (stato.ok && modale && !restaAperto && !stato.credenziali && !stato.chiave) modale.chiudi();
+  }, [stato.ok, stato.credenziali, stato.chiave, modale, restaAperto]);
 
   return (
     <form action={action} className={className}>
@@ -42,6 +47,18 @@ export function FormAzione({
         <div className="rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2 text-sm text-nvg">
           {stato.ok}
         </div>
+      )}
+      {/* password appena generata: si consegna copiandola, non ricopiandola */}
+      {stato.credenziali && (
+        <Credenziali
+          utente={stato.credenziali.utente}
+          password={stato.credenziali.password}
+          indirizzo={indirizzo}
+        />
+      )}
+      {/* chiave per un assistente: stessa logica, si vede una volta sola */}
+      {stato.chiave && (
+        <ChiaveMcp nome={stato.chiave.nome} token={stato.chiave.token} indirizzo={indirizzo} />
       )}
       {children}
     </form>

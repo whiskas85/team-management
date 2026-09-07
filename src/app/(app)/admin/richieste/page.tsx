@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { stagioneAttiva } from '@/lib/stagioni';
 import { puoAmministrare, tonoIscrizione } from '@/lib/domain';
-import { fmtDate, fmtEuro, nomeCompleto, stagioneCorrente, umanizza } from '@/lib/format';
+import { fmtDate, fmtEuro, nomeCompleto, umanizza } from '@/lib/format';
 import { Badge, Dato, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Conferma, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -53,11 +54,15 @@ export default async function RichiestePage() {
 
   const attive = altre.filter((i) => i.status === 'ATTIVA');
 
+  // il nome della stagione lo decide chi l'ha aperta, non il calendario:
+  // calcolarlo qui vorrebbe dire scrivere "2026/2027" dove la squadra legge "2026"
+  const stagione = await stagioneAttiva();
+
   return (
     <>
       <Intestazione
         titolo="Richieste di iscrizione"
-        sottotitolo={`Moduli compilati dagli operatori · stagione ${stagioneCorrente()}`}
+        sottotitolo={`Moduli compilati dagli operatori · stagione ${stagione.nome}`}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

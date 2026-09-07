@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth';
 import { puoAmministrare } from '@/lib/domain';
 import { stagioneAttiva, tariffa } from '@/lib/stagioni';
 import { componiQuota } from '@/lib/quote';
+import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 const TIPI = ['ISCRIZIONE', 'REISCRIZIONE'] as const;
@@ -167,13 +168,19 @@ export async function compilaRichiesta(_prev: StatoForm, fd: FormData): Promise<
     return { errore: 'Indica un contatto di emergenza con il relativo numero.' };
   }
 
+  const callsign = strOpt(fd, 'callsign');
+  if (callsign) {
+    const preso = await callsignOccupato(callsign, me.id);
+    if (preso) return { errore: CALLSIGN_PRESO(callsign, preso) };
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: me.id },
       data: {
         nome,
         cognome,
-        callsign: strOpt(fd, 'callsign'),
+        callsign,
         telefono,
         dataNascita,
         luogoNascita: strOpt(fd, 'luogoNascita'),

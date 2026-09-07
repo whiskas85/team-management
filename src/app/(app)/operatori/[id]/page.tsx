@@ -42,6 +42,9 @@ export default async function SchedaCompagnoPage({
       callsign: true,
       email: true,
       telefono: true,
+      // la faccia e il motto: è la scheda di un compagno, non un tabulato
+      fotoPath: true,
+      frase: true,
       roles: true,
       stato: true,
       createdAt: true,
@@ -73,12 +76,21 @@ export default async function SchedaCompagnoPage({
 
       <div className="card mb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <Avatar iniziali={iniziali(utente.nome, utente.cognome)} size="lg" />
+          <Avatar
+            iniziali={iniziali(utente.nome, utente.cognome)}
+            size="lg"
+            fotoDi={utente.fotoPath ? utente.id : null}
+          />
           <div className="flex-1">
             <h2 className="text-xl font-semibold">
               {utente.nome} {utente.cognome}
             </h2>
             {utente.callsign && <p className="text-sm text-nvg">&quot;{utente.callsign}&quot;</p>}
+            {utente.frase && (
+              <p className="mt-2 border-l-2 border-nvg/40 pl-2 text-sm italic text-ink/80">
+                {utente.frase}
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge tono={tonoStato[utente.stato]}>{etichettaStato[utente.stato]}</Badge>
               {utente.roles.map((r) => (

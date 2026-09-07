@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdmin, puoAmministrare, scadenzaCertificato } from '@/lib/domain';
+import { puoAmministrare, scadenzaCertificato } from '@/lib/domain';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 import { data, str, strOpt, enumVal, type StatoForm } from '@/lib/form';
 
@@ -130,15 +130,13 @@ export async function eliminaCertificato(_prev: StatoForm, fd: FormData): Promis
   const cert = await prisma.medicalCertificate.findUnique({ where: { id } });
   if (!cert) return { errore: 'Certificato non trovato.' };
 
-  if (cert.status === 'VALIDO') {
-    return {
-      errore:
-        'Un certificato già validato non si può eliminare. Se è sbagliato, caricane uno nuovo: vale il più recente.',
-    };
-  }
-
-  const suo = cert.userId === me.id && cert.status === 'IN_ATTESA';
-  if (!suo && !isAdmin(me.roles)) {
+  // Chi amministra i certificati può togliere qualsiasi riga, anche una già
+  // approvata. Sembra pericoloso e non lo è: il caso vero è il doppione, e
+  // costringere a *rifiutarlo* per farlo sparire lascia in elenco una riga
+  // rossa che racconta una bocciatura mai avvenuta. Chi tiene l'elenco deve
+  // poterlo tenere pulito.
+  const mioNonAncoraVagliato = cert.userId === me.id && cert.status === 'IN_ATTESA';
+  if (!mioNonAncoraVagliato && !puoAmministrare(me.roles)) {
     return { errore: 'Puoi eliminare solo un tuo certificato non ancora approvato.' };
   }
 

@@ -1,0 +1,127 @@
+import type { Prisma, StatoOperatore, Role } from '@prisma/client';
+import { prisma } from './db';
+import { isAdmin, inSquadra, vedeAttivitaSquadra } from './domain';
+
+/**
+ * Il mercatino, che sono due bacheche diverse.
+ *
+ * **L'usato lo vedono tutti**, contatti compresi: roba che passa di mano fra
+ * soci, che alla squadra non costa niente. Pubblicare lì è dietro consenso per
+ * chi non è ancora dentro — non è diffidenza, è che un annuncio ha un prezzo e
+ * un contatto privato dietro.
+ *
+ * **Il merchandising no**: le magliette le fa fare e le paga il club, sono
+ * soldi del team, e chi al team non appartiene ancora non ne sfoglia il
+ * catalogo. Lo apre solo l'admin e lo legge solo chi è dentro.
+ */
+
+/** L'unica riga di impostazioni, creata al primo bisogno. */
+export async function impostazioni() {
+  return (
+    (await prisma.impostazioni.findUnique({ where: { id: 'app' } })) ??
+    prisma.impostazioni.create({ data: { id: 'app' } })
+  );
+}
+
+/**
+ * Chi può mettere in vendita.
+ *
+ * Chi è in squadra sempre; chi non lo è ancora solo se l'interruttore è acceso.
+ * Sta nelle impostazioni e non nel codice proprio perché la risposta può
+ * cambiare senza rifare un rilascio.
+ */
+export async function puoVendere(utente: { stato: StatoOperatore; roles: Role[] }) {
+  if (vedeAttivitaSquadra(utente.stato)) return true;
+  const conf = await impostazioni();
+  return conf.nuoviPossonoVendere;
+}
+
+/**
+ * Chi può battezzare un annuncio come merchandising ufficiale.
+ *
+ * Solo l'admin, e non è gerarchia: quel bollino decide che ordinarne uno genera
+ * una quota nella cassa della squadra, quindi non può metterselo chi vuole.
+ */
+export const puoFareUfficiale = (roles: Role[]) => isAdmin(roles);
+
+/**
+ * Chi vede il merchandising del team.
+ *
+ * Solo chi è dentro. **Non è la stessa regola dell'usato**, ed è voluto: il
+ * mercatino è roba che passa di mano fra soci e non costa niente alla squadra,
+ * mentre le magliette il club le fa fare e le paga — sono soldi del team, e chi
+ * al team non appartiene ancora non ha motivo di sfogliarne il catalogo.
+ */
+export const puoVedereMerchandising = (stato: StatoOperatore) => vedeAttivitaSquadra(stato);
+
+/**
+ * Cosa si vede in bacheca: il pubblicato, più il proprio anche se in bozza.
+ *
+ * Le bozze altrui non esistono per nessuno, nemmeno per l'admin: uno prepara un
+ * annuncio con calma e non deve sentirsi guardato mentre lo scrive.
+ */
+export const filtroBacheca = (userId: string): Prisma.AnnuncioWhereInput => ({
+  OR: [{ stato: { in: ['PUBBLICATO', 'RITIRATO'] } }, { venditoreId: userId }],
+});
+
+/** Chi può metterci mano: chi l'ha scritto. L'admin può solo ritirarlo. */
+export const eMio = (annuncio: { venditoreId: string }, userId: string) =>
+  annuncio.venditoreId === userId;
+
+/**
+ * Da un titolo alla maniglia con cui si nomina la voce in un commento.
+ *
+ * Unica dentro il suo annuncio e non in tutto il mercatino: due persone che
+ * vendono una radio M devono poterla chiamare tutte e due `@radio-m`.
+ */
+export const manigliaVoce = (titolo: string) =>
+  titolo
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'voce';
+
+export type VoceLetta = {
+  id: string;
+  titolo: string;
+  maniglia: string;
+  prezzo: unknown;
+  trattabile: boolean;
+  descrizione: string | null;
+  natura: 'PEZZO_UNICO' | 'RIORDINABILE';
+  stato: 'DISPONIBILE' | 'PRENOTATA' | 'VENDUTA';
+};
+
+/** Su una voce riordinabile lo stato di vendita non vuol dire niente. */
+export const disponibile = (v: { natura: string; stato: string }) =>
+  v.natura === 'RIORDINABILE' || v.stato === 'DISPONIBILE';
+
+/**
+ * Il prezzo che la card mostra: la cifra secca se la voce è una, l'intervallo
+ * se sono tante. Si guardano solo le voci ancora prendibili — un annuncio dove
+ * resta la mesh non deve continuare a dire "da 50".
+ */
+export function prezzoDa(voci: { prezzo: unknown; natura: string; stato: string }[]) {
+  const vive = voci.filter(disponibile);
+  const cifre = (vive.length ? vive : voci).map((v) => Number(v.prezzo));
+  if (cifre.length === 0) return null;
+
+  const min = Math.min(...cifre);
+  const max = Math.max(...cifre);
+  return { min, max, unico: min === max };
+}
+
+/** Un annuncio dell'usato è finito quando non resta più niente da prendere. */
+export const tuttoVenduto = (voci: { natura: string; stato: string }[]) =>
+  voci.length > 0 && voci.every((v) => v.natura === 'PEZZO_UNICO' && v.stato === 'VENDUTA');
+
+/** Serve solo a non ripetere la stessa `include` in quattro punti. */
+export const CON_TUTTO = {
+  venditore: { select: { id: true, nome: true, cognome: true, callsign: true, stato: true } },
+  voci: { orderBy: { ordine: 'asc' } },
+  foto: { orderBy: { ordine: 'asc' } },
+  copertina: true,
+} satisfies Prisma.AnnuncioInclude;
+
+export const inSquadraOra = inSquadra;

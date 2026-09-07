@@ -13,6 +13,7 @@ import {
   vedeAreaTesseramento,
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, iniziali, inputDate, umanizza } from '@/lib/format';
+import { Partecipazioni } from '@/components/Partecipazioni';
 import { Avatar, Badge, Campo, Intestazione, Statistica } from '@/components/ui';
 import { Fisarmonica, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -49,7 +50,12 @@ export default async function ProfiloPage() {
       figtCards: { orderBy: { createdAt: 'desc' }, include: { stagione: { select: { nome: true } } } },
       payments: true,
       rsvps: {
-        include: { event: { select: { titolo: true, inizio: true, tipo: { select: { nome: true } } } } },
+        include: {
+          // l'id serve perché dalla riga si va sull'attività
+          event: {
+            select: { id: true, titolo: true, inizio: true, tipo: { select: { nome: true } } },
+          },
+        },
         orderBy: { respondedAt: 'desc' },
       },
     },
@@ -474,37 +480,11 @@ export default async function ProfiloPage() {
       {/* -------------------------------------------------- storico */}
       <div className="mt-6">
         <h2 className="titolo-sezione mb-3">Storico partecipazioni</h2>
-        {utente.rsvps.length === 0 ? (
-          <p className="text-sm text-muted">Non hai ancora risposto a nessun evento.</p>
-        ) : (
-          <div className="space-y-2">
-            {utente.rsvps.slice(0, 15).map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm">{r.event.titolo}</p>
-                  <p className="text-xs text-muted num">
-                    {r.event.tipo?.nome ?? 'Senza tipologia'} · {fmtDate(r.event.inizio)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  {r.presente !== null && (
-                    <Badge tono={r.presente ? 'ok' : 'neutro'}>
-                      {r.presente ? 'presente' : 'assente'}
-                    </Badge>
-                  )}
-                  <Badge
-                    tono={r.status === 'PRESENTE' ? 'ok' : r.status === 'FORSE' ? 'warn' : 'danger'}
-                  >
-                    {umanizza(r.status)}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Partecipazioni
+          rsvps={utente.rsvps}
+          limite={15}
+          vuoto="Non hai ancora risposto a nessun evento."
+        />
       </div>
     </>
   );

@@ -8,3 +8,8 @@ tsconfig.tsbuildinfo
 .env
 .env.*
 !.env.example
+
+# Il certificato e la sua chiave sono di questa installazione: si generano con
+# certificati/genera.sh, non si pubblicano.
+certificati/*.pem
+certificati/openssl.cnf

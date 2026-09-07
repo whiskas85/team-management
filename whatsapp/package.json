@@ -1,0 +1,17 @@
+{
+  "name": "zero-dark-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ponte fra il gestionale e WhatsApp: tiene la sessione e manda i messaggi.",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4",
+    "@hapi/boom": "^10.0.1"
+  }
+}

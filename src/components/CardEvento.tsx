@@ -17,6 +17,7 @@ export type EventoLista = {
   inizio: Date;
   costo: number | null;
   maxPartecipanti: number | null;
+  titolari: number;
   campo: string | null;
   lat: number | null;
   lng: number | null;
@@ -37,16 +38,30 @@ export function ContoAdesioni({
   e,
   size = 14,
 }: {
-  e: Pick<EventoLista, 'presenti' | 'forse' | 'assenti' | 'maxPartecipanti'>;
+  e: Pick<EventoLista, 'presenti' | 'forse' | 'assenti' | 'maxPartecipanti' | 'titolari'>;
   size?: number;
 }) {
   return (
     <span className="flex items-center gap-2.5 text-[11px]">
-      <span className="flex items-center gap-1 text-nvg" title="Presenti">
+      {/* Quanti si sono proposti, e — se i posti sono contati — quanti ne sono
+          già stati schierati sul totale. "4 (1/2)" dice le due cose che
+          servono: c'è gente, e la formazione è ancora da fare. Mettere solo
+          "4/2" faceva sembrare che quattro fossero entrati in due posti. */}
+      <span
+        className="flex items-center gap-1 text-nvg"
+        title={e.maxPartecipanti ? 'Disponibili (schierati / posti)' : 'Disponibili'}
+      >
         <Icona nome="presente" size={size} />
         <span className="num">
           {e.presenti}
-          {e.maxPartecipanti ? `/${e.maxPartecipanti}` : ''}
+          {e.maxPartecipanti ? (
+            <span className="text-muted">
+              {' '}
+              ({e.titolari}/{e.maxPartecipanti})
+            </span>
+          ) : (
+            ''
+          )}
         </span>
       </span>
       <span className="flex items-center gap-1 text-warn" title="Forse">

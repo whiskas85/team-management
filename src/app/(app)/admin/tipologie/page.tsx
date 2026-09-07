@@ -2,12 +2,13 @@ import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { classeColore, isAdmin } from '@/lib/domain';
 import { umanizza } from '@/lib/format';
-import { Badge, Campo, Elenco, Intestazione, Vuoto } from '@/components/ui';
+import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { SelettoreColore } from '@/components/SelettoreColore';
+import { OrdinaTipologie } from '@/components/OrdinaTipologie';
 import { eliminaTipologia, salvaTipologia } from '@/actions/tipologie';
 
 const QUOTE = [
@@ -28,6 +29,7 @@ type Tipologia = {
   tipoQuota: string;
   riserve: boolean;
   soloInterno: boolean;
+  certMedico: boolean;
   certAgonistico: boolean;
   ordine: number;
   attivo: boolean;
@@ -59,11 +61,42 @@ export default async function TipologiePage() {
       {tipologie.length === 0 ? (
         <Vuoto testo="Nessuna tipologia definita: aggiungine una per poter creare attività." />
       ) : (
-        <Elenco
-          cards={tipologie.map((t) => (
-            <div key={t.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+        <OrdinaTipologie
+          righe={tipologie.map((t) => ({
+            id: t.id,
+            attivo: t.attivo,
+            card: (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
+                        title={`Colore nel calendario: ${t.colore}`}
+                      />
+                      <span className="font-medium">{t.nome}</span>
+                    </span>
+                    {t.descrizione && <p className="mt-1 text-xs text-muted">{t.descrizione}</p>}
+                    <p className="mt-1 text-xs text-muted num">
+                      Quote come {umanizza(t.tipoQuota)} · {t._count.events} attività
+                    </p>
+                    <span className="mt-1 flex flex-wrap gap-1.5">
+                      {t.riserve && <Badge tono="warn">Titolari e riserve</Badge>}
+                      {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
+                      {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
+                      {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
+                    </span>
+                  </div>
+                  {!t.attivo && <Badge tono="neutro">Disattivata</Badge>}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                  <Azioni tipologia={t} />
+                </div>
+              </>
+            ),
+            celle: (
+              <>
+                <td>
                   <span className="flex items-center gap-2">
                     <span
                       className={`h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
@@ -71,80 +104,34 @@ export default async function TipologiePage() {
                     />
                     <span className="font-medium">{t.nome}</span>
                   </span>
-                  {t.descrizione && (
-                    <p className="mt-1 text-xs text-muted">{t.descrizione}</p>
-                  )}
-                  <p className="mt-1 text-xs text-muted num">
-                    Quote come {umanizza(t.tipoQuota)} · {t._count.events} attività
-                  </p>
-                  <span className="mt-1 flex flex-wrap gap-1.5">
+                </td>
+                <td className="text-muted">{t.descrizione ?? '—'}</td>
+                <td className="text-muted">{umanizza(t.tipoQuota)}</td>
+                <td>
+                  <span className="flex flex-wrap gap-1.5">
                     {t.riserve && <Badge tono="warn">Titolari e riserve</Badge>}
                     {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
                     {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
+                    {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
+                    {!t.riserve && !t.soloInterno && !t.certAgonistico && t.certMedico && (
+                      <span className="text-xs text-muted">—</span>
+                    )}
                   </span>
-                </div>
-                {!t.attivo && <Badge tono="neutro">Disattivata</Badge>}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-                <Azioni tipologia={t} />
-              </div>
-            </div>
-          ))}
-          tabella={
-            <table className="tabella">
-              <thead>
-                <tr>
-                  <th>Tipologia</th>
-                  <th>Descrizione</th>
-                  <th>Quote generate</th>
-                  <th>Formazione</th>
-                  <th>Ordine</th>
-                  <th>Attività</th>
-                  <th>Stato</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tipologie.map((t) => (
-                  <tr key={t.id} className={t.attivo ? '' : 'opacity-50'}>
-                    <td>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={`h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
-                          title={`Colore nel calendario: ${t.colore}`}
-                        />
-                        <span className="font-medium">{t.nome}</span>
-                      </span>
-                    </td>
-                    <td className="text-muted">{t.descrizione ?? '—'}</td>
-                    <td className="text-muted">{umanizza(t.tipoQuota)}</td>
-                    <td>
-                      <span className="flex flex-wrap gap-1.5">
-                        {t.riserve && <Badge tono="warn">Titolari e riserve</Badge>}
-                        {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
-                        {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
-                        {!t.riserve && !t.soloInterno && !t.certAgonistico && (
-                          <span className="text-xs text-muted">—</span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="text-muted num">{t.ordine}</td>
-                    <td className="text-muted num">{t._count.events}</td>
-                    <td>
-                      <Badge tono={t.attivo ? 'ok' : 'neutro'}>
-                        {t.attivo ? 'Attiva' : 'Disattivata'}
-                      </Badge>
-                    </td>
-                    <td className="whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <Azioni tipologia={t} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          }
+                </td>
+                <td className="text-muted num">{t._count.events}</td>
+                <td>
+                  <Badge tono={t.attivo ? 'ok' : 'neutro'}>
+                    {t.attivo ? 'Attiva' : 'Disattivata'}
+                  </Badge>
+                </td>
+                <td className="whitespace-nowrap">
+                  <div className="flex gap-2">
+                    <Azioni tipologia={t} />
+                  </div>
+                </td>
+              </>
+            ),
+          }))}
         />
       )}
     </>
@@ -210,14 +197,21 @@ function CampiTipologia({ tipologia }: { tipologia?: Tipologia }) {
         </select>
       </Campo>
 
-      <Campo label="Ordine nella tendina">
+      <label className="flex min-w-0 items-start gap-2 text-sm sm:col-span-2">
         <input
-          name="ordine"
-          type="number"
-          defaultValue={tipologia?.ordine ?? 0}
-          className="input"
+          type="checkbox"
+          name="certMedico"
+          defaultChecked={tipologia?.certMedico ?? true}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
         />
-      </Campo>
+        <span className="min-w-0">
+          Richiede il certificato medico
+          <span className="block text-[11px] text-muted">
+            Acceso su tutto ciò che si gioca. Spegnilo dove non si corre — riunioni, cene, corsi in
+            aula — e chi non ha il certificato potrà segnarsi lo stesso.
+          </span>
+        </span>
+      </label>
 
       <label className="flex min-w-0 items-start gap-2 text-sm sm:col-span-2">
         <input

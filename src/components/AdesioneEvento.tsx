@@ -77,7 +77,6 @@ export function AdesioneEvento({
             attiva={scelta === s.valore}
             classeAttiva={s.attivo}
             compatta={compatta}
-            disabilitata={s.valore === 'PRESENTE' && pieno && scelta !== 'PRESENTE'}
             onScegli={() => {
               if (campoScelta.current) campoScelta.current.value = s.valore;
             }}
@@ -94,8 +93,13 @@ export function AdesioneEvento({
         />
       )}
 
+      {/* I posti non chiudono la porta: la disponibilità la dà chiunque, e chi
+          avanza va in riserva. Dirlo prima evita la delusione dopo. */}
       {!compatta && pieno && scelta !== 'PRESENTE' && (
-        <p className="text-xs text-warn">Posti esauriti.</p>
+        <p className="text-xs text-warn">
+          I disponibili hanno già coperto i posti: puoi segnarti lo stesso, ma potresti finire in
+          riserva.
+        </p>
       )}
     </form>
   );
@@ -106,7 +110,6 @@ function Scelta({
   icona,
   attiva,
   classeAttiva,
-  disabilitata,
   compatta,
   onScegli,
 }: {
@@ -114,7 +117,6 @@ function Scelta({
   icona: NomeIcona;
   attiva: boolean;
   classeAttiva: string;
-  disabilitata: boolean;
   compatta: boolean;
   onScegli: () => void;
 }) {
@@ -126,7 +128,7 @@ function Scelta({
     return (
       <button
         type="submit"
-        disabled={disabilitata || pending}
+        disabled={pending}
         onClick={onScegli}
         title={testo}
         aria-label={testo}
@@ -140,7 +142,7 @@ function Scelta({
   return (
     <button
       type="submit"
-      disabled={disabilitata || pending}
+      disabled={pending}
       onClick={onScegli}
       className={`flex flex-col items-center gap-1 rounded-md border px-2 py-2.5 text-xs transition-colors disabled:opacity-40 ${base}`}
     >

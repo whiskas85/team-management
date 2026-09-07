@@ -19,6 +19,7 @@ export function ListaFiltrata<T>({
   filtri = [],
   valoreFiltro,
   segnaposto = 'Cerca…',
+  azioni,
   children,
 }: {
   elementi: T[];
@@ -28,6 +29,8 @@ export function ListaFiltrata<T>({
   /** Valore dell'elemento per un dato filtro, confrontato con l'opzione scelta. */
   valoreFiltro?: (e: T, nomeFiltro: string) => string | string[];
   segnaposto?: string;
+  /** Comandi che vivono in fondo alla riga dei filtri, allineati a destra. */
+  azioni?: ReactNode;
   children: (filtrati: T[], totale: number) => ReactNode;
 }) {
   const [q, setQ] = useState('');
@@ -91,6 +94,8 @@ export function ListaFiltrata<T>({
             Azzera
           </button>
         )}
+
+        {azioni && <div className="ml-auto">{azioni}</div>}
       </div>
 
       {filtrati.length !== elementi.length && (

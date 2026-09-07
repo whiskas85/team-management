@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { stagioneAttiva } from '@/lib/stagioni';
 import { eventiPerLista } from '@/lib/query';
 import {
   GIORNI_PREAVVISO_SCADENZA,
@@ -12,7 +13,7 @@ import {
   tonoCertificato,
   vedeAreaTesseramento,
 } from '@/lib/domain';
-import { fmtDate, fmtEuro, giorniA, stagioneCorrente, umanizza } from '@/lib/format';
+import { fmtDate, fmtEuro, giorniA, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { CardEvento } from '@/components/CardEvento';
 
@@ -25,12 +26,20 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const tesserato = vedeAreaTesseramento(me.stato);
 
+  // da mezzanotte, non da adesso: un'attività cominciata stamattina è ancora
+  // quella di oggi, e toglierla dalla dashboard proprio mentre si sta giocando
+  // sarebbe il momento peggiore per farlo
+  const inizioOggi = new Date();
+  inizioOggi.setHours(0, 0, 0, 0);
+  const domani = new Date(inizioOggi);
+  domani.setDate(domani.getDate() + 1);
+
   const [prossimi, certificati, pagamenti, iscrizione, tessera] = await Promise.all([
     eventiPerLista({
       stato: me.stato,
       userId: me.id,
-      dove: { inizio: { gte: new Date() }, status: { not: 'ANNULLATA' } },
-      limite: 4,
+      dove: { inizio: { gte: inizioOggi }, status: { not: 'ANNULLATA' } },
+      limite: 6,
     }),
     tesserato
       ? prisma.medicalCertificate.findMany({
@@ -56,6 +65,9 @@ export default async function DashboardPage({
         })
       : Promise.resolve(null),
   ]);
+
+  const oggi = prossimi.filter((e) => e.inizio < domani);
+  const altri = prossimi.filter((e) => e.inizio >= domani).slice(0, 4);
 
   const certAttuale = certificati[0];
   const statoCert = certAttuale ? statoEffettivo(certAttuale) : null;
@@ -115,6 +127,10 @@ export default async function DashboardPage({
     0,
   );
 
+  // il nome della stagione lo decide chi l'ha aperta, non il calendario:
+  // calcolarlo qui vorrebbe dire scrivere "2026/2027" dove la squadra legge "2026"
+  const stagione = await stagioneAttiva();
+
   return (
     <>
       {/* il callsign e' come si chiamano fra loro: se ce l'ha, vince sul nome */}
@@ -122,7 +138,7 @@ export default async function DashboardPage({
         titolo={`Ciao ${me.callsign || me.nome}`}
         sottotitolo={
           tesserato
-            ? `Situazione operativa · stagione ${stagioneCorrente()}`
+            ? `Situazione operativa · stagione ${stagione.nome}`
             : 'Sei un contatto del team: qui trovi gli eventi aperti a cui puoi partecipare.'
         }
       />
@@ -313,20 +329,40 @@ export default async function DashboardPage({
         </section>
       )}
 
+      {/* ---------------------------------------------------- oggi */}
+      {oggi.length > 0 && (
+        <section className="mb-8">
+          <h2 className="titolo-sezione mb-3 text-nvg">
+            {oggi.length === 1 ? 'Oggi' : `Oggi · ${oggi.length} attività`}
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {oggi.map((e) => (
+              <CardEvento key={e.id} e={e} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ------------------------------------------------ prossimi eventi */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="titolo-sezione">Prossimi eventi</h2>
+          <h2 className="titolo-sezione">{oggi.length > 0 ? 'Poi' : 'Prossimi eventi'}</h2>
           <Link href="/calendario" className="text-xs text-nvg hover:underline">
             Calendario completo →
           </Link>
         </div>
 
-        {prossimi.length === 0 ? (
-          <Vuoto testo="Nessun evento in programma." />
+        {altri.length === 0 ? (
+          <Vuoto
+            testo={
+              oggi.length > 0
+                ? 'Dopo oggi non c’è ancora niente in programma.'
+                : 'Nessun evento in programma.'
+            }
+          />
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
-            {prossimi.map((e) => (
+            {altri.map((e) => (
               <CardEvento key={e.id} e={e} />
             ))}
           </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState, type ReactNode } from 'react';
+import { useActionState, useEffect, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Icona, type NomeIcona } from './Icona';
+import { Toast } from './Toast';
 import type { StatoForm } from '@/lib/form';
 
 type Azione = (prev: StatoForm, fd: FormData) => Promise<StatoForm>;
@@ -36,6 +37,15 @@ export function AzioneBottone({
 }) {
   const [stato, action] = useActionState(azione, {} as StatoForm);
 
+  // L'esito non si scrive dentro la riga: il testo la allargherebbe, e per far
+  // posto si accorcerebbe il nome della persona. Va in un avviso in basso, che
+  // ha lo spazio per essere letto e non deforma niente.
+  const [avviso, setAvviso] = useState<{ testo: string; tono: 'ok' | 'danger' } | null>(null);
+  useEffect(() => {
+    if (stato.errore) setAvviso({ testo: stato.errore, tono: 'danger' });
+    else if (stato.ok) setAvviso({ testo: stato.ok, tono: 'ok' });
+  }, [stato]);
+
   return (
     <form action={action} className="contents">
       {Object.entries(valori).map(([nome, valore]) => (
@@ -50,7 +60,9 @@ export function AzioneBottone({
       >
         {children}
       </Bottone>
-      {stato.errore && <span className="text-xs text-danger">{stato.errore}</span>}
+      {avviso && (
+        <Toast messaggio={avviso.testo} tono={avviso.tono} onChiudi={() => setAvviso(null)} />
+      )}
     </form>
   );
 }

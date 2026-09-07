@@ -1,6 +1,22 @@
 /** Helper di lettura dei FormData: tutto arriva come stringa, qui normalizziamo. */
 
-export type StatoForm = { errore?: string; ok?: string };
+export type StatoForm = {
+  errore?: string;
+  ok?: string;
+  /**
+   * Credenziali appena generate, da consegnare a voce. Viaggiano a parte e non
+   * dentro il messaggio perché il modulo le mostri in un riquadro da copiare:
+   * ricopiare a mano una password di dodici caratteri è il modo più sicuro per
+   * sbagliarla e far tornare la persona a chiedere.
+   */
+  credenziali?: { utente: string; password: string };
+  /**
+   * Chiave appena creata per un assistente. Come le credenziali viaggia a
+   * parte, e per lo stesso motivo: si vede una volta sola e va copiata, non
+   * ricopiata a mano — sono trentadue caratteri casuali.
+   */
+  chiave?: { nome: string; token: string };
+};
 
 export const str = (fd: FormData, k: string): string => (fd.get(k)?.toString() ?? '').trim();
 

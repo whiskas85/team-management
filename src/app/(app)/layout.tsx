@@ -4,13 +4,16 @@ import { prisma } from '@/lib/db';
 import { puoVedereDatiMedici } from '@/lib/medico';
 import {
   etichettaRuolo,
+  haIncarichi,
   isAdmin,
   puoAmministrare,
   puoGestirePagamenti,
   puoVedereNuovi,
   vedeAreaTesseramento,
+  vedeAttivitaSquadra,
 } from '@/lib/domain';
 import { Nav, type VoceMenu } from '@/components/Nav';
+import { puoVedereMerchandising } from '@/lib/mercatino';
 import { inTest } from '@/lib/ambiente';
 import { esci } from '@/actions/auth';
 
@@ -58,12 +61,59 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ])
     : [0, 0];
 
+  // Quello che devo io: senza il pallino, una quota appena addebitata resta
+  // invisibile finché non si apre la pagina per caso. I rimborsi non contano —
+  // sono soldi in arrivo, non una cosa da fare.
+  const mieiPagamentiAperti = await prisma.payment.count({
+    where: {
+      userId: utente.id,
+      status: { in: ['DA_PAGARE', 'PARZIALE'] },
+      tipo: { not: 'RIMBORSO' },
+    },
+  });
+
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Situazione', icona: 'dashboard', gruppo: 'principale' },
     { href: '/calendario', label: 'Calendario', icona: 'calendario', gruppo: 'principale' },
     { href: '/profilo', label: 'Profilo', icona: 'profilo', gruppo: 'principale' },
-    { href: '/pagamenti', label: 'Miei pagamenti', icona: 'pagamenti', gruppo: 'principale' },
+    {
+      href: '/pagamenti',
+      label: 'Miei pagamenti',
+      icona: 'pagamenti',
+      gruppo: 'principale',
+      badge: mieiPagamentiAperti,
+    },
+    // vale per tutti: una chiave non dà poteri, eredita quelli di chi la crea
+    { href: '/assistente', label: 'Assistente', icona: 'chiave', gruppo: 'principale' },
   ];
+
+  // Mercatino e merchandising sono due cose diverse, non un filtro dello stesso
+  // elenco — e nemmeno le vede la stessa gente. L'usato passa di mano fra soci
+  // e non costa niente alla squadra, quindi lo sfoglia chiunque; le magliette
+  // le fa fare e le paga il club, e chi al club non appartiene ancora non ha
+  // motivo di vederne il catalogo.
+  voci.push({ href: '/mercatino', label: 'Usato', icona: 'mercatino', gruppo: 'mercatino' });
+  if (puoVedereMerchandising(utente.stato)) {
+    voci.push({
+      href: '/merchandising',
+      label: 'Merchandising',
+      icona: 'maglietta',
+      gruppo: 'mercatino',
+    });
+  }
+
+  // I regolamenti li legge chiunque abbia un account, contatti compresi: sono
+  // quello che si mostra a chi si sta affacciando. Lo statuto no — dice come
+  // funziona il team, e riguarda chi è dentro.
+  voci.push({
+    href: '/regolamenti',
+    label: 'Regolamenti',
+    icona: 'regolamento',
+    gruppo: 'regolamenti',
+  });
+  if (vedeAttivitaSquadra(utente.stato)) {
+    voci.push({ href: '/statuto', label: 'Statuto', icona: 'bozza', gruppo: 'regolamenti' });
+  }
 
   // certificati e tesseramento hanno senso solo per chi è in squadra
   if (vedeAreaTesseramento(utente.stato)) {
@@ -73,6 +123,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       icona: 'certificato',
       gruppo: 'principale',
     });
+  }
+
+  // le note se le scrive chi ha un incarico, e le rilegge solo lui: la voce sta
+  // fra le cose operative perché è lì che si usa, non in un'area riservata
+  if (haIncarichi(utente.roles)) {
+    voci.push({ href: '/note', label: 'Note', icona: 'bozza', gruppo: 'principale' });
   }
 
   // i contatti li seguono comando, amministrazione e segreteria: sono gli unici
@@ -133,6 +189,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (isAdmin(utente.roles)) {
     voci.push(
       { href: '/admin/operatori', label: 'Operatori', icona: 'operatori', gruppo: 'comando' },
+      { href: '/admin/ruoli', label: 'Ruoli', icona: 'chiave', gruppo: 'comando' },
       { href: '/admin/campi', label: 'Campi', icona: 'campi', gruppo: 'comando' },
       { href: '/admin/squadre', label: 'Squadre esterne', icona: 'squadra', gruppo: 'comando' },
       { href: '/admin/stagioni', label: 'Stagioni', icona: 'calendario', gruppo: 'comando' },
@@ -140,6 +197,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/tipologie', label: 'Tipologie attività', icona: 'bozza', gruppo: 'comando' },
       { href: '/admin/metodi', label: 'Metodi di pagamento', icona: 'incassa', gruppo: 'comando' },
       { href: '/admin/statistiche', label: 'Statistiche', icona: 'grafici', gruppo: 'comando' },
+      { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },
     );
   }
 

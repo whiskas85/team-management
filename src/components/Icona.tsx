@@ -46,7 +46,12 @@ export type NomeIcona =
   | 'riserva'
   | 'telefono'
   | 'whatsapp'
-  | 'email';
+  | 'email'
+  | 'miPiace'
+  | 'commento'
+  | 'regolamento'
+  | 'mercatino'
+  | 'maglietta';
 
 const PATHS: Record<NomeIcona, string> = {
   // ---------------------------------------------------------------- navigazione
@@ -108,6 +113,16 @@ const PATHS: Record<NomeIcona, string> = {
   titolare: 'M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.4l6-.8L12 3Z',
   riserva: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 7v5l3 2',
   appello: 'M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1ZM8 7H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-2M9 13l2 2 4-4',
+  maglietta:
+    'M9 4 4 6.5l1.5 4L8 10v9.5h8V10l2.5.5 1.5-4L15 4a3 3 0 0 1-6 0Z',
+  mercatino:
+    'M4 8h16l-1.2 11a1 1 0 0 1-1 .9H6.2a1 1 0 0 1-1-.9L4 8Zm4 0V6a4 4 0 0 1 8 0v2',
+  regolamento:
+    'M12 6.5C10.5 5 8.5 4.4 6 4.4H4v13h2c2.5 0 4.5.6 6 2m0-13c1.5-1.5 3.5-2.1 6-2.1h2v13h-2c-2.5 0-4.5.6-6 2m0-13v13',
+  miPiace:
+    'M7 10.5v9.5H4.5a1 1 0 0 1-1-1v-7.5a1 1 0 0 1 1-1H7Zm0 0 4.3-6.8a1 1 0 0 1 1.8.5V9.5h5a2 2 0 0 1 2 2.4l-1.3 6.1a2 2 0 0 1-2 1.5H7',
+  commento:
+    'M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
 };
 
 export function Icona({ nome, size = 20 }: { nome: NomeIcona; size?: number }) {

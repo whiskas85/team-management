@@ -151,6 +151,11 @@ model User {
   updatedAt       DateTime       @updatedAt
   disabledAt      DateTime?
   ultimoAccesso   DateTime?
+  /// Account admin creato dall'avvio per non restare chiusi fuori da
+  /// un'installazione nuova. Se ne compare uno vero, questo se ne va da solo.
+  /// Marcarlo è l'unico modo per riconoscerlo con certezza: l'email da sola
+  /// no, perché potrebbe essere quella di una persona vera.
+  creatoDalSeed   Boolean        @default(false)
 
   // --- GDPR: consensi raccolti e tracciati con data e versione dell'informativa
   privacyAccettataIl  DateTime?
@@ -170,14 +175,23 @@ model User {
   invitiInviati  Membership[]         @relation("MembershipInviter")
   decisiMships   Membership[]         @relation("MembershipDecider")
   figtCards      FigtCard[]
+  whatsapp       CollegamentoWhatsapp[] @relation("WhatsappDi")
+  messaggi       MessaggioInviato[]    @relation("MessaggiRicevuti")
   tesseramentiImportati TesseramentoImportato[] @relation("TesseramentoImportato")
   giornaliere    TesseraGiornaliera[] @relation("GiornaliereUtente")
   letturaDaAltri LetturaProfilo[] @relation("ProfiloLetto")
   profiliLetti   LetturaProfilo[] @relation("Lettore")
-  notesAbout     PlayerNote[]         @relation("NoteSubject")
-  notesWritten   PlayerNote[]         @relation("NoteAuthor")
+  noteScritte    Nota[]               @relation("NoteScritte")
+  noteSuDiMe     Nota[]               @relation("NoteSuDiMe")
+  citatoInNote   NotaCitazione[]      @relation("CitatoInNote")
+  commenti       CommentoEvento[]     @relation("CommentiScritti")
+  miPiace        MiPiaceEvento[]      @relation("MiPiaceMessi")
   eventsCreated  Event[]              @relation("EventCreator")
   movimentiCassa MovimentoCassa[]     @relation("CassaRegistrante")
+  tokenMcp       TokenMcp[]           @relation("TokenMcpDi")
+  documenti      Documento[]          @relation("DocumentiScritti")
+  annunci        Annuncio[]           @relation("AnnunciDi")
+  vociPrenotate  VoceAnnuncio[]       @relation("VociPrenotate")
 
   @@index([stato])
 }
@@ -432,6 +446,9 @@ model TipoAttivita {
   riserve     Boolean      @default(false)
   /// Attività riservata alla squadra: non può essere rilasciata a tutti.
   soloInterno Boolean      @default(false)
+  /// Serve il certificato medico per partecipare. Spento dove non si gioca —
+  /// una riunione, una cena sociale — così chi non ce l'ha può segnarsi lo stesso.
+  certMedico  Boolean      @default(true)
   /// Richiede il certificato AGONISTICO: con il solo non agonistico non si entra.
   certAgonistico Boolean   @default(false)
   ordine      Int          @default(0)
@@ -500,6 +517,10 @@ model Event {
   rsvps       EventRsvp[]
   payments    Payment[]
   giornaliere TesseraGiornaliera[]
+  messaggi    MessaggioInviato[]
+  noteInterne Nota[]
+  commenti    CommentoEvento[]
+  miPiace     MiPiaceEvento[]
 
   @@index([inizio])
 }
@@ -645,14 +666,342 @@ model MovimentoCassa {
 
 // ---------------------------------------------------------------- note interne
 
-model PlayerNote {
+/// Nota privata di chi ha un incarico: su una persona, su un'attività, o su
+/// entrambe.
+///
+/// **La legge solo chi l'ha scritta.** Non è un dettaglio tecnico ma il patto
+/// che la rende utile: una nota su una lite o su un comportamento la si scrive
+/// com'è andata solo se non finisce sotto gli occhi di altri — nemmeno di un
+/// admin. Chi vuole condividere un'osservazione ha la chat della squadra.
+model Nota {
   id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation("NoteSubject", fields: [userId], references: [id], onDelete: Cascade)
-  authorId  String?
-  author    User?    @relation("NoteAuthor", fields: [authorId], references: [id])
+  autoreId  String
+  autore    User     @relation("NoteScritte", fields: [autoreId], references: [id], onDelete: Cascade)
+  titolo    String
+  /// Markdown, come statuto e regolamento.
   testo     String
+  /// La persona a cui la nota è appuntata, se ce n'è una.
+  userId    String?
+  persona   User?    @relation("NoteSuDiMe", fields: [userId], references: [id], onDelete: Cascade)
+  /// L'attività a cui la nota è appuntata, se ce n'è una.
+  eventId   String?
+  evento    Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  citate    NotaCitazione[]
+
+  @@index([autoreId])
+  @@index([userId])
+  @@index([eventId])
+}
+
+/// Chi è citato con la chiocciola dentro una nota.
+///
+/// È un indice ricavato dal testo, non una seconda verità: si ricalcola a ogni
+/// salvataggio. Serve a una cosa sola — far comparire sulla scheda di una
+/// persona anche le note scritte altrove che la nominano.
+model NotaCitazione {
+  notaId String
+  nota   Nota   @relation(fields: [notaId], references: [id], onDelete: Cascade)
+  userId String
+  utente User   @relation("CitatoInNote", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([notaId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- commenti e mi piace
+
+/// Commento a un'attività, visibile a chiunque veda l'attività.
+/// È l'opposto della nota: qui si parla, lì si annota.
+model CommentoEvento {
+  id           String    @id @default(cuid())
+  eventId      String
+  evento       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId       String
+  utente       User      @relation("CommentiScritti", fields: [userId], references: [id], onDelete: Cascade)
+  testo        String
+  createdAt    DateTime  @default(now())
+  modificatoIl DateTime?
+
+  @@index([eventId])
+}
+
+model MiPiaceEvento {
+  eventId   String
+  evento    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  utente    User     @relation("MiPiaceMessi", fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  @@id([eventId, userId])
+}
+
+
+// ---------------------------------------------------------------- messaggi
+
+/// Collegamento a WhatsApp, uno solo per installazione.
+///
+/// Non c'è nessun token qui dentro: la sessione vive nel volume del ponte,
+/// come le credenziali di un telefono collegato. Qui si registra soltanto **di
+/// chi è** il collegamento e dove scrive di solito — perché solo chi l'ha fatto
+/// possa usarlo, e un altro amministratore non lo erediti per il fatto di
+/// essere admin.
+model CollegamentoWhatsapp {
+  id          String   @id @default("whatsapp")
+  /// Numero che il ponte ha collegato, solo per mostrarlo nella pagina.
+  numero      String?
+  utenteId    String?
+  utente      User?    @relation("WhatsappDi", fields: [utenteId], references: [id], onDelete: SetNull)
+  /// Gruppo predefinito: quello che i modelli usano se non ne indicano un altro.
+  gruppoId    String?
+  gruppoNome  String?
+  collegatoIl DateTime @default(now())
+  ultimoInvio DateTime?
+  ultimoEsito String?
+}
+
+/// Cosa fa partire un messaggio.
+enum ScatenanteMessaggio {
+  COMPLEANNO // il giorno del compleanno
+  PROMEMORIA_ATTIVITA // il giorno prima di un'attività
+  QUOTA_APERTA // c'è una quota da saldare
+  CERTIFICATO_IN_SCADENZA // il certificato medico sta per scadere
+  LIBERO // scritto e mandato a mano
+}
+
+/// Dove finisce un messaggio: nel gruppo o nella chat della persona.
+enum DoveMandare {
+  GRUPPO
+  PERSONA
+}
+
+/// Un modo di dire la stessa cosa.
+///
+/// Di ogni tipo se ne scrivono quanti se ne vuole: il gestionale ruota su
+/// quello usato meno di recente, così dieci compleanni di fila non sono dieci
+/// volte la stessa frase. Nel testo si mettono segnaposto come {nome}.
+model ModelloMessaggio {
+  id          String              @id @default(cuid())
+  scatenante  ScatenanteMessaggio
+  destinazione DoveMandare        @default(GRUPPO)
+  /// Gruppo diverso da quello predefinito, quando serve.
+  gruppoId    String?
+  testo       String
+  attivo      Boolean             @default(true)
+  /// Quando è stato usato l'ultima volta: è così che si fa il giro.
+  usatoIl     DateTime?
+  volte       Int                 @default(0)
+  createdAt   DateTime            @default(now())
+
+  invii MessaggioInviato[]
+
+  @@index([scatenante, attivo])
+}
+
+enum StatoMessaggio {
+  DA_MANDARE // preparato, aspetta di partire
+  INVIATO
+  ERRORE
+}
+
+/// Registro di cosa è stato mandato e dove.
+///
+/// Serve a due cose insieme: raccontare cosa è successo, e impedire che lo
+/// stesso messaggio parta due volte — il compleanno una volta l'anno, il
+/// promemoria di un'attività una volta sola. È il vincolo su
+/// (destinazione, occasione) a garantirlo, e regge sia per i gruppi sia per le
+/// persone.
+model MessaggioInviato {
+  id           String              @id @default(cuid())
+  /// A chi si riferisce. Vuoto per i messaggi di gruppo, che non hanno un
+  /// destinatario singolo.
+  userId       String?
+  user         User?               @relation("MessaggiRicevuti", fields: [userId], references: [id], onDelete: SetNull)
+  scatenante   ScatenanteMessaggio
+  modelloId    String?
+  modello      ModelloMessaggio?   @relation(fields: [modelloId], references: [id], onDelete: SetNull)
+  /// Il testo davvero mandato, con i segnaposto già sostituiti.
+  testo        String
+  /// Numero o id del gruppo.
+  destinazione String
+  /// Come si legge: "Gruppo Zero Dark" oppure "Marco Allario".
+  aChi         String
+  stato        StatoMessaggio      @default(DA_MANDARE)
+  esito        String?
+  eventId      String?
+  event        Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  /// La chiave che impedisce il doppione: "COMPLEANNO-<id>-2026".
+  occasione    String
+  creatoIl     DateTime            @default(now())
+  inviatoIl    DateTime?
+
+  @@unique([destinazione, occasione])
+  @@index([stato])
+}
+
+// ---------------------------------------------------------------- assistenti (MCP)
+
+/// Chiave personale con cui un assistente agisce **per conto** di una persona.
+///
+/// Non ha poteri suoi: vale esattamente quanto l'account di chi l'ha creata, e
+/// se quei ruoli cambiano la chiave cambia potere con loro. Del token si tiene
+/// solo l'impronta — chi la legge dal database non può ricostruirlo, e chi lo
+/// perde ne fa un altro invece di farselo dire.
+model TokenMcp {
+  id          String    @id
+  userId      String
+  utente      User      @relation("TokenMcpDi", fields: [userId], references: [id], onDelete: Cascade)
+  /// Come lo chiama chi l'ha fatta: "Claude sul portatile", "telefono".
+  nome        String
+  /// SHA-256 del token intero. Il token e' casuale e lungo: non serve un hash
+  /// lento come per le password, che difendono da parole di senso compiuto.
+  hash        String
+  /// La parte iniziale, per riconoscerla nell'elenco senza svelarla.
+  prefisso    String
+  creatoIl    DateTime  @default(now())
+  ultimoUsoIl DateTime?
+  usi         Int       @default(0)
+  scadeIl     DateTime?
+  revocatoIl  DateTime?
+
   @@index([userId])
+}
+
+// ---------------------------------------------------------------- statuto e regolamenti
+
+enum TipoDocumento {
+  /// Le regole con cui il team esiste. Ce n'è uno solo.
+  STATUTO
+  /// Come ci si comporta. Ce ne possono essere quanti se ne scrivono.
+  REGOLAMENTO
+}
+
+/// Statuto e regolamenti.
+///
+/// Stavano in due file Markdown nel volume, ed era la scelta giusta finché
+/// erano due e basta. Da quando i regolamenti sono un elenco — uno di condotta,
+/// uno del mercatino, quelli che verranno — servono titolo, ordine e una
+/// cronologia di chi li ha toccati: un indice a fianco dei file sarebbe stata
+/// una tabella scritta peggio.
+///
+/// Chi li legge non è scritto qui ma nel codice, e dipende dal tipo: lo statuto
+/// è di chi è dentro, i regolamenti li legge chiunque abbia un account — sono
+/// quello che si mostra a chi si sta affacciando.
+model Documento {
+  id             String        @id @default(cuid())
+  tipo           TipoDocumento
+  /// Come compare nell'indirizzo: /regolamenti/condotta
+  slug           String        @unique
+  titolo         String
+  sottotitolo    String?
+  testo          String
+  ordine         Int           @default(0)
+  creatoIl       DateTime      @default(now())
+  aggiornatoIl   DateTime      @updatedAt
+  aggiornatoDaId String?
+  aggiornatoDa   User?         @relation("DocumentiScritti", fields: [aggiornatoDaId], references: [id], onDelete: SetNull)
+
+  @@index([tipo, ordine])
+}
+
+// ---------------------------------------------------------------- mercatino
+
+enum StatoAnnuncio {
+  /// Si prepara con calma: non lo vede nessuno tranne chi lo scrive.
+  BOZZA
+  PUBBLICATO
+  /// Tolto dal giro. Non sparisce: chi ci torna deve capire che è andata.
+  RITIRATO
+}
+
+enum NaturaVoce {
+  /// Ce n'è uno. Venduto quello, è finita.
+  PEZZO_UNICO
+  /// Merchandising: non finisce, se ne ordina un altro.
+  RIORDINABILE
+}
+
+enum StatoVoce {
+  DISPONIBILE
+  PRENOTATA
+  VENDUTA
+}
+
+/// Un annuncio del mercatino: un lotto, non un oggetto.
+///
+/// "Vendo tutto: torcia 50, tattico 100, mesh 150" è un annuncio con una foto e
+/// tre voci. Anche un oggetto solo è un lotto di uno — nessun caso speciale da
+/// scrivere, nessun ramo del codice che vale solo per gli annunci semplici.
+model Annuncio {
+  id           String        @id @default(cuid())
+  titolo       String
+  descrizione  String?
+  stato        StatoAnnuncio @default(BOZZA)
+  /// Merchandising del team: lo crea solo l'admin, e da qui nascono le quote
+  /// che finiscono in cassa. È questo bollino a decidere dove vanno i soldi,
+  /// per questo non può metterselo chi vuole.
+  ufficiale    Boolean       @default(false)
+  venditoreId  String
+  venditore    User          @relation("AnnunciDi", fields: [venditoreId], references: [id], onDelete: Cascade)
+  /// La foto che si vede in bacheca, scelta da chi vende. È un riferimento e
+  /// non una casella su ogni foto: così la copertina è una per costruzione.
+  copertinaId  String?       @unique
+  copertina    FotoAnnuncio? @relation("Copertina", fields: [copertinaId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  pubblicatoIl DateTime?
+  creatoIl     DateTime      @default(now())
+  aggiornatoIl DateTime      @updatedAt
+
+  voci VoceAnnuncio[]
+  foto FotoAnnuncio[] @relation("FotoDi")
+
+  @@index([stato, ufficiale])
+}
+
+model FotoAnnuncio {
+  id         String    @id @default(cuid())
+  annuncioId String
+  annuncio   Annuncio  @relation("FotoDi", fields: [annuncioId], references: [id], onDelete: Cascade)
+  /// L'originale ridimensionato, e la versione piccola per le card: senza,
+  /// sfogliare la bacheca dal telefono scarica venti foto intere.
+  file       String
+  miniatura  String
+  ordine     Int       @default(0)
+  copertinaDi Annuncio? @relation("Copertina")
+
+  @@index([annuncioId, ordine])
+}
+
+/// Una riga dell'annuncio: titolo, prezzo e descrizione suoi.
+model VoceAnnuncio {
+  id            String     @id @default(cuid())
+  annuncioId    String
+  annuncio      Annuncio   @relation(fields: [annuncioId], references: [id], onDelete: Cascade)
+  titolo        String
+  /// Come la si nomina in un commento: @radio-m. Unica dentro il suo annuncio
+  /// e non in tutto il mercatino — due persone che vendono una radio M devono
+  /// poterla chiamare tutte e due così.
+  maniglia      String
+  prezzo        Decimal    @db.Decimal(10, 2)
+  trattabile    Boolean    @default(false)
+  descrizione   String?
+  natura        NaturaVoce @default(PEZZO_UNICO)
+  /// Solo per i pezzi unici: su una maglietta "venduta" non vuol dire niente.
+  stato         StatoVoce  @default(DISPONIBILE)
+  prenotataDaId String?
+  prenotataDa   User?      @relation("VociPrenotate", fields: [prenotataDaId], references: [id], onDelete: SetNull)
+  prenotataIl   DateTime?
+  ordine        Int        @default(0)
+
+  @@unique([annuncioId, maniglia])
+  @@index([annuncioId, ordine])
+}
+
+/// Le poche cose che si regolano senza toccare il codice. Una riga sola, come
+/// per le credenziali federali e il ponte WhatsApp.
+model Impostazioni {
+  id                  String   @id @default("app")
+  /// Se chi non è ancora in squadra può mettere annunci. Vedere lo può sempre.
+  nuoviPossonoVendere Boolean  @default(false)
+  aggiornatoIl        DateTime @updatedAt
 }

@@ -7,9 +7,9 @@ ripreso dal logo, **card su telefono e liste su desktop**.
 ## Versione
 
 La versione è **una sola**, quella di `package.json`, e da lì la legge il badge
-`v1.0.0` che sta accanto a ZERO DARK nel menu e sulla pagina di accesso: chi usa
-il gestionale vede sempre che cosa ha davanti, e per una segnalazione basta
-leggere il badge.
+che sta accanto a ZERO DARK nel menu e sulla pagina di accesso: chi usa il
+gestionale vede sempre che cosa ha davanti, e per una segnalazione basta leggere
+il badge.
 
 Si numera come `MAJOR.MINOR.PATCH`:
 
@@ -19,9 +19,11 @@ Si numera come `MAJOR.MINOR.PATCH`:
 | **MINOR** | funzioni nuove che non tolgono niente a quelle di prima |
 | **PATCH** | correzioni e ritocchi |
 
-Si alza il numero in `package.json` nello stesso commit che porta la modifica,
-e le migrazioni del database restano indipendenti: hanno la loro data e vanno
-avanti da sole.
+Si alza il numero in `package.json` **nello stesso giro di modifiche**, insieme
+alla voce corrispondente nel [registro delle modifiche](CHANGELOG.md): il badge
+è quello che la squadra legge e cita nelle segnalazioni, e se non si muove
+mentre l'applicazione cambia smette di voler dire qualcosa. Le migrazioni del
+database restano indipendenti: hanno la loro data e vanno avanti da sole.
 
 ## Avvio con Docker
 
@@ -30,9 +32,17 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-L'app risponde su <http://localhost:3000>. Al primo avvio allinea lo schema e
-crea l'account admin definito in `.env` (`SEED_ADMIN_EMAIL` /
-`SEED_ADMIN_PASSWORD`).
+L'app risponde su <http://localhost:3000>. Al primo avvio allinea lo schema e,
+**se non esiste ancora nessun amministratore**, crea quello di partenza definito
+in `.env` (`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`): senza, ci si troverebbe
+davanti a un login e nessuna credenziale per entrare.
+
+Quell'account serve solo a quello. Appena nomini un amministratore vero — dalla
+sua scheda o dai ruoli in blocco — **sparisce da solo**, e non torna: non è
+l'email a decidere, è un marchio sul record, così un account cancellato apposta
+resta cancellato. Da lì in poi il gestionale non ti lascia rimanere senza:
+l'ultimo amministratore non si può né cancellare né declassare, prima se ne
+nomina un altro.
 
 **Prima dell'uso reale**: cambia `SESSION_SECRET`, la password admin e metti
 `DEBUG_LOGIN=0`.
@@ -322,6 +332,150 @@ ha un incarico che li richiede.
 
 **Ricerca** — le liste filtrano mentre digiti, senza premere invio: valgono
 anche per le tendine dei filtri.
+
+## Messaggi WhatsApp
+
+In `Comando → Messaggi WhatsApp` (solo admin) il gestionale scrive nel gruppo
+della squadra: auguri di compleanno, promemoria dell'attività del giorno dopo
+con indirizzo e link alla mappa, solleciti delle quote aperte e dei certificati
+in scadenza.
+
+**Come è fatto.** La connessione vive in un servizio a parte (`whatsapp/`), che
+tiene la sessione aperta come farebbe un telefono collegato. Non pubblica porte:
+ci arriva solo il gestionale, dalla rete interna di Docker, presentando
+`SEGRETO_WHATSAPP`. La sessione sta nel volume `whatsapp`, quindi il codice si
+inquadra una volta sola e non a ogni riavvio.
+
+**Perché non l'API ufficiale di Meta.** Quella nei gruppi non scrive, e i gruppi
+sono il posto dove questa squadra si parla. Il prezzo della scelta è che si esce
+dai termini di servizio di WhatsApp: **va usato un numero dedicato**, mai quello
+personale di chi gestisce il team, perché il rischio, se qualcosa va storto, è
+che quel numero venga bloccato.
+
+**Il collegamento è di una persona, non di un ruolo.** Lo rivendica chi ha
+inquadrato il codice, e nessun altro amministratore può mandare messaggi da quel
+numero: deve scollegare e collegare il proprio. Nel database non finisce nessun
+token — solo di chi è il collegamento e su quale gruppo scrive.
+
+**Modelli a rotazione.** Dello stesso tipo se ne scrivono quanti si vuole; il
+gestionale usa a turno quello fermo da più tempo, così dieci auguri di fila non
+sono dieci volte la stessa frase. Nel testo si mettono segnaposto come `{nome}`,
+`{callsign}`, `{anni}`, `{attivita}`, `{indirizzo}`, `{mappa}`: quelli senza
+valore spariscono invece di restare a vista.
+
+**Si prepara, si guarda, poi si manda.** I messaggi non partono da soli: prima
+compaiono in elenco col testo definitivo, e si scartano quelli che stonano. Un
+messaggio automatico sbagliato non si corregge dopo — è già sul telefono di
+qualcuno. I doppioni sono impossibili: un vincolo del database tiene il
+compleanno a una volta l'anno e il promemoria a una volta per attività.
+
+I messaggi in privato partono solo a chi ha dato il **consenso alle
+comunicazioni** e ha un numero in scheda; nel gruppo il consenso non serve,
+perché è la chat in cui la squadra si parla già.
+
+## Assistenti collegati (MCP)
+
+Dalla voce **Assistente** ognuno crea una chiave personale e ci collega un
+assistente che parla MCP. L'indirizzo è `/api/mcp` sullo stesso gestionale, la
+chiave viaggia come `Authorization: Bearer`; quando la crei trovi già il comando
+pronto da copiare.
+
+**Il punto è che una chiave non dà poteri, li eredita.** Chi entra da qui lavora
+*per conto* di una persona: si risale a lei dalla chiave, e da quel momento il
+resto dell'applicazione non sa nemmeno che la richiesta non arriva da un browser.
+I permessi sono i suoi, controllati dallo stesso codice che li controlla nelle
+pagine (`src/lib/identita.ts`). Non esiste un secondo elenco di permessi per gli
+assistenti: sarebbe una seconda verità da tenere allineata, e prima o poi
+divergono.
+
+Ne discendono tre cose:
+
+1. **un assistente vede solo gli strumenti che competono alla persona** — a un
+   atleta non compare `cassa_riepilogo`, e non gli viene nemmeno proposto;
+2. **chi cambia ruolo cambia poteri lo stesso giorno**, chiavi già create
+   comprese, senza che nessuno debba ricordarsene;
+3. **le regole di merito restano quelle**: rispondere a un'attività da un
+   assistente passa dagli stessi controlli — adesioni aperte, posti, quota
+   addebitata, certificato medico dove serve — perché gli strumenti che scrivono
+   chiamano le stesse azioni dei moduli, non una copia.
+
+**Della chiave si conserva solo l'impronta** (SHA-256): si legge una volta sola,
+e chi la perde ne fa un'altra. Vale quanto una password — quello che l'assistente
+fa risulta fatto da quella persona — e si revoca dalla stessa pagina.
+
+Gli strumenti stanno in `src/lib/mcp/strumenti.ts`, uno per voce, ognuno con
+accanto il permesso che richiede.
+
+## Note private, commenti e “mi piace”
+
+Nella stessa pagina di un'attività convivono due cose opposte, e vale la pena
+tenerle distinte.
+
+**I commenti e i “mi piace” sono di tutti.** Il permesso non è un ruolo ma la
+visibilità dell'attività stessa: se la vedi, puoi dire la tua. Il proprio
+commento si cancella sempre, quello altrui solo l'admin — serve a togliere una
+frase fuori posto, non a rileggere quello che scrive la squadra.
+
+**Le note le legge solo chi le ha scritte.** Le scrive chi ha un incarico —
+comando, amministrazione, segreteria, team leader — e non le vede nessun altro,
+admin compreso. Non è una svista: è il patto che le rende utili, perché una nota
+su una lite o su un comportamento la si scrive com'è andata solo se non finisce
+sotto gli occhi di altri. Due persone che aprono la stessa scheda vedono cose
+diverse, ed è esattamente il punto.
+
+Una nota ha un titolo e un testo in Markdown, e si appunta a una persona, a
+un'attività, o a nessuna delle due. Scrivendo `@` compare l'elenco delle persone:
+chi viene nominato se la ritrova sulla propria scheda — sempre e solo sotto gli
+occhi di chi l'ha scritta. Così *«@vipera ha coperto bene il fianco destro»*, annotata su
+una giocata, la si ritrova anche aprendo l'uno o l'altro senza riscriverla due
+volte. Le citazioni si **ricavano dal testo a ogni salvataggio**: non sono un
+elenco tenuto a parte che prima o poi non corrisponde più a quello che c'è
+scritto. Una chiocciola che non corrisponde a nessuno resta scritta e non viene
+evidenziata, senza diventare un errore.
+
+La pagina **Note** raccoglie le proprie, con la ricerca nel titolo e nel testo.
+
+**L'editor Markdown** (`src/components/EditoreMarkdown.tsx`) serve alle note e a
+statuto e regolamento. Non è un editor visuale e non vuole esserlo: quello che si
+scrive resta il testo che finisce nel database. L'anteprima usa lo stesso
+componente che poi mostra il testo per davvero, così se qualcosa si vede storto
+lo si scopre subito.
+
+## Mercatino
+
+Una bacheca interna: chi ha roba da vendere la mette, chi la cerca la trova.
+**La vedono tutti**, contatti compresi — una bacheca che metà squadra non può
+aprire non è una bacheca. **Pubblicare** è di chi è in squadra; per i nuovi c'è
+un interruttore che l'admin accende quando vuole, e sta nelle impostazioni e non
+nel codice proprio perché la risposta può cambiare senza un rilascio.
+
+**Un annuncio è un lotto, non un oggetto.** *«Vendo tutto: torcia 50, tattico
+100, mesh 150»* è un annuncio solo, con una foto e tre voci: ognuna ha titolo,
+prezzo e descrizione sue, e si vende per conto suo. Anche un oggetto singolo è
+un lotto di uno — così non esiste un ramo del codice che vale solo per gli
+annunci semplici. In bacheca la card mostra l'intervallo dei prezzi, calcolato
+**su ciò che resta**: quando è venduto tutto tranne la mesh, si legge il prezzo
+della mesh.
+
+**Due nature di merce**, che si comportano in modo opposto. Il **pezzo unico**
+si prenota e si vende, e finisce lì. La **merce riordinabile** — le magliette,
+le mimetiche — non ha stato di vendita, perché non c'è niente da esaurire:
+metterlo lo stesso e poi ricordarsi ogni volta di ignorarlo sarebbe il modo
+sicuro di sbagliare da qualche parte.
+
+**La copertina la sceglie chi vende.** Nel database è un riferimento dalla
+scheda alla foto, non una casella su ogni foto: così la copertina è una per
+costruzione, e non può succedere che due se la contendano.
+
+**Le foto si rimpiccioliscono nel browser** prima di partire (lato lungo 1600),
+e insieme parte una **miniatura** che è quella usata dalle card. Il motivo è
+pratico: una foto da telefono pesa otto mega, e venti card con la foto intera
+dentro ZeroTier danno una pagina che sembra rotta senza esserlo. Le immagini
+stanno nel volume degli allegati e passano da `/api/mercatino/foto/[id]`, che
+richiede l'accesso; eliminando un annuncio **spariscono anche i file**.
+
+Il piano delle parti che mancano — commenti, chiocciole sulle voci, messaggi
+privati, merchandising con le quote in cassa — è in `DA-FARE.md`.
 
 ## GDPR
 

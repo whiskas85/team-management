@@ -15,7 +15,13 @@ import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { DateCertificato } from '@/components/DateCertificato';
 import { Icona } from '@/components/Icona';
-import { approvaCertificato, caricaCertificato, rifiutaCertificato } from '@/actions/certificati';
+import { AzioneBottone } from '@/components/AzioneBottone';
+import {
+  approvaCertificato,
+  caricaCertificato,
+  eliminaCertificato,
+  rifiutaCertificato,
+} from '@/actions/certificati';
 
 const FILTRI = {
   attesa: 'Da vagliare',
@@ -213,14 +219,32 @@ function Azioni({
 }) {
   return (
     <div className="mt-3 space-y-2 border-t border-line pt-3 md:mt-0 md:border-0 md:pt-0">
-      <a
-        href={`/api/certificati/${cert.id}`}
-        target="_blank"
-        rel="noreferrer"
-        className="btn-ghost btn-sm"
-      >
-        <Icona nome="apri" size={15} /> Apri allegato
-      </a>
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={`/api/certificati/${cert.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="btn-ghost btn-sm"
+        >
+          <Icona nome="apri" size={15} /> Apri allegato
+        </a>
+
+        {/* Un doppione si toglie, non si boccia: rifiutarlo lascerebbe in
+            elenco una riga rossa che racconta una bocciatura mai avvenuta. */}
+        <AzioneBottone
+          azione={eliminaCertificato}
+          valori={{ id: cert.id }}
+          icona="elimina"
+          conferma={
+            stato === 'VALIDO'
+              ? 'Eliminare questo certificato? Era valido: se è l’unico, la persona risulterà scoperta.'
+              : 'Eliminare questo certificato? Sparisce anche il file allegato.'
+          }
+          className="btn-danger btn-sm"
+        >
+          Elimina
+        </AzioneBottone>
+      </div>
 
       {cert.motivoRifiuto && <p className="text-xs text-danger">Rifiutato: {cert.motivoRifiuto}</p>}
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { SegnaLetto } from '@/components/SegnaLetto';
 import { notFound, redirect } from 'next/navigation';
 import { requirePermesso } from '@/lib/auth';
@@ -20,6 +21,7 @@ import {
   vedeAreaTesseramento,
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, iniziali, inputDate, nomeCompleto, umanizza } from '@/lib/format';
+import { Partecipazioni } from '@/components/Partecipazioni';
 import { Avatar, Badge, Campo, Dato, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Anello, Barre, mesiRecenti } from '@/components/Grafico';
 import { Conferma, Fisarmonica, FormAzione } from '@/components/Form';
@@ -29,16 +31,25 @@ import { AzioniContatto } from '@/components/AzioniContatto';
 import {
   aggiornaAccesso,
   aggiornaProfilo,
-  aggiungiNota,
-  eliminaNota,
   eliminaOperatore,
   resettaPassword,
 } from '@/actions/operatori';
+import { haIncarichi } from '@/lib/domain';
+import { citabili } from '@/lib/note';
+import { BloccoNote, type NotaLetta } from '@/components/Note';
 
 export default async function SchedaOperatorePage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requirePermesso(puoVedereOperatori);
   const { id } = await params;
   const admin = isAdmin(me.roles);
+
+  // l'indirizzo da cui si sta guardando è lo stesso che deve usare la squadra:
+  // finisce nel messaggio delle credenziali, così non va dettato a memoria
+  const intestazioni = await headers();
+  const host = intestazioni.get('host');
+  const indirizzo = host
+    ? `${intestazioni.get('x-forwarded-proto') ?? 'http'}://${host}`
+    : undefined;
 
   const utente = await prisma.user.findUnique({
     where: { id },
@@ -47,12 +58,13 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
       memberships: { orderBy: { invitataIl: 'desc' }, include: { stagione: { select: { nome: true } } } },
       figtCards: { orderBy: { createdAt: 'desc' }, include: { stagione: { select: { nome: true } } } },
       payments: { orderBy: { createdAt: 'desc' } },
-      notesAbout: {
-        orderBy: { createdAt: 'desc' },
-        include: { author: { select: { nome: true, cognome: true } } },
-      },
       rsvps: {
-        include: { event: { select: { titolo: true, inizio: true, tipo: { select: { nome: true } } } } },
+        include: {
+          // l'id serve perché dalla riga si va sull'attività
+          event: {
+            select: { id: true, titolo: true, inizio: true, tipo: { select: { nome: true } } },
+          },
+        },
         orderBy: { respondedAt: 'desc' },
       },
     },
@@ -65,6 +77,32 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
   // la scheda di chi non è ancora in squadra la apre solo chi lo segue: al team
   // leader basta sapere che "Mario R." si è segnato, non chi sia
   if (contatto && !puoVedereNuovi(me.roles)) redirect('/dashboard?errore=permessi');
+
+  // Le mie note su questa persona: quelle appuntate a lei e quelle scritte
+  // altrove che la nominano con la chiocciola. Sono solo le mie — di quelle
+  // degli altri qui non si vede nemmeno che esistono.
+  const scrivoNote = haIncarichi(me.roles);
+  const [mieNote, persone] = scrivoNote
+    ? await Promise.all([
+        prisma.nota.findMany({
+          where: {
+            autoreId: me.id,
+            OR: [{ userId: utente.id }, { citate: { some: { userId: utente.id } } }],
+          },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            persona: { select: { nome: true, cognome: true, callsign: true } },
+            evento: { select: { titolo: true } },
+            citate: {
+              include: {
+                utente: { select: { id: true, nome: true, cognome: true, callsign: true } },
+              },
+            },
+          },
+        }),
+        citabili(),
+      ])
+    : [[], []];
 
   const svolti = utente.rsvps.filter((r) => new Date(r.event.inizio) < new Date());
   const presenzeConfermate = svolti.filter((r) => r.presente === true);
@@ -102,7 +140,11 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
       <Intestazione titolo={nomeCompleto(utente)} sottotitolo={utente.email} />
 
       <div className="card mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-        <Avatar iniziali={iniziali(utente.nome, utente.cognome)} size="lg" />
+        <Avatar
+          iniziali={iniziali(utente.nome, utente.cognome)}
+          size="lg"
+          fotoDi={utente.fotoPath ? utente.id : null}
+        />
         <div className="flex-1">
           <div className="flex flex-wrap gap-2">
             <Badge tono={tonoStato[utente.stato]}>{etichettaStato[utente.stato]}</Badge>
@@ -315,48 +357,18 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
           )}
         </div>
 
-        <div className="card">
-          <p className="titolo-sezione mb-3">Note interne</p>
-          <FormAzione azione={aggiungiNota} className="mb-4 space-y-2">
-            <input type="hidden" name="userId" value={utente.id} />
-            <textarea
-              name="testo"
-              rows={2}
-              className="input"
-              placeholder="Osservazioni su affidabilità, condotta, equipaggiamento…"
-            />
-            <Invia className="btn-ghost btn-sm" icona="aggiungi">
-            Aggiungi nota
-          </Invia>
-          </FormAzione>
-
-          {utente.notesAbout.length === 0 ? (
-            <p className="text-sm text-muted">Nessuna nota.</p>
-          ) : (
-            <div className="space-y-3">
-              {utente.notesAbout.map((n) => (
-                <div key={n.id} className="rounded-md border border-line bg-surface2 px-3 py-2">
-                  <p className="whitespace-pre-wrap text-sm">{n.testo}</p>
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-[11px] text-muted num">
-                      {n.author ? `${n.author.nome} ${n.author.cognome}` : 'sistema'} ·{' '}
-                      {fmtDate(n.createdAt)}
-                    </span>
-                    <FormAzione azione={eliminaNota} className="">
-                      <input type="hidden" name="id" value={n.id} />
-                      <Conferma
-                        messaggio="Eliminare la nota?"
-                        className="text-[11px] text-muted hover:text-danger"
-                       icona="elimina">
-            elimina
-          </Conferma>
-                    </FormAzione>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Le note stanno qui ma non sono di questa scheda: sono di chi
+            guarda. Due persone che aprono lo stesso operatore vedono cose
+            diverse, ed è esattamente il punto. */}
+        {scrivoNote && (
+          <BloccoNote
+            note={mieNote as NotaLetta[]}
+            persone={persone}
+            userId={utente.id}
+            titolo={`Le tue note su ${utente.nome}`}
+            contesto
+          />
+        )}
       </div>
 
       {/* -------------------------------------------------- gestione admin */}
@@ -374,7 +386,7 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
               </FormAzione>
 
               <div className="space-y-6">
-                <FormAzione azione={resettaPassword}>
+                <FormAzione azione={resettaPassword} indirizzo={indirizzo}>
                   <input type="hidden" name="userId" value={utente.id} />
                   <p className="mb-2 text-xs text-muted">
                     Genera una password nuova e la mostra qui una volta sola: non esce nessuna
@@ -512,37 +524,7 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
       {/* -------------------------------------------------- storico */}
       <div className="mt-8">
         <h2 className="titolo-sezione mb-3">Storico eventi</h2>
-        {utente.rsvps.length === 0 ? (
-          <Vuoto testo="Nessuna partecipazione registrata." />
-        ) : (
-          <div className="space-y-2">
-            {utente.rsvps.slice(0, 20).map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm">{r.event.titolo}</p>
-                  <p className="text-xs text-muted num">
-                    {r.event.tipo?.nome ?? 'Senza tipologia'} · {fmtDate(r.event.inizio)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  {r.presente !== null && (
-                    <Badge tono={r.presente ? 'ok' : 'neutro'}>
-                      {r.presente ? 'presente' : 'assente'}
-                    </Badge>
-                  )}
-                  <Badge
-                    tono={r.status === 'PRESENTE' ? 'ok' : r.status === 'FORSE' ? 'warn' : 'danger'}
-                  >
-                    {umanizza(r.status)}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Partecipazioni rsvps={utente.rsvps} limite={20} />
       </div>
     </>
   );

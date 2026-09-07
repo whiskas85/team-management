@@ -4,6 +4,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import type { Role, StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
+import { identitaCorrente } from './identita';
 
 const COOKIE = 'zd_session';
 const DURATA_BREVE = 60 * 60 * 12; // sessione di lavoro
@@ -64,6 +65,13 @@ export type SessionUser = {
 };
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
+  // Un assistente collegato via MCP lavora per conto di una persona: la chiave
+  // è già stata verificata, qui si legge chi è. Da questa riga in poi il resto
+  // dell'applicazione non sa nemmeno che la richiesta non arriva da un browser,
+  // ed è voluto: i permessi restano quelli, uno solo per tutti i modi di entrare.
+  const perConto = identitaCorrente();
+  if (perConto) return perConto;
+
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   if (!token) return null;

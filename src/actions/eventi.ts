@@ -6,7 +6,14 @@ import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { componiQuota, quotaPer } from '@/lib/quote';
 import { requireUser } from '@/lib/auth';
-import { MOTIVO_NON_IDONEO, idoneoPer, inSquadra, isAdmin, puoSchierare } from '@/lib/domain';
+import {
+  MOTIVO_NON_IDONEO,
+  idoneoPer,
+  inSquadra,
+  isAdmin,
+  puoSchierare,
+  serveCertificato,
+} from '@/lib/domain';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 const VISIBILITA = ['TEAM', 'TUTTI'] as const;
@@ -75,7 +82,15 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
 
   if (id) {
     await prisma.event.update({ where: { id }, data: valori });
+
+    // Il costo può arrivare dopo che la gente si è già segnata: senza questo
+    // giro le quote non nascevano più, e chi era titolare non vedeva niente
+    // fra i suoi pagamenti.
+    await allineaQuoteEvento(id);
+
     aggiorna(id);
+    revalidatePath('/pagamenti');
+    revalidatePath('/admin/pagamenti');
     return { ok: 'Evento aggiornato.' };
   }
 
@@ -189,8 +204,9 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   }
 
   // senza certificato medico valido non si scende in campo: vale per chi è in
-  // squadra, i nuovi che vengono alle open non hanno l'obbligo
-  if (status !== 'ASSENTE' && inSquadra(me.stato)) {
+  // squadra, sulle tipologie che lo richiedono. I nuovi che vengono alle open
+  // non hanno l'obbligo, e a una riunione non lo chiede nessuno
+  if (status !== 'ASSENTE' && inSquadra(me.stato) && serveCertificato(evento.tipo)) {
     const certificati = await prisma.medicalCertificate.findMany({
       where: { userId: me.id },
       select: { status: true, scadeIl: true, tipo: true },
@@ -205,14 +221,10 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
     where: { eventId_userId: { eventId, userId: me.id } },
   });
 
-  if (
-    status === 'PRESENTE' &&
-    evento.maxPartecipanti &&
-    esistente?.status !== 'PRESENTE' &&
-    evento._count.rsvps >= evento.maxPartecipanti
-  ) {
-    return { errore: 'Posti esauriti per questo evento.' };
-  }
+  // I posti non chiudono la porta a nessuno: la disponibilità la dà chiunque,
+  // e se i disponibili superano i posti gli altri diventano riserve. Il tetto
+  // vale al momento di schierare, che è quando qualcuno decide davvero — non
+  // al momento di alzare la mano, che è solo dire "ci sarei".
 
   const note = strOpt(fd, 'note');
   await prisma.eventRsvp.upsert({
@@ -221,52 +233,81 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
     update: { status, note, respondedAt: new Date() },
   });
 
-  const quota = await allineaQuota(evento, me.id, status);
+  const quota = await allineaQuota(evento.id, me.id);
 
   aggiorna(eventId);
   revalidatePath('/pagamenti');
   revalidatePath('/admin/pagamenti');
 
   if (status === 'ASSENTE') return { ok: 'Risposta registrata.' };
+
+  // se i disponibili hanno superato i posti conviene dirlo subito, invece di
+  // farlo scoprire il giorno dell'attività guardando la formazione
+  const oltre =
+    status === 'PRESENTE' &&
+    !!evento.maxPartecipanti &&
+    evento._count.rsvps + (esistente?.status === 'PRESENTE' ? 0 : 1) > evento.maxPartecipanti;
+  const avviso = oltre
+    ? ` I posti sono ${evento.maxPartecipanti}: i disponibili sono già di più, chi resta fuori va in riserva.`
+    : '';
+
   if (evento.tipo?.riserve) {
     return {
       ok: quota
-        ? `Disponibilità registrata. Vale a quota saldata (${quota} €): sarà poi il TL a comporre la formazione.`
-        : 'Disponibilità registrata: sarà il TL a comporre la formazione.',
+        ? `Disponibilità registrata. Vale a quota saldata (${quota} €): sarà poi il TL a comporre la formazione.${avviso}`
+        : `Disponibilità registrata: sarà il TL a comporre la formazione.${avviso}`,
     };
   }
   return {
     ok: quota
-      ? `Adesione registrata. Il posto è confermato al saldo della quota di ${quota} €.`
-      : 'Adesione registrata.',
+      ? `Adesione registrata. Il posto è confermato al saldo della quota di ${quota} €.${avviso}`
+      : `Adesione registrata.${avviso}`,
   };
 }
 
 /**
- * La quota è legata all'attività: chi si segna se la vede addebitata, chi si
- * ritira se la vede tolta — purché non abbia già versato qualcosa.
+ * Chi deve la quota di un'attività.
+ *
+ * Dove c'è la formazione la deve **chi scende in campo**: una riserva al club
+ * non deve niente, perché non gioca. Dove la formazione non c'è, la deve chi si
+ * è segnato presente — e lì essere presenti *è* partecipare.
  */
-async function allineaQuota(
-  evento: {
-    id: string;
-    titolo: string;
-    costo: unknown;
-    costoEsterni: unknown;
-    inizio: Date;
-    tipo: { tipoQuota: string } | null;
-  },
-  userId: string,
-  status: string,
-): Promise<number | null> {
-  const chi = await prisma.user.findUnique({ where: { id: userId }, select: { stato: true } });
-  const { importo: costo, dettaglio } = quotaPer(evento, chi?.stato);
-  if (costo <= 0) return null;
+const deveLaQuota = (
+  rsvp: { status: string; assegnazione: string } | null,
+  conFormazione: boolean,
+) => !!rsvp && rsvp.status === 'PRESENTE' && (!conFormazione || rsvp.assegnazione === 'TITOLARE');
 
-  const esistente = await prisma.payment.findFirst({
-    where: { eventId: evento.id, userId },
+/**
+ * Rimette la quota di una persona in pari con la realtà.
+ *
+ * Legge lo stato dal database invece di farselo passare, ed è la ragione per
+ * cui funziona: la stessa chiamata serve quando uno risponde, quando il TL lo
+ * schiera o lo toglie dalla formazione, quando viene aggiunto a mano e quando
+ * cambia il costo dell'attività. Prima la quota nasceva solo al momento della
+ * risposta, e bastava che il costo arrivasse dopo perché non nascesse mai.
+ */
+async function allineaQuota(eventId: string, userId: string): Promise<number | null> {
+  const evento = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: { tipo: { select: { riserve: true, tipoQuota: true } } },
   });
+  if (!evento) return null;
 
-  if (status === 'PRESENTE') {
+  const [rsvp, chi, esistente] = await Promise.all([
+    prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId } } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { stato: true } }),
+    // i rimborsi sono movimenti a sé e non si toccano
+    prisma.payment.findFirst({ where: { eventId, userId, tipo: { not: 'RIMBORSO' } } }),
+  ]);
+
+  const { importo: costo, dettaglio } = quotaPer(evento, chi?.stato);
+  // La formazione c'è dove la tipologia la prevede e dove i posti sono contati:
+  // deve essere la stessa condizione con cui la pagina mostra i pulsanti, o si
+  // arriverebbe ad addebitare la quota a chi lì risulta riserva.
+  const conFormazione = (evento.tipo?.riserve ?? false) || evento.maxPartecipanti !== null;
+  const deve = costo > 0 && deveLaQuota(rsvp, conFormazione);
+
+  if (deve) {
     if (!esistente) {
       // una quota sola, anche quando è fatta di più voci: si paga in una volta
       // e il dettaglio racconta di cosa è composta
@@ -282,17 +323,32 @@ async function allineaQuota(
           eventId: evento.id,
         },
       });
+    } else if (Number(esistente.pagato) === 0 && Number(esistente.importo) !== costo) {
+      // il costo è cambiato dopo: finché non è entrato un euro la quota si
+      // adegua, altrimenti resterebbe ferma a una cifra che non esiste più
+      await prisma.payment.update({
+        where: { id: esistente.id },
+        data: { importo: costo, note: dettaglio, descrizione: evento.titolo },
+      });
     }
     return costo;
   }
 
-  // ritirandosi la quota sparisce, ma solo se non è stato incassato nulla
+  // non la deve: la quota sparisce, ma solo se non è stato incassato nulla
   if (esistente && Number(esistente.pagato) === 0) {
     await prisma.payment.delete({ where: { id: esistente.id } });
   }
   return null;
 }
 
+/** Ricalcola le quote di tutti: serve quando cambia il costo dell'attività. */
+async function allineaQuoteEvento(eventId: string) {
+  const rsvps = await prisma.eventRsvp.findMany({
+    where: { eventId },
+    select: { userId: true },
+  });
+  for (const r of rsvps) await allineaQuota(eventId, r.userId);
+}
 /** Schieramento: il TL decide chi è titolare e chi riserva. */
 export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
@@ -303,13 +359,47 @@ export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm
   const rsvpId = str(fd, 'rsvpId');
   const assegnazione = enumVal(fd, 'assegnazione', ASSEGNAZIONI, 'NON_ASSEGNATO');
 
+  // Qui sì che il tetto conta: i posti sono quelli, e nemmeno un TL ne fa
+  // entrare uno in più. Chi avanza resta riserva — che è il motivo per cui
+  // alzare la mano non è mai stato vietato a nessuno.
+  if (assegnazione === 'TITOLARE') {
+    const attuale = await prisma.eventRsvp.findUnique({
+      where: { id: rsvpId },
+      include: { event: { select: { maxPartecipanti: true } } },
+    });
+    if (!attuale) return { errore: 'Adesione non trovata.' };
+
+    const max = attuale.event.maxPartecipanti;
+    if (max && attuale.assegnazione !== 'TITOLARE') {
+      const titolari = await prisma.eventRsvp.count({
+        where: { eventId: attuale.eventId, assegnazione: 'TITOLARE' },
+      });
+      if (titolari >= max) {
+        return {
+          errore: `I posti sono ${max} e sono già assegnati: togli un titolare, o lascialo in riserva.`,
+        };
+      }
+    }
+  }
+
   const rsvp = await prisma.eventRsvp.update({
     where: { id: rsvpId },
     data: { assegnazione },
   });
 
+  // Schierare qualcuno è il momento in cui la quota nasce, e toglierlo dalla
+  // formazione è quello in cui sparisce: una riserva al club non deve niente.
+  const quota = await allineaQuota(rsvp.eventId, rsvp.userId);
+
   aggiorna(rsvp.eventId);
-  return { ok: 'Schieramento aggiornato.' };
+  revalidatePath('/pagamenti');
+  revalidatePath('/admin/pagamenti');
+  return {
+    ok:
+      quota !== null
+        ? `Schierato titolare: gli è stata addebitata la quota di ${quota} €.`
+        : 'Schieramento aggiornato.',
+  };
 }
 
 /** Appello a evento concluso. */
@@ -360,8 +450,9 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   if (!evento) return { errore: 'Attività non trovata.' };
 
   const serveAgonistico = evento.tipo?.certAgonistico ?? false;
+  const serveCert = serveCertificato(evento.tipo);
   const ammessi = utenti.filter(
-    (u) => !inSquadra(u.stato) || idoneoPer(u.certificates, serveAgonistico),
+    (u) => !serveCert || !inSquadra(u.stato) || idoneoPer(u.certificates, serveAgonistico),
   );
   const scartati = utenti.filter((u) => !ammessi.includes(u));
 
@@ -371,7 +462,7 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
       create: { eventId, userId: u.id, status: 'PRESENTE', note: 'Aggiunto dallo staff' },
       update: { status: 'PRESENTE' },
     });
-    await allineaQuota(evento, u.id, 'PRESENTE');
+    await allineaQuota(evento.id, u.id);
   }
 
   aggiorna(eventId);
@@ -400,6 +491,11 @@ export async function rimuoviPartecipante(_prev: StatoForm, fd: FormData): Promi
   if (!puoSchierare(me.roles)) return { errore: 'Non hai i permessi.' };
 
   const rsvp = await prisma.eventRsvp.delete({ where: { id: str(fd, 'rsvpId') } });
+
+  // via lui, via la sua quota: restava addebitata a chi non c'era più
+  await allineaQuota(rsvp.eventId, rsvp.userId);
+
   aggiorna(rsvp.eventId);
+  revalidatePath('/pagamenti');
   return { ok: 'Partecipante rimosso.' };
 }

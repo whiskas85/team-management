@@ -7,6 +7,7 @@ import type { Prisma, Role } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { hashPassword, requireUser, verifyPassword } from '@/lib/auth';
 import { isAdmin, isContatto, puoVedereNuovi, puoVedereOperatori } from '@/lib/domain';
+import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
 
@@ -26,6 +27,39 @@ function aggiorna(userId?: string) {
   revalidatePath('/admin/operatori');
   revalidatePath('/admin/nuovi');
   if (userId) revalidatePath(`/admin/operatori/${userId}`);
+}
+
+/**
+ * Quanti amministratori "veri" resterebbero togliendo di mezzo questi.
+ *
+ * Veri perché quello creato all'avvio non conta: esiste solo finché non ce n'è
+ * uno in carne e ossa. Serve a non restare mai senza: per togliere un admin
+ * bisogna prima averne un altro.
+ */
+async function adminRestanti(esclusi: string[]) {
+  return prisma.user.count({
+    where: {
+      roles: { has: 'ADMIN' },
+      creatoDalSeed: false,
+      stato: { not: 'DISABILITATO' },
+      id: { notIn: esclusi },
+    },
+  });
+}
+
+/**
+ * L'admin di partenza ha finito il suo lavoro appena ne compare uno vero.
+ *
+ * Si chiama dopo ogni promozione, così sparisce subito invece di aspettare il
+ * riavvio: è un account con una password di default, meno resta in giro meglio è.
+ */
+async function congedaAdminIniziale() {
+  const veri = await prisma.user.count({
+    where: { roles: { has: 'ADMIN' }, creatoDalSeed: false },
+  });
+  if (veri === 0) return;
+
+  await prisma.user.deleteMany({ where: { creatoDalSeed: true, roles: { has: 'ADMIN' } } });
 }
 
 /** Legge le checkbox dei ruoli (name="roles", più valori). */
@@ -63,13 +97,8 @@ export async function aggiornaProfilo(_prev: StatoForm, fd: FormData): Promise<S
   if (fd.has('callsign')) {
     const cs = strOpt(fd, 'callsign');
     if (cs) {
-      const preso = await prisma.user.findFirst({
-        where: { callsign: { equals: cs, mode: 'insensitive' }, NOT: { id: userId } },
-        select: { nome: true, cognome: true },
-      });
-      if (preso) {
-        return { errore: `Il callsign "${cs}" è già di ${preso.nome} ${preso.cognome}.` };
-      }
+      const preso = await callsignOccupato(cs, userId);
+      if (preso) return { errore: CALLSIGN_PRESO(cs, preso) };
     }
   }
 
@@ -131,6 +160,12 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
     return { errore: 'Esiste già un account con questa email.' };
   }
 
+  const callsign = strOpt(fd, 'callsign');
+  if (callsign) {
+    const preso = await callsignOccupato(callsign);
+    if (preso) return { errore: CALLSIGN_PRESO(callsign, preso) };
+  }
+
   const stato = enumVal(fd, 'stato', STATI, 'SQUADRA');
   const roles = leggiRuoli(fd);
 
@@ -140,15 +175,78 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
       nome,
       cognome,
       passwordHash: await hashPassword(password),
-      callsign: strOpt(fd, 'callsign'),
+      callsign,
       telefono: strOpt(fd, 'telefono'),
       roles: stato === 'SQUADRA' && roles.length === 0 ? ['ATLETA'] : roles,
       stato,
     },
   });
 
+  if (roles.includes('ADMIN')) await congedaAdminIniziale();
+
   aggiorna();
   return { ok: `${nome} ${cognome} è stato creato. Comunicagli la password provvisoria.` };
+}
+
+/**
+ * Assegna (o toglie) un ruolo a più operatori in un colpo solo.
+ *
+ * Serve quando si ricompone la squadra: aprire venti schede per dare "Atleta"
+ * a venti persone è il modo più veloce per sbagliarne una. Il ruolo si somma a
+ * quelli che ognuno ha già, non li sostituisce.
+ */
+export async function assegnaRuolo(
+  userIds: string[],
+  ruolo: Role,
+  togli = false,
+): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può cambiare i ruoli.' };
+  if (userIds.length === 0) return { errore: 'Non hai selezionato nessuno.' };
+  if (!(RUOLI as readonly string[]).includes(ruolo)) return { errore: 'Ruolo non valido.' };
+
+  // togliersi da soli l'accesso da admin è il modo più rapido per chiudersi
+  // fuori: lo stesso vincolo c'è già sulla scheda del singolo
+  if (togli && ruolo === 'ADMIN' && userIds.includes(me.id)) {
+    return { errore: 'Non puoi togliere a te stesso i permessi di admin.' };
+  }
+  if (togli && ruolo === 'ADMIN' && (await adminRestanti(userIds)) === 0) {
+    return {
+      errore: 'Resterebbe senza amministratori: nominane un altro prima di togliere questi.',
+    };
+  }
+
+  const utenti = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, roles: true },
+  });
+
+  // dando il ruolo cambiano quelli che non ce l'hanno, togliendolo quelli che sì
+  const cambiati = utenti.filter((u) => u.roles.includes(ruolo) === togli);
+  if (cambiati.length === 0) {
+    return {
+      ok: togli
+        ? 'Nessuno dei selezionati aveva quel ruolo.'
+        : 'Ce l’avevano già tutti: non ho cambiato niente.',
+    };
+  }
+
+  await prisma.$transaction(
+    cambiati.map((u) =>
+      prisma.user.update({
+        where: { id: u.id },
+        data: {
+          roles: togli ? u.roles.filter((r) => r !== ruolo) : [...u.roles, ruolo],
+        },
+      }),
+    ),
+  );
+
+  if (!togli && ruolo === 'ADMIN') await congedaAdminIniziale();
+
+  aggiorna();
+  const quanti = cambiati.length === 1 ? '1 operatore' : `${cambiati.length} operatori`;
+  return { ok: togli ? `Ruolo tolto a ${quanti}.` : `Ruolo dato a ${quanti}.` };
 }
 
 /** Ruoli e stato dell'operatore. */
@@ -167,10 +265,23 @@ export async function aggiornaAccesso(_prev: StatoForm, fd: FormData): Promise<S
     return { errore: 'Non puoi cambiare lo stato del tuo stesso account.' };
   }
 
+  // togliendo l'ultimo admin il gestionale resterebbe senza nessuno che possa
+  // rimetterlo: prima se ne nomina un altro, poi si toglie questo
+  const perdeAdmin = !roles.includes('ADMIN') || stato === 'DISABILITATO';
+  if (perdeAdmin && (await adminRestanti([userId])) === 0) {
+    return {
+      errore:
+        'Resterebbe senza amministratori: dai prima il ruolo di admin a qualcun altro, poi torna qui.',
+    };
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: { roles, stato, disabledAt: stato === 'DISABILITATO' ? new Date() : null },
   });
+
+  // se questo è il primo admin vero, quello di partenza può andarsene
+  if (roles.includes('ADMIN')) await congedaAdminIniziale();
 
   aggiorna(userId);
   return { ok: 'Ruoli e stato aggiornati.' };
@@ -205,7 +316,7 @@ export async function resettaPassword(_prev: StatoForm, fd: FormData): Promise<S
   const userId = str(fd, 'userId');
   const utente = await prisma.user.findUnique({
     where: { id: userId },
-    select: { nome: true, cognome: true },
+    select: { nome: true, cognome: true, email: true },
   });
   if (!utente) return { errore: 'Operatore non trovato.' };
 
@@ -219,8 +330,9 @@ export async function resettaPassword(_prev: StatoForm, fd: FormData): Promise<S
   aggiorna(userId);
   return {
     ok:
-      `Password di ${utente.nome} ${utente.cognome}: ${nuova} — annotala adesso, ` +
+      `Password nuova per ${utente.nome} ${utente.cognome}. Consegnagliela adesso: ` +
       'non verrà più mostrata. Al primo accesso dovrà sceglierne una sua.',
+    credenziali: { utente: utente.email, password: nuova },
   };
 }
 
@@ -240,6 +352,13 @@ export async function eliminaOperatore(_prev: StatoForm, fd: FormData): Promise<
     include: { certificates: { select: { filePath: true } } },
   });
   if (!utente) return { errore: 'Operatore non trovato.' };
+
+  // l'ultimo amministratore non si cancella: senza, il gestionale non si governa più
+  if (utente.roles.includes('ADMIN') && (await adminRestanti([userId])) === 0) {
+    return {
+      errore: `${utente.nome} ${utente.cognome} è l’unico amministratore: nominane un altro prima di cancellarlo.`,
+    };
+  }
 
   // gli allegati vivono su disco: vanno rimossi insieme al record
   const { eliminaAllegato } = await import('@/lib/storage');
@@ -297,41 +416,5 @@ export async function chiediCancellazione(_prev: StatoForm, fd: FormData): Promi
   };
 }
 
-/** Nota interna su un operatore: visibile solo a chi ha incarichi. */
-export async function aggiungiNota(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
-  const me = await requireUser();
-  if (!puoVedereOperatori(me.roles)) return { errore: 'Non hai i permessi per scrivere note.' };
-
-  const userId = str(fd, 'userId');
-  const testo = str(fd, 'testo');
-  if (!testo) return { errore: 'La nota è vuota.' };
-
-  // sulla scheda di un contatto scrive solo chi la può aprire
-  const bersaglio = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { stato: true },
-  });
-  if (!bersaglio) return { errore: 'Operatore non trovato.' };
-  if (isContatto(bersaglio.stato) && !puoVedereNuovi(me.roles)) {
-    return { errore: 'Non hai i permessi per scrivere note.' };
-  }
-
-  await prisma.playerNote.create({ data: { userId, testo, authorId: me.id } });
-  aggiorna(userId);
-  return { ok: 'Nota aggiunta.' };
-}
-
-export async function eliminaNota(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
-  const me = await requireUser();
-  const id = str(fd, 'id');
-
-  const nota = await prisma.playerNote.findUnique({ where: { id } });
-  if (!nota) return { errore: 'Nota non trovata.' };
-  if (nota.authorId !== me.id && !isAdmin(me.roles)) {
-    return { errore: 'Puoi eliminare solo le note che hai scritto.' };
-  }
-
-  await prisma.playerNote.delete({ where: { id } });
-  aggiorna(nota.userId);
-  return { ok: 'Nota eliminata.' };
-}
+// Le note sono passate in `src/actions/note.ts`: hanno un titolo, stanno anche
+// sulle attività e le legge solo chi le ha scritte. Qui non ne resta niente.

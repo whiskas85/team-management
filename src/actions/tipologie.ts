@@ -36,6 +36,7 @@ export async function salvaTipologia(_prev: StatoForm, fd: FormData): Promise<St
     return { errore: `Esiste già una tipologia chiamata "${nome}".` };
   }
 
+  // l'ordine non passa da qui: si decide trascinando le righe nell'elenco
   const valori = {
     nome,
     descrizione: strOpt(fd, 'descrizione'),
@@ -43,8 +44,8 @@ export async function salvaTipologia(_prev: StatoForm, fd: FormData): Promise<St
     tipoQuota: enumVal(fd, 'tipoQuota', QUOTE, 'EVENTO'),
     riserve: bool(fd, 'riserve'),
     soloInterno: bool(fd, 'soloInterno'),
+    certMedico: bool(fd, 'certMedico'),
     certAgonistico: bool(fd, 'certAgonistico'),
-    ordine: intOpt(fd, 'ordine') ?? 0,
     attivo: bool(fd, 'attivo'),
   };
 
@@ -54,9 +55,36 @@ export async function salvaTipologia(_prev: StatoForm, fd: FormData): Promise<St
     return { ok: 'Tipologia aggiornata.' };
   }
 
-  await prisma.tipoAttivita.create({ data: valori });
+  // una tipologia nuova nasce in fondo: chi la crea la sposta se serve
+  const ultima = await prisma.tipoAttivita.aggregate({ _max: { ordine: true } });
+  await prisma.tipoAttivita.create({
+    data: { ...valori, ordine: (ultima._max.ordine ?? -1) + 1 },
+  });
   aggiorna();
-  return { ok: 'Tipologia aggiunta.' };
+  return { ok: 'Tipologia aggiunta: la trovi in fondo all’elenco, trascinala dove serve.' };
+}
+
+/**
+ * Nuovo ordine delle tipologie, come sono state trascinate.
+ *
+ * Arriva la sequenza degli id e si riscrive la posizione di ognuna: è l'unico
+ * modo per cambiarla, così non esistono due verità — la tendina segue questo.
+ */
+export async function riordinaTipologie(ids: string[]): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i dati di base.' };
+  if (ids.length === 0) return { errore: 'Non c’è niente da riordinare.' };
+
+  // le posizioni si riscrivono tutte insieme: a metà strada l'elenco avrebbe
+  // due voci nello stesso posto
+  await prisma.$transaction(
+    ids.map((id, posizione) =>
+      prisma.tipoAttivita.update({ where: { id }, data: { ordine: posizione } }),
+    ),
+  );
+
+  aggiorna();
+  return { ok: 'Ordine salvato.' };
 }
 
 export async function eliminaTipologia(_prev: StatoForm, fd: FormData): Promise<StatoForm> {

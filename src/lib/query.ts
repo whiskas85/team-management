@@ -47,7 +47,7 @@ export async function eventiPerLista({
       tipo: { select: { nome: true, colore: true, riserve: true } },
       field: { select: { nome: true, citta: true, indirizzo: true, lat: true, lng: true } },
       // tutte le risposte: servono i tre conteggi, non solo i presenti
-      rsvps: { select: { status: true, userId: true, note: true } },
+      rsvps: { select: { status: true, userId: true, note: true, assegnazione: true } },
       payments: { where: { userId }, select: { importo: true, pagato: true, status: true } },
     },
   });
@@ -79,6 +79,9 @@ export async function eventiPerLista({
       ? [e.field.indirizzo, e.field.citta].filter(Boolean).join(', ') || e.field.nome
       : null,
     presenti: e.rsvps.filter((r) => r.status === 'PRESENTE').length,
+    // quanti sono già schierati: con un limite di posti, sapere quanti ne
+    // mancano alla formazione conta più di sapere quanti si sono proposti
+    titolari: e.rsvps.filter((r) => r.assegnazione === 'TITOLARE').length,
     forse: e.rsvps.filter((r) => r.status === 'FORSE').length,
     assenti: e.rsvps.filter((r) => r.status === 'ASSENTE').length,
     mioStato: e.rsvps.find((r) => r.userId === userId)?.status ?? null,

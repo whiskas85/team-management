@@ -1,0 +1,54 @@
+# Davanti al gestionale c'è questo, per una ragione sola: le password non
+# devono attraversare la rete in chiaro. Il resto lo fa l'applicazione.
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name _;
+
+  ssl_certificate     /etc/nginx/certificati/certificato.pem;
+  ssl_certificate_key /etc/nginx/certificati/chiave.pem;
+  ssl_protocols       TLSv1.2 TLSv1.3;
+
+  # i certificati medici sono PDF o foto da telefono: il limite di default
+  # (1 MB) li rifiuterebbe a metà caricamento, senza spiegare perché
+  client_max_body_size 12m;
+
+  # Il DNS di Docker, e l'indirizzo dell'applicazione tenuto in una variabile.
+  # Senza questi due, nginx risolve "app" una volta sola all'avvio e si tiene
+  # quell'indirizzo: dopo ogni ricostruzione dell'applicazione il container ne
+  # prende uno nuovo e il proxy risponde 502 finché non lo si riavvia a mano.
+  resolver 127.0.0.11 valid=10s ipv6=off;
+
+  location / {
+    set $applicazione http://app:3000;
+    proxy_pass $applicazione;
+    proxy_http_version 1.1;
+
+    # Next.js decide da questi se sta dietro HTTPS: senza, genera redirect
+    # verso http e il browser si lamenta di contenuto misto
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Host  $host;
+
+    # le server action sono richieste lunghe: caricare un certificato o
+    # parlare col portale federale può prendere qualche secondo
+    proxy_read_timeout 120s;
+  }
+}
+
+# Chi arriva in http viene mandato sulla porta sicura invece di trovare una
+# pagina bianca: con COOKIE_SECURE=1 lì l'accesso non funzionerebbe.
+#
+# La porta va aggiunta a mano perché $host non la contiene e le due non
+# coincidono: in prod 80 -> 443, in test 3080 -> 3443. Il suffisso arriva
+# dall'ambiente ed è vuoto sulla 443, che è implicita: solo ${PORTA_HTTPS}
+# viene sostituita all'avvio (NGINX_ENVSUBST_FILTER), le variabili di nginx
+# restano quelle che sono.
+server {
+  listen 80;
+  server_name _;
+  return 301 https://$host${PORTA_HTTPS}$request_uri;
+}

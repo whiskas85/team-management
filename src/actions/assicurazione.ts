@@ -15,6 +15,52 @@ function aggiorna(eventId: string) {
 }
 
 /**
+ * Rilegge la giacenza dal portale e la conserva, con la data della lettura.
+ *
+ * È la sola scrittura di quel dato: chiamarla dopo ogni attivazione tiene il
+ * numero aggiornato da solo, senza che nessuno debba ricordarsi di premere il
+ * pulsante. Se il portale non risponde si scala quella appena consumata: un
+ * numero vecchio di un'ora è meno sbagliato di un numero fermo a ieri.
+ */
+async function sincronizzaGiacenza(
+  cred: { login: string; passwordCifrata: string; idAnagrafica: string },
+  consumate = 0,
+): Promise<number | null> {
+  const dati = await (async () => {
+    try {
+      const g = await contaPolizzeProva({
+        login: cred.login,
+        password: decifra(cred.passwordCifrata),
+        idAnagrafica: cred.idAnagrafica,
+      });
+      return { polizzeResidue: g.residue, polizzeAssegnate: g.assegnate };
+    } catch {
+      if (consumate === 0) return null;
+      const attuale = await prisma.credenzialeFigt.findUnique({
+        where: { id: 'figt' },
+        select: { polizzeResidue: true, polizzeAssegnate: true },
+      });
+      if (attuale?.polizzeResidue === null || attuale?.polizzeResidue === undefined) return null;
+      return {
+        polizzeResidue: Math.max(0, attuale.polizzeResidue - consumate),
+        polizzeAssegnate:
+          attuale.polizzeAssegnate === null ? null : attuale.polizzeAssegnate + consumate,
+      };
+    }
+  })();
+
+  if (!dati) return null;
+
+  await prisma.credenzialeFigt.update({
+    where: { id: 'figt' },
+    data: { ...dati, polizzeLetteIl: new Date() },
+  });
+  revalidatePath('/admin/cassa');
+  revalidatePath('/admin/tessere');
+  return dati.polizzeResidue;
+}
+
+/**
  * Rilegge dal portale quante polizze prova restano da usare.
  *
  * È una lettura: non consuma niente, quindi si può fare anche dal test. Il
@@ -35,25 +81,8 @@ export async function aggiornaPolizzeProva(
   if (!cred) return { errore: 'Il portale federale non è collegato: mancano le credenziali.' };
 
   try {
-    const giacenza = await contaPolizzeProva({
-      login: cred.login,
-      password: decifra(cred.passwordCifrata),
-      idAnagrafica: cred.idAnagrafica,
-    });
-
-    await prisma.credenzialeFigt.update({
-      where: { id: 'figt' },
-      data: {
-        polizzeResidue: giacenza.residue,
-        polizzeAssegnate: giacenza.assegnate,
-        polizzeLetteIl: new Date(),
-      },
-    });
-
-    revalidatePath('/admin/cassa');
-    return {
-      ok: `Il portale ne conta ${giacenza.residue} ancora da usare.`,
-    };
+    const residue = await sincronizzaGiacenza(cred);
+    return { ok: `Il portale ne conta ${residue} ancora da usare.` };
   } catch (e) {
     const motivo = e instanceof Error ? e.message : 'errore sconosciuto';
     // in test le credenziali sono cifrate con la chiave di prod: illeggibili
@@ -115,25 +144,19 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
     update: dati,
   });
 
+  // la polizza l'ha consumata il portale, anche se il codice l'abbiamo scritto
+  // a mano: la giacenza va riletta lo stesso
+  const cred = await prisma.credenzialeFigt.findUnique({ where: { id: 'figt' } });
+  if (cred) await sincronizzaGiacenza(cred, 1).catch(() => null);
+
   aggiorna(eventId);
   return { ok: `${utente.nome} ${utente.cognome} è coperto: giornaliera ${codice}.` };
 }
 
-/** Toglie la copertura, per correggere un codice sbagliato. */
-export async function annullaGiornaliera(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
-  const me = await requireUser();
-  if (!puoAmministrare(me.roles) && !puoSchierare(me.roles)) {
-    return { errore: 'Non hai i permessi per togliere una copertura.' };
-  }
-
-  const eventId = str(fd, 'eventId');
-  await prisma.tesseraGiornaliera.deleteMany({
-    where: { userId: str(fd, 'userId'), eventId },
-  });
-
-  aggiorna(eventId);
-  return { ok: 'Copertura rimossa: il partecipante torna non assicurato.' };
-}
+// Non c'è nessuna azione per togliere una copertura, ed è voluto: un'attivazione
+// sul portale federale consuma una polizza vera e non si annulla. Un pulsante
+// che cancella solo la nostra riga racconterebbe una bugia comoda — la persona
+// risulterebbe scoperta mentre la polizza resta spesa.
 
 
 /**
@@ -246,9 +269,15 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
       },
     });
 
+    // la polizza è stata consumata: la giacenza si rilegge subito, così il
+    // numero in cassa e in tessere è già giusto senza premere niente
+    const residue = await sincronizzaGiacenza(cred, 1);
+
     aggiorna(eventId);
     return {
-      ok: `${utente.nome} ${utente.cognome} è coperto: polizza prova n. ${polizza.numero}.`,
+      ok:
+        `${utente.nome} ${utente.cognome} è coperto: polizza prova n. ${polizza.numero}.` +
+        (residue === null ? '' : ` Ne restano ${residue}.`),
     };
   } catch (e) {
     const messaggio = (e as Error).message;

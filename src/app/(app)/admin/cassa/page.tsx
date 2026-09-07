@@ -9,7 +9,7 @@ import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { eliminaMovimento, salvaMovimento } from '@/actions/cassa';
-import { aggiornaPolizzeProva } from '@/actions/assicurazione';
+import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
 
 type Movimento = {
   id: string;
@@ -48,9 +48,6 @@ type Voce = {
 const ORIGINI = { tutte: 'Tutti i movimenti', attivita: 'Dalle attività', mano: 'A mano' } as const;
 type Origine = keyof typeof ORIGINI;
 
-/** Sotto questa soglia le polizze prova vanno ricomprate: meglio avvisare. */
-const SCORTA_POLIZZE = 5;
-
 export default async function CassaPage({
   searchParams,
 }: {
@@ -61,7 +58,7 @@ export default async function CassaPage({
   const sp = await searchParams;
   const origine = (Object.keys(ORIGINI).includes(sp.origine ?? '') ? sp.origine : 'tutte') as Origine;
 
-  const [movimenti, pagamenti, metodi, cred] = await Promise.all([
+  const [movimenti, pagamenti, metodi] = await Promise.all([
     prisma.movimentoCassa.findMany({
       orderBy: { data: 'desc' },
       include: {
@@ -92,11 +89,6 @@ export default async function CassaPage({
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true },
     }),
-    // la giacenza delle polizze prova, come l'ha letta l'ultima volta dal portale
-    prisma.credenzialeFigt.findUnique({
-      where: { id: 'figt' },
-      select: { polizzeResidue: true, polizzeAssegnate: true, polizzeLetteIl: true },
-    }),
   ]);
 
   // quello che entra dalle attività, al netto di ciò che è stato restituito
@@ -123,16 +115,6 @@ export default async function CassaPage({
     .reduce((t, m) => t + Number(m.importo), 0);
 
   const saldo = incassiQuote - rimborsiErogati + entrateManuali - usciteManuali;
-
-  // il portale si interroga a mano: qui c'è l'ultima lettura, con la sua data
-  const polizze =
-    cred?.polizzeResidue === null || cred?.polizzeResidue === undefined || !cred.polizzeLetteIl
-      ? null
-      : {
-          residue: cred.polizzeResidue,
-          assegnate: cred.polizzeAssegnate,
-          letteIl: cred.polizzeLetteIl,
-        };
 
   // registro unico: i movimenti a mano e le quote realmente incassate, messi in
   // ordine di data. Un rimborso erogato è denaro che esce, quindi va in uscita.
@@ -203,7 +185,7 @@ export default async function CassaPage({
       />
 
       {/* ------------------------------------------------ saldo */}
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Statistica
           etichetta="Saldo di cassa"
           valore={fmtEuro(saldo)}
@@ -227,6 +209,7 @@ export default async function CassaPage({
           dettaglio={`${usciteN} ${usciteN === 1 ? 'voce' : 'voci'} a mano`}
           tono={usciteManuali > 0 ? 'warn' : 'neutro'}
         />
+        <GiacenzaPolizze />
       </div>
 
       {(rimborsiDaErogare > 0 || rimborsiErogati > 0) && (
@@ -248,47 +231,6 @@ export default async function CassaPage({
           </Link>
         </div>
       )}
-
-      {/* ---------------------------------- giacenza delle polizze prova */}
-      <div
-        className={`mb-6 flex flex-col gap-2 rounded-md border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between ${
-          polizze === null
-            ? 'border-line bg-surface2 text-muted'
-            : polizze.residue <= SCORTA_POLIZZE
-              ? 'border-danger/40 bg-danger/10 text-danger'
-              : 'border-line bg-surface2 text-ink'
-        }`}
-      >
-        <span>
-          {polizze === null ? (
-            'Polizze prova: mai lette dal portale federale.'
-          ) : (
-            <>
-              Polizze prova: <span className="num font-semibold">{polizze.residue}</span> ancora da
-              usare
-              {polizze.assegnate !== null && (
-                <>
-                  , <span className="num">{polizze.assegnate}</span> già assegnate
-                </>
-              )}
-              .{' '}
-              <span className="text-muted">
-                Sono le giornaliere che si fanno ai nuovi, prepagate: lette dal portale il{' '}
-                {fmtDate(polizze.letteIl)}.
-              </span>
-            </>
-          )}
-        </span>
-        <AzioneBottone
-          azione={aggiornaPolizzeProva}
-          valori={{}}
-          icona="tessera"
-          className="btn-ghost btn-sm shrink-0"
-          attesa="Chiedo al portale…"
-        >
-          Aggiorna dal portale
-        </AzioneBottone>
-      </div>
 
       {/* ------------------------------------------------ registro */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

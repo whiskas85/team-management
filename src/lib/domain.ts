@@ -29,6 +29,17 @@ export const puoVedereOperatori = (roles: Role[]) =>
 export const puoVedereNuovi = (roles: Role[]) =>
   ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA');
 
+/**
+ * Chi tiene aggiornati statuto e regolamento.
+ *
+ * Non solo l'admin: sono i testi che l'amministrazione e la segreteria si
+ * ritrovano fra le mani quando cambia una quota o una regola di condotta, e
+ * farli passare ogni volta da chi ha le chiavi di tutto vuol dire che restano
+ * vecchi. Leggerli invece è di tutta la squadra.
+ */
+export const puoScrivereDocumenti = (roles: Role[]) =>
+  ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA');
+
 /** Qualsiasi incarico che dia accesso a un'area riservata. */
 export const haIncarichi = (roles: Role[]) =>
   ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA', 'TL');
@@ -122,6 +133,15 @@ export function certificatoInScadenza(scadeIl: Date | string | null) {
 export function inRegola(certs: { status: CertStatus; scadeIl: Date | string | null }[]) {
   return certs.some((c) => statoEffettivo(c) === 'VALIDO');
 }
+
+/**
+ * Se per questa attività il certificato medico è dovuto.
+ *
+ * Lo decide la tipologia: a una riunione o a una cena si va anche senza, e
+ * pretenderlo terrebbe fuori dalla sala chi non gioca. Senza tipologia si
+ * resta prudenti e lo si chiede.
+ */
+export const serveCertificato = (tipo?: { certMedico: boolean } | null) => tipo?.certMedico ?? true;
 
 /**
  * Idoneità per una specifica attività. Dove serve il certificato agonistico
@@ -242,6 +262,56 @@ export const etichettaRuolo: Record<Role, string> = {
   ATLETA: 'Atleta',
 };
 
+/**
+ * A cosa serve ogni ruolo, in una riga.
+ *
+ * Sta qui accanto ai permessi e non in una pagina: se un domani cambia chi può
+ * fare cosa, la spiegazione da correggere è a due righe di distanza dalla
+ * regola, non in un altro file che nessuno si ricorda di aggiornare.
+ */
+export const SPIEGA_RUOLO: Record<Role, string> = {
+  ADMIN: 'Comanda il gestionale: può fare tutto quello che fanno gli altri, e in più i dati di base.',
+  AMMINISTRAZIONE: 'Segue le persone: chi entra, chi è in regola con i documenti, chi è tesserato.',
+  SEGRETERIA: 'Segue i soldi: quote da incassare, pagamenti dichiarati, cassa.',
+  TL: 'Porta la squadra in campo: decide chi gioca e registra chi c’era davvero.',
+  ATLETA: 'Membro della squadra: è il ruolo di chi gioca e basta.',
+};
+
+/** Cosa può fare, in concreto: le voci corrispondono ai permessi qui sopra. */
+export const POTERI_RUOLO: Record<Role, string[]> = {
+  ADMIN: [
+    'Calendario: crea, modifica, rilascia e annulla le attività',
+    'Operatori: crea, cambia ruoli e stato, azzera password, elimina',
+    'Dati di base: tipologie, campi, squadre esterne, tariffario, metodi di pagamento, stagioni',
+    'Statistiche del team',
+    'Tutto ciò che possono fare gli altri ruoli',
+  ],
+  AMMINISTRAZIONE: [
+    'Invio delle richieste di iscrizione e valutazione dei moduli compilati',
+    'Certificati medici: approva, rifiuta, tiene d’occhio le scadenze',
+    'Tessere FIGT: importa dal portale federale e le abbina alle persone',
+    'Contatti nuovi: li vede con nome e cognome e ne apre la scheda',
+    'Dati sanitari (ICE) e giornaliere assicurative',
+  ],
+  SEGRETERIA: [
+    'Pagamenti: conferma gli incassi dichiarati, registra quote e rimborsi',
+    'Cassa: entrate e uscite, saldo, polizze prova',
+    'Contatti nuovi: li vede con nome e cognome e ne apre la scheda',
+    'Schede operatore, per sapere chi deve cosa',
+  ],
+  TL: [
+    'Formazione: schiera titolari e riserve sulle attività che la prevedono',
+    'Aggiunge partecipanti e fa l’appello a fine attività',
+    'Assicura con la giornaliera chi gioca senza tessera',
+    'Schede operatore e dati sanitari, che in gara servono',
+  ],
+  ATLETA: [
+    'Calendario della squadra e adesioni',
+    'I propri certificati, la propria iscrizione, i propri pagamenti',
+    'Schede dei compagni: recapiti e presenze, niente dati personali',
+  ],
+};
+
 /** Tinte disponibili per le tipologie di attività, usate nel calendario. */
 export const COLORI_TIPOLOGIA: Record<string, { bordo: string; etichetta: string }> = {
   verde: { bordo: 'border-nvg/40 bg-nvg/20 text-nvg', etichetta: 'Verde' },
@@ -256,4 +326,4 @@ export const classeColore = (colore?: string | null) =>
   COLORI_TIPOLOGIA[colore ?? 'grigio']?.bordo ?? COLORI_TIPOLOGIA.grigio.bordo;
 
 /** Portale federale da cui si recupera il codice tessera. */
-export const URL_ASNWG = 'https://www.asnwg.it';
+export const URL_ASNWG = 'https://www.intranetasnwg.it/';

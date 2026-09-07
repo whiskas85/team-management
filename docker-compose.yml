@@ -39,11 +39,55 @@ services:
       # senza fuso esplicito il container gira in UTC e gli orari degli eventi
       # slittano rispetto a quelli digitati dagli operatori
       TZ: ${TZ:-Europe/Rome}
+      # il ponte verso WhatsApp, raggiungibile solo dentro la rete di Docker
+      WHATSAPP_URL: http://whatsapp:3001
+      SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
     volumes:
       - uploads:/data/uploads
     ports:
-      - "${APP_PORT:-3000}:3000"
+      # in chiaro resta raggiungibile solo dalla macchina stessa: da fuori si
+      # passa dal proxy, che cifra. Con COOKIE_SECURE=1 un accesso in http non
+      # funzionerebbe comunque, e sembrerebbe un guasto invece di una scelta
+      - "${BIND_APP:-0.0.0.0}:${APP_PORT:-3000}:3000"
+
+  # Termina l'HTTPS con un certificato nostro: nessuna autorità può firmare un
+  # indirizzo privato come 10.x.x.x, quindi il browser avvisa comunque. Serve a
+  # non far viaggiare le password in chiaro, non a dimostrare chi siamo.
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: ${NOME_STACK:-zd}-proxy
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      # Suffisso della porta pubblica per il rimando: vuoto sulla 443, che è
+      # implicita. Il "-" senza due punti serve a distinguere "variabile vuota"
+      # da "variabile assente": con ":-" una stringa vuota verrebbe scartata.
+      PORTA_HTTPS: ${SUFFISSO_HTTPS-:8443}
+      # sostituisci solo le nostre, non le variabili di nginx
+      NGINX_ENVSUBST_FILTER: PORTA_
+    volumes:
+      - ./certificati/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./certificati:/etc/nginx/certificati:ro
+    ports:
+      - "${HTTPS_PORT:-8443}:443"
+      - "${HTTP_PORT:-8080}:80"
+
+  # Ponte verso WhatsApp: tiene la sessione aperta come farebbe un telefono
+  # collegato. Non pubblica porte — ci arriva solo il gestionale, dalla rete
+  # interna di Docker, presentando il segreto condiviso.
+  whatsapp:
+    build: ./whatsapp
+    container_name: ${NOME_STACK:-zd}-whatsapp
+    restart: unless-stopped
+    environment:
+      SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
+      LIVELLO_LOG: ${LIVELLO_LOG_WHATSAPP:-warn}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - whatsapp:/dati
 
 volumes:
   db-data:
   uploads:
+  whatsapp:

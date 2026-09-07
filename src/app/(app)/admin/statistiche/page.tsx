@@ -1,7 +1,8 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { stagioneAttiva } from '@/lib/stagioni';
 import { isAdmin, statoEffettivo } from '@/lib/domain';
-import { fmtEuro, stagioneCorrente, umanizza } from '@/lib/format';
+import { fmtEuro, umanizza } from '@/lib/format';
 import { Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Anello, Barre, BarreOrizzontali, mesiRecenti } from '@/components/Grafico';
 
@@ -79,11 +80,15 @@ export default async function StatistichePage() {
     .filter((d) => d.valore > 0)
     .sort((a, b) => b.valore - a.valore);
 
+  // il nome della stagione lo decide chi l'ha aperta, non il calendario:
+  // calcolarlo qui vorrebbe dire scrivere "2026/2027" dove la squadra legge "2026"
+  const stagione = await stagioneAttiva();
+
   return (
     <>
       <Intestazione
         titolo="Statistiche"
-        sottotitolo={`Andamento del team · stagione ${stagioneCorrente()}`}
+        sottotitolo={`Andamento del team · stagione ${stagione.nome}`}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

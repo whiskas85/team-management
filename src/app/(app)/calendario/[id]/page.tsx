@@ -14,7 +14,9 @@ import {
   puoGestireEventi,
   puoGestirePagamenti,
   puoSchierare,
+  isContatto,
   puoVedereNuovi,
+  serveCertificato,
   tonoAssegnazione,
   tonoEvento,
   tonoRsvp,
@@ -32,6 +34,7 @@ import { Mappa } from '@/components/Mappa';
 import { Naviga } from '@/components/Naviga';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
+import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
   registraPresenze,
   rimuoviPartecipante,
@@ -40,7 +43,6 @@ import {
 } from '@/actions/eventi';
 import { chiediRimborso } from '@/actions/pagamenti';
 import {
-  annullaGiornaliera,
   attivaGiornaliera,
   emettiGiornaliera,
 } from '@/actions/assicurazione';
@@ -50,6 +52,10 @@ import {
   serveGiornaliera,
 } from '@/lib/assicurazione';
 import { ScegliPartecipanti, type Candidato } from '@/components/ScegliPartecipanti';
+import { Social, type Commento } from '@/components/Social';
+import { BloccoNote, FormNota, type NotaLetta } from '@/components/Note';
+import { citabili } from '@/lib/note';
+import { haIncarichi } from '@/lib/domain';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -103,6 +109,108 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // un 404 aprendo una riga che il calendario gli mostra sarebbe assurdo
   if (evento.visibilita === 'TEAM' && !vedeAttivitaSquadra(me.stato) && !admin) notFound();
   const tl = puoSchierare(me.roles);
+
+  // Commenti e "mi piace" li vede chiunque veda l'attività; le note sotto sono
+  // l'opposto e stanno nella stessa pagina solo perché è lì che uno le scrive.
+  const [commenti, miPiace, mioMiPiace] = await Promise.all([
+    prisma.commentoEvento.findMany({
+      where: { eventId: evento.id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        utente: {
+          select: { id: true, nome: true, cognome: true, callsign: true, fotoPath: true },
+        },
+      },
+    }),
+    prisma.miPiaceEvento.findMany({
+      where: { eventId: evento.id },
+      include: { utente: { select: { nome: true, cognome: true, callsign: true } } },
+    }),
+    prisma.miPiaceEvento.findUnique({
+      where: { eventId_userId: { eventId: evento.id, userId: me.id } },
+      select: { userId: true },
+    }),
+  ]);
+
+  /**
+   * L'indirizzo della scheda di una persona, oppure niente se non la si può
+   * aprire. Sta qui e non dentro il JSX perché la stessa regola serve in più
+   * punti della pagina, e due copie divergono.
+   */
+  const profiloDi = (u: { id: string; stato: StatoOperatore }) => {
+    if (isContatto(u.stato)) return puoVedereNuovi(me.roles) ? `/admin/operatori/${u.id}` : null;
+    // fra membri della squadra: la pagina manda da sola alla scheda completa
+    // chi ha un incarico, quindi l'indirizzo è uno solo
+    return inSquadra(me.stato) && inSquadra(u.stato) ? `/operatori/${u.id}` : null;
+  };
+
+  /**
+   * Un badge solo per persona, che dice l'ultima cosa vera.
+   *
+   * Prima dell'appello conta quello che ha risposto; dopo l'appello conta se
+   * c'era davvero, e allora la risposta non serve più a nessuno. Tenerli
+   * entrambi a vista dava due badge quasi uguali — "presente" e "Presente" —
+   * e toccava indovinare quale dei due stesse parlando di cosa.
+   */
+  const statoDiFatto = (r: { status: string; presente: boolean | null }) =>
+    r.presente === null
+      ? { testo: umanizza(r.status), tono: tonoRsvp[r.status] ?? 'neutro' }
+      : r.presente
+        ? { testo: 'c’era', tono: 'ok' as const }
+        : { testo: 'non c’era', tono: 'danger' as const };
+
+  const scrivoNote = haIncarichi(me.roles);
+
+  // Le mie note su chi partecipa, prese in una query sola e poi divise per
+  // persona: una per partecipante sarebbero venti query per una pagina.
+  // Una nota conta per chi vi è appuntata e per chi vi è nominato, come
+  // sulla scheda personale — se le due cose contassero in modo diverso, il
+  // numero sul pulsante non tornerebbe con quello che poi si apre.
+  const idPartecipanti = evento.rsvps.map((r) => r.userId);
+  const noteSullePersone = scrivoNote
+    ? await prisma.nota.findMany({
+        where: {
+          autoreId: me.id,
+          OR: [
+            { userId: { in: idPartecipanti } },
+            { citate: { some: { userId: { in: idPartecipanti } } } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          persona: { select: { nome: true, cognome: true, callsign: true } },
+          evento: { select: { titolo: true } },
+          citate: {
+            include: {
+              utente: { select: { id: true, nome: true, cognome: true, callsign: true } },
+            },
+          },
+        },
+      })
+    : [];
+
+  const notePerPersona = (userId: string) =>
+    noteSullePersone.filter(
+      (n) => n.userId === userId || n.citate.some((c) => c.userId === userId),
+    ) as NotaLetta[];
+  const [mieNote, persone] = scrivoNote
+    ? await Promise.all([
+        prisma.nota.findMany({
+          where: { autoreId: me.id, eventId: evento.id },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            persona: { select: { nome: true, cognome: true, callsign: true } },
+            evento: { select: { titolo: true } },
+            citate: {
+              include: {
+                utente: { select: { id: true, nome: true, cognome: true, callsign: true } },
+              },
+            },
+          },
+        }),
+        citabili(),
+      ])
+    : [[], []];
   const gestisce = puoGestireEventi(me.roles);
 
   // chi si è segnato appare col callsign se ce l'ha; l'anagrafica intera resta
@@ -168,7 +276,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const candidati: Candidato[] = operatoriGrezzi
     .filter((o) => !gia.has(o.id))
     .map((o) => {
-      const serve = inSquadra(o.stato);
+      const serve = inSquadra(o.stato) && serveCertificato(evento.tipo);
       const ok = !serve || inRegola(o.certificates);
       // il team leader schiera anche i nuovi: qui li chiama come li vede in elenco
       const come = chiamato(o);
@@ -200,17 +308,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     evento.payments.filter((p) => p.tipo !== 'RIMBORSO').map((p) => [p.userId, p]),
   );
   const miaQuota = quotePerUtente.get(me.id) ?? null;
+  // dove c'è la formazione la quota la deve chi scende in campo, non chi si è
+  // solo reso disponibile: serve a dirlo prima, invece di farlo scoprire dopo
+  const mioTitolare = mio?.assegnazione === 'TITOLARE';
 
-  // senza certificato in corso di validità non ci si segna e non si gioca
-  const mieiCertificati = inSquadra(me.stato)
+  // senza certificato in corso di validità non ci si segna e non si gioca —
+  // dove la tipologia lo richiede: a una riunione si va comunque
+  const certificatoDovuto = inSquadra(me.stato) && serveCertificato(evento.tipo);
+  const mieiCertificati = certificatoDovuto
     ? await prisma.medicalCertificate.findMany({
         where: { userId: me.id },
         select: { status: true, scadeIl: true },
       })
     : [];
-  const certificatoOk = !inSquadra(me.stato) || inRegola(mieiCertificati);
+  const certificatoOk = !certificatoDovuto || inRegola(mieiCertificati);
   // titolari e riserve hanno senso solo dove la tipologia li prevede
-  const schieraQuesta = evento.tipo?.riserve ?? false;
+  // Si schiera dove la tipologia lo prevede, **e anche dove i posti sono
+  // contati**: se un'attività ha un limite ma nessuno può essere messo in
+  // formazione, quel limite non lo fa rispettare nessuno e il numero sulla
+  // card resterebbe fermo a zero schierati per sempre.
+  const schieraQuesta = (evento.tipo?.riserve ?? false) || !!evento.maxPartecipanti;
 
   // una sola lista, raggruppata: con la formazione separa titolari e riserve,
   // altrimenti bastano le tre risposte
@@ -271,6 +388,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               <Badge tono={tonoRsvp[mio.status]}>{etichettaRisposta[mio.status]}</Badge>
             ) : (
               !chiuso && <Badge tono="warn">Non hai risposto</Badge>
+            )}
+
+            {/* quanto manca per decidere: una data costringe a fare il conto a
+                mente, un conto alla rovescia no */}
+            {evento.status === 'RILASCIATA' && evento.chiusuraIscrizioni && (
+              <ContoAllaRovescia scadenza={evento.chiusuraIscrizioni.toISOString()} />
             )}
             {admin && (
               <BottoneModale
@@ -364,7 +487,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           <span className="block text-[11px] text-muted">{mioDettaglio}</span>
                         )}
                         <span className="block text-[11px] text-warn">
-                          presenza confermata a quota saldata
+                          {schieraQuesta && !mioTitolare
+                            ? 'si paga solo se il TL ti schiera titolare'
+                            : 'presenza confermata a quota saldata'}
                         </span>
                       </>
                     ) : (
@@ -417,16 +542,28 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 valore={evento.oraRitrovo ? fmtTime(evento.oraRitrovo) : '—'}
               />
               <Dato
-                etichetta="Posti"
+                etichetta="Disponibili"
                 valore={
-                  evento.maxPartecipanti
-                    ? `${presenti.length} / ${evento.maxPartecipanti}`
-                    : `${presenti.length} adesioni`
+                  evento.maxPartecipanti ? (
+                    <>
+                      {presenti.length}
+                      {/* i posti non chiudono le adesioni: alzare la mano si può
+                          sempre, e chi avanza va in riserva */}
+                      <span className="block text-[11px] text-muted">
+                        {evento.maxPartecipanti} posti in formazione
+                        {pieno && presenti.length > evento.maxPartecipanti
+                          ? ` · ${presenti.length - evento.maxPartecipanti} in più`
+                          : ''}
+                      </span>
+                    </>
+                  ) : (
+                    `${presenti.length} adesioni`
+                  )
                 }
               />
               <Dato
                 etichetta="Chiusura adesioni"
-                valore={evento.chiusuraIscrizioni ? fmtDate(evento.chiusuraIscrizioni) : '—'}
+                valore={evento.chiusuraIscrizioni ? fmtDateTime(evento.chiusuraIscrizioni) : '—'}
               />
               <Dato
                 etichetta="Creato da"
@@ -508,19 +645,28 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                         {g.righe.map((r) => (
                           <div
                             key={r.id}
-                            className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2.5"
+                            /* su telefono il nome sta su una riga sua e i comandi vanno
+                               a capo: prima il nome aveva flex-1 e si stringeva fino a
+                               sparire, mentre badge e pulsanti non cedono un pixel */
+                            className="flex flex-col gap-2 rounded-lg border border-line bg-surface px-3 py-2.5 sm:flex-row sm:items-center"
                           >
+                            <div className="flex min-w-0 items-center gap-2 sm:flex-1">
                             <Avatar
                               iniziali={chiamato(r.user).iniziali}
                               size="sm"
                               fotoDi={r.user.fotoPath ? r.user.id : null}
                             />
                             <div className="min-w-0 flex-1">
-                              {/* la scheda si apre solo tra membri della squadra:
-                                  verso i nuovi, e dai nuovi, non c'è profilo */}
-                              {inSquadra(me.stato) && inSquadra(r.user.stato) ? (
+                              {/* Si apre la scheda di chi si ha diritto di vedere,
+                                  e la regola è la stessa di ogni altro elenco: fra
+                                  compagni di squadra ci si apre a vicenda, mentre
+                                  la scheda di un contatto la apre solo chi lo segue
+                                  — comando, amministrazione, segreteria. Al team
+                                  leader resta il nome e basta: in campo gli serve
+                                  sapere chi c'è, non chi sia. */}
+                              {profiloDi(r.user) ? (
                                 <Link
-                                  href={`/operatori/${r.user.id}`}
+                                  href={profiloDi(r.user)!}
                                   className="block truncate text-sm hover:text-nvg"
                                 >
                                   {nomeDi(r.user)}
@@ -541,12 +687,44 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 )
                               )}
                             </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                            {/* Nota al volo su questa persona in questa attività.
+                                Nasce già legata a tutte e due: è il momento in cui
+                                ci si ricorda cos'è successo, e chiederlo dopo dalla
+                                scheda vuol dire riscrivere anche dov'era. */}
+                            {scrivoNote &&
+                              (() => {
+                                const sue = notePerPersona(r.user.id);
+                                return (
+                                  <BottoneModale
+                                    /* il numero sul pulsante dice se su questa
+                                       persona c'è già qualcosa da rileggere,
+                                       senza doverlo aprire per scoprirlo */
+                                    etichetta={sue.length ? `Nota · ${sue.length}` : 'Nota'}
+                                    icona="bozza"
+                                    titolo={`Nota su ${nomeDi(r.user)}`}
+                                    className="btn-ghost btn-sm"
+                                    larga
+                                  >
+                                    <FormNota
+                                      persone={persone}
+                                      userId={r.user.id}
+                                      eventId={evento.id}
+                                      precedenti={sue}
+                                    />
+                                  </BottoneModale>
+                                );
+                              })()}
 
                             {/* la quota può esserci anche su un'attività gratis:
                                 i nuovi pagano la loro tariffa fissa */}
-                            {vedeQuoteAltrui &&
-                              (costo > 0 || quotePerUtente.has(r.userId)) &&
-                              r.status === 'PRESENTE' && (
+                            {/* Il badge guarda la quota **di quella persona**, non
+                                il costo dell'attività: dove c'è la formazione una
+                                riserva non deve niente, e vedersi scritto "quota da
+                                saldare" senza avere nessun pagamento era falso. */}
+                            {vedeQuoteAltrui && quotePerUtente.has(r.userId) && (
                                 <Badge
                                   tono={
                                     quotePerUtente.get(r.userId)?.status === 'PAGATO'
@@ -632,29 +810,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                         </details>
                                       </BottoneModale>
                                     )}
-                                    {tl && stato === 'ASSICURATO' && (
-                                      <AzioneBottone
-                                        azione={annullaGiornaliera}
-                                        valori={{ userId: r.userId, eventId: evento.id }}
-                                        conferma={`Togliere la copertura di ${nomeDi(r.user)}?`}
-                                        icona="elimina"
-                                        className="btn-ghost btn-sm"
-                                      >
-                                        Togli
-                                      </AzioneBottone>
-                                    )}
                                   </span>
                                 );
                               })()}
 
-                            {r.presente !== null && (
-                              <Badge tono={r.presente ? 'ok' : 'neutro'}>
-                                {r.presente ? 'presente' : 'no show'}
-                              </Badge>
-                            )}
-
-                            {/* lo schieramento si cambia qui, sulla riga della persona */}
-                            {tl && schieraQuesta && r.status === 'PRESENTE' ? (
+                            {/* fatto l'appello, il verdetto sostituisce la
+                                risposta: è l'unico che conta ancora */}
+                            {r.presente !== null ? (
+                              <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
+                            ) : tl && schieraQuesta && r.status === 'PRESENTE' ? (
                               <div className="flex gap-1">
                                 {(['TITOLARE', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
                                   <AzioneBottone
@@ -681,9 +845,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               </div>
                             ) : (
                               !schieraQuesta && (
-                                <Badge tono={tonoRsvp[r.status] ?? 'neutro'}>
-                                  {umanizza(r.status)}
-                                </Badge>
+                                <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
                               )
                             )}
 
@@ -698,6 +860,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 <span className="sr-only">Rimuovi</span>
                               </AzioneBottone>
                             )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -707,6 +870,30 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ------------------------------------------------ commenti */}
+          <Social
+            eventId={evento.id}
+            commenti={commenti as Commento[]}
+            miPiace={miPiace.map((m) => ({
+              nome: comeChiamare(m.utente, { incarico: false, diSquadra: true }).nome,
+            }))}
+            mioMiPiace={mioMiPiace != null}
+            ioSono={me.id}
+            chiSono={comeChiamare(me, { incarico: false, diSquadra: true }).nome}
+            puoModerare={admin}
+          />
+
+          {/* ------------------------------------------------ note private */}
+          {scrivoNote && (
+            <BloccoNote
+              note={mieNote as NotaLetta[]}
+              persone={persone}
+              eventId={evento.id}
+              titolo="Le tue note su questa attività"
+              contesto
+            />
+          )}
         </div>
 
         {/* -------------------------------------------------- laterale */}
@@ -829,19 +1016,42 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     <p className="text-sm text-muted">Nessun partecipante da spuntare.</p>
                   ) : (
                     <>
+                      {/* squadra e nuovi separati anche qui: hanno adempimenti
+                          diversi — i nuovi vanno assicurati con la giornaliera —
+                          e in una lista sola non si vede più chi è chi */}
                       <div className="max-h-64 space-y-1.5 overflow-y-auto">
-                        {evento.rsvps.map((r) => (
-                          <label key={r.id} className="flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              name="presenti"
-                              value={r.id}
-                              defaultChecked={r.presente ?? r.status === 'PRESENTE'}
-                              className="h-4 w-4 accent-[color:var(--nvg)]"
-                            />
-                            <span className="truncate">{nomeDi(r.user)}</span>
-                          </label>
-                        ))}
+                        {[
+                          { titolo: 'Squadra', righe: evento.rsvps.filter(diSquadra) },
+                          {
+                            titolo: 'Nuovi',
+                            righe: evento.rsvps.filter((r) => !diSquadra(r)),
+                          },
+                        ]
+                          .filter((g) => g.righe.length > 0)
+                          .map((g) => (
+                            <div key={g.titolo}>
+                              <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted first:mt-0">
+                                {g.titolo} · {g.righe.length}
+                              </p>
+                              <div className="space-y-1.5">
+                                {g.righe.map((r) => (
+                                  <label
+                                    key={r.id}
+                                    className="flex items-center gap-2 text-sm"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      name="presenti"
+                                      value={r.id}
+                                      defaultChecked={r.presente ?? r.status === 'PRESENTE'}
+                                      className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+                                    />
+                                    <span className="truncate">{nomeDi(r.user)}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                       </div>
                       <Invia className="btn-ghost w-full btn-sm">Salva presenze e chiudi</Invia>
                     </>
