@@ -111,6 +111,7 @@ enum PaymentType {
   GARA
   ALLENAMENTO
   EVENTO
+  MERCHANDISING // ordine dal catalogo del team: i soldi vanno in cassa
   RIMBORSO // somma da restituire, tenuta separata dagli incassi
   ALTRO
 }
@@ -202,6 +203,7 @@ model User {
   documenti      Documento[]          @relation("DocumentiScritti")
   annunci        Annuncio[]           @relation("AnnunciDi")
   vociPrenotate  VoceAnnuncio[]       @relation("VociPrenotate")
+  ordini         Ordine[]             @relation("OrdiniDi")
 
   @@index([stato])
 }
@@ -683,6 +685,9 @@ model Payment {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
+  /// Ordine del merchandising da cui nasce questa quota, se ne viene.
+  ordine       Ordine?
+
   /// Quota di cui questo movimento è il rimborso.
   rimborsoDiId String?    @unique
   rimborsoDi   Payment?   @relation("Rimborso", fields: [rimborsoDiId], references: [id], onDelete: Cascade)
@@ -1009,6 +1014,7 @@ model Annuncio {
   foto      FotoAnnuncio[]     @relation("FotoDi")
   commenti  CommentoAnnuncio[]
   miPiace   MiPiaceAnnuncio[]
+  ordini    Ordine[]
 
   @@index([stato, ufficiale])
 }
@@ -1053,6 +1059,7 @@ model VoceAnnuncio {
   ordine        Int        @default(0)
 
   citata CitazioneVoce[]
+  righe  RigaOrdine[]
 
   @@unique([annuncioId, maniglia])
   @@index([annuncioId, ordine])
@@ -1102,6 +1109,70 @@ model MiPiaceAnnuncio {
 
 /// Le poche cose che si regolano senza toccare il codice. Una riga sola, come
 /// per le credenziali federali e il ponte WhatsApp.
+/// Vita di un ordine del merchandising, dal carrello alla consegna.
+///
+/// *Pagato* e *consegnato* sono due cose diverse: uno paga oggi e ritira fra
+/// tre settimane, quando la fornitura arriva. Per questo lo stato dell'ordine
+/// non guarda i soldi — quelli stanno sul pagamento, dove stanno tutti gli
+/// altri — ma solo dove si trova la merce.
+enum StatoOrdine {
+  RACCOLTA // ordinato dalla squadra, si aspetta di chiudere il giro
+  ORDINATO // passato al fornitore: da qui non conta più nel "quanti ne servono"
+  ARRIVATO // in casa, da consegnare
+  CONSEGNATO
+  ANNULLATO
+}
+
+/// Un ordine del merchandising: il carrello di una persona, spedito.
+///
+/// Nasce insieme alla sua quota, che compare fra i pagamenti di chi ordina e
+/// in cassa come tutto il resto. È il bollino di ufficiale sull'annuncio a
+/// deciderlo: una vendita privata fra due soci non passa dai soldi del
+/// gestionale, e farcela passare sporcherebbe il saldo della squadra.
+model Ordine {
+  id           String      @id @default(cuid())
+  /// Progressivo leggibile: "ordine 14" si dice a voce, un cuid no.
+  numero       Int         @default(autoincrement())
+  annuncioId   String
+  annuncio     Annuncio    @relation(fields: [annuncioId], references: [id], onDelete: Restrict)
+  userId       String
+  utente       User        @relation("OrdiniDi", fields: [userId], references: [id], onDelete: Cascade)
+  stato        StatoOrdine @default(RACCOLTA)
+  note         String?
+  /// La quota che ne è nata. Resta staccabile: se la segreteria cancella il
+  /// pagamento l'ordine non deve sparire con lui.
+  paymentId    String?     @unique
+  payment      Payment?    @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  creatoIl     DateTime    @default(now())
+  ordinatoIl   DateTime?
+  arrivatoIl   DateTime?
+  consegnatoIl DateTime?
+
+  righe RigaOrdine[]
+
+  @@index([stato])
+  @@index([userId])
+}
+
+/// Una riga del carrello, con il prezzo congelato.
+///
+/// Titolo e prezzo sono copiati e non letti dalla voce: se la maglietta passa
+/// da 25 a 28 dopo che in dieci hanno ordinato, le loro quote sono già emesse
+/// a 25 e devono restare leggibili per quello che erano. È la stessa regola
+/// della quota di un'attività.
+model RigaOrdine {
+  id       String       @id @default(cuid())
+  ordineId String
+  ordine   Ordine       @relation(fields: [ordineId], references: [id], onDelete: Cascade)
+  voceId   String
+  voce     VoceAnnuncio @relation(fields: [voceId], references: [id], onDelete: Restrict)
+  titolo   String
+  prezzo   Decimal      @db.Decimal(10, 2)
+  quantita Int
+
+  @@index([voceId])
+}
+
 model Impostazioni {
   id                  String   @id @default("app")
   /// Se chi non è ancora in squadra può mettere annunci. Vedere lo può sempre.

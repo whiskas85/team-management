@@ -3,13 +3,16 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin, isContatto, puoVedereNuovi } from '@/lib/domain';
-import { comeChiamare, fmtDate, fmtEuro } from '@/lib/format';
+import { comeChiamare, fmtDate, fmtDateTime, fmtEuro } from '@/lib/format';
 import {
   CON_TUTTO,
+  ETICHETTA_ORDINE,
   disponibile,
   eMio,
+  ordinabile,
   puoFareUfficiale,
   puoVedereMerchandising,
+  totaleRighe,
   tuttoVenduto,
 } from '@/lib/mercatino';
 import { Avatar, Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
@@ -17,7 +20,9 @@ import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
+import { Icona } from '@/components/Icona';
 import { CaricaFoto } from '@/components/CaricaFoto';
+import { Carrello } from '@/components/Carrello';
 import { SocialAnnuncio, type CommentoLetto } from '@/components/SocialAnnuncio';
 import {
   cambiaStatoAnnuncio,
@@ -27,8 +32,10 @@ import {
   salvaAnnuncio,
   salvaVoce,
   scegliCopertina,
+  spostaVoce,
   statoVoce,
 } from '@/actions/mercatino';
+import { annullaOrdine } from '@/actions/ordini';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -82,6 +89,31 @@ export default async function AnnuncioPage({ params }: { params: Promise<{ id: s
       select: { userId: true },
     }),
   ]);
+
+  // I miei ordini su questo articolo: quelli ancora per strada. Uno
+  // consegnato tre mesi fa non deve continuare a dire "ne hai già ordinate 2",
+  // o l'avviso smette di voler dire qualcosa.
+  const mieiOrdini = annuncio.ufficiale
+    ? await prisma.ordine.findMany({
+        where: {
+          annuncioId: annuncio.id,
+          userId: me.id,
+          stato: { in: ['RACCOLTA', 'ORDINATO', 'ARRIVATO'] },
+        },
+        orderBy: { creatoIl: 'desc' },
+        include: {
+          righe: true,
+          payment: { select: { status: true, pagato: true, importo: true } },
+        },
+      })
+    : [];
+
+  const giaOrdinate = new Map<string, number>();
+  for (const o of mieiOrdini) {
+    for (const r of o.righe) giaOrdinate.set(r.voceId, (giaOrdinate.get(r.voceId) ?? 0) + r.quantita);
+  }
+
+  const daOrdinare = annuncio.voci.filter(ordinabile);
 
   const chi = comeChiamare(annuncio.venditore, {
     incarico: puoVedereNuovi(me.roles),
@@ -266,13 +298,39 @@ export default async function AnnuncioPage({ params }: { params: Promise<{ id: s
               <Vuoto testo="Nessuna voce. Senza, l’annuncio non dice un prezzo e in bacheca è una card muta." />
             ) : (
               <div className="space-y-2">
-                {annuncio.voci.map((v) => (
+                {annuncio.voci.map((v, i) => (
                   <div key={v.id} className="rounded-lg border border-line bg-surface p-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="font-medium">
-                        {v.titolo}
-                        <code className="num ml-2 text-[11px] text-muted">@{v.maniglia}</code>
-                      </p>
+                      <div className="flex items-center gap-2 font-medium">
+                        {/* l'ordine delle voci è una scelta di chi vende: la S
+                            prima della XL, il pezzo importante in cima */}
+                        {mio && annuncio.voci.length > 1 && (
+                          <span className="flex flex-col">
+                            <AzioneBottone
+                              azione={spostaVoce}
+                              valori={{ id: v.id, verso: 'su' }}
+                              disabilitato={i === 0}
+                              className="text-muted transition-colors hover:text-nvg disabled:opacity-20"
+                            >
+                              <Icona nome="su" size={13} />
+                              <span className="sr-only">Sposta su</span>
+                            </AzioneBottone>
+                            <AzioneBottone
+                              azione={spostaVoce}
+                              valori={{ id: v.id, verso: 'giu' }}
+                              disabilitato={i === annuncio.voci.length - 1}
+                              className="text-muted transition-colors hover:text-nvg disabled:opacity-20"
+                            >
+                              <Icona nome="giu" size={13} />
+                              <span className="sr-only">Sposta giù</span>
+                            </AzioneBottone>
+                          </span>
+                        )}
+                        <span>
+                          {v.titolo}
+                          <code className="num ml-2 text-[11px] text-muted">@{v.maniglia}</code>
+                        </span>
+                      </div>
                       <p className="num font-semibold text-nvg">
                         {fmtEuro(Number(v.prezzo))}
                         {v.trattabile && (
@@ -357,6 +415,72 @@ export default async function AnnuncioPage({ params }: { params: Promise<{ id: s
 
         {/* ---------------------------------------------------- laterale */}
         <div className="space-y-6">
+          {/* Il carrello sta solo sul catalogo del team, ed è il bollino di
+              ufficiale a deciderlo: una vendita privata fra due soci non passa
+              dai soldi del gestionale, si accordano e si vedono al campo. */}
+          {annuncio.ufficiale && annuncio.stato === 'PUBBLICATO' && daOrdinare.length > 0 && (
+            <Carrello
+              annuncioId={annuncio.id}
+              voci={daOrdinare.map((v) => ({
+                id: v.id,
+                titolo: v.titolo,
+                prezzo: Number(v.prezzo),
+                gia: giaOrdinate.get(v.id) ?? 0,
+              }))}
+            />
+          )}
+
+          {mieiOrdini.length > 0 && (
+            <div className="card">
+              <p className="titolo-sezione mb-3">I tuoi ordini</p>
+              <div className="space-y-3">
+                {mieiOrdini.map((o) => (
+                  <div key={o.id} className="rounded-lg border border-line p-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="num text-[11px] text-muted">
+                        n. {o.numero} · {fmtDateTime(o.creatoIl)}
+                      </span>
+                      <span className="num font-semibold text-nvg">
+                        {fmtEuro(totaleRighe(o.righe))}
+                      </span>
+                    </div>
+                    <ul className="mt-1 space-y-0.5 text-sm">
+                      {o.righe.map((r) => (
+                        <li key={r.id}>
+                          {r.titolo} <span className="num text-muted">× {r.quantita}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Badge tono={o.stato === 'ARRIVATO' ? 'ok' : 'info'}>
+                        {ETICHETTA_ORDINE[o.stato]}
+                      </Badge>
+                      {/* pagato e consegnato sono due cose diverse: uno paga
+                          oggi e ritira quando la fornitura arriva */}
+                      <Badge tono={o.payment?.status === 'PAGATO' ? 'ok' : 'warn'}>
+                        {o.payment
+                          ? o.payment.status === 'PAGATO'
+                            ? 'quota saldata'
+                            : 'quota da saldare'
+                          : 'senza quota'}
+                      </Badge>
+                      {o.stato === 'RACCOLTA' && Number(o.payment?.pagato ?? 0) === 0 && (
+                        <AzioneBottone
+                          azione={annullaOrdine}
+                          valori={{ id: o.id }}
+                          conferma="Ritirare l’ordine? Sparisce anche la quota."
+                          className="ml-auto text-[11px] text-muted transition-colors hover:text-danger"
+                        >
+                          ritira
+                        </AzioneBottone>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="card">
             <p className="titolo-sezione mb-3">Chi vende</p>
             <div className="flex items-center gap-3">

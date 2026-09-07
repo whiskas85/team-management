@@ -142,6 +142,20 @@ export async function eliminaAnnuncio(_prev: StatoForm, fd: FormData): Promise<S
   const annuncio = await mioAnnuncio(str(fd, 'id'), me.id);
   if (!annuncio) return { errore: 'Annuncio non trovato, o non è tuo.' };
 
+  // con degli ordini dentro non si cancella: porterebbe via le quote di altre
+  // persone. Per toglierlo di mezzo c'è "ritira", che lo lascia leggibile
+  const ordini = await prisma.ordine.count({
+    where: { annuncioId: annuncio.id, stato: { not: 'ANNULLATO' } },
+  });
+  if (ordini > 0) {
+    return {
+      errore:
+        ordini === 1
+          ? 'C’è un ordine su questo articolo: ritiralo invece di cancellarlo.'
+          : `Ci sono ${ordini} ordini su questo articolo: ritiralo invece di cancellarlo.`,
+    };
+  }
+
   // i file vivono su disco e il database non li porta via: senza questo giro
   // restano nel volume per sempre, orfani e irriconoscibili
   for (const f of annuncio.foto) {
@@ -212,9 +226,55 @@ export async function eliminaVoce(_prev: StatoForm, fd: FormData): Promise<Stato
   });
   if (!voce || !eMio(voce.annuncio, me.id)) return { errore: 'Voce non trovata, o non è tua.' };
 
+  // se qualcuno l'ha ordinata non si cancella, o il suo ordine resterebbe a
+  // parlare di una cosa che non esiste più. L'interruttore serve a questo:
+  // spenta resta scritta e non è più in vendita
+  const ordinata = await prisma.rigaOrdine.count({ where: { voceId: voce.id } });
+  if (ordinata > 0) {
+    return {
+      errore: 'Qualcuno l’ha già ordinata: toglile la spunta "In vendita" invece di cancellarla.',
+    };
+  }
+
   await prisma.voceAnnuncio.delete({ where: { id: voce.id } });
   aggiorna(voce.annuncioId);
   return { ok: 'Voce eliminata.' };
+}
+
+/**
+ * Sposta una voce su o giù.
+ *
+ * L'ordine in cui si leggono le voci è una scelta di chi vende: la taglia S
+ * prima della XL, il pezzo importante in cima. Si scambia con la vicina e poi
+ * si rinumera tutto da zero — così i buchi lasciati dalle voci cancellate non
+ * si accumulano fino a rendere lo scambio imprevedibile.
+ */
+export async function spostaVoce(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const voce = await prisma.voceAnnuncio.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { annuncio: true },
+  });
+  if (!voce || !eMio(voce.annuncio, me.id)) return { errore: 'Voce non trovata, o non è tua.' };
+
+  const su = str(fd, 'verso') === 'su';
+  const voci = await prisma.voceAnnuncio.findMany({
+    where: { annuncioId: voce.annuncioId },
+    orderBy: [{ ordine: 'asc' }, { titolo: 'asc' }],
+    select: { id: true },
+  });
+
+  const dove = voci.findIndex((v) => v.id === voce.id);
+  const verso = su ? dove - 1 : dove + 1;
+  if (dove < 0 || verso < 0 || verso >= voci.length) return {};
+
+  [voci[dove], voci[verso]] = [voci[verso], voci[dove]];
+  await prisma.$transaction(
+    voci.map((v, i) => prisma.voceAnnuncio.update({ where: { id: v.id }, data: { ordine: i } })),
+  );
+
+  aggiorna(voce.annuncioId);
+  return {};
 }
 
 /**

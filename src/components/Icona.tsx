@@ -38,6 +38,9 @@ export type NomeIcona =
   | 'cerca'
   | 'chiave'
   | 'freccia'
+  | 'su'
+  | 'giu'
+  | 'carrello'
   | 'appello'
   | 'presente'
   | 'forse'
@@ -101,6 +104,10 @@ const PATHS: Record<NomeIcona, string> = {
   cerca: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM16.5 16.5 21 21',
   chiave: 'M15.5 8.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM10.5 11.5 4 18v2h2l1-1h2v-2h2l1.5-1.5',
   freccia: 'M5 12h14M13 6l6 6-6 6',
+  su: 'M12 19V5M6 11l6-6 6 6',
+  giu: 'M12 5v14M6 13l6 6 6-6',
+  carrello:
+    'M3 4h2l2.2 10.2a1 1 0 0 0 1 .8h8.1a1 1 0 0 0 1-.8L19 8H6M10 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM18 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z',
   telefono:
     'M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a1.5 1.5 0 0 1-1.7 1.5C11.6 18.3 5.7 12.4 5 4.2A1.5 1.5 0 0 1 6.5 3.5Z',
   whatsapp:

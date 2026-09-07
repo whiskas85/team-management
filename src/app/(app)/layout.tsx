@@ -52,6 +52,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // cosa aspetta la segreteria: incassi segnalati da verificare e rimborsi da
   // erogare. Sul badge vanno insieme, perché in entrambi i casi c'è una
   // persona che sta aspettando una risposta
+  // gli ordini del merchandising che aspettano: finché la raccolta è aperta
+  // c'è un giro da chiudere, ed è una cosa da fare come le altre
+  const ordiniInRaccolta = puoGestirePagamenti(utente.roles)
+    ? await prisma.ordine.count({ where: { stato: 'RACCOLTA' } })
+    : 0;
+
   const [pagamentiDaConfermare, rimborsiDaErogare] = puoGestirePagamenti(utente.roles)
     ? await Promise.all([
         prisma.payment.count({
@@ -207,6 +213,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         badge: pagamentiDaConfermare + rimborsiDaErogare,
       },
       { href: '/admin/cassa', label: 'Cassa', icona: 'incassa', gruppo: 'segreteria' },
+      {
+        href: '/admin/ordini',
+        label: 'Ordini',
+        icona: 'carrello',
+        gruppo: 'segreteria',
+        badge: ordiniInRaccolta,
+      },
     );
   }
 

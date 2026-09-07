@@ -5,6 +5,50 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.24.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Le voci di un annuncio si riordinano**, su e giù. L'ordine in cui si
+  leggono è una scelta di chi vende: la S prima della XL, il pezzo importante
+  in cima. I numeri si rinumerano da zero a ogni spostamento, così i buchi
+  lasciati dalle voci cancellate non si accumulano.
+- **Il carrello del merchandising.** Si scelgono le quantità, si vede il
+  totale, si manda l'ordine in un colpo solo: due magliette, una patch e un
+  cappellino sono **un** ordine e **una** quota, non quattro righe da incassare
+  una per una. Sotto ogni voce c'è scritto quante se ne sono già ordinate —
+  senza, il secondo ordine per sbaglio è questione di giorni.
+- **Ordinare genera la quota**, di un tipo suo (*Merchandising*) accanto a
+  iscrizioni e quote delle attività: compare fra i pagamenti di chi ordina e in
+  cassa, e la segreteria la incassa con il pulsante di sempre. Le vendite
+  private restano fuori: il gestionale non tocca quei soldi.
+- **Elenco degli ordini per segreteria e admin**, con il pallino sul menu
+  finché c'è un giro da chiudere. In cima la sola cosa che serve davvero —
+  *magliette M da ordinare: 7* — e sotto l'elenco per il singolo caso.
+- **Il proprio ordine si vede sotto l'articolo**, con lo stato della merce e
+  quello della quota, e si ritira finché non è stata incassata.
+
+### Come è fatto
+
+- **Il prezzo si congela quando si ordina.** Se la maglietta passa da 25 a 28
+  dopo che in dieci hanno ordinato, le loro quote sono già emesse a 25 e devono
+  restare leggibili per quello che erano. Titolo e prezzo sono copiati nella
+  riga dell'ordine, non letti dalla voce.
+- **Il riepilogo conta solo la raccolta aperta.** *Sette da quando?* — un
+  numero che somma tutti gli ordini mai fatti serve una volta sola: al secondo
+  giro mescola le magliette già comprate con quelle nuove, e diventa un numero
+  di cui non ci si può fidare. Chiuso il giro, chi ordina dopo entra in quello
+  successivo senza che nessuno debba ricordarsi niente.
+- **Pagato e consegnato sono due cose diverse**: uno paga oggi e ritira fra tre
+  settimane, quando la fornitura arriva. Lo stato dell'ordine guarda dove sta
+  la merce, i soldi stanno sul pagamento.
+- **Un articolo con ordini dentro non si cancella**, e la regola sta nel
+  database e non in un controllo dell'interfaccia che si può aggirare. Per
+  toglierlo di mezzo c'è *ritira*; per una voce sola, l'interruttore che la
+  spegne.
+- **Annunci e ordini entrano nell'esportazione dei propri dati**: sono dati
+  personali come gli altri, e senza diventerebbe silenziosamente incompleta.
+
 ## 1.23.0 — 7 settembre 2026
 
 ### Aggiunto

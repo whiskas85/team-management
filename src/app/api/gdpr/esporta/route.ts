@@ -17,6 +17,10 @@ export async function GET() {
       memberships: true,
       figtCards: true,
       payments: true,
+      // gli annunci e gli ordini sono dati personali come gli altri: se non
+      // finiscono qui l'esportazione diventa silenziosamente incompleta
+      annunci: { include: { voci: true } },
+      ordini: { include: { righe: true, annuncio: { select: { titolo: true } } } },
       rsvps: { include: { event: { select: { titolo: true, inizio: true, tipo: { select: { nome: true } } } } } },
     },
   });

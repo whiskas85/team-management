@@ -1,6 +1,6 @@
 import type { Prisma, StatoOperatore, Role } from '@prisma/client';
 import { prisma } from './db';
-import { isAdmin, inSquadra, vedeAttivitaSquadra } from './domain';
+import { isAdmin, inSquadra, puoGestirePagamenti, vedeAttivitaSquadra } from './domain';
 
 /**
  * Il mercatino, che sono due bacheche diverse.
@@ -141,6 +141,53 @@ export function vociCitate(
   );
   return voci.filter((v) => scritte.has(v.maniglia)).map((v) => v.id);
 }
+
+// ------------------------------------------------------------------ ordini
+
+/**
+ * Chi vede gli ordini di tutti.
+ *
+ * È la segreteria, e l'admin con lei: un ordine è una quota da incassare, e
+ * chi si occupa delle quote se ne occupa qui come altrove. Il proprio ordine
+ * invece lo vede sempre chi l'ha fatto, sotto l'annuncio.
+ */
+export const puoVedereOrdini = puoGestirePagamenti;
+
+/**
+ * Cosa si può mettere nel carrello.
+ *
+ * Solo le voci che si riordinano: le magliette non finiscono, se ne chiedono
+ * altre e basta. Un pezzo unico non si ordina — si prenota, e a segnarlo è chi
+ * vende, altrimenti due persone comprerebbero la stessa radio.
+ */
+export const ordinabile = (v: { natura: string; attiva?: boolean }) =>
+  v.attiva !== false && v.natura === 'RIORDINABILE';
+
+export const ETICHETTA_ORDINE: Record<string, string> = {
+  RACCOLTA: 'in raccolta',
+  ORDINATO: 'ordinato al fornitore',
+  ARRIVATO: 'arrivato, da consegnare',
+  CONSEGNATO: 'consegnato',
+  ANNULLATO: 'annullato',
+};
+
+/**
+ * Un ordine conta nel "quanti pezzi servono" solo finché la raccolta è aperta.
+ *
+ * È la risposta a *sette da quando?*: un riepilogo che somma tutti gli ordini
+ * mai fatti serve una volta sola, al secondo giro mescola le magliette già
+ * ordinate al fornitore con quelle nuove e diventa un numero di cui non ci si
+ * può fidare — cioè peggio di niente.
+ */
+export const inRaccolta = (o: { stato: string }) => o.stato === 'RACCOLTA';
+
+/** Quanto costa un carrello: le righe hanno già il prezzo congelato. */
+export const totaleRighe = (righe: { prezzo: unknown; quantita: number }[]) =>
+  righe.reduce((s, r) => s + Number(r.prezzo) * r.quantita, 0);
+
+/** Cosa c'è dentro, in una riga sola: "Maglietta M × 2, Patch × 1". */
+export const dettaglioRighe = (righe: { titolo: string; quantita: number }[]) =>
+  righe.map((r) => `${r.titolo} × ${r.quantita}`).join(', ');
 
 /** Serve solo a non ripetere la stessa `include` in quattro punti. */
 export const CON_TUTTO = {

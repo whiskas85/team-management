@@ -276,9 +276,14 @@ il primo dato orfano si scopre sempre troppo tardi.
 3. **Messaggi privati e notifiche in app** — il pezzo grosso e il più delicato:
    è l'unico posto del gestionale dove due persone si parlano senza che nessun
    altro legga.
-4. **Merchandising**: catalogo a nome del team (solo admin), ordini, la quota
-   che ne nasce e finisce in cassa, i giri di raccolta e il riepilogo di quanti
-   pezzi ordinare.
+4. ~~**Merchandising**: catalogo a nome del team (solo admin), ordini, la
+   quota che ne nasce e finisce in cassa, i giri di raccolta e il riepilogo di
+   quanti pezzi ordinare~~ — fatto (1.24.0), insieme al riordino delle voci.
+   Il *giro di raccolta* non è una tabella a parte: è lo stato dell'ordine, e
+   chiudere il giro vuol dire portare a *ordinato al fornitore* tutti quelli in
+   raccolta di quell'articolo. Il riepilogo conta gli ordini ancora in
+   raccolta, che è esattamente la domanda a cui doveva rispondere, senza una
+   tabella in più da tenere allineata.
 5. **Interruttore per i nuovi** e regolamento del mercatino nella sezione
    Regolamenti.
 6. **Push del browser**, quando c'è il dominio.
