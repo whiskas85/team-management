@@ -64,6 +64,10 @@ enum RsvpStatus {
 /// Schieramento deciso dal TL a partire dalle adesioni.
 enum Assegnazione {
   NON_ASSEGNATO
+  /// Chiamato in formazione ma la quota non è ancora saldata: il posto è suo
+  /// finché non paga, e diventa titolare nel momento in cui l'incasso è
+  /// registrato. Su un'attività gratuita questo stato non esiste.
+  CONVOCATO
   TITOLARE
   RISERVA
 }
@@ -533,6 +537,10 @@ model EventRsvp {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   status       RsvpStatus
   assegnazione Assegnazione @default(NON_ASSEGNATO)
+  /// Subentra al posto di qualcuno che aveva già pagato: il club la somma
+  /// l'ha incassata, e chiederla due volte per lo stesso posto sarebbe
+  /// incassarla due volte.
+  esenteQuota  Boolean      @default(false)
   presente     Boolean? // presenza effettiva, registrata a evento concluso
   note         String?
   respondedAt  DateTime     @default(now())

@@ -19,7 +19,8 @@ import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from
 const VISIBILITA = ['TEAM', 'TUTTI'] as const;
 const STATI = ['CREATA', 'RILASCIATA', 'ANNULLATA', 'CONCLUSA'] as const;
 const RSVP = ['PRESENTE', 'ASSENTE', 'FORSE'] as const;
-const ASSEGNAZIONI = ['NON_ASSEGNATO', 'TITOLARE', 'RISERVA'] as const;
+const ASSEGNAZIONI = ['NON_ASSEGNATO', 'CONVOCATO', 'TITOLARE', 'RISERVA'] as const;
+
 
 function aggiorna(id?: string) {
   revalidatePath('/calendario');
@@ -273,9 +274,16 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
  * è segnato presente — e lì essere presenti *è* partecipare.
  */
 const deveLaQuota = (
-  rsvp: { status: string; assegnazione: string } | null,
+  rsvp: { status: string; assegnazione: string; esenteQuota: boolean } | null,
   conFormazione: boolean,
-) => !!rsvp && rsvp.status === 'PRESENTE' && (!conFormazione || rsvp.assegnazione === 'TITOLARE');
+) => {
+  if (!rsvp || rsvp.status !== 'PRESENTE') return false;
+  // subentrato al posto di chi aveva già pagato: il club la somma ce l'ha
+  if (rsvp.esenteQuota) return false;
+  if (!conFormazione) return true;
+  // convocato o titolare: in entrambi i casi il posto è suo e la quota è dovuta
+  return rsvp.assegnazione === 'CONVOCATO' || rsvp.assegnazione === 'TITOLARE';
+};
 
 /**
  * Rimette la quota di una persona in pari con la realtà.
@@ -359,46 +367,141 @@ export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm
   const rsvpId = str(fd, 'rsvpId');
   const assegnazione = enumVal(fd, 'assegnazione', ASSEGNAZIONI, 'NON_ASSEGNATO');
 
+  const attuale = await prisma.eventRsvp.findUnique({
+    where: { id: rsvpId },
+    include: { event: { select: { maxPartecipanti: true } } },
+  });
+  if (!attuale) return { errore: 'Adesione non trovata.' };
+
   // Qui sì che il tetto conta: i posti sono quelli, e nemmeno un TL ne fa
   // entrare uno in più. Chi avanza resta riserva — che è il motivo per cui
-  // alzare la mano non è mai stato vietato a nessuno.
-  if (assegnazione === 'TITOLARE') {
-    const attuale = await prisma.eventRsvp.findUnique({
-      where: { id: rsvpId },
-      include: { event: { select: { maxPartecipanti: true } } },
-    });
-    if (!attuale) return { errore: 'Adesione non trovata.' };
+  // alzare la mano non è mai stato vietato a nessuno. I convocati occupano un
+  // posto quanto i titolari: stanno solo aspettando di pagarlo.
+  const entra = assegnazione === 'TITOLARE' || assegnazione === 'CONVOCATO';
+  const gia = attuale.assegnazione === 'TITOLARE' || attuale.assegnazione === 'CONVOCATO';
+  const max = attuale.event.maxPartecipanti;
 
-    const max = attuale.event.maxPartecipanti;
-    if (max && attuale.assegnazione !== 'TITOLARE') {
-      const titolari = await prisma.eventRsvp.count({
-        where: { eventId: attuale.eventId, assegnazione: 'TITOLARE' },
-      });
-      if (titolari >= max) {
-        return {
-          errore: `I posti sono ${max} e sono già assegnati: togli un titolare, o lascialo in riserva.`,
-        };
-      }
+  if (entra && max && !gia) {
+    const occupati = await prisma.eventRsvp.count({
+      where: { eventId: attuale.eventId, assegnazione: { in: ['TITOLARE', 'CONVOCATO'] } },
+    });
+    if (occupati >= max) {
+      return {
+        errore: `I posti sono ${max} e sono già assegnati: togli qualcuno, o lascialo in riserva.`,
+      };
     }
   }
 
-  const rsvp = await prisma.eventRsvp.update({
-    where: { id: rsvpId },
-    data: { assegnazione },
-  });
+  await prisma.eventRsvp.update({ where: { id: rsvpId }, data: { assegnazione } });
 
-  // Schierare qualcuno è il momento in cui la quota nasce, e toglierlo dalla
-  // formazione è quello in cui sparisce: una riserva al club non deve niente.
-  const quota = await allineaQuota(rsvp.eventId, rsvp.userId);
+  // Schierare è il momento in cui la quota nasce, toglierlo dalla formazione
+  // quello in cui sparisce: una riserva al club non deve niente.
+  const quota = await allineaQuota(attuale.eventId, attuale.userId);
 
-  aggiorna(rsvp.eventId);
+  // **Il posto si tiene pagando.** Se la quota è dovuta e non è ancora saldata,
+  // chi il TL ha scelto resta convocato: il posto è suo, ma la formazione non
+  // è chiusa finché i soldi non entrano. Su un'attività gratuita, o per chi ha
+  // già pagato, si è titolari subito e questo passaggio non si vede nemmeno.
+  let finale: string = assegnazione;
+  if (assegnazione === 'TITOLARE' && quota !== null) {
+    const pagamento = await prisma.payment.findFirst({
+      where: { eventId: attuale.eventId, userId: attuale.userId, tipo: { not: 'RIMBORSO' } },
+      select: { status: true },
+    });
+    if (pagamento && pagamento.status !== 'PAGATO') {
+      await prisma.eventRsvp.update({
+        where: { id: rsvpId },
+        data: { assegnazione: 'CONVOCATO' },
+      });
+      finale = 'CONVOCATO';
+    }
+  }
+
+  aggiorna(attuale.eventId);
   revalidatePath('/pagamenti');
   revalidatePath('/admin/pagamenti');
+
+  if (finale === 'CONVOCATO') {
+    return {
+      ok: `Convocato: il posto è suo, e diventa titolare quando la quota di ${quota} € risulta saldata.`,
+    };
+  }
+  return { ok: quota !== null ? `Schierato titolare (quota ${quota} € già saldata).` : 'Schieramento aggiornato.' };
+}
+
+/**
+ * Scambia un titolare con una riserva.
+ *
+ * Serve quando uno si fa male il giorno prima: la riserva subentra, e il TL
+ * non deve smontare la formazione a mano.
+ *
+ * Il pezzo che conta sono i soldi. **Se chi esce aveva già pagato, chi entra
+ * non paga**: la somma per quel posto il club l'ha incassata, e chiederla di
+ * nuovo vorrebbe dire incassarla due volte per la stessa presenza. Il
+ * pagamento di chi esce resta dov'è — se e come rimborsarlo è una decisione
+ * di persone, non una regola da scrivere qui. Se invece non aveva pagato, la
+ * sua quota sparisce e chi entra la trova addebitata come chiunque altro.
+ */
+export async function scambiaTitolare(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoSchierare(me.roles)) {
+    return { errore: 'Solo un Team Leader può comporre la squadra.' };
+  }
+
+  const [esce, entra] = await Promise.all([
+    prisma.eventRsvp.findUnique({ where: { id: str(fd, 'rsvpId') } }),
+    prisma.eventRsvp.findUnique({ where: { id: str(fd, 'conRsvpId') } }),
+  ]);
+  if (!esce || !entra) return { errore: 'Adesione non trovata.' };
+  if (esce.eventId !== entra.eventId) return { errore: 'Sono di due attività diverse.' };
+
+  const pagamentoUscente = await prisma.payment.findFirst({
+    where: { eventId: esce.eventId, userId: esce.userId, tipo: { not: 'RIMBORSO' } },
+    select: { status: true },
+  });
+  const postoGiaPagato = pagamentoUscente?.status === 'PAGATO';
+
+  await prisma.$transaction([
+    prisma.eventRsvp.update({
+      where: { id: esce.id },
+      // chi esce torna riserva e non è più esente: se un domani rientra,
+      // rientra alle condizioni di allora
+      data: { assegnazione: 'RISERVA', esenteQuota: false },
+    }),
+    prisma.eventRsvp.update({
+      where: { id: entra.id },
+      data: { assegnazione: 'TITOLARE', esenteQuota: postoGiaPagato },
+    }),
+  ]);
+
+  // le quote si rimettono in pari da sole: a chi esce sparisce se non aveva
+  // pagato, a chi entra nasce solo se il posto non era già stato saldato
+  await allineaQuota(esce.eventId, esce.userId);
+  const quotaEntrante = await allineaQuota(entra.eventId, entra.userId);
+
+  // e vale anche per chi subentra: se la quota gliela ritrova addebitata, il
+  // posto se lo tiene pagando come tutti gli altri
+  if (quotaEntrante !== null && !postoGiaPagato) {
+    await prisma.eventRsvp.update({
+      where: { id: entra.id },
+      data: { assegnazione: 'CONVOCATO' },
+    });
+  }
+
+  aggiorna(esce.eventId);
+  revalidatePath('/pagamenti');
+  revalidatePath('/admin/pagamenti');
+
+  if (postoGiaPagato) {
+    return {
+      ok: 'Scambio fatto: subentra senza pagare, il posto era già stato saldato.',
+    };
+  }
   return {
     ok:
-      quota !== null
-        ? `Schierato titolare: gli è stata addebitata la quota di ${quota} €.`
-        : 'Schieramento aggiornato.',
+      quotaEntrante !== null
+        ? `Scambio fatto: chi entra è convocato e diventa titolare al saldo della quota di ${quotaEntrante} €.`
+        : 'Scambio fatto.',
   };
 }
 

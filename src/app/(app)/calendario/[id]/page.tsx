@@ -39,6 +39,7 @@ import {
   registraPresenze,
   rimuoviPartecipante,
   salvaEvento,
+  scambiaTitolare,
   schiera,
 } from '@/actions/eventi';
 import { chiediRimborso } from '@/actions/pagamenti';
@@ -226,8 +227,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const forse = evento.rsvps.filter((r) => r.status === 'FORSE');
   const assenti = evento.rsvps.filter((r) => r.status === 'ASSENTE');
   const titolari = presenti.filter((r) => r.assegnazione === 'TITOLARE');
+  // i convocati tengono già il posto: mancano solo i soldi
+  const convocati = presenti.filter((r) => r.assegnazione === 'CONVOCATO');
   const riserve = presenti.filter((r) => r.assegnazione === 'RISERVA');
-  const pieno = !!evento.maxPartecipanti && presenti.length >= evento.maxPartecipanti;
+  // il posto lo occupa anche chi è convocato: sta solo aspettando di pagarlo
+  const inFormazione = presenti.filter(
+    (r) => r.assegnazione === 'TITOLARE' || r.assegnazione === 'CONVOCATO',
+  ).length;
+  const pieno = !!evento.maxPartecipanti && inFormazione >= evento.maxPartecipanti;
   const chiuso =
     evento.status !== 'RILASCIATA' ||
     (!!evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date());
@@ -311,6 +318,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // dove c'è la formazione la quota la deve chi scende in campo, non chi si è
   // solo reso disponibile: serve a dirlo prima, invece di farlo scoprire dopo
   const mioTitolare = mio?.assegnazione === 'TITOLARE';
+  const mioConvocato = mio?.assegnazione === 'CONVOCATO';
 
   // senza certificato in corso di validità non ci si segna e non si gioca —
   // dove la tipologia lo richiede: a una riunione si va comunque
@@ -357,6 +365,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const gruppi = schieraQuesta
     ? [
         ...dividi('titolari', 'Titolari', 'text-nvg', titolari),
+        ...dividi('convocati', 'Convocati · in attesa del saldo', 'text-warn', convocati),
         ...dividi('riserve', 'Riserve', 'text-warn', riserve),
         ...dividi('daassegnare', 'Da assegnare', 'text-muted', daAssegnare),
         ...dividi('forse', 'Forse', 'text-warn', forse),
@@ -487,9 +496,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           <span className="block text-[11px] text-muted">{mioDettaglio}</span>
                         )}
                         <span className="block text-[11px] text-warn">
-                          {schieraQuesta && !mioTitolare
-                            ? 'si paga solo se il TL ti schiera titolare'
-                            : 'presenza confermata a quota saldata'}
+                          {mioConvocato
+                            ? 'sei convocato: il posto è tuo, diventa tuo davvero al saldo'
+                            : schieraQuesta && !mioTitolare
+                              ? 'si paga solo se il TL ti schiera titolare'
+                              : 'presenza confermata a quota saldata'}
                         </span>
                       </>
                     ) : (
@@ -819,14 +830,52 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                             {r.presente !== null ? (
                               <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
                             ) : tl && schieraQuesta && r.status === 'PRESENTE' ? (
-                              <div className="flex gap-1">
+                              <div className="flex flex-wrap items-center gap-1">
+                                {/* Chi è dentro si può scambiare con una riserva:
+                                    uno si fa male il giorno prima e la formazione
+                                    non si smonta a mano. Se aveva già pagato, chi
+                                    subentra non paga — la somma per quel posto il
+                                    club l'ha incassata. */}
+                                {(r.assegnazione === 'TITOLARE' ||
+                                  r.assegnazione === 'CONVOCATO') &&
+                                  riserve.length > 0 && (
+                                    <BottoneModale
+                                      etichetta="Sostituisci"
+                                      icona="squadra"
+                                      titolo={`Chi entra al posto di ${nomeDi(r.user)}?`}
+                                      className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-nvgdim hover:text-ink"
+                                    >
+                                      <div className="space-y-2">
+                                        {riserve.map((s) => (
+                                          <div
+                                            key={s.id}
+                                            className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2"
+                                          >
+                                            <span className="min-w-0 truncate text-sm">
+                                              {nomeDi(s.user)}
+                                            </span>
+                                            <AzioneBottone
+                                              azione={scambiaTitolare}
+                                              valori={{ rsvpId: r.id, conRsvpId: s.id }}
+                                              icona="squadra"
+                                              className="btn-primary btn-sm"
+                                            >
+                                              Fai entrare
+                                            </AzioneBottone>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </BottoneModale>
+                                  )}
+
                                 {(['TITOLARE', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
                                   <AzioneBottone
                                     key={a}
                                     azione={schiera}
                                     valori={{ rsvpId: r.id, assegnazione: a }}
                                     className={`rounded border px-2 py-1 text-[11px] transition-colors ${
-                                      r.assegnazione === a
+                                      r.assegnazione === a ||
+                                      (a === 'TITOLARE' && r.assegnazione === 'CONVOCATO')
                                         ? a === 'TITOLARE'
                                           ? 'border-nvg bg-nvg/15 text-nvg'
                                           : a === 'RISERVA'
@@ -838,7 +887,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     {a === 'NON_ASSEGNATO'
                                       ? '—'
                                       : a === 'TITOLARE'
-                                        ? 'Titolare'
+                                        ? r.assegnazione === 'CONVOCATO'
+                                          ? 'Convocato'
+                                          : 'Titolare'
                                         : 'Riserva'}
                                   </AzioneBottone>
                                 ))}

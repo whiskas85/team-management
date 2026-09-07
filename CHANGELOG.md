@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.17.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Il posto in formazione si tiene pagando.** Su un'attività a pagamento
+  essere scelti dal TL non basta: finché la quota non è saldata si è
+  **convocati**, non titolari. Il posto è già suo — occupa uno dei posti
+  contati — ma la formazione non è chiusa finché i soldi non entrano. Quando la
+  segreteria registra l'incasso, **il convocato diventa titolare da solo**:
+  senza, avrebbe dovuto ricordarsene il TL, cioè prima o poi nessuno.
+  Su un'attività gratuita, e per chi ha già pagato, si è titolari subito e
+  questo passaggio non si vede nemmeno.
+- **Scambio con una riserva.** Uno si fa male il giorno prima e la formazione
+  non si smonta a mano: dal titolare si sceglie chi entra al suo posto. Il pezzo
+  che conta sono i soldi — **se chi esce aveva già pagato, chi entra non paga**,
+  perché la somma per quel posto il club l'ha incassata e chiederla di nuovo
+  sarebbe incassarla due volte. Se invece non aveva pagato, la sua quota sparisce
+  e chi entra viene convocato alle stesse condizioni di tutti.
+
+Il pagamento di chi esce resta dov'è: se e come rimborsarlo è una decisione di
+persone, non una regola da scrivere nel gestionale.
 ## 1.16.2 — 7 settembre 2026
 
 ### Cambiato

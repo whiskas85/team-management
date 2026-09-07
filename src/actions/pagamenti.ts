@@ -129,8 +129,27 @@ export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<Stato
     },
   });
 
+  // Il posto in formazione si tiene pagando: registrato l'incasso, chi era
+  // convocato diventa titolare da solo. Senza questo passaggio la segreteria
+  // incasserebbe e il TL dovrebbe ricordarsi di andare a promuoverlo a mano,
+  // cioè prima o poi non lo farebbe.
+  let promosso = false;
+  if (status === 'PAGATO' && pagamento.eventId) {
+    const passati = await prisma.eventRsvp.updateMany({
+      where: {
+        eventId: pagamento.eventId,
+        userId: pagamento.userId,
+        assegnazione: 'CONVOCATO',
+      },
+      data: { assegnazione: 'TITOLARE' },
+    });
+    promosso = passati.count > 0;
+    if (promosso) revalidatePath(`/calendario/${pagamento.eventId}`);
+  }
+
   aggiorna();
   if (status === 'PARZIALE') return { ok: 'Acconto registrato: resta il saldo da incassare.' };
+  if (promosso) return { ok: 'Incasso registrato: da convocato passa a titolare.' };
   return {
     ok:
       pagamento.tipo === 'RIMBORSO'
