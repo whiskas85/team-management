@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { StatoOperatore } from '@prisma/client';
 import { requireUser } from '@/lib/auth';
@@ -33,6 +34,7 @@ import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
 import { FormRiunione } from '@/components/FormRiunione';
 import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
+import { CondividiEvento } from '@/components/CondividiEvento';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -348,6 +350,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // altrimenti bastano le tre risposte
   const daAssegnare = presenti.filter((r) => r.assegnazione === 'NON_ASSEGNATO');
 
+  // L'indirizzo da cui si sta guardando è quello che deve funzionare anche per
+  // chi riceve il messaggio: dentro ZeroTier è lo stesso per tutti, e scriverlo
+  // a mano nel codice vorrebbe dire cambiarlo il giorno che arriva un dominio.
+  const intestazioni = await headers();
+  const host = intestazioni.get('host');
+  const indirizzoPagina = host
+    ? `${intestazioni.get('x-forwarded-proto') ?? 'http'}://${host}/calendario/${evento.id}`
+    : `/calendario/${evento.id}`;
+
   // Le tipologie segnate come riunione: se non ce n'è nessuna il pulsante non
   // compare, invece di aprire un modulo che non può funzionare.
   const tipiRiunione = tl
@@ -423,6 +434,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         sottotitolo={`${evento.tipo?.nome ?? 'Senza tipologia'} · ${fmtDateTime(evento.inizio)}`}
         azioni={
           <div className="flex flex-wrap items-center gap-2">
+            {/* si manda in chat il link della pagina, non un riassunto: chi lo
+                riceve entra e trova adesioni, quote e mappa aggiornate */}
+            {evento.status === 'RILASCIATA' && (
+              <CondividiEvento
+                titolo={evento.titolo}
+                inizio={evento.inizio}
+                dove={
+                  evento.field
+                    ? [evento.field.nome, evento.field.citta].filter(Boolean).join(' · ')
+                    : evento.luogo
+                }
+                indirizzo={indirizzoPagina}
+              />
+            )}
+
             {/* la propria risposta, in testa: aprendo l'attività la prima cosa
                 da sapere è se ci si è già segnati, e la card sta più in basso */}
             {mio ? (

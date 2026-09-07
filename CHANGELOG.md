@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.22.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Condividi su WhatsApp** dalla pagina di un'attività rilasciata: si apre
+  WhatsApp con il messaggio già scritto — titolo, quando, dove e il link — e si
+  sceglie a chi mandarlo.
+
+Due cose sul come è fatto:
+
+- **Nel messaggio va il link della pagina, non un riassunto.** Chi lo riceve
+  entra e trova adesioni, quote e mappa aggiornate; un riassunto incollato in
+  chat invecchia il giorno dopo.
+- **Non passa dal ponte WhatsApp** e non serve il numero dedicato: è un
+  collegamento normale, quindi funziona da subito e anche per chi apre il
+  gestionale dal telefono di casa. Il ponte serve per i messaggi che partono da
+  soli, questo lo mandi tu.
 ## 1.21.3 — 7 settembre 2026
 
 ### Corretto
