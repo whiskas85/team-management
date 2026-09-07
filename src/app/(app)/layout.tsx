@@ -12,6 +12,7 @@ import {
   vedeAreaTesseramento,
   vedeAttivitaSquadra,
 } from '@/lib/domain';
+import { filtroVisibilita } from '@/lib/query';
 import { Nav, type VoceMenu } from '@/components/Nav';
 import { ContenitoreToast } from '@/components/Toast';
 import { puoVedereMerchandising } from '@/lib/mercatino';
@@ -73,9 +74,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     },
   });
 
+  // Le attività rilasciate che questa persona non ha ancora aperto. È il
+  // pallino sul calendario: senza, un'attività appena pubblicata la scopre
+  // solo chi passa di lì per caso.
+  const inizioDiOggi = new Date();
+  inizioDiOggi.setHours(0, 0, 0, 0);
+  const attivitaNuove = await prisma.event.count({
+    where: {
+      AND: [
+        filtroVisibilita(utente.stato),
+        { status: 'RILASCIATA' },
+        { inizio: { gte: inizioDiOggi } },
+        { letture: { none: { userId: utente.id } } },
+      ],
+    },
+  });
+
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Situazione', icona: 'dashboard', gruppo: 'principale' },
-    { href: '/calendario', label: 'Calendario', icona: 'calendario', gruppo: 'principale' },
+    {
+      href: '/calendario',
+      label: 'Calendario',
+      icona: 'calendario',
+      gruppo: 'principale',
+      badge: attivitaNuove,
+    },
     { href: '/profilo', label: 'Profilo', icona: 'profilo', gruppo: 'principale' },
     {
       href: '/pagamenti',

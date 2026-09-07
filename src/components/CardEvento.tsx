@@ -18,6 +18,8 @@ export type EventoLista = {
   costo: number | null;
   maxPartecipanti: number | null;
   titolari: number;
+  /** Rilasciata, ancora da fare, e mai aperta da chi guarda. */
+  nuovo: boolean;
   campo: string | null;
   lat: number | null;
   lng: number | null;
@@ -92,7 +94,18 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
               {e.visibilita === 'TUTTI' && <span className="text-warn"> · tutti</span>}
               {e.visibilita === 'TEAM' && <span className="text-muted"> · squadra</span>}
             </p>
-            <h3 className="mt-1 truncate font-medium">{e.titolo}</h3>
+            {/* Il pallino sta attaccato al titolo e non in un angolo: si
+                legge insieme al nome dell'attività, che è quello che si guarda
+                per decidere se aprirla. */}
+            <h3 className="mt-1 flex items-center gap-2 font-medium">
+              {e.nuovo && (
+                <span
+                  title="Non l'hai ancora aperta"
+                  className="h-2 w-2 shrink-0 rounded-full bg-nvg"
+                />
+              )}
+              <span className="truncate">{e.titolo}</span>
+            </h3>
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
             {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
           </div>
@@ -149,7 +162,16 @@ export function RigaEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
   return (
     <tr>
       <td>
-        <Link href={`/calendario/${e.id}`} className="font-medium hover:text-nvg">
+        <Link
+          href={`/calendario/${e.id}`}
+          className="inline-flex items-center gap-2 font-medium hover:text-nvg"
+        >
+          {e.nuovo && (
+            <span
+              title="Non l'hai ancora aperta"
+              className="h-2 w-2 shrink-0 rounded-full bg-nvg"
+            />
+          )}
           {e.titolo}
         </Link>
         <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">

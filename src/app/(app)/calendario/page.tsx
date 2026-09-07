@@ -24,7 +24,10 @@ export default async function CalendarioPage({
 }) {
   const me = await requireUser();
   const { vista } = await searchParams;
-  const attuale = vista === 'passati' ? 'passati' : vista === 'lista' ? 'lista' : 'mese';
+  // Si apre su quello che c'è da fare, non sulla griglia del mese: chi entra
+  // nel calendario vuole sapere cosa viene, e il mese è la vista che si sceglie
+  // quando si cerca una data precisa.
+  const attuale = vista === 'passati' ? 'passati' : vista === 'mese' ? 'mese' : 'lista';
   const admin = isAdmin(me.roles);
 
   // il listino serve al modulo di creazione: le quote si compongono da lì
@@ -103,8 +106,8 @@ export default async function CalendarioPage({
   });
 
   const VISTE = [
-    { chiave: 'mese', href: '/calendario', testo: 'Mese' },
-    { chiave: 'lista', href: '/calendario?vista=lista', testo: 'In programma' },
+    { chiave: 'lista', href: '/calendario', testo: 'In programma' },
+    { chiave: 'mese', href: '/calendario?vista=mese', testo: 'Mese' },
     { chiave: 'passati', href: '/calendario?vista=passati', testo: 'Storico' },
   ];
 
@@ -275,7 +278,17 @@ export default async function CalendarioPage({
                   >
                   <Link href={`/calendario/${e.id}`} className="block">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{e.titolo}</p>
+                      <p className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
+                        {/* mai aperta: il pallino sta attaccato al titolo, che è
+                            quello che si legge per decidere se entrare */}
+                        {e.nuovo && (
+                          <span
+                            title="Non l’hai ancora aperta"
+                            className="h-2 w-2 shrink-0 rounded-full bg-nvg"
+                          />
+                        )}
+                        <span className="truncate">{e.titolo}</span>
+                      </p>
                       {e.status !== 'RILASCIATA' && (
                         <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
                           {etichettaEvento[e.status]}

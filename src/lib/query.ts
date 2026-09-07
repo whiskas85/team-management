@@ -49,10 +49,15 @@ export async function eventiPerLista({
       // tutte le risposte: servono i tre conteggi, non solo i presenti
       rsvps: { select: { status: true, userId: true, note: true, assegnazione: true } },
       payments: { where: { userId }, select: { importo: true, pagato: true, status: true } },
+      // se c'è la riga, quest'attività l'ho già aperta
+      letture: { where: { userId }, select: { userId: true } },
     },
   });
 
   const ora = new Date();
+  // la giornata conta intera: un'attività cominciata stamattina è ancora di oggi
+  const inizioDiOggi = new Date(ora);
+  inizioDiOggi.setHours(0, 0, 0, 0);
 
   // ognuno legge la quota che riguarda lui: chi è in squadra la sua, chi viene
   // da fuori quella degli esterni
@@ -93,6 +98,11 @@ export async function eventiPerLista({
     quotaDovuta: e.payments[0] ? Number(e.payments[0].importo) : null,
     quotaSaldata: e.payments[0] ? e.payments[0].status === 'PAGATO' : false,
     conFormazione: e.tipo?.riserve ?? false,
+    // Novità: rilasciata, ancora da fare, e mai aperta da me. Un'attività
+    // passata non è più una novità nemmeno se non l'ho guardata — segnalarla
+    // per sempre sarebbe un pallino che non si spegne mai.
+    nuovo:
+      e.status === 'RILASCIATA' && e.inizio >= inizioDiOggi && e.letture.length === 0,
   }));
 }
 

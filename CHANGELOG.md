@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.21.1 — 7 settembre 2026
+
+### Cambiato
+
+- **Il calendario si apre su *In programma***, non più sulla griglia del mese,
+  che passa in seconda posizione. Chi entra nel calendario vuole sapere cosa
+  viene; il mese è la vista che si sceglie quando si cerca una data precisa.
+## 1.21.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Le attività nuove si vedono.** Quando un'attività viene rilasciata compare
+  il pallino sul **Calendario** con quante non hai ancora aperto, e un puntino
+  accanto al titolo nell'elenco. Aprendola il puntino sparisce e il contatore
+  scende. Prima un'attività appena pubblicata la scopriva solo chi passava di
+  lì per caso.
+
+Due scelte che vale la pena sapere:
+
+- **La lettura è di ciascuno, non della squadra.** Se la apre il team leader,
+  agli altri resta segnalata: è il senso stesso della segnalazione.
+- **Un'attività passata smette di essere una novità** anche se non l'hai mai
+  aperta. Un pallino che non si spegne mai è un pallino che si impara a
+  ignorare, e allora tanto vale non averlo.
 ## 1.20.0 — 7 settembre 2026
 
 ### Aggiunto

@@ -32,6 +32,7 @@ import { Conferma, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
 import { FormRiunione } from '@/components/FormRiunione';
+import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -404,6 +405,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   return (
     <>
+      {/* aperta: smette di contare fra le novità, per chi la sta guardando */}
+      <SegnaEventoLetto eventId={evento.id} />
+
       <Link href="/calendario" className="mb-4 inline-block text-xs text-muted hover:text-nvg">
         ← Calendario
       </Link>

@@ -186,6 +186,7 @@ model User {
   messaggi       MessaggioInviato[]    @relation("MessaggiRicevuti")
   tesseramentiImportati TesseramentoImportato[] @relation("TesseramentoImportato")
   giornaliere    TesseraGiornaliera[] @relation("GiornaliereUtente")
+  eventiLetti    LetturaEvento[]  @relation("LettoreEvento")
   letturaDaAltri LetturaProfilo[] @relation("ProfiloLetto")
   profiliLetti   LetturaProfilo[] @relation("Lettore")
   noteScritte    Nota[]               @relation("NoteScritte")
@@ -284,6 +285,25 @@ model Field {
 /// registrazione resta segnalata finche' non la si e' andata a leggere, e
 /// vale per lettore, non per tutti: se la apre un admin, l'altro deve
 /// comunque vederla segnalata.
+/// Chi ha già aperto quale attività.
+///
+/// Serve al pallino delle novità: un'attività appena rilasciata è nuova **per
+/// chi non l'ha ancora aperta**, non in assoluto. La lettura è quindi per
+/// persona — se la apre il team leader, agli altri resta segnalata.
+///
+/// La riga nasce solo quando qualcuno apre: l'assenza vuol dire "non letta",
+/// che è lo stato di partenza di tutti e non va scritto da nessuna parte.
+model LetturaEvento {
+  eventId String
+  evento  Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  utente  User     @relation("LettoreEvento", fields: [userId], references: [id], onDelete: Cascade)
+  lettoIl DateTime @default(now())
+
+  @@id([eventId, userId])
+  @@index([userId])
+}
+
 model LetturaProfilo {
   id        String   @id @default(cuid())
   profiloId String
@@ -544,6 +564,7 @@ model Event {
   payments    Payment[]
   giornaliere TesseraGiornaliera[]
   messaggi    MessaggioInviato[]
+  letture     LetturaEvento[]
   noteInterne Nota[]
   commenti    CommentoEvento[]
   miPiace     MiPiaceEvento[]
