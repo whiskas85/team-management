@@ -43,6 +43,7 @@ export async function salvaTipologia(_prev: StatoForm, fd: FormData): Promise<St
     colore: enumVal(fd, 'colore', COLORI, 'verde'),
     tipoQuota: enumVal(fd, 'tipoQuota', QUOTE, 'EVENTO'),
     riserve: bool(fd, 'riserve'),
+    riunione: bool(fd, 'riunione'),
     soloInterno: bool(fd, 'soloInterno'),
     certMedico: bool(fd, 'certMedico'),
     certAgonistico: bool(fd, 'certAgonistico'),

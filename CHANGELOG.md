@@ -5,6 +5,90 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.20.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Da un'attività si organizza una riunione.** È così che succede davvero: si
+  guarda la gara di domenica e si decide di vedersi mercoledì per prepararla.
+  Il titolo arriva già scritto — *«Riunione: Op. Silent Ridge»* — e l'unica cosa
+  da digitare è quando. La può creare anche il team leader: mettersi d'accordo
+  per parlare non è decidere il calendario, ed è il genere di cosa che se
+  richiede un permesso non si fa.
+- **La riunione nasce già con le persone dentro**: titolari, convocati, TOC e
+  riserve dell'attività di partenza. Sono esattamente quelle che devono
+  esserci, e riconvocarle una per una a mano è lavoro che poi non si fa.
+- **Nuovo segno sulle tipologie: “è una riunione”.** Non si poteva scrivere nel
+  codice quali tipologie lo siano — le tipologie le scrive chi usa il
+  gestionale, e in due squadre si chiamano in modi diversi. Se ce n'è più di
+  una, al momento di creare si sceglie quale.
+- **Collegamento da remoto** sull'attività, con il pulsante per entrare. Ha
+  senso solo su una riunione: a una partita non ci si connette.
+
+### Cambiato
+
+- **Su una riunione il modulo si accorcia**: spariscono punto di ritrovo, posti
+  massimi e quote. A una riunione non servono, e mostrarle vuol dire far
+  leggere quindici caselle per compilarne quattro.
+## 1.19.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Il punto di ritrovo si cerca su una mappa.** Scrivi *«Autogrill A4 uscita
+  Bergamo»* e premi Cerca — oppure incolli un link di Google Maps — e arrivano
+  le coordinate con l'anteprima. Da lì la squadra ha il pulsante **Naviga**: un
+  ritrovo scritto a mano si legge, ma non porta nessuno da nessuna parte.
+- **Un'attività può stare dove non c'è un campo.** Accanto all'elenco dei campi
+  c'è un indirizzo libero con la stessa ricerca: una fiera, un parcheggio, la
+  sede di un'altra squadra. Inventare un campo in anagrafica per ognuno di
+  questi sporcava l'elenco dei campi, che è la cosa da tenere pulita.
+- **Il team leader può sistemare la logistica** di un'attività: titolo, campo,
+  indirizzo, ritrovo e ora. È lui che il sabato sera scopre che il campo ha
+  cambiato ingresso, e farglielo chiedere all'admin vuol dire che la squadra lo
+  saprà il giorno dopo. Quote, posti e destinatari restano a chi gestisce il
+  calendario: lì si decide, non si corregge.
+
+### Cambiato
+
+- **Il modulo di un'attività è diviso per argomento**: *cos'è*, *dove*, *chi ci
+  sta*, *pagamenti*, *note interne*. Quindici caselle in fila erano un muro in
+  cui non si trovava più niente. Quando c'è una quota, la sezione dei pagamenti
+  porta una barra sul bordo: aprendo un'attività già scritta si vede subito se
+  qualcuno dovrà pagare.
+- **L'ora del ritrovo sta accanto al ritrovo**, non accanto al campo.
+- **I toast vanno in basso a destra e si impilano**, con i quattro colori di
+  sempre: verde fatto, giallo attenzione, rosso errore, azzurro informazione.
+  Prima ogni pulsante disegnava il suo, e due avvisi di fila finivano uno sopra
+  l'altro.
+- **Il TOC è azzurro anche sul pulsante**, come la sua intestazione: la stessa
+  cosa non può essere di due colori.
+- **L'appello separa gli operatori dal TOC**, che c'era ma non in campo.
+## 1.18.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **TOC, la sala controllo.** Una terza posizione accanto a titolare e riserva,
+  nell'ordine in cui la formazione si legge: **titolari, TOC, riserve**. Chi sta
+  al TOC c'è ma non in campo, quindi **non occupa uno dei posti contati e non
+  paga la quota** — la quota paga il campo. Nell'appello però compare, perché
+  c'era.
+
+### Corretto
+
+- **L'appello di una gara comprendeva le riserve.** Ora riguarda solo chi era
+  atteso: titolari, convocati e TOC.
+- **E le riserve risultavano assenti.** È il difetto peggiore dei due, e non si
+  vedeva: l'appello segnava *non c'era* a chiunque non fosse spuntato, riserve
+  comprese. Sulla loro scheda compariva una assenza, e la percentuale di
+  presenze peggiorava, per un'attività a cui non erano nemmeno attese. Adesso
+  l'appello tocca soltanto chi doveva esserci.
+
+### Cambiato
+
+- **La regola "questa attività ha una formazione" sta in un posto solo.** Era
+  scritta in tre punti che dovevano restare d'accordo — chi paga, chi occupa un
+  posto, chi finisce nell'appello — e tre copie della stessa frase prima o poi
+  divergono.
 ## 1.17.0 — 7 settembre 2026
 
 ### Aggiunto

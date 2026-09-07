@@ -8,10 +8,13 @@ import { componiQuota, quotaPer } from '@/lib/quote';
 import { requireUser } from '@/lib/auth';
 import {
   MOTIVO_NON_IDONEO,
+  conFormazione,
   idoneoPer,
   inSquadra,
   isAdmin,
+  occupaPosto,
   puoSchierare,
+  schierato,
   serveCertificato,
 } from '@/lib/domain';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
@@ -19,7 +22,7 @@ import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from
 const VISIBILITA = ['TEAM', 'TUTTI'] as const;
 const STATI = ['CREATA', 'RILASCIATA', 'ANNULLATA', 'CONCLUSA'] as const;
 const RSVP = ['PRESENTE', 'ASSENTE', 'FORSE'] as const;
-const ASSEGNAZIONI = ['NON_ASSEGNATO', 'CONVOCATO', 'TITOLARE', 'RISERVA'] as const;
+const ASSEGNAZIONI = ['NON_ASSEGNATO', 'CONVOCATO', 'TITOLARE', 'TOC', 'RISERVA'] as const;
 
 
 function aggiorna(id?: string) {
@@ -32,16 +35,30 @@ function aggiorna(id?: string) {
 /** Crea o aggiorna un evento. Solo admin. */
 export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può gestire il calendario.' };
+
+  // Il team leader può sistemare la logistica di un'attività già creata:
+  // titolo, dove si gioca, dove ci si trova. È lui che il sabato sera scopre
+  // che il campo ha cambiato ingresso, e farglielo chiedere all'admin vuol
+  // dire che l'informazione arriva alla squadra il giorno dopo. Quote, posti e
+  // destinatari restano a chi gestisce il calendario: lì si decide, non si
+  // corregge.
+  const soloLogistica = !isAdmin(me.roles);
+  if (soloLogistica && !puoSchierare(me.roles)) {
+    return { errore: 'Solo l’admin può gestire il calendario.' };
+  }
 
   const id = str(fd, 'id');
   const titolo = str(fd, 'titolo');
-  const inizio = data(fd, 'inizio');
   if (!titolo) return { errore: 'Il titolo è obbligatorio.' };
-  if (!inizio) return { errore: 'La data di inizio è obbligatoria.' };
+  // il team leader corregge, non crea: senza un'attività da sistemare non ha
+  // niente da fare qui
+  if (soloLogistica && !id) return { errore: 'Solo l’admin può creare un’attività.' };
+
+  const inizio = data(fd, 'inizio');
+  if (!soloLogistica && !inizio) return { errore: 'La data di inizio è obbligatoria.' };
 
   const fine = data(fd, 'fine');
-  if (fine && fine < inizio) return { errore: 'La fine non può precedere l’inizio.' };
+  if (fine && inizio && fine < inizio) return { errore: 'La fine non può precedere l’inizio.' };
 
   // la stagione resta quella in cui l'attività è nata: le voci di listino da
   // usare sono le sue, non quelle dell'anno in cui la si sta ritoccando
@@ -63,15 +80,26 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
   // scheda, così non si rilascia un'attività per sbaglio da una tendina
-  const valori = {
+  // Quello che il team leader può toccare: il titolo e i luoghi. Sono i campi
+  // che cambiano il sabato sera, non quelli su cui si decide.
+  const logistica = {
     titolo,
+    fieldId: strOpt(fd, 'fieldId'),
+    luogo: strOpt(fd, 'luogo'),
+    luogoLat: num(fd, 'luogoLat'),
+    luogoLng: num(fd, 'luogoLng'),
+    ritrovo: strOpt(fd, 'ritrovo'),
+    ritrovoLat: num(fd, 'ritrovoLat'),
+    ritrovoLng: num(fd, 'ritrovoLng'),
+    oraRitrovo: data(fd, 'oraRitrovo'),
+  };
+
+  const valori = {
+    ...logistica,
     descrizione: strOpt(fd, 'descrizione'),
     tipoId: strOpt(fd, 'tipoId'),
-    inizio,
+    inizio: inizio!,
     fine,
-    ritrovo: strOpt(fd, 'ritrovo'),
-    oraRitrovo: data(fd, 'oraRitrovo'),
-    fieldId: strOpt(fd, 'fieldId'),
     costo: squadra.quota,
     dettaglioCosto: squadra.dettaglio,
     costoEsterni: esterni.quota,
@@ -82,7 +110,10 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   };
 
   if (id) {
-    await prisma.event.update({ where: { id }, data: valori });
+    await prisma.event.update({
+      where: { id },
+      data: soloLogistica ? logistica : valori,
+    });
 
     // Il costo può arrivare dopo che la gente si è già segnata: senza questo
     // giro le quote non nascevano più, e chi era titolare non vedeva niente
@@ -280,9 +311,11 @@ const deveLaQuota = (
   if (!rsvp || rsvp.status !== 'PRESENTE') return false;
   // subentrato al posto di chi aveva già pagato: il club la somma ce l'ha
   if (rsvp.esenteQuota) return false;
+  // la sala controllo non paga: la quota paga il campo, e lì non ci va
+  if (rsvp.assegnazione === 'TOC') return false;
   if (!conFormazione) return true;
   // convocato o titolare: in entrambi i casi il posto è suo e la quota è dovuta
-  return rsvp.assegnazione === 'CONVOCATO' || rsvp.assegnazione === 'TITOLARE';
+  return occupaPosto(rsvp);
 };
 
 /**
@@ -309,11 +342,7 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
   ]);
 
   const { importo: costo, dettaglio } = quotaPer(evento, chi?.stato);
-  // La formazione c'è dove la tipologia la prevede e dove i posti sono contati:
-  // deve essere la stessa condizione con cui la pagina mostra i pulsanti, o si
-  // arriverebbe ad addebitare la quota a chi lì risulta riserva.
-  const conFormazione = (evento.tipo?.riserve ?? false) || evento.maxPartecipanti !== null;
-  const deve = costo > 0 && deveLaQuota(rsvp, conFormazione);
+  const deve = costo > 0 && deveLaQuota(rsvp, conFormazione(evento));
 
   if (deve) {
     if (!esistente) {
@@ -377,8 +406,9 @@ export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm
   // entrare uno in più. Chi avanza resta riserva — che è il motivo per cui
   // alzare la mano non è mai stato vietato a nessuno. I convocati occupano un
   // posto quanto i titolari: stanno solo aspettando di pagarlo.
-  const entra = assegnazione === 'TITOLARE' || assegnazione === 'CONVOCATO';
-  const gia = attuale.assegnazione === 'TITOLARE' || attuale.assegnazione === 'CONVOCATO';
+  // il TOC non toglie un posto a nessuno: sta in sala controllo
+  const entra = occupaPosto({ assegnazione });
+  const gia = occupaPosto(attuale);
   const max = attuale.event.maxPartecipanti;
 
   if (entra && max && !gia) {
@@ -505,6 +535,103 @@ export async function scambiaTitolare(_prev: StatoForm, fd: FormData): Promise<S
   };
 }
 
+/**
+ * Crea una riunione a partire da un'attività.
+ *
+ * Nasce dal modo in cui le cose succedono davvero: si guarda la gara di
+ * domenica e si decide di vedersi mercoledì per prepararla. Il titolo arriva
+ * già scritto — *"Riunione: Op. Silent Ridge"* — perché è quello che uno
+ * scriverebbe comunque, e la data è l'unica cosa che deve digitare.
+ *
+ * La può fare anche il team leader: organizzare un ritrovo per parlare non è
+ * decidere il calendario della squadra, ed è il genere di cosa che se richiede
+ * un permesso non si fa.
+ *
+ * Nasce **rilasciata**: una riunione in bozza che nessuno vede non serve a
+ * niente, e chi la crea l'ha decisa proprio in quel momento.
+ */
+export async function creaRiunione(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoSchierare(me.roles)) {
+    return { errore: 'Le riunioni le organizzano il team leader e l’admin.' };
+  }
+
+  const titolo = str(fd, 'titolo');
+  const inizio = data(fd, 'inizio');
+  if (!titolo) return { errore: 'Serve un titolo.' };
+  if (!inizio) return { errore: 'Serve giorno e ora.' };
+
+  // la tipologia deve essere una di quelle segnate come riunione: senza questo
+  // controllo il modulo diventerebbe una scorciatoia per creare una gara
+  const tipoId = strOpt(fd, 'tipoId');
+  const tipo = tipoId
+    ? await prisma.tipoAttivita.findFirst({ where: { id: tipoId, riunione: true } })
+    : await prisma.tipoAttivita.findFirst({ where: { riunione: true, attivo: true } });
+  if (!tipo) {
+    return {
+      errore:
+        'Nessuna tipologia è segnata come riunione. Vai in Tipologie attività e spunta “È una riunione” su quella giusta.',
+    };
+  }
+
+  const creata = await prisma.event.create({
+    data: {
+      titolo,
+      descrizione: strOpt(fd, 'descrizione'),
+      tipoId: tipo.id,
+      inizio,
+      fine: data(fd, 'fine'),
+      luogo: strOpt(fd, 'luogo'),
+      luogoLat: num(fd, 'luogoLat'),
+      luogoLng: num(fd, 'luogoLng'),
+      linkRiunione: strOpt(fd, 'linkRiunione'),
+      stagioneId: (await stagioneAttiva()).id,
+      createdById: me.id,
+      status: 'RILASCIATA',
+      visibilita: 'TEAM',
+    },
+  });
+
+  // Chi c'era nell'attività di partenza si ritrova già dentro la riunione:
+  // titolari, convocati, TOC e riserve. Se la riunione serve a preparare quella
+  // gara, sono esattamente le persone che devono esserci — e riconvocarle una
+  // per una a mano è il genere di lavoro che poi non si fa.
+  const daEventId = strOpt(fd, 'daEventId');
+  let invitati = 0;
+  if (daEventId) {
+    const origine = await prisma.event.findUnique({
+      where: { id: daEventId },
+      include: {
+        tipo: { select: { riserve: true } },
+        rsvps: { select: { userId: true, status: true, assegnazione: true } },
+      },
+    });
+
+    if (origine) {
+      // dove c'era una formazione conta chi ne faceva parte, a qualsiasi
+      // titolo; dove non c'era, chi si era semplicemente segnato
+      const chi = conFormazione(origine)
+        ? origine.rsvps.filter((r) => r.assegnazione !== 'NON_ASSEGNATO')
+        : origine.rsvps.filter((r) => r.status === 'PRESENTE');
+
+      if (chi.length > 0) {
+        const fatti = await prisma.eventRsvp.createMany({
+          data: chi.map((r) => ({
+            eventId: creata.id,
+            userId: r.userId,
+            status: 'PRESENTE' as const,
+          })),
+          skipDuplicates: true,
+        });
+        invitati = fatti.count;
+      }
+    }
+  }
+
+  aggiorna(creata.id);
+  redirect(`/calendario/${creata.id}`);
+}
+
 /** Appello a evento concluso. */
 export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
@@ -513,9 +640,24 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
   const eventId = str(fd, 'eventId');
   const presenti = new Set(fd.getAll('presenti').map((v) => v.toString()));
 
-  const rsvps = await prisma.eventRsvp.findMany({ where: { eventId }, select: { id: true } });
+  const evento = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: { tipo: { select: { riserve: true } } },
+  });
+  if (!evento) return { errore: 'Attività non trovata.' };
+
+  // Dove c'è una formazione l'appello riguarda solo chi era atteso: titolari,
+  // convocati e sala controllo. Spuntare anche le riserve vorrebbe dire
+  // segnarle assenti a un'attività per cui non erano attese — comparirebbe
+  // "non c'era" sulla loro scheda e peggiorerebbe la loro percentuale di
+  // presenze, per una colpa che non hanno.
+  const rsvps = await prisma.eventRsvp.findMany({
+    where: { eventId },
+    select: { id: true, assegnazione: true },
+  });
+  const daSpuntare = conFormazione(evento) ? rsvps.filter(schierato) : rsvps;
   await prisma.$transaction(
-    rsvps.map((r) =>
+    daSpuntare.map((r) =>
       prisma.eventRsvp.update({ where: { id: r.id }, data: { presente: presenti.has(r.id) } }),
     ),
   );

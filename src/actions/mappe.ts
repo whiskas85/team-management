@@ -112,6 +112,30 @@ export async function risolviLuogo(testo: string): Promise<LuogoRisolto> {
     daAnalizzare = espanso.url ?? input;
   }
 
+  // Testo libero: "autogrill A4 uscita Bergamo". Non è un link e non sono
+  // coordinate, ma è il modo in cui le persone dicono davvero dove trovarsi —
+  // e cercarlo è tutto quello che serve per trasformarlo in un punto sulla
+  // mappa. Prima si poteva solo incollare un link, cioè bisognava aprire Maps
+  // per fare a mano quello che il gestionale può fare da solo.
+  const sembraUnLink = /^https?:\/\//i.test(input) || input.includes('maps.app.goo.gl');
+  if (!sembraUnLink && !estraiLuogo(input)?.lat) {
+    const trovato = await cerca(input);
+    if (!trovato) {
+      return {
+        errore: 'Non l’ho trovato. Prova a scriverlo diversamente, o incolla un link di Maps.',
+      };
+    }
+    const parti = scomponi(input);
+    return {
+      lat: trovato.lat,
+      lng: trovato.lng,
+      nome: input,
+      citta: parti.citta,
+      provincia: parti.provincia,
+      fonte: 'ricerca',
+    };
+  }
+
   const luogo = estraiLuogo(daAnalizzare);
 
   // 1. coordinate scritte direttamente nel link

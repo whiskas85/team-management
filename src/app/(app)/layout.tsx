@@ -13,6 +13,7 @@ import {
   vedeAttivitaSquadra,
 } from '@/lib/domain';
 import { Nav, type VoceMenu } from '@/components/Nav';
+import { ContenitoreToast } from '@/components/Toast';
 import { puoVedereMerchandising } from '@/lib/mercatino';
 import { inTest } from '@/lib/ambiente';
 import { esci } from '@/actions/auth';
@@ -225,6 +226,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           Ambiente di test
         </div>
       )}
+
+      <ContenitoreToast />
 
       <main className="px-4 pb-28 pt-5 md:px-8 md:pb-12 md:pt-8">
         <div className="mx-auto max-w-6xl">{children}</div>

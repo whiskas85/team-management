@@ -209,6 +209,50 @@ export const etichettaVisibilita: Record<string, string> = {
   TUTTI: 'Tutti',
 };
 
+/**
+ * Se un'attività ha una formazione da comporre.
+ *
+ * Ce l'ha quando la tipologia prevede le riserve, **e anche quando i posti
+ * sono contati**: un limite che nessuno può far rispettare non è un limite.
+ *
+ * Sta qui e non in tre punti diversi perché da questa risposta dipendono cose
+ * che devono restare d'accordo fra loro: chi paga la quota, chi occupa un
+ * posto, e chi finisce nell'appello. Se divergessero, si arriverebbe a
+ * chiedere i soldi a una riserva o a segnarla assente per un'attività che non
+ * ha giocato.
+ */
+export const conFormazione = (e: {
+  maxPartecipanti: number | null;
+  tipo?: { riserve: boolean } | null;
+}) => (e.tipo?.riserve ?? false) || e.maxPartecipanti !== null;
+
+/**
+ * Chi occupa un posto in campo — e quindi paga la quota.
+ *
+ * I convocati il posto ce l'hanno già, aspettano solo di pagarlo. Il TOC no:
+ * sta in sala controllo, non toglie un posto a nessuno e la quota paga il
+ * campo, non la giornata.
+ */
+export const occupaPosto = (r: { assegnazione: string }) =>
+  r.assegnazione === 'TITOLARE' || r.assegnazione === 'CONVOCATO';
+
+/**
+ * Chi è atteso all'attività, TOC compreso.
+ *
+ * È la lista dell'appello: la sala controllo c'era anche se non ha sparato un
+ * colpo, e segnarla assente sarebbe falso.
+ */
+export const schierato = (r: { assegnazione: string }) =>
+  occupaPosto(r) || r.assegnazione === 'TOC';
+
+export const etichettaAssegnazione: Record<string, string> = {
+  NON_ASSEGNATO: 'Da assegnare',
+  CONVOCATO: 'Convocato',
+  TITOLARE: 'Titolare',
+  TOC: 'TOC',
+  RISERVA: 'Riserva',
+};
+
 /** Chi gestisce il calendario vede anche le bozze. */
 export const puoGestireEventi = (roles: Role[]) => ha(roles, 'ADMIN');
 

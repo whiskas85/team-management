@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import { Campo } from './ui';
 import { inputDateTime } from '@/lib/format';
 import { QuoteEvento } from './QuoteEvento';
+import { CercaLuogo } from './CercaLuogo';
 import type { VoceListino } from './CampiRichiesta';
 
 type CampoGioco = { id: string; nome: string; citta: string | null; attivo?: boolean };
@@ -14,21 +16,66 @@ type Evento = {
   inizio: Date;
   fine: Date | null;
   ritrovo: string | null;
+  ritrovoLat: number | null;
+  ritrovoLng: number | null;
   oraRitrovo: Date | null;
   fieldId: string | null;
+  luogo: string | null;
+  luogoLat: number | null;
+  luogoLng: number | null;
   costo: unknown;
   costoEsterni: unknown;
   stagioneId: string | null;
   maxPartecipanti: number | null;
   chiusuraIscrizioni: Date | null;
   note: string | null;
+  linkRiunione: string | null;
+  tipo?: { riunione: boolean } | null;
 };
 
 const numero = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
 /**
- * Campi condivisi tra creazione e modifica. In versione `compatto` (dentro il
- * calendario) restano solo i campi essenziali, il resto si compila poi.
+ * Un gruppo di campi, con il suo titolo.
+ *
+ * Il modulo di un'attività ha quindici caselle: tutte in fila diventano un
+ * muro in cui non si trova più niente. Divise per argomento — cosa si fa, chi
+ * ci sta, dove, quanto costa — si compila quello che serve e si salta il resto.
+ */
+function Sezione({
+  titolo,
+  sottotitolo,
+  evidenzia,
+  children,
+}: {
+  titolo: string;
+  sottotitolo?: string;
+  /** Barra colorata sul bordo: si usa dove ci sono di mezzo dei soldi. */
+  evidenzia?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-lg border border-line bg-surface/40 p-3 ${
+        evidenzia ? 'border-l-2 border-l-warn' : ''
+      }`}
+    >
+      <p className="titolo-sezione">{titolo}</p>
+      {sottotitolo && <p className="mb-2 mt-0.5 text-[11px] text-muted">{sottotitolo}</p>}
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${sottotitolo ? '' : 'mt-2'}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Campi condivisi tra creazione e modifica.
+ *
+ * In versione `compatto` (dentro il calendario) restano i campi essenziali, il
+ * resto si compila poi. Con `soloLogistica` il modulo si riduce a quello che
+ * può toccare un team leader: il titolo, dove si gioca e dove ci si trova —
+ * quote, posti e destinatari restano di chi gestisce il calendario.
  */
 export function FormEvento({
   campi,
@@ -38,6 +85,7 @@ export function FormEvento({
   evento,
   inizioPredefinito,
   compatto = false,
+  soloLogistica = false,
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
@@ -48,128 +96,227 @@ export function FormEvento({
   evento?: Evento;
   inizioPredefinito?: string;
   compatto?: boolean;
+  soloLogistica?: boolean;
 }) {
+  const conQuota =
+    numero(evento?.costo) !== null || numero(evento?.costoEsterni) !== null;
+
+  // Su una riunione metà del modulo non c'entra: non c'è un punto di ritrovo da
+  // raggiungere in macchina, non ci sono posti contati, non si paga. Nasconderli
+  // non è togliere possibilità: è non far leggere quindici caselle per
+  // compilarne quattro.
+  const eRiunione = evento?.tipo?.riunione ?? false;
+
+  const dove = (
+    <Sezione
+      titolo="Dove"
+      sottotitolo="Il campo dall'elenco, oppure un indirizzo qualsiasi. E dove ci si trova prima."
+    >
+      <Campo label="Campo">
+        <select name="fieldId" defaultValue={evento?.fieldId ?? ''} className="input">
+          <option value="">— nessuno —</option>
+          {campi.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+              {c.citta ? ` · ${c.citta}` : ''}
+              {c.attivo === false ? ' (archiviato)' : ''}
+            </option>
+          ))}
+        </select>
+      </Campo>
+
+      <CercaLuogo
+        nome="luogo"
+        etichetta="Oppure un indirizzo"
+        valore={evento?.luogo}
+        lat={evento?.luogoLat}
+        lng={evento?.luogoLng}
+        segnaposto="es. Fiera di Chieri, oppure un link di Maps"
+        aiuto="Per quando non è un campo dell'elenco: una fiera, un parcheggio, la sede di un'altra squadra."
+      />
+
+      {eRiunione ? (
+        <Campo label="Collegamento da remoto" span>
+          <input
+            name="linkRiunione"
+            defaultValue={evento?.linkRiunione ?? ''}
+            className="input"
+            placeholder="https://meet.google.com/… — vuoto se ci si vede di persona"
+          />
+        </Campo>
+      ) : (
+        <>
+          <CercaLuogo
+            nome="ritrovo"
+            etichetta="Punto di ritrovo"
+            valore={evento?.ritrovo}
+            lat={evento?.ritrovoLat}
+            lng={evento?.ritrovoLng}
+            segnaposto="es. Autogrill A4 uscita Bergamo"
+            aiuto="Scrivi il posto e premi Cerca, oppure incolla un link di Google Maps."
+          />
+
+          <Campo label="Ora del ritrovo">
+            <input
+              type="datetime-local"
+              name="oraRitrovo"
+              defaultValue={inputDateTime(evento?.oraRitrovo)}
+              className="input"
+            />
+          </Campo>
+        </>
+      )}
+    </Sezione>
+  );
+
+  if (soloLogistica) {
+    return (
+      <>
+        {evento && <input type="hidden" name="id" value={evento.id} />}
+        <div className="space-y-4">
+          <Sezione titolo="Cos'è">
+            <Campo label="Titolo *" span>
+              <input
+                name="titolo"
+                required
+                defaultValue={evento?.titolo}
+                className="input"
+                placeholder="es. Op. Silent Ridge"
+              />
+            </Campo>
+          </Sezione>
+          {dove}
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {evento && <input type="hidden" name="id" value={evento.id} />}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Campo label="Titolo *" span>
-          <input
-            name="titolo"
-            required
-            defaultValue={evento?.titolo}
-            className="input"
-            placeholder="es. Op. Silent Ridge"
-          />
-        </Campo>
+      <div className="space-y-4">
+        <Sezione titolo="Cos'è">
+          <Campo label="Titolo *" span>
+            <input
+              name="titolo"
+              required
+              defaultValue={evento?.titolo}
+              className="input"
+              placeholder="es. Op. Silent Ridge"
+            />
+          </Campo>
 
-        <Campo label="Tipologia">
-          <select name="tipoId" defaultValue={evento?.tipoId ?? ''} className="input">
-            <option value="">— nessuna —</option>
-            {tipologie.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nome}
-                {t.attivo === false ? ' (disattivata)' : ''}
-              </option>
-            ))}
-          </select>
-        </Campo>
+          <Campo label="Tipologia">
+            <select name="tipoId" defaultValue={evento?.tipoId ?? ''} className="input">
+              <option value="">— nessuna —</option>
+              {tipologie.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nome}
+                  {t.attivo === false ? ' (disattivata)' : ''}
+                </option>
+              ))}
+            </select>
+          </Campo>
 
-        <Campo label="Inizio *">
-          <input
-            type="datetime-local"
-            name="inizio"
-            required
-            defaultValue={inputDateTime(evento?.inizio) || (inizioPredefinito ?? '')}
-            className="input"
-          />
-        </Campo>
+          <Campo label="Inizio *">
+            <input
+              type="datetime-local"
+              name="inizio"
+              required
+              defaultValue={inputDateTime(evento?.inizio) || (inizioPredefinito ?? '')}
+              className="input"
+            />
+          </Campo>
 
-        <Campo label="Fine">
-          <input
-            type="datetime-local"
-            name="fine"
-            defaultValue={inputDateTime(evento?.fine)}
-            className="input"
-          />
-        </Campo>
+          <Campo label="Fine">
+            <input
+              type="datetime-local"
+              name="fine"
+              defaultValue={inputDateTime(evento?.fine)}
+              className="input"
+            />
+          </Campo>
 
-        <Campo label="Campo">
-          <select name="fieldId" defaultValue={evento?.fieldId ?? ''} className="input">
-            <option value="">— nessuno —</option>
-            {campi.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome}
-                {c.citta ? ` · ${c.citta}` : ''}
-                {c.attivo === false ? ' (archiviato)' : ''}
-              </option>
-            ))}
-          </select>
-        </Campo>
-
-        <Campo label="Descrizione" span>
-          <textarea
-            name="descrizione"
-            rows={compatto ? 2 : 3}
-            defaultValue={evento?.descrizione ?? ''}
-            className="input"
-            placeholder="Cosa si fa, equipaggiamento richiesto, note logistiche…"
-          />
-        </Campo>
+          <Campo label="Descrizione" span>
+            <textarea
+              name="descrizione"
+              rows={compatto ? 2 : 3}
+              defaultValue={evento?.descrizione ?? ''}
+              className="input"
+              placeholder="Cosa si fa, equipaggiamento richiesto, note logistiche…"
+            />
+          </Campo>
+        </Sezione>
 
         {!compatto && (
           <>
-        <Campo label="Punto di ritrovo">
-          <input
-            name="ritrovo"
-            defaultValue={evento?.ritrovo ?? ''}
-            className="input"
-            placeholder="es. Autogrill A4 uscita Bergamo"
-          />
-        </Campo>
+            {dove}
 
-        <Campo label="Ora ritrovo">
-          <input
-            type="datetime-local"
-            name="oraRitrovo"
-            defaultValue={inputDateTime(evento?.oraRitrovo)}
-            className="input"
-          />
-        </Campo>
+            {!eRiunione && (
+            <Sezione
+              titolo="Chi ci sta"
+              sottotitolo="I posti non chiudono le adesioni: chi avanza va in riserva."
+            >
+              <Campo label="Posti massimi">
+                <input
+                  name="maxPartecipanti"
+                  type="number"
+                  min="1"
+                  defaultValue={evento?.maxPartecipanti ?? ''}
+                  className="input"
+                />
+              </Campo>
 
-        <QuoteEvento
-          listino={listino}
-          stagioneId={evento?.stagioneId ?? stagioneId}
-          costo={numero(evento?.costo)}
-          costoEsterni={numero(evento?.costoEsterni)}
-          // su un'attività nuova la giocata degli esterni parte spuntata: è il
-          // caso normale, e chi vuole regalarla scrive zero
-          preselezionaEsterni={!evento}
-        />
+              <Campo label="Chiusura adesioni">
+                <input
+                  type="datetime-local"
+                  name="chiusuraIscrizioni"
+                  defaultValue={inputDateTime(evento?.chiusuraIscrizioni)}
+                  className="input"
+                />
+              </Campo>
+            </Sezione>
+            )}
 
-        <Campo label="Posti massimi">
-          <input
-            name="maxPartecipanti"
-            type="number"
-            min="1"
-            defaultValue={evento?.maxPartecipanti ?? ''}
-            className="input"
-          />
-        </Campo>
+            {/* La barra sul bordo si accende quando c'è una quota: aprendo
+                un'attività già scritta si vede a colpo d'occhio se qualcuno
+                dovrà pagare, senza scorrere fino in fondo. */}
+            {!eRiunione && (
+            <Sezione
+              titolo="Pagamenti"
+              sottotitolo={
+                conQuota
+                  ? 'Questa attività ha una quota: chi si segna se la vedrà addebitata.'
+                  : 'Lasciando vuoto, l’attività è gratuita.'
+              }
+              evidenzia={conQuota}
+            >
+              <div className="sm:col-span-2">
+                <QuoteEvento
+                  listino={listino}
+                  stagioneId={evento?.stagioneId ?? stagioneId}
+                  costo={numero(evento?.costo)}
+                  costoEsterni={numero(evento?.costoEsterni)}
+                  // su un'attività nuova la giocata degli esterni parte
+                  // spuntata: è il caso normale, e chi vuole regalarla scrive
+                  // zero
+                  preselezionaEsterni={!evento}
+                />
+              </div>
+            </Sezione>
+            )}
 
-        <Campo label="Chiusura adesioni">
-          <input
-            type="datetime-local"
-            name="chiusuraIscrizioni"
-            defaultValue={inputDateTime(evento?.chiusuraIscrizioni)}
-            className="input"
-          />
-        </Campo>
-
-        <Campo label="Note interne" span>
-          <textarea name="note" rows={2} defaultValue={evento?.note ?? ''} className="input" />
-        </Campo>
+            <Sezione titolo="Note interne" sottotitolo="Le legge chi gestisce il calendario.">
+              <Campo label="Note" span>
+                <textarea
+                  name="note"
+                  rows={2}
+                  defaultValue={evento?.note ?? ''}
+                  className="input"
+                />
+              </Campo>
+            </Sezione>
           </>
         )}
       </div>

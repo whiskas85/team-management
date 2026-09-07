@@ -12,7 +12,10 @@ import {
   inSquadra,
   isAdmin,
   puoGestireEventi,
+  etichettaAssegnazione,
+  occupaPosto,
   puoGestirePagamenti,
+  schierato,
   puoSchierare,
   isContatto,
   puoVedereNuovi,
@@ -28,6 +31,7 @@ import { Avatar, Badge, Campo, Dato, Intestazione, Vuoto } from '@/components/ui
 import { Conferma, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
+import { FormRiunione } from '@/components/FormRiunione';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -36,6 +40,7 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
+  creaRiunione,
   registraPresenze,
   rimuoviPartecipante,
   salvaEvento,
@@ -229,12 +234,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const titolari = presenti.filter((r) => r.assegnazione === 'TITOLARE');
   // i convocati tengono già il posto: mancano solo i soldi
   const convocati = presenti.filter((r) => r.assegnazione === 'CONVOCATO');
+  // la sala controllo c'è ma non in campo: non toglie un posto e non paga
+  const toc = presenti.filter((r) => r.assegnazione === 'TOC');
   const riserve = presenti.filter((r) => r.assegnazione === 'RISERVA');
-  // il posto lo occupa anche chi è convocato: sta solo aspettando di pagarlo
-  const inFormazione = presenti.filter(
-    (r) => r.assegnazione === 'TITOLARE' || r.assegnazione === 'CONVOCATO',
-  ).length;
-  const pieno = !!evento.maxPartecipanti && inFormazione >= evento.maxPartecipanti;
+  // il posto lo occupa anche chi è convocato: sta solo aspettando di pagarlo.
+  // Il TOC no: sta in sala controllo e non toglie un posto in campo.
+  const pieno =
+    !!evento.maxPartecipanti && presenti.filter(occupaPosto).length >= evento.maxPartecipanti;
   const chiuso =
     evento.status !== 'RILASCIATA' ||
     (!!evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date());
@@ -341,6 +347,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // altrimenti bastano le tre risposte
   const daAssegnare = presenti.filter((r) => r.assegnazione === 'NON_ASSEGNATO');
 
+  // Le tipologie segnate come riunione: se non ce n'è nessuna il pulsante non
+  // compare, invece di aprire un modulo che non può funzionare.
+  const tipiRiunione = tl
+    ? await prisma.tipoAttivita.findMany({
+        where: { riunione: true, attivo: true },
+        orderBy: { ordine: 'asc' },
+        select: { id: true, nome: true },
+      })
+    : [];
+
+  // L'appello è di chi doveva esserci: dove c'è una formazione, titolari,
+  // convocati e sala controllo. Le riserve non hanno giocato e segnarle
+  // assenti sarebbe scriverlo sulla loro scheda per una colpa che non hanno.
+  const daAppello = schieraQuesta ? evento.rsvps.filter(schierato) : evento.rsvps;
+
   type Riga = (typeof evento.rsvps)[number];
   const diSquadra = (r: Riga) => inSquadra(r.user.stato) || r.user.stato === 'DA_RICONFERMARE';
 
@@ -366,6 +387,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     ? [
         ...dividi('titolari', 'Titolari', 'text-nvg', titolari),
         ...dividi('convocati', 'Convocati · in attesa del saldo', 'text-warn', convocati),
+        ...dividi('toc', 'TOC · sala controllo', 'text-sky-300', toc),
         ...dividi('riserve', 'Riserve', 'text-warn', riserve),
         ...dividi('daassegnare', 'Da assegnare', 'text-muted', daAssegnare),
         ...dividi('forse', 'Forse', 'text-warn', forse),
@@ -404,11 +426,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             {evento.status === 'RILASCIATA' && evento.chiusuraIscrizioni && (
               <ContoAllaRovescia scadenza={evento.chiusuraIscrizioni.toISOString()} />
             )}
-            {admin && (
+{/* Il team leader può sistemare la logistica: è lui che il sabato sera
+                scopre che il campo ha cambiato ingresso, e farglielo chiedere
+                all'admin vuol dire che la squadra lo saprà il giorno dopo.
+                Quote, posti e destinatari restano di chi gestisce il
+                calendario: lì si decide, non si corregge. */}
+            {(admin || tl) && (
               <BottoneModale
-                etichetta="Modifica"
+                etichetta={admin ? 'Modifica' : 'Luoghi e titolo'}
                 icona="modifica"
-                titolo={`Modifica "${evento.titolo}"`}
+                titolo={admin ? `Modifica "${evento.titolo}"` : `Luoghi di "${evento.titolo}"`}
                 className="btn-ghost btn-sm"
                 larga
               >
@@ -419,11 +446,34 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     listino={listino}
                     stagioneId={evento.stagioneId}
                     evento={evento}
+                    soloLogistica={!admin}
                   />
                   <Invia icona="salva">Salva modifiche</Invia>
                 </FormAzione>
               </BottoneModale>
             )}
+            {/* Da una gara si decide di vedersi per prepararla: è così che
+                succede, e il titolo arriva già scritto perché è quello che uno
+                scriverebbe comunque. */}
+            {tl && tipiRiunione.length > 0 && (
+              <BottoneModale
+                etichetta="Organizza una riunione"
+                icona="calendario"
+                titolo="Nuova riunione"
+                className="btn-ghost btn-sm"
+                larga
+              >
+                <FormAzione azione={creaRiunione}>
+                  <FormRiunione
+                    tipologie={tipiRiunione}
+                    daEventId={evento.id}
+                    titoloPredefinito={`Riunione: ${evento.titolo}`}
+                  />
+                  <Invia icona="salva">Crea la riunione</Invia>
+                </FormAzione>
+              </BottoneModale>
+            )}
+
             {/* stato e destinatari raccontano come è messa l'attività a chi la
                 gestisce: all'operatore non cambiano niente, e quando non è
                 rilasciata glielo dice comunque la fascia qui sotto */}
@@ -518,8 +568,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   </>
                 }
               />
-              <Dato
-                etichetta="Campo"
+<Dato
+                etichetta="Dove"
                 valore={
                   evento.field ? (
                     <>
@@ -542,12 +592,62 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                         />
                       </span>
                     </>
+                  ) : evento.luogo ? (
+                    <>
+                      {evento.luogo}
+                      <span className="mt-1.5 block">
+                        <Naviga
+                          lat={evento.luogoLat}
+                          lng={evento.luogoLng}
+                          indirizzo={evento.luogo}
+                          compatto
+                        />
+                      </span>
+                    </>
                   ) : (
                     '—'
                   )
                 }
               />
-              <Dato etichetta="Ritrovo" valore={evento.ritrovo ?? '—'} />
+              {evento.linkRiunione && (
+                <Dato
+                  etichetta="Collegamento"
+                  valore={
+                    <a
+                      href={evento.linkRiunione}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-nvg underline underline-offset-2"
+                    >
+                      Entra nella riunione
+                    </a>
+                  }
+                />
+              )}
+              <Dato
+                etichetta="Ritrovo"
+                valore={
+                  evento.ritrovo ? (
+                    <>
+                      {evento.ritrovo}
+                      {/* un ritrovo scritto a mano non porta nessuno da nessuna
+                          parte: se ha le coordinate, si apre il navigatore */}
+                      {evento.ritrovoLat != null && (
+                        <span className="mt-1.5 block">
+                          <Naviga
+                            lat={evento.ritrovoLat}
+                            lng={evento.ritrovoLng}
+                            indirizzo={evento.ritrovo}
+                            compatto
+                          />
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    '—'
+                  )
+                }
+              />
               <Dato
                 etichetta="Ora ritrovo"
                 valore={evento.oraRitrovo ? fmtTime(evento.oraRitrovo) : '—'}
@@ -868,7 +968,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     </BottoneModale>
                                   )}
 
-                                {(['TITOLARE', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
+                                {(['TITOLARE', 'TOC', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
                                   <AzioneBottone
                                     key={a}
                                     azione={schiera}
@@ -878,19 +978,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       (a === 'TITOLARE' && r.assegnazione === 'CONVOCATO')
                                         ? a === 'TITOLARE'
                                           ? 'border-nvg bg-nvg/15 text-nvg'
-                                          : a === 'RISERVA'
-                                            ? 'border-warn bg-warn/15 text-warn'
-                                            : 'border-line bg-surface2 text-muted'
+                                          : a === 'TOC'
+                                            ? 'border-sky-400 bg-sky-400/15 text-sky-300'
+                                            : a === 'RISERVA'
+                                              ? 'border-warn bg-warn/15 text-warn'
+                                              : 'border-line bg-surface2 text-muted'
                                         : 'border-line text-muted hover:border-nvgdim'
                                     }`}
                                   >
                                     {a === 'NON_ASSEGNATO'
                                       ? '—'
-                                      : a === 'TITOLARE'
-                                        ? r.assegnazione === 'CONVOCATO'
-                                          ? 'Convocato'
-                                          : 'Titolare'
-                                        : 'Riserva'}
+                                      : a === 'TITOLARE' && r.assegnazione === 'CONVOCATO'
+                                        ? 'Convocato'
+                                        : etichettaAssegnazione[a]}
                                   </AzioneBottone>
                                 ))}
                               </div>
@@ -1063,8 +1163,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 <p className="titolo-sezione mb-3">Appello</p>
                 <FormAzione azione={registraPresenze} className="space-y-3">
                   <input type="hidden" name="eventId" value={evento.id} />
-                  {evento.rsvps.length === 0 ? (
-                    <p className="text-sm text-muted">Nessun partecipante da spuntare.</p>
+                  {daAppello.length === 0 ? (
+                    <p className="text-sm text-muted">
+                      {schieraQuesta
+                        ? 'Nessuno in formazione: l’appello si fa su chi doveva esserci.'
+                        : 'Nessun partecipante da spuntare.'}
+                    </p>
                   ) : (
                     <>
                       {/* squadra e nuovi separati anche qui: hanno adempimenti
@@ -1072,10 +1176,24 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           e in una lista sola non si vede più chi è chi */}
                       <div className="max-h-64 space-y-1.5 overflow-y-auto">
                         {[
-                          { titolo: 'Squadra', righe: evento.rsvps.filter(diSquadra) },
+                          {
+                            titolo: 'Operatori',
+                            righe: daAppello.filter(
+                              (r) => r.assegnazione !== 'TOC' && diSquadra(r),
+                            ),
+                          },
                           {
                             titolo: 'Nuovi',
-                            righe: evento.rsvps.filter((r) => !diSquadra(r)),
+                            righe: daAppello.filter(
+                              (r) => r.assegnazione !== 'TOC' && !diSquadra(r),
+                            ),
+                          },
+                          {
+                            // il TOC c'era, ma non in campo: tenerlo a parte
+                            // evita di contarlo fra chi ha giocato mentre si
+                            // spunta l'elenco
+                            titolo: 'TOC · sala controllo',
+                            righe: daAppello.filter((r) => r.assegnazione === 'TOC'),
                           },
                         ]
                           .filter((g) => g.righe.length > 0)

@@ -69,6 +69,9 @@ enum Assegnazione {
   /// registrato. Su un'attività gratuita questo stato non esiste.
   CONVOCATO
   TITOLARE
+  /// Sala controllo: c'è, ma non in campo. Non occupa un posto della
+  /// formazione e non paga la quota, perché la quota paga il campo.
+  TOC
   RISERVA
 }
 
@@ -455,6 +458,11 @@ model TipoAttivita {
   certMedico  Boolean      @default(true)
   /// Richiede il certificato AGONISTICO: con il solo non agonistico non si entra.
   certAgonistico Boolean   @default(false)
+  /// È una riunione: si fa in una sala o in videochiamata, non in campo. Le
+  /// tipologie con questo segno sono quelle che si possono creare al volo da
+  /// un'attività, e su di esse spariscono ritrovo, posti e quote — cose che a
+  /// una riunione non servono e riempiono solo il modulo.
+  riunione    Boolean      @default(false)
   ordine      Int          @default(0)
   attivo      Boolean      @default(true)
   createdAt   DateTime     @default(now())
@@ -497,10 +505,24 @@ model Event {
   status             EventStatus     @default(CREATA)
   inizio             DateTime
   fine               DateTime?
+  /// Dove ci si trova prima di partire: il testo che si legge, e le coordinate
+  /// per il pulsante "Naviga". Un ritrovo scritto a mano — "autogrill A4" —
+  /// non porta nessuno da nessuna parte.
   ritrovo            String?
+  ritrovoLat         Float?
+  ritrovoLng         Float?
   oraRitrovo         DateTime?
   fieldId            String?
   field              Field?          @relation(fields: [fieldId], references: [id])
+  /// Il posto quando non è un campo dell'elenco: una fiera, un parcheggio, la
+  /// sede di un'altra squadra. Non tutto quello che si fa insieme succede su un
+  /// campo censito, e costringere a inventarne uno sporcherebbe l'anagrafica.
+  luogo              String?
+  luogoLat           Float?
+  luogoLng           Float?
+  /// Il collegamento per chi partecipa da lontano. Ha senso solo su una
+  /// riunione: a una partita non ci si connette.
+  linkRiunione       String?
   /// Quota di chi è in squadra. Nulla = attività gratuita per loro; si compone
   /// dalle voci di listino come le iscrizioni, e `dettaglio` racconta di cosa
   /// è fatta ("Contributo campo 5,00 €").

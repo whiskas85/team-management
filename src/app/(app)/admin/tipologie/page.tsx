@@ -28,6 +28,7 @@ type Tipologia = {
   colore: string;
   tipoQuota: string;
   riserve: boolean;
+  riunione: boolean;
   soloInterno: boolean;
   certMedico: boolean;
   certAgonistico: boolean;
@@ -82,6 +83,8 @@ export default async function TipologiePage() {
                     </p>
                     <span className="mt-1 flex flex-wrap gap-1.5">
                       {t.riserve && <Badge tono="warn">Titolari e riserve</Badge>}
+                    {t.riunione && <Badge tono="info">Riunione</Badge>}
+                      {t.riunione && <Badge tono="info">Riunione</Badge>}
                       {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
                       {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
                       {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
@@ -257,6 +260,23 @@ function CampiTipologia({ tipologia }: { tipologia?: Tipologia }) {
           <span className="block text-[11px] text-muted">
             Attivalo per gare e tornei, dove il Team Leader deve comporre la formazione. Sugli
             allenamenti lasciarlo spento: lo schieramento non comparirà proprio.
+          </span>
+        </span>
+      </label>
+
+      <label className="flex min-w-0 items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="riunione"
+          defaultChecked={tipologia?.riunione ?? false}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span className="min-w-0">
+          È una riunione
+          <span className="block text-[11px] text-muted">
+            Si fa in una sala o in videochiamata, non in campo. Le tipologie con questo segno sono
+            quelle che si possono creare al volo da un’attività, e su di esse spariscono ritrovo,
+            posti e quote: a una riunione non servono.
           </span>
         </span>
       </label>
