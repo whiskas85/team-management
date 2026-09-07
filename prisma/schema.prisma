@@ -194,6 +194,8 @@ model User {
   citatoInNote   NotaCitazione[]      @relation("CitatoInNote")
   commenti       CommentoEvento[]     @relation("CommentiScritti")
   miPiace        MiPiaceEvento[]      @relation("MiPiaceMessi")
+  commentiAnnunci CommentoAnnuncio[]  @relation("CommentiAnnunci")
+  miPiaceAnnunci  MiPiaceAnnuncio[]   @relation("MiPiaceAnnunci")
   eventsCreated  Event[]              @relation("EventCreator")
   movimentiCassa MovimentoCassa[]     @relation("CassaRegistrante")
   tokenMcp       TokenMcp[]           @relation("TokenMcpDi")
@@ -1003,8 +1005,10 @@ model Annuncio {
   creatoIl     DateTime      @default(now())
   aggiornatoIl DateTime      @updatedAt
 
-  voci VoceAnnuncio[]
-  foto FotoAnnuncio[] @relation("FotoDi")
+  voci      VoceAnnuncio[]
+  foto      FotoAnnuncio[]     @relation("FotoDi")
+  commenti  CommentoAnnuncio[]
+  miPiace   MiPiaceAnnuncio[]
 
   @@index([stato, ufficiale])
 }
@@ -1037,6 +1041,10 @@ model VoceAnnuncio {
   trattabile    Boolean    @default(false)
   descrizione   String?
   natura        NaturaVoce @default(PEZZO_UNICO)
+  /// Spenta: resta scritta ma non è più in vendita. Serve al merchandising —
+  /// un modello che non si fa più — e all'usato, per mettere da parte una cosa
+  /// senza cancellarla e perderne i commenti.
+  attiva        Boolean    @default(true)
   /// Solo per i pezzi unici: su una maglietta "venduta" non vuol dire niente.
   stato         StatoVoce  @default(DISPONIBILE)
   prenotataDaId String?
@@ -1044,8 +1052,52 @@ model VoceAnnuncio {
   prenotataIl   DateTime?
   ordine        Int        @default(0)
 
+  citata CitazioneVoce[]
+
   @@unique([annuncioId, maniglia])
   @@index([annuncioId, ordine])
+}
+
+/// Commento sotto un annuncio: lo legge chiunque veda l'annuncio.
+model CommentoAnnuncio {
+  id           String    @id @default(cuid())
+  annuncioId   String
+  annuncio     Annuncio  @relation(fields: [annuncioId], references: [id], onDelete: Cascade)
+  userId       String
+  utente       User      @relation("CommentiAnnunci", fields: [userId], references: [id], onDelete: Cascade)
+  testo        String
+  createdAt    DateTime  @default(now())
+  modificatoIl DateTime?
+
+  citate CitazioneVoce[]
+
+  @@index([annuncioId])
+}
+
+/// Quale voce nomina un commento.
+///
+/// Sotto un annuncio con cinque voci, "quanto per quella grande?" non vuol dire
+/// niente: con la chiocciola si dice quale. Come per le note, l'elenco si
+/// ricava dal testo a ogni salvataggio — il testo è la verità, questo è solo un
+/// indice per ritrovarlo.
+model CitazioneVoce {
+  commentoId String
+  commento   CommentoAnnuncio @relation(fields: [commentoId], references: [id], onDelete: Cascade)
+  voceId     String
+  voce       VoceAnnuncio     @relation(fields: [voceId], references: [id], onDelete: Cascade)
+
+  @@id([commentoId, voceId])
+  @@index([voceId])
+}
+
+model MiPiaceAnnuncio {
+  annuncioId String
+  annuncio   Annuncio @relation(fields: [annuncioId], references: [id], onDelete: Cascade)
+  userId     String
+  utente     User     @relation("MiPiaceAnnunci", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([annuncioId, userId])
 }
 
 /// Le poche cose che si regolano senza toccare il codice. Una riga sola, come

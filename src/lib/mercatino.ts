@@ -93,17 +93,27 @@ export type VoceLetta = {
   stato: 'DISPONIBILE' | 'PRENOTATA' | 'VENDUTA';
 };
 
-/** Su una voce riordinabile lo stato di vendita non vuol dire niente. */
-export const disponibile = (v: { natura: string; stato: string }) =>
-  v.natura === 'RIORDINABILE' || v.stato === 'DISPONIBILE';
+/**
+ * Una voce ancora prendibile.
+ *
+ * Spenta non lo è mai, comunque sia messa. Sulle riordinabili lo stato di
+ * vendita non vuol dire niente — non c'è niente da esaurire — quindi conta
+ * solo l'interruttore.
+ */
+export const disponibile = (v: { natura: string; stato: string; attiva?: boolean }) =>
+  v.attiva !== false && (v.natura === 'RIORDINABILE' || v.stato === 'DISPONIBILE');
 
 /**
  * Il prezzo che la card mostra: la cifra secca se la voce è una, l'intervallo
  * se sono tante. Si guardano solo le voci ancora prendibili — un annuncio dove
  * resta la mesh non deve continuare a dire "da 50".
  */
-export function prezzoDa(voci: { prezzo: unknown; natura: string; stato: string }[]) {
+export function prezzoDa(
+  voci: { prezzo: unknown; natura: string; stato: string; attiva?: boolean }[],
+) {
   const vive = voci.filter(disponibile);
+  // se non resta niente di prendibile si mostra comunque il giro dei prezzi di
+  // quello che c'era: una card muta non dice a nessuno di cosa si trattava
   const cifre = (vive.length ? vive : voci).map((v) => Number(v.prezzo));
   if (cifre.length === 0) return null;
 
@@ -113,8 +123,24 @@ export function prezzoDa(voci: { prezzo: unknown; natura: string; stato: string 
 }
 
 /** Un annuncio dell'usato è finito quando non resta più niente da prendere. */
-export const tuttoVenduto = (voci: { natura: string; stato: string }[]) =>
-  voci.length > 0 && voci.every((v) => v.natura === 'PEZZO_UNICO' && v.stato === 'VENDUTA');
+export const tuttoVenduto = (voci: { natura: string; stato: string; attiva?: boolean }[]) =>
+  voci.length > 0 && !voci.some(disponibile);
+
+/**
+ * Da un commento alle voci che nomina.
+ *
+ * Le maniglie sono uniche dentro l'annuncio, quindi basta confrontarle con le
+ * sue: la radio M di un annuncio non c'entra con quella di un altro.
+ */
+export function vociCitate(
+  testo: string,
+  voci: { id: string; maniglia: string }[],
+): string[] {
+  const scritte = new Set(
+    [...testo.matchAll(/@([a-z0-9._-]{2,})/gi)].map((m) => m[1].toLowerCase()),
+  );
+  return voci.filter((v) => scritte.has(v.maniglia)).map((v) => v.id);
+}
 
 /** Serve solo a non ripetere la stessa `include` in quattro punti. */
 export const CON_TUTTO = {

@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.23.0 — 7 settembre 2026
+
+### Aggiunto
+
+- **Commenti e “mi piace” sugli annunci**, usato e merchandising. Li legge
+  chiunque veda l'annuncio: se lo vedi, puoi dire la tua. Il commento lo toglie
+  chi l'ha scritto, chi vende — è casa sua — e l'admin.
+- **Si nomina la voce con la chiocciola.** Sotto un lotto di cinque cose
+  *«quanto per quella grande?»* non vuol dire niente: con `@radio-m` si dice
+  quale. Si può digitare `@` e scegliere dall'elenco, oppure premere il
+  pulsante della voce sopra la casella — le persone scrivono in due modi, il
+  testo che esce è lo stesso. Nel commento le chiocciole vere si colorano.
+- **Le voci si spengono e si riaccendono** dal loro modulo. Serve al
+  merchandising per un modello che non si fa più, e all'usato per mettere da
+  parte una cosa senza cancellarla: **cancellarla porterebbe via anche i
+  commenti che la nominano**, che sono di altre persone. Una voce spenta esce
+  dal prezzo in bacheca e non si può più nominare.
 ## 1.22.0 — 7 settembre 2026
 
 ### Aggiunto

@@ -270,11 +270,9 @@ il primo dato orfano si scopre sempre troppo tardi.
 
 ### In che ordine
 
-1. **Annunci, voci e bacheca** — creare, aggiungere le voci, caricare le foto e
-   scegliere la copertina, pubblicare, sfogliare, la scheda. Da qui il mercatino
-   è già utile: ci si scrive su WhatsApp come si è sempre fatto.
-2. **Commenti, mi piace e chiocciole sulle voci** — il codice delle attività e
-   quello delle note si riusano quasi tali e quali.
+1. ~~**Annunci, voci e bacheca**~~ — fatto (1.15.0).
+2. ~~**Commenti, mi piace e chiocciole sulle voci**~~ — fatto (1.23.0), insieme
+   all'interruttore che accende e spegne una voce.
 3. **Messaggi privati e notifiche in app** — il pezzo grosso e il più delicato:
    è l'unico posto del gestionale dove due persone si parlano senza che nessun
    altro legga.

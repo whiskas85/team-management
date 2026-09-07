@@ -14,7 +14,7 @@ export type AnnuncioInBacheca = {
   pubblicatoIl: Date | null;
   copertinaId: string | null;
   venditore: { nome: string; cognome: string; callsign: string | null; stato: string };
-  voci: { prezzo: unknown; natura: string; stato: string }[];
+  voci: { prezzo: unknown; natura: string; stato: string; attiva: boolean }[];
 };
 
 /**

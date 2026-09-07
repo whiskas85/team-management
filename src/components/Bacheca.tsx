@@ -60,7 +60,9 @@ export async function Bacheca({
       orderBy: [{ pubblicatoIl: 'desc' }, { creatoIl: 'desc' }],
       include: {
         venditore: { select: { nome: true, cognome: true, callsign: true, stato: true } },
-        voci: { select: { prezzo: true, natura: true, stato: true } },
+        // `attiva` serve al prezzo: senza, una voce spenta continuerebbe a
+        // gonfiare l’intervallo mostrato in bacheca
+        voci: { select: { prezzo: true, natura: true, stato: true, attiva: true } },
       },
     }),
     // il catalogo del team lo apre solo l'admin: quel bollino decide che i

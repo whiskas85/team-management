@@ -173,6 +173,9 @@ export async function salvaVoce(_prev: StatoForm, fd: FormData): Promise<StatoFo
     trattabile: bool(fd, 'trattabile'),
     descrizione: strOpt(fd, 'descrizione'),
     natura: enumVal(fd, 'natura', NATURE, 'PEZZO_UNICO') as NaturaVoce,
+    // spenta resta scritta ma non è in vendita: cancellarla porterebbe via
+    // anche i commenti che la nominano, che sono di altre persone
+    attiva: bool(fd, 'attiva'),
   };
 
   const id = strOpt(fd, 'id');

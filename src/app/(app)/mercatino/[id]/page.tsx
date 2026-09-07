@@ -6,6 +6,7 @@ import { isAdmin, isContatto, puoVedereNuovi } from '@/lib/domain';
 import { comeChiamare, fmtDate, fmtEuro } from '@/lib/format';
 import {
   CON_TUTTO,
+  disponibile,
   eMio,
   puoFareUfficiale,
   puoVedereMerchandising,
@@ -17,6 +18,7 @@ import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { CaricaFoto } from '@/components/CaricaFoto';
+import { SocialAnnuncio, type CommentoLetto } from '@/components/SocialAnnuncio';
 import {
   cambiaStatoAnnuncio,
   eliminaAnnuncio,
@@ -53,6 +55,33 @@ export default async function AnnuncioPage({ params }: { params: Promise<{ id: s
   if (annuncio.stato === 'BOZZA' && !mio) notFound();
   // il catalogo del club non si apre indovinando l'indirizzo
   if (annuncio.ufficiale && !puoVedereMerchandising(me.stato)) notFound();
+
+  const [commenti, miPiace, mioMiPiace] = await Promise.all([
+    prisma.commentoAnnuncio.findMany({
+      where: { annuncioId: annuncio.id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        utente: {
+          select: {
+            id: true,
+            nome: true,
+            cognome: true,
+            callsign: true,
+            stato: true,
+            fotoPath: true,
+          },
+        },
+      },
+    }),
+    prisma.miPiaceAnnuncio.findMany({
+      where: { annuncioId: annuncio.id },
+      include: { utente: { select: { nome: true, cognome: true, callsign: true } } },
+    }),
+    prisma.miPiaceAnnuncio.findUnique({
+      where: { annuncioId_userId: { annuncioId: annuncio.id, userId: me.id } },
+      select: { userId: true },
+    }),
+  ]);
 
   const chi = comeChiamare(annuncio.venditore, {
     incarico: puoVedereNuovi(me.roles),
@@ -255,7 +284,9 @@ export default async function AnnuncioPage({ params }: { params: Promise<{ id: s
                     {v.descrizione && <p className="mt-1 text-sm text-muted">{v.descrizione}</p>}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {v.natura === 'RIORDINABILE' ? (
+                      {!v.attiva ? (
+                        <Badge tono="neutro">non in vendita</Badge>
+                      ) : v.natura === 'RIORDINABILE' ? (
                         <Badge tono="info">si riordina</Badge>
                       ) : (
                         <Badge tono={v.stato === 'DISPONIBILE' ? 'ok' : v.stato === 'PRENOTATA' ? 'warn' : 'neutro'}>
@@ -307,6 +338,21 @@ export default async function AnnuncioPage({ params }: { params: Promise<{ id: s
               </div>
             )}
           </div>
+          {/* ------------------------------------------------ commenti */}
+          <SocialAnnuncio
+            annuncioId={annuncio.id}
+            voci={annuncio.voci
+              .filter(disponibile)
+              .map((v) => ({ id: v.id, titolo: v.titolo, maniglia: v.maniglia }))}
+            commenti={commenti as CommentoLetto[]}
+            miPiace={miPiace.map((m) => ({
+              nome: comeChiamare(m.utente, { incarico: false, diSquadra: true }).nome,
+            }))}
+            mioMiPiace={mioMiPiace != null}
+            ioSono={me.id}
+            chiSono={comeChiamare(me, { incarico: false, diSquadra: true }).nome}
+            puoModerare={mio || isAdmin(me.roles)}
+          />
         </div>
 
         {/* ---------------------------------------------------- laterale */}
@@ -353,6 +399,7 @@ function FormVoce({
     trattabile: boolean;
     descrizione: string | null;
     natura: string;
+    attiva: boolean;
   };
   /** Sul merchandising la natura di partenza è l'altra. */
   ufficiale: boolean;
@@ -413,6 +460,22 @@ function FormVoce({
           className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
         />
         Prezzo trattabile
+      </label>
+
+      <label className="flex items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="attiva"
+          defaultChecked={voce ? voce.attiva : true}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span>
+          In vendita
+          <span className="block text-[11px] text-muted">
+            Togli la spunta per metterla da parte senza cancellarla: resta scritta, sparisce dal
+            prezzo in bacheca, e i commenti che la nominano restano dove sono.
+          </span>
+        </span>
       </label>
 
       <Invia icona="salva">{voce ? 'Salva' : 'Aggiungi'}</Invia>
