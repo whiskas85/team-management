@@ -52,15 +52,21 @@ export default async function DashboardPage({
       where: { userId: me.id, status: { in: ['DA_PAGARE', 'PARZIALE'] } },
       orderBy: { scadenza: 'asc' },
     }),
+    // L'iscrizione **della stagione in corso**, non la più recente che sia
+    // stata inserita. Prima si ordinava per data di invito, e bastava caricare
+    // lo storico di due anni fa perché quello risultasse l'ultimo: la tile
+    // diceva "attiva nel 2024" a chi è iscritto per il 2026. Se per la
+    // stagione in corso non c'è, "Nessuna" è la risposta giusta — è proprio
+    // quello che bisogna sapere.
     prisma.membership.findFirst({
-      where: { userId: me.id },
-      orderBy: { invitataIl: 'desc' },
+      where: { userId: me.id, stagione: { corrente: true } },
       include: { stagione: { select: { nome: true } } },
     }),
     tesserato
-      ? prisma.figtCard.findFirst({
-          where: { userId: me.id },
-          orderBy: { createdAt: 'desc' },
+      ? // stessa storia della tessera: quella di quest'anno, non l'ultima
+        // caricata in ordine di tempo
+        prisma.figtCard.findFirst({
+          where: { userId: me.id, stagione: { corrente: true } },
           include: { stagione: { select: { nome: true } } },
         })
       : Promise.resolve(null),

@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.21.3 — 7 settembre 2026
+
+### Corretto
+
+- **Nell'appello compariva anche chi aveva risposto “non ci sono”.** Non c'è
+  niente da spuntare accanto al suo nome, e vederselo davanti fa dubitare di
+  aver letto male la sua risposta. Resta comunque registrato come assente:
+  l'appello segna assente chiunque non venga spuntato, e lui non lo è.
+## 1.21.2 — 7 settembre 2026
+
+### Corretto
+
+- **In situazione l'iscrizione mostrava la stagione sbagliata.** Diceva *attiva
+  nel 2024* a chi è iscritto per il 2026. La tile prendeva l'iscrizione
+  **invitata più di recente**, e caricando oggi lo storico degli anni passati
+  quella risultava l'ultima: la data di inserimento non dice niente su quale
+  anno si stia guardando. Ora prende quella **della stagione in corso**, e se
+  per quest'anno non ce n'è dice *Nessuna* — che è l'informazione che serve.
+- **Stessa correzione sulla tessera FIGT**, che aveva lo stesso difetto e
+  aspettava solo di essere scoperto al primo caricamento di uno storico.
 ## 1.21.1 — 7 settembre 2026
 
 ### Cambiato

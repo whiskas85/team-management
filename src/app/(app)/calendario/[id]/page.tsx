@@ -361,7 +361,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // L'appello è di chi doveva esserci: dove c'è una formazione, titolari,
   // convocati e sala controllo. Le riserve non hanno giocato e segnarle
   // assenti sarebbe scriverlo sulla loro scheda per una colpa che non hanno.
-  const daAppello = schieraQuesta ? evento.rsvps.filter(schierato) : evento.rsvps;
+  // Chi ha detto "non ci sono" fuori dall'appello: non c'è niente da spuntare
+  // accanto al suo nome, e vederselo davanti fa dubitare di aver letto male la
+  // sua risposta. Resta comunque registrato come assente — l'appello segna
+  // assente chiunque non venga spuntato, e lui non lo è.
+  const daAppello = (schieraQuesta ? evento.rsvps.filter(schierato) : evento.rsvps).filter(
+    (r) => r.status !== 'ASSENTE',
+  );
 
   type Riga = (typeof evento.rsvps)[number];
   const diSquadra = (r: Riga) => inSquadra(r.user.stato) || r.user.stato === 'DA_RICONFERMARE';
