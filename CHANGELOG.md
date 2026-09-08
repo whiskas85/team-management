@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.26.4 — 8 settembre 2026
+
+### Cambiato
+
+- **È l’inventario a guidare, non il catalogo.** Per aggiungere merce si
+  sceglieva l’articolo da un elenco, e quindi l’articolo doveva già esistere
+  nel merchandising: la roba però prima si compra e si conta, e semmai poi si
+  vende. Adesso l’articolo **si scrive** (con i nomi già usati come
+  suggerimento) e, se non c’è, nasce insieme alla merce — **in bozza**, perché
+  il magazzino esiste e metterlo in vendita resta una decisione a parte.
+
 ## 1.26.3 — 8 settembre 2026
 
 ### Corretto

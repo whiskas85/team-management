@@ -278,12 +278,15 @@ export async function eliminaRiordino(_prev: StatoForm, fd: FormData): Promise<S
 /**
  * Aggiunge merce al magazzino, da qui.
  *
- * Prima si poteva solo dalla scheda dell'articolo, spuntando un interruttore
- * dentro il modulo di una voce: chi apriva l'inventario per metterci qualcosa
- * si trovava una pagina che gli spiegava dove andare, e non un posto dove
- * farlo. La merce resta quella del catalogo — una voce dentro un articolo del
- * team — perché è la stessa cosa vista da due parti: qui quante ce ne sono, lì
- * come si comprano.
+ * **È l'inventario a guidare, non il catalogo**: la roba prima si compra e si
+ * conta, poi semmai si vende. Per questo l'articolo si scrive e basta — se non
+ * esiste nasce qui, in bozza — invece di doverlo creare prima nel
+ * merchandising e poi tornare indietro a scegliere da un elenco.
+ *
+ * Resta una voce del catalogo perché è la stessa cosa vista da due parti: qui
+ * quante ce ne sono, lì come la squadra la ordina. Ma finché l'articolo è in
+ * bozza non lo vede nessuno: il magazzino esiste, la vendita è una decisione
+ * a parte.
  */
 export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
@@ -291,10 +294,8 @@ export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<Sta
     return { errore: 'L’inventario lo tengono admin e segreteria.' };
   }
 
-  const annuncio = await prisma.annuncio.findUnique({ where: { id: str(fd, 'annuncioId') } });
-  if (!annuncio || !annuncio.ufficiale) {
-    return { errore: 'Scegli un articolo del catalogo del team.' };
-  }
+  const nomeArticolo = str(fd, 'articolo');
+  if (!nomeArticolo) return { errore: 'Di che articolo fa parte? Scrivilo: se non c’è, lo creo.' };
 
   const titolo = str(fd, 'titolo');
   if (!titolo) return { errore: 'Come si chiama la merce?' };
@@ -303,6 +304,16 @@ export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<Sta
   if (prezzo === null || prezzo < 0) {
     return { errore: 'Scrivi a quanto la vendi: il prezzo è sempre obbligatorio.' };
   }
+
+  // l'articolo si cerca per nome, e se non c'è nasce adesso: in bozza, perché
+  // metterlo in vetrina è un'altra decisione e la prende chi lo pubblica
+  const annuncio =
+    (await prisma.annuncio.findFirst({
+      where: { ufficiale: true, titolo: { equals: nomeArticolo, mode: 'insensitive' } },
+    })) ??
+    (await prisma.annuncio.create({
+      data: { titolo: nomeArticolo, ufficiale: true, venditoreId: me.id },
+    }));
 
   const gia = await prisma.voceAnnuncio.findMany({
     where: { annuncioId: annuncio.id },
@@ -325,7 +336,12 @@ export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<Sta
   });
 
   aggiorna(voce.id);
-  return { ok: `${voce.titolo} è in magazzino, dentro «${annuncio.titolo}».` };
+  return {
+    ok:
+      annuncio.stato === 'PUBBLICATO'
+        ? `${voce.titolo} è in magazzino, dentro «${annuncio.titolo}».`
+        : `${voce.titolo} è in magazzino, dentro «${annuncio.titolo}» — che è in bozza: pubblicalo nel merchandising quando vuoi venderlo.`,
+  };
 }
 
 /**

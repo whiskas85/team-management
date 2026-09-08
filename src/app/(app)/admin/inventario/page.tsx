@@ -175,17 +175,15 @@ export default async function InventarioPage() {
         sottotitolo="Quello che il team ha in casa, e quello che ha ordinato al fornitore"
         azioni={
           <>
-            {articoli.length > 0 && (
-              <BottoneModale
-                etichetta="Aggiungi merce"
-                icona="aggiungi"
-                titolo="Nuova merce a magazzino"
-                className={magazzino.length > 0 ? 'btn-ghost' : 'btn-primary'}
-                larga
-              >
-                <FormMerce articoli={articoli} />
-              </BottoneModale>
-            )}
+            <BottoneModale
+              etichetta="Aggiungi merce"
+              icona="aggiungi"
+              titolo="Nuova merce a magazzino"
+              className={magazzino.length > 0 ? 'btn-ghost' : 'btn-primary'}
+              larga
+            >
+              <FormMerce articoli={articoli} />
+            </BottoneModale>
             {magazzino.length > 0 && (
               <BottoneModale
                 etichetta="Nuovo riordino"
@@ -218,20 +216,7 @@ export default async function InventarioPage() {
       {/* ------------------------------------------------ giacenze */}
       <p className="titolo-sezione mb-2">Cosa c’è in casa</p>
       {magazzino.length === 0 ? (
-        <Vuoto
-          testo={
-            articoli.length === 0
-              ? 'Il catalogo del team è vuoto: prima si crea un articolo nel merchandising, poi la sua merce entra qui.'
-              : 'Niente a magazzino. Con «Aggiungi merce» ci metti la roba che il team compra in blocco: patch, adesivi, magliette.'
-          }
-          azione={
-            articoli.length === 0 ? (
-              <Link href="/merchandising" className="btn-primary">
-                Vai al merchandising
-              </Link>
-            ) : undefined
-          }
-        />
+        <Vuoto testo="Niente a magazzino. Con «Aggiungi merce» ci metti la roba che il team compra in blocco: patch, adesivi, magliette." />
       ) : (
         <div className="mb-6 overflow-x-auto rounded-lg border border-line bg-surface">
           <table className="tabella">
@@ -517,14 +502,22 @@ function SceltaVoce({ voci }: { voci: VoceMagazzino[] }) {
 function FormMerce({ articoli }: { articoli: { id: string; titolo: string }[] }) {
   return (
     <FormAzione azione={aggiungiMerce}>
-      <Campo label="Dentro quale articolo" span>
-        <select name="annuncioId" className="input">
+      <Campo label="Articolo" span>
+        <input
+          name="articolo"
+          className="input"
+          maxLength={120}
+          list="articoli-del-team"
+          placeholder="Maglietta del Club"
+          autoComplete="off"
+        />
+        {/* i nomi che ci sono già sono un suggerimento, non una gabbia: se
+            scrivi qualcosa di nuovo, l'articolo nasce insieme alla merce */}
+        <datalist id="articoli-del-team">
           {articoli.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.titolo}
-            </option>
+            <option key={a.id} value={a.titolo} />
           ))}
-        </select>
+        </datalist>
       </Campo>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo label="Specifica">
@@ -538,9 +531,11 @@ function FormMerce({ articoli }: { articoli: { id: string; titolo: string }[] })
         <input name="descrizione" className="input" maxLength={200} />
       </Campo>
       <p className="text-xs text-muted">
-        Nasce come merce <strong className="text-ink">tenuta in casa</strong> dentro l’articolo che
-        scegli: da qui si riordina e si conta, nel merchandising la squadra la vede e la ordina.
-        Quante ce ne sono lo dirà il primo riordino ricevuto, o una rettifica.
+        Nasce come merce <strong className="text-ink">tenuta in casa</strong>: da qui si riordina e
+        si conta. Se l’articolo non esiste ancora lo creo io, <strong className="text-ink">in
+        bozza</strong> — il magazzino c’è, e metterlo in vendita nel merchandising resta una
+        decisione a parte. Quanti pezzi ci sono lo dirà il primo riordino ricevuto, o una
+        rettifica.
       </p>
       <Invia icona="salva">Aggiungi</Invia>
     </FormAzione>
