@@ -568,41 +568,43 @@ function RigaVoce({
         {siOrdina && ordinabile(v) && !finita && (
           <AggiungiAlCarrello voceId={v.id} titolo={v.titolo} />
         )}
+      </div>
 
-        {mio && magazzino && (
-          <BottoneModale
-            etichetta="Magazzino"
-            icona="carica"
-            titolo={`Magazzino · ${v.titolo}`}
-            className="btn-ghost btn-sm"
-            larga
-          >
-            <FormCarico voce={v} scorta={magazzino} />
-          </BottoneModale>
-        )}
-
-        {mio && (
-          <span className={`flex gap-2 ${siOrdina && ordinabile(v) && !finita ? '' : 'ml-auto'}`}>
+      {/* Chi vende ha la sua riga, sotto e staccata: comprare e amministrare
+          sono due gesti diversi, e in mezzo a Aggiungi ci finiva un Elimina
+          rosso a un centimetro dal carrello. */}
+      {mio && (
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">
+          {magazzino && (
             <BottoneModale
-              etichetta="Modifica"
-              icona="modifica"
-              titolo={`Modifica ${v.titolo}`}
+              etichetta="Magazzino"
+              icona="carica"
+              titolo={`Magazzino · ${v.titolo}`}
               className="btn-ghost btn-sm"
               larga
             >
-              <FormVoce annuncioId={annuncio.id} voce={v} ufficiale={annuncio.ufficiale} />
+              <FormCarico voce={v} scorta={magazzino} />
             </BottoneModale>
-            <AzioneBottone
-              azione={eliminaVoce}
-              valori={{ id: v.id }}
-              conferma={`Eliminare "${v.titolo}"?`}
-              className="btn-danger btn-sm"
-            >
-              Elimina
-            </AzioneBottone>
-          </span>
-        )}
-      </div>
+          )}
+          <BottoneModale
+            etichetta="Modifica"
+            icona="modifica"
+            titolo={`Modifica ${v.titolo}`}
+            className="btn-ghost btn-sm"
+            larga
+          >
+            <FormVoce annuncioId={annuncio.id} voce={v} ufficiale={annuncio.ufficiale} />
+          </BottoneModale>
+          <AzioneBottone
+            azione={eliminaVoce}
+            valori={{ id: v.id }}
+            conferma={`Eliminare "${v.titolo}"?`}
+            className="btn-danger btn-sm"
+          >
+            Elimina
+          </AzioneBottone>
+        </div>
+      )}
     </div>
   );
 }
