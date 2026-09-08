@@ -53,8 +53,13 @@ export async function registraCarico(_prev: StatoForm, fd: FormData): Promise<St
     return { errore: 'Questa voce non è tenuta a magazzino: accendi l’interruttore nel modulo.' };
   }
 
+  // Un numero negativo toglie: è la rettifica in meno, e serve almeno quanto
+  // quella in più — un 500 battuto al posto di 50 va potuto disfare senza
+  // andare a cercare la riga sbagliata.
   const quantita = intOpt(fd, 'quantita');
-  if (quantita === null || quantita <= 0) return { errore: 'Quanti pezzi sono arrivati?' };
+  if (quantita === null || quantita === 0) {
+    return { errore: 'Quanti pezzi? Un numero negativo li toglie.' };
+  }
 
   const costo = num(fd, 'costoUnitario');
   if (costo === null || costo < 0) {
@@ -74,21 +79,50 @@ export async function registraCarico(_prev: StatoForm, fd: FormData): Promise<St
   });
 
   aggiorna(voce.annuncioId);
-  return { ok: `Caricati ${quantita} pezzi di ${voce.titolo}.` };
+  return {
+    ok:
+      quantita > 0
+        ? `Caricati ${quantita} pezzi di ${voce.titolo}.`
+        : `Tolti ${-quantita} pezzi di ${voce.titolo}.`,
+  };
 }
 
-/** Si toglie un carico sbagliato: il totale si ricalcola da solo. */
+/**
+ * Si toglie una riga di carico sbagliata: il totale si ricalcola da solo.
+ *
+ * Se quella riga era la **ricezione di un riordino**, l'ordine torna indietro
+ * di un passo: dire che la merce non è entrata e lasciare l'ordine segnato
+ * come ricevuto vorrebbe dire tenersi due verità diverse sullo stesso fatto.
+ */
 export async function eliminaCarico(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   const carico = await prisma.caricoMagazzino.findUnique({
     where: { id: str(fd, 'id') },
-    include: { voce: { include: { annuncio: true } } },
+    include: {
+      voce: { include: { annuncio: true } },
+      rigaRiordino: { select: { riordino: { select: { id: true, pagatoIl: true } } } },
+    },
   });
   if (!carico || (!eMio(carico.voce.annuncio, me.id) && !puoGestirePagamenti(me.roles))) {
     return { errore: 'Carico non trovato, o non è tuo.' };
   }
 
-  await prisma.caricoMagazzino.delete({ where: { id: carico.id } });
+  const riordino = carico.rigaRiordino?.riordino;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.caricoMagazzino.delete({ where: { id: carico.id } });
+    if (riordino) {
+      await tx.riordino.update({
+        where: { id: riordino.id },
+        data: { stato: riordino.pagatoIl ? 'PAGATO' : 'APERTO', ricevutoIl: null },
+      });
+    }
+  });
+
   aggiorna(carico.voce.annuncioId);
-  return { ok: 'Carico eliminato.' };
+  return {
+    ok: riordino
+      ? 'Carico annullato: il riordino torna in attesa della merce.'
+      : 'Carico eliminato.',
+  };
 }

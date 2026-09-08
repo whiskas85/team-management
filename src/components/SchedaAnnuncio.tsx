@@ -640,7 +640,7 @@ function FormCarico({ voce, scorta }: { voce: VoceInRiga; scorta: Scorta }) {
         <input type="hidden" name="voceId" value={voce.id} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Quanti pezzi">
-            <input name="quantita" type="number" min="1" className="input" placeholder="100" />
+            <input name="quantita" type="number" step="1" className="input" placeholder="100 · -12" />
           </Campo>
           <Campo label="Costo di un pezzo (€)">
             <input
@@ -662,6 +662,10 @@ function FormCarico({ voce, scorta }: { voce: VoceInRiga; scorta: Scorta }) {
         <Campo label="Note" span>
           <input name="note" className="input" maxLength={140} />
         </Campo>
+        <p className="text-xs text-muted">
+          Un numero negativo toglie: −12 se ne sono spariti dodici. Per disfare una riga
+          sbagliata, c’è <em>elimina</em> nell’elenco dei carichi.
+        </p>
         <Invia icona="carica">Carica</Invia>
       </FormAzione>
 

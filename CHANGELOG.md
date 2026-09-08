@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.26.3 — 8 settembre 2026
+
+### Corretto
+
+- **Una rettifica sbagliata non si poteva disfare.** Il modulo accettava solo
+  numeri positivi, e la riga sbagliata si toglieva soltanto dalla scheda
+  dell’articolo: un 500 battuto al posto di 50 restava lì. Adesso **nel
+  registro ogni entrata ha il suo *elimina***, e nella rettifica un numero
+  negativo toglie i pezzi (−12).
+- **Annullare l’entrata di un riordino lo rimette in attesa della merce**:
+  dire che la roba non è entrata e lasciare l’ordine segnato come ricevuto
+  vorrebbe dire tenersi due verità diverse sullo stesso fatto.
+- Nella rettifica il costo del pezzo arriva già scritto con il costo medio di
+  quella merce: una correzione di quantità non deve sballare la media per una
+  cifra battuta a caso.
+
 ## 1.26.2 — 8 settembre 2026
 
 ### Cambiato

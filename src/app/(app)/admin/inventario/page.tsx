@@ -9,7 +9,7 @@ import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
-import { registraCarico } from '@/actions/magazzino';
+import { eliminaCarico, registraCarico } from '@/actions/magazzino';
 import {
   aggiungiMerce,
   aggiungiRigaRiordino,
@@ -142,6 +142,10 @@ export default async function InventarioPage() {
   const registro = [
     ...carichi.map((c) => ({
       id: `c${c.id}`,
+      // solo le righe entrate si disfano: un'uscita è la consegna a una
+      // persona, e si annulla dal suo ordine, non da qui
+      caricoId: c.id,
+      daRiordino: c.rigaRiordino ? c.rigaRiordino.riordino.numero : null,
       quando: c.compratoIl,
       quanti: c.quantita,
       articolo: c.voce.annuncio.titolo,
@@ -152,6 +156,8 @@ export default async function InventarioPage() {
     })),
     ...uscite.map((u) => ({
       id: `u${u.id}`,
+      caricoId: null as string | null,
+      daRiordino: null as number | null,
       quando: u.ordine.consegnatoIl ?? new Date(0),
       quanti: -u.quantita,
       articolo: u.voce.annuncio.titolo,
@@ -445,6 +451,7 @@ export default async function InventarioPage() {
                 <th>Specifica</th>
                 <th>Quanti</th>
                 <th>Perché</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -457,6 +464,22 @@ export default async function InventarioPage() {
                     {m.quanti > 0 ? `+${m.quanti}` : m.quanti}
                   </td>
                   <td className="text-muted">{m.da}</td>
+                  <td>
+                    {m.caricoId && (
+                      <AzioneBottone
+                        azione={eliminaCarico}
+                        valori={{ id: m.caricoId }}
+                        conferma={
+                          m.daRiordino
+                            ? `Annullare questa entrata? Il riordino ${m.daRiordino} torna in attesa della merce.`
+                            : 'Eliminare la riga? La giacenza si ricalcola.'
+                        }
+                        className="text-[11px] text-muted transition-colors hover:text-danger"
+                      >
+                        elimina
+                      </AzioneBottone>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -627,16 +650,27 @@ function FormPagamento({
  * Serve per la roba arrivata in regalo, per un avanzo trovato in cantina, o
  * per correggere una giacenza sbagliata. La strada normale resta il riordino.
  */
-function FormRettifica({ voce }: { voce: { id: string; titolo: string } }) {
+function FormRettifica({
+  voce,
+}: {
+  voce: { id: string; titolo: string; conto: { costoMedio: number | null } };
+}) {
   return (
     <FormAzione azione={registraCarico}>
       <input type="hidden" name="voceId" value={voce.id} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo label="Quanti pezzi">
-          <input name="quantita" type="number" min="1" className="input" />
+          <input name="quantita" type="number" step="1" className="input" placeholder="50 · -12" />
         </Campo>
         <Campo label="Costo di un pezzo (€)">
-          <input name="costoUnitario" type="number" step="0.01" min="0" className="input" />
+          <input
+            name="costoUnitario"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={voce.conto.costoMedio?.toFixed(2) ?? ''}
+            className="input"
+          />
         </Campo>
         <Campo label="Da chi">
           <input name="fornitore" className="input" maxLength={80} />
@@ -645,6 +679,12 @@ function FormRettifica({ voce }: { voce: { id: string; titolo: string } }) {
           <input name="compratoIl" type="date" className="input" />
         </Campo>
       </div>
+
+      <p className="text-xs text-muted">
+        Un numero <strong className="text-ink">negativo toglie</strong>: −12 se ne sono spariti
+        dodici, o se ne hai caricati troppi. Per disfare del tutto una riga sbagliata, c’è{' '}
+        <em>elimina</em> nel registro qui sotto.
+      </p>
       <Campo label="Perché" span>
         <input
           name="note"
