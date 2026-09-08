@@ -763,19 +763,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 letto quando e dove: è quello il momento in cui viene voglia di
                 mandarlo a qualcuno. Si copia e basta — dove incollarlo lo
                 decide chi condivide, non il gestionale. */}
-{/* Il link si copia sempre, anche da una bozza: chi la sta preparando lo
-                manda a chi deve dargli un parere, e il gestionale non ha motivo di
-                impedirglielo — chi apre il link vede quello che gli spetta. */}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-              <p className="text-[11px] text-muted">
-                {evento.status === 'RILASCIATA'
-                  ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
-                  : evento.status === 'CREATA'
-                    ? 'È ancora una bozza: il link funziona, ma la pagina la vede solo chi gestisce il calendario.'
+{/* Una bozza non si condivide: chi riceve il link non vedrebbe niente, e
+                mandare un indirizzo che si apre solo per chi gestisce il calendario
+                è un modo per farsi richiamare. Da rilasciata in poi sì, anche a
+                cose fatte — di una giocata finita si manda volentieri il racconto. */}
+            {evento.status !== 'CREATA' && (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+                <p className="text-[11px] text-muted">
+                  {evento.status === 'RILASCIATA'
+                    ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
                     : 'Il link apre questa pagina: quello che c’è scritto resta.'}
-              </p>
-              <CondividiEvento indirizzo={indirizzoPagina} />
-            </div>
+                </p>
+                <CondividiEvento indirizzo={indirizzoPagina} />
+              </div>
+            )}
           </div>
 
           {/* -------------------------------------------------- partecipanti */}

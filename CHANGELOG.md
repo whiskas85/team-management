@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.31.2 — 8 settembre 2026
+
+### Cambiato
+
+- **Sul telefono le barre si tolgono di mezzo mentre si scende** e tornano
+  appena si risale: si sta leggendo, e due strisce fisse su uno schermo alto
+  quattordici centimetri sono due centimetri in meno di testo. In cima restano
+  sempre, e con il menu aperto non si muovono — lì si sta scegliendo, non
+  leggendo.
+- **Una bozza non si condivide.** Chi riceve il link non vedrebbe niente:
+  mandare un indirizzo che si apre solo per chi gestisce il calendario è un
+  modo per farsi richiamare. Da rilasciata in poi sì, anche a cose fatte — di
+  una giocata finita si manda volentieri il racconto.
+
 ## 1.31.1 — 8 settembre 2026
 
 ### Aggiunto

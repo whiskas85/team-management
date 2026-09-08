@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Logo } from './Logo';
 import { Icona, type NomeIcona } from './Icona';
 import { VERSIONE } from '@/lib/versione';
@@ -56,6 +56,31 @@ export function Nav({ voci, utente, esci }: Props) {
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
+  // Sul telefono le due barre — quella in alto con il nome e quella in basso
+  // con le voci — si tolgono di mezzo mentre si scende: si sta leggendo, e due
+  // strisce fisse su uno schermo alto quattordici centimetri sono due
+  // centimetri in meno di testo. Tornano appena si risale, che è il gesto di
+  // chi ha finito e cerca dove andare.
+  const [barreVia, setBarreVia] = useState(false);
+  const ultimo = useRef(0);
+
+  useEffect(() => {
+    const scorri = () => {
+      const y = window.scrollY;
+      // in cima non si nasconde mai, e sotto i venti pixel di differenza si
+      // resta fermi: senza, la barra sfarfalla a ogni sussulto del dito
+      if (y < 80) setBarreVia(false);
+      else if (Math.abs(y - ultimo.current) > 20) setBarreVia(y > ultimo.current);
+      ultimo.current = y;
+    };
+
+    window.addEventListener('scroll', scorri, { passive: true });
+    return () => window.removeEventListener('scroll', scorri);
+  }, []);
+
+  // con il menu aperto le barre restano dove sono: si sta scegliendo, non
+  // leggendo
+  const nascoste = barreVia && !apertoMenu;
   // quante notifiche stanno dentro il menu: senza il pallino qui, chiuso il
   // pannello non resterebbe alcun segnale che qualcosa aspetta una risposta
   const daVedere = voci.reduce((t, v) => t + (v.badge ?? 0), 0);
@@ -141,7 +166,11 @@ export function Nav({ voci, utente, esci }: Props) {
       {/* ---------------------------------------------------- header mobile */}
       {/* un solo accesso al menu: quello della barra in basso, dove arriva il
           pollice. Un secondo hamburger qui sopra ripeteva la stessa strada */}
-      <header className="sticky top-0 z-30 flex items-center border-b border-line bg-bg/95 px-4 py-3 backdrop-blur md:hidden">
+      <header
+        className={`sticky top-0 z-30 flex items-center border-b border-line bg-bg/95 px-4 py-3 backdrop-blur transition-transform duration-200 md:hidden ${
+          nascoste ? '-translate-y-full' : 'translate-y-0'
+        }`}
+      >
         <Link href="/dashboard" className="flex items-center gap-2">
           <Logo size={30} />
           <span className="num text-xs font-semibold tracking-widest">ZERO DARK</span>
@@ -152,7 +181,11 @@ export function Nav({ voci, utente, esci }: Props) {
       </header>
 
       {/* ---------------------------------------------------- barra inferiore mobile */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/97 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav
+        className={`fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/97 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-transform duration-200 md:hidden ${
+          nascoste ? 'translate-y-full' : 'translate-y-0'
+        }`}
+      >
         {rapide.map((v) => (
           <Link
             key={v.href}
