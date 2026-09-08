@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.27.1 — 8 settembre 2026
+
+### Cambiato
+
+- **«In programma» è fatto di card**, e la colonna «Prossime attività» resta
+  solo nella vista mese: nell’elenco era la copia di quello che si stava già
+  guardando. Lo storico resta una tabella, perché lì si cercano i numeri.
+- **La quota si vede dove si risponde.** Sulla card, accanto ai pulsanti
+  «ci sono / forse / non ci sono», c’è *a pagamento · 10,00 €* in giallo: uno
+  preme «ci sono» e in quel momento deve sapere che sta prendendo un impegno
+  da dieci euro, non scoprirlo due righe più su in grigio.
+
+### Corretto
+
+- **L’avviso giallo delle attività in bozza si vedeva solo nella vista mese.**
+  Adesso c’è in tutte, e conta le bozze in programma invece di quelle della
+  lista di turno: un’attività in bozza è invisibile alla squadra, e chi la
+  deve rilasciare deve saperlo ovunque si trovi.
+
 ## 1.27.0 — 8 settembre 2026
 
 ### Aggiunto

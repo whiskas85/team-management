@@ -80,6 +80,11 @@ export function ContoAdesioni({
 
 export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }) {
   const puoNavigare = (e.lat != null && e.lng != null) || !!e.indirizzo;
+  // Una quota va vista **mentre si risponde**, non due righe più su in grigio:
+  // uno preme "ci sono" e in quel momento deve sapere che sta prendendo un
+  // impegno da dieci euro. Se le adesioni sono chiuse resta nel corpo, dove
+  // c'è il resto dei dati.
+  const quota = e.costo !== null && e.costo > 0 ? fmtEuro(e.costo) : null;
 
   return (
     <div className="rounded-lg border border-line bg-surface">
@@ -116,9 +121,7 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
 
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3">
           <ContoAdesioni e={e} />
-          {e.costo !== null && (
-            <span className="text-[11px] text-muted num">{fmtEuro(e.costo)}</span>
-          )}
+          {quota && !e.adesioniAperte && <Badge tono="warn">quota {quota}</Badge>}
           {!e.adesioniAperte && (
             <span className="ml-auto">
               {e.mioStato ? (
@@ -133,8 +136,13 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
 
       {(puoNavigare || e.adesioniAperte) && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5">
-          <span className="flex min-w-0 items-center gap-2">
+          <span className="flex min-w-0 flex-wrap items-center gap-2">
             <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
+            {quota && e.adesioniAperte && (
+              <span className="badge border-warn/40 bg-warn/10 font-semibold text-warn">
+                a pagamento · {quota}
+              </span>
+            )}
             {e.adesioniAperte && (
               <span className="text-[11px] text-muted">
                 {e.mioStato ? `Hai risposto: ${umanizza(e.mioStato).toLowerCase()}` : 'Ci sei?'}

@@ -96,14 +96,19 @@ export default async function CalendarioPage({
           ordine: attuale === 'passati' ? 'desc' : 'asc',
         });
 
-  // colonna laterale: sempre i prossimi in programma, anche in vista mese
-  const prossimi = await eventiPerLista({
-    stato: me.stato,
-    userId: me.id,
-    vedeBozze: admin,
-    dove: { inizio: { gte: new Date() }, status: { not: 'ANNULLATA' } },
-    limite: 6,
-  });
+  // La colonna laterale ha senso solo nella vista mese, dove la griglia non
+  // dice cosa viene adesso. In programma sarebbe la copia dell'elenco che si
+  // sta già guardando.
+  const prossimi =
+    attuale === 'mese'
+      ? await eventiPerLista({
+          stato: me.stato,
+          userId: me.id,
+          vedeBozze: admin,
+          dove: { inizio: { gte: new Date() }, status: { not: 'ANNULLATA' } },
+          limite: 6,
+        })
+      : [];
 
   const VISTE = [
     { chiave: 'lista', href: '/calendario', testo: 'In programma' },
@@ -111,7 +116,12 @@ export default async function CalendarioPage({
     { chiave: 'passati', href: '/calendario?vista=passati', testo: 'Storico' },
   ];
 
-  const bozze = eventiMese.filter((e) => e.status === 'CREATA').length;
+  // Le bozze in programma: contate a parte e non dalla lista di turno, che
+  // cambia con la vista — l'avviso deve dire la stessa cosa ovunque, perché
+  // un'attività in bozza è invisibile alla squadra e va rilasciata.
+  const bozze = admin
+    ? await prisma.event.count({ where: { status: 'CREATA', inizio: { gte: new Date() } } })
+    : 0;
 
   return (
     <>
@@ -143,14 +153,18 @@ export default async function CalendarioPage({
         }
       />
 
-      {admin && bozze > 0 && attuale === 'mese' && (
+      {admin && bozze > 0 && (
         <div className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">
           {bozze === 1 ? "C'è 1 attività in bozza" : `Ci sono ${bozze} attività in bozza`}: finché
           non le rilasci nessuno le vede.
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div
+        className={
+          attuale === 'mese' ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]' : 'min-w-0'
+        }
+      >
         <div className="min-w-0">
           {attuale === 'mese' ? (
             <CalendarioMese
@@ -201,6 +215,30 @@ export default async function CalendarioPage({
                       : 'Nessuna attività in programma.'
                   }
                 />
+              ) : attuale === 'lista' ? (
+                /* Quello che deve ancora venire si guarda a card: c'è la quota
+                   attaccata al pulsante con cui si risponde, e la tabella
+                   quella riga non la può contenere. Lo storico invece resta
+                   una tabella, perché lì si cercano i numeri. */
+                <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                  {lista.map((e) => (
+                    <CardEvento
+                      key={e.id}
+                      e={e}
+                      azioni={
+                        admin ? (
+                          <AzioniEvento
+                            id={e.id}
+                            titolo={e.titolo}
+                            status={e.status}
+                            visibilita={e.visibilita}
+                            compatto
+                          />
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                </div>
               ) : (
                 <Elenco
                   cards={lista.map((e) => (
@@ -262,6 +300,7 @@ export default async function CalendarioPage({
         </div>
 
         {/* ---------------------------------------------- prossimi eventi (desktop) */}
+        {attuale === 'mese' && (
         <aside className="hidden lg:block">
           <div className="sticky top-6">
             <h2 className="titolo-sezione mb-3">Prossime attività</h2>
@@ -328,6 +367,7 @@ export default async function CalendarioPage({
             )}
           </div>
         </aside>
+        )}
       </div>
     </>
   );
