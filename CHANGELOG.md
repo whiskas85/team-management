@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.26.2 — 8 settembre 2026
+
+### Cambiato
+
+- **Nell’inventario prima l’articolo, poi la specifica**, e la colonna non si
+  chiama più «cosa»: la roba si chiama *Maglietta del Club*, e S o XL dicono
+  quale. Vale nelle giacenze e nel registro, che adesso si leggono nello
+  stesso ordine in cui uno le nomina a voce.
+
 ## 1.26.1 — 8 settembre 2026
 
 ### Corretto

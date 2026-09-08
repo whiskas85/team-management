@@ -81,7 +81,7 @@ export default async function InventarioPage() {
       orderBy: { compratoIl: 'desc' },
       take: 40,
       include: {
-        voce: { select: { titolo: true } },
+        voce: { select: { titolo: true, annuncio: { select: { titolo: true } } } },
         rigaRiordino: { select: { riordino: { select: { numero: true } } } },
       },
     }),
@@ -91,6 +91,7 @@ export default async function InventarioPage() {
       orderBy: { ordine: { consegnatoIl: 'desc' } },
       take: 40,
       include: {
+        voce: { select: { annuncio: { select: { titolo: true } } } },
         ordine: {
           select: {
             numero: true,
@@ -143,6 +144,7 @@ export default async function InventarioPage() {
       id: `c${c.id}`,
       quando: c.compratoIl,
       quanti: c.quantita,
+      articolo: c.voce.annuncio.titolo,
       cosa: c.voce.titolo,
       da: c.rigaRiordino
         ? `riordino ${c.rigaRiordino.riordino.numero}`
@@ -152,6 +154,7 @@ export default async function InventarioPage() {
       id: `u${u.id}`,
       quando: u.ordine.consegnatoIl ?? new Date(0),
       quanti: -u.quantita,
+      articolo: u.voce.annuncio.titolo,
       cosa: u.titolo,
       da: `consegnato a ${nomeCompleto(u.ordine.utente)} · ordine ${u.ordine.numero}`,
     })),
@@ -228,8 +231,10 @@ export default async function InventarioPage() {
           <table className="tabella">
             <thead>
               <tr>
-                <th>Cosa</th>
+                {/* prima l'articolo e poi la specifica: la roba si chiama
+                    "Maglietta del Club", e S o XL dicono quale */}
                 <th>Articolo</th>
+                <th>Specifica</th>
                 <th>Disponibili</th>
                 <th>Impegnate</th>
                 <th>Costo medio</th>
@@ -243,12 +248,12 @@ export default async function InventarioPage() {
                 const margine = v.conto.costoMedio === null ? null : v.prezzo - v.conto.costoMedio;
                 return (
                   <tr key={v.id}>
-                    <td className="font-medium">{v.titolo}</td>
                     <td>
-                      <Link href={v.strada} className="text-muted hover:text-nvg">
+                      <Link href={v.strada} className="font-medium hover:text-nvg">
                         {v.articolo}
                       </Link>
                     </td>
+                    <td className="text-muted">{v.titolo}</td>
                     <td>
                       <Badge tono={v.conto.disponibili > 0 ? 'ok' : 'warn'}>
                         {v.conto.disponibili}
@@ -265,7 +270,7 @@ export default async function InventarioPage() {
                     <td>
                       <BottoneModale
                         etichetta="Rettifica"
-                        titolo={`Rettifica · ${v.titolo}`}
+                        titolo={`Rettifica · ${v.articolo} ${v.titolo}`}
                         className="btn-ghost btn-sm"
                       >
                         <FormRettifica voce={v} />
@@ -436,7 +441,8 @@ export default async function InventarioPage() {
             <thead>
               <tr>
                 <th>Quando</th>
-                <th>Cosa</th>
+                <th>Articolo</th>
+                <th>Specifica</th>
                 <th>Quanti</th>
                 <th>Perché</th>
               </tr>
@@ -445,7 +451,8 @@ export default async function InventarioPage() {
               {registro.map((m) => (
                 <tr key={m.id}>
                   <td className="num">{fmtDateTime(m.quando)}</td>
-                  <td>{m.cosa}</td>
+                  <td>{m.articolo}</td>
+                  <td className="text-muted">{m.cosa}</td>
                   <td className={`num font-semibold ${m.quanti > 0 ? 'text-nvg' : 'text-warn'}`}>
                     {m.quanti > 0 ? `+${m.quanti}` : m.quanti}
                   </td>
@@ -465,7 +472,7 @@ type VoceMagazzino = { id: string; titolo: string; articolo: string };
 /** Le voci fra cui scegliere, scritte come si riconoscono: articolo e taglia. */
 function SceltaVoce({ voci }: { voci: VoceMagazzino[] }) {
   return (
-    <Campo label="Cosa">
+    <Campo label="Merce">
       <select name="voceId" className="input">
         {voci.map((v) => (
           <option key={v.id} value={v.id}>
@@ -497,8 +504,8 @@ function FormMerce({ articoli }: { articoli: { id: string; titolo: string }[] })
         </select>
       </Campo>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Campo label="Cosa">
-          <input name="titolo" className="input" maxLength={80} placeholder="Patch PVC" />
+        <Campo label="Specifica">
+          <input name="titolo" className="input" maxLength={80} placeholder="XL, nera, PVC…" />
         </Campo>
         <Campo label="A quanto la vendi (€)">
           <input name="prezzo" type="number" step="0.01" min="0" className="input" />
