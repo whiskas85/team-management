@@ -6,7 +6,7 @@ import type { NaturaVoce, StatoVoce } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin } from '@/lib/domain';
-import { eMio, manigliaVoce, puoFareUfficiale, puoVendere } from '@/lib/mercatino';
+import { eMio, manigliaUnica, puoFareUfficiale, puoVendere } from '@/lib/mercatino';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 import { bool, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
 
@@ -211,16 +211,11 @@ export async function salvaVoce(_prev: StatoForm, fd: FormData): Promise<StatoFo
     return { ok: 'Voce aggiornata.' };
   }
 
-  // la maniglia deve restare unica dentro l'annuncio: due "radio" nello stesso
-  // lotto diventano radio e radio-2, così la chiocciola resta senza ambiguità
   const gia = await prisma.voceAnnuncio.findMany({
     where: { annuncioId: annuncio.id },
     select: { maniglia: true },
   });
-  const prese = new Set(gia.map((v) => v.maniglia));
-  const base = manigliaVoce(titolo);
-  let maniglia = base;
-  for (let n = 2; prese.has(maniglia); n++) maniglia = `${base}-${n}`;
+  const maniglia = manigliaUnica(gia.map((v) => v.maniglia), titolo);
 
   await prisma.voceAnnuncio.create({
     data: { ...dati, annuncioId: annuncio.id, maniglia, ordine: gia.length },

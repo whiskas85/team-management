@@ -91,6 +91,18 @@ export const manigliaVoce = (titolo: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'voce';
 
+/**
+ * La maniglia libera dentro un annuncio: due "radio" nello stesso lotto
+ * diventano radio e radio-2, così la chiocciola resta senza ambiguità.
+ */
+export function manigliaUnica(prese: string[], titolo: string) {
+  const gia = new Set(prese);
+  const base = manigliaVoce(titolo);
+  let maniglia = base;
+  for (let n = 2; gia.has(maniglia); n++) maniglia = `${base}-${n}`;
+  return maniglia;
+}
+
 export type VoceLetta = {
   id: string;
   titolo: string;

@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.26.1 — 8 settembre 2026
+
+### Corretto
+
+- **Dall’inventario non si poteva aggiungere niente.** La pagina elencava solo
+  la merce già segnata come tenuta in casa, e quel segno si metteva soltanto
+  dalla scheda dell’articolo: chi apriva l’inventario per metterci qualcosa si
+  trovava una pagina che gli spiegava dove andare invece di un posto dove
+  farlo. Adesso c’è **Aggiungi merce** — si sceglie l’articolo del catalogo, il
+  nome e il prezzo di vendita — e sotto le giacenze c’è l’elenco della roba
+  che nel catalogo esiste ma non è seguita a magazzino, con un clic per
+  portarcela.
+
 ## 1.26.0 — 8 settembre 2026
 
 ### Aggiunto

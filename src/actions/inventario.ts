@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoGestirePagamenti } from '@/lib/domain';
-import { totaleRiordino } from '@/lib/mercatino';
+import { manigliaUnica, totaleRiordino } from '@/lib/mercatino';
 import { data, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 /**
@@ -271,4 +271,95 @@ export async function eliminaRiordino(_prev: StatoForm, fd: FormData): Promise<S
   await prisma.riordino.delete({ where: { id: riordino.id } });
   aggiorna();
   return { ok: 'Riordino eliminato.' };
+}
+
+// ------------------------------------------------------------------ la merce
+
+/**
+ * Aggiunge merce al magazzino, da qui.
+ *
+ * Prima si poteva solo dalla scheda dell'articolo, spuntando un interruttore
+ * dentro il modulo di una voce: chi apriva l'inventario per metterci qualcosa
+ * si trovava una pagina che gli spiegava dove andare, e non un posto dove
+ * farlo. La merce resta quella del catalogo — una voce dentro un articolo del
+ * team — perché è la stessa cosa vista da due parti: qui quante ce ne sono, lì
+ * come si comprano.
+ */
+export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoGestirePagamenti(me.roles)) {
+    return { errore: 'L’inventario lo tengono admin e segreteria.' };
+  }
+
+  const annuncio = await prisma.annuncio.findUnique({ where: { id: str(fd, 'annuncioId') } });
+  if (!annuncio || !annuncio.ufficiale) {
+    return { errore: 'Scegli un articolo del catalogo del team.' };
+  }
+
+  const titolo = str(fd, 'titolo');
+  if (!titolo) return { errore: 'Come si chiama la merce?' };
+
+  const prezzo = num(fd, 'prezzo');
+  if (prezzo === null || prezzo < 0) {
+    return { errore: 'Scrivi a quanto la vendi: il prezzo è sempre obbligatorio.' };
+  }
+
+  const gia = await prisma.voceAnnuncio.findMany({
+    where: { annuncioId: annuncio.id },
+    select: { maniglia: true },
+  });
+
+  const voce = await prisma.voceAnnuncio.create({
+    data: {
+      annuncioId: annuncio.id,
+      titolo,
+      maniglia: manigliaUnica(gia.map((v) => v.maniglia), titolo),
+      prezzo,
+      descrizione: strOpt(fd, 'descrizione'),
+      // roba comprata in blocco: si riordina, e la giacenza la tiene questa
+      // pagina
+      natura: 'RIORDINABILE',
+      aMagazzino: true,
+      ordine: gia.length,
+    },
+  });
+
+  aggiorna(voce.id);
+  return { ok: `${voce.titolo} è in magazzino, dentro «${annuncio.titolo}».` };
+}
+
+/**
+ * Porta dentro o fuori dal magazzino una voce che nel catalogo c'è già.
+ *
+ * Fuori dal magazzino una voce si ordina al fornitore a ogni giro e non
+ * finisce mai; dentro, ha una giacenza che scende. È la stessa distinzione che
+ * sta nel modulo della voce, messa dove si guardano le scorte.
+ */
+export async function tieniAMagazzino(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoGestirePagamenti(me.roles)) {
+    return { errore: 'L’inventario lo tengono admin e segreteria.' };
+  }
+
+  const voce = await prisma.voceAnnuncio.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { annuncio: { select: { ufficiale: true } }, _count: { select: { carichi: true } } },
+  });
+  if (!voce || !voce.annuncio.ufficiale) return { errore: 'Voce non trovata.' };
+
+  const dentro = str(fd, 'verso') !== 'fuori';
+  if (!dentro && voce._count.carichi > 0) {
+    return {
+      errore: 'Ha dei carichi alle spalle: toglierla dal magazzino cancellerebbe la sua storia.',
+    };
+  }
+
+  await prisma.voceAnnuncio.update({ where: { id: voce.id }, data: { aMagazzino: dentro } });
+
+  aggiorna(voce.id);
+  return {
+    ok: dentro
+      ? `${voce.titolo} è passata a magazzino: adesso ha una giacenza.`
+      : `${voce.titolo} torna a ordinarsi a ogni giro.`,
+  };
 }

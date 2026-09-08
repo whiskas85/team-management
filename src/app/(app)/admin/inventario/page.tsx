@@ -11,9 +11,11 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { registraCarico } from '@/actions/magazzino';
 import {
+  aggiungiMerce,
   aggiungiRigaRiordino,
   annullaRiordino,
   creaRiordino,
+  tieniAMagazzino,
   eliminaRigaRiordino,
   eliminaRiordino,
   pagaRiordino,
@@ -52,7 +54,7 @@ const ETICHETTA: Record<string, string> = {
 export default async function InventarioPage() {
   await requirePermesso(puoGestirePagamenti);
 
-  const [scorte, riordini, metodi, carichi, uscite] = await Promise.all([
+  const [scorte, riordini, metodi, carichi, uscite, articoli, fuori] = await Promise.all([
     prisma.voceAnnuncio.findMany({
       where: { aMagazzino: true },
       orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
@@ -97,6 +99,20 @@ export default async function InventarioPage() {
           },
         },
       },
+    }),
+    // gli articoli del catalogo, per appendere la merce nuova a uno di loro
+    prisma.annuncio.findMany({
+      where: { ufficiale: true },
+      orderBy: { titolo: 'asc' },
+      select: { id: true, titolo: true },
+    }),
+    // la roba del catalogo che il magazzino non segue: si ordina al fornitore a
+    // ogni giro e non finisce mai. Sta qui perché è da qui che uno se ne
+    // accorge — "questa dovrei tenerla in casa" — e con un clic la sposta.
+    prisma.voceAnnuncio.findMany({
+      where: { aMagazzino: false, natura: 'RIORDINABILE', annuncio: { ufficiale: true } },
+      orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
+      select: { id: true, titolo: true, annuncio: { select: { titolo: true } } },
     }),
   ]);
 
@@ -149,11 +165,29 @@ export default async function InventarioPage() {
         titolo="Inventario"
         sottotitolo="Quello che il team ha in casa, e quello che ha ordinato al fornitore"
         azioni={
-          magazzino.length > 0 ? (
-            <BottoneModale etichetta="Nuovo riordino" icona="aggiungi" titolo="Nuovo riordino" larga>
-              <FormRiordino voci={magazzino} />
-            </BottoneModale>
-          ) : undefined
+          <>
+            {articoli.length > 0 && (
+              <BottoneModale
+                etichetta="Aggiungi merce"
+                icona="aggiungi"
+                titolo="Nuova merce a magazzino"
+                className={magazzino.length > 0 ? 'btn-ghost' : 'btn-primary'}
+                larga
+              >
+                <FormMerce articoli={articoli} />
+              </BottoneModale>
+            )}
+            {magazzino.length > 0 && (
+              <BottoneModale
+                etichetta="Nuovo riordino"
+                icona="carrello"
+                titolo="Nuovo riordino"
+                larga
+              >
+                <FormRiordino voci={magazzino} />
+              </BottoneModale>
+            )}
+          </>
         }
       />
 
@@ -175,7 +209,20 @@ export default async function InventarioPage() {
       {/* ------------------------------------------------ giacenze */}
       <p className="titolo-sezione mb-2">Cosa c’è in casa</p>
       {magazzino.length === 0 ? (
-        <Vuoto testo="Niente a magazzino. Nel merchandising, sulla voce, spunta «La tengo in magazzino»." />
+        <Vuoto
+          testo={
+            articoli.length === 0
+              ? 'Il catalogo del team è vuoto: prima si crea un articolo nel merchandising, poi la sua merce entra qui.'
+              : 'Niente a magazzino. Con «Aggiungi merce» ci metti la roba che il team compra in blocco: patch, adesivi, magliette.'
+          }
+          azione={
+            articoli.length === 0 ? (
+              <Link href="/merchandising" className="btn-primary">
+                Vai al merchandising
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="mb-6 overflow-x-auto rounded-lg border border-line bg-surface">
           <table className="tabella">
@@ -229,6 +276,36 @@ export default async function InventarioPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ------------------------------------------------ non a magazzino */}
+      {fuori.length > 0 && (
+        <div className="mb-6">
+          <p className="titolo-sezione mb-2">Nel catalogo, ma non in casa</p>
+          <div className="flex flex-wrap gap-2">
+            {fuori.map((v) => (
+              <span
+                key={v.id}
+                className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm"
+              >
+                <span>
+                  {v.annuncio.titolo} — <strong className="font-medium">{v.titolo}</strong>
+                </span>
+                <AzioneBottone
+                  azione={tieniAMagazzino}
+                  valori={{ id: v.id, verso: 'dentro' }}
+                  className="text-[11px] text-muted transition-colors hover:text-nvg"
+                >
+                  tieni a magazzino
+                </AzioneBottone>
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted">
+            Questa roba si ordina al fornitore a ogni giro e non finisce mai. Portala a magazzino
+            se invece la comprate in blocco e la consegnate man mano.
+          </p>
         </div>
       )}
 
@@ -397,6 +474,46 @@ function SceltaVoce({ voci }: { voci: VoceMagazzino[] }) {
         ))}
       </select>
     </Campo>
+  );
+}
+
+/**
+ * Merce nuova, creata da qui.
+ *
+ * Resta una voce del catalogo — è la stessa cosa vista da due parti: qui
+ * quante ce ne sono, nel merchandising come si comprano — ma nasce già segnata
+ * come roba da tenere in casa, che è il motivo per cui uno apre l'inventario.
+ */
+function FormMerce({ articoli }: { articoli: { id: string; titolo: string }[] }) {
+  return (
+    <FormAzione azione={aggiungiMerce}>
+      <Campo label="Dentro quale articolo" span>
+        <select name="annuncioId" className="input">
+          {articoli.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.titolo}
+            </option>
+          ))}
+        </select>
+      </Campo>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Campo label="Cosa">
+          <input name="titolo" className="input" maxLength={80} placeholder="Patch PVC" />
+        </Campo>
+        <Campo label="A quanto la vendi (€)">
+          <input name="prezzo" type="number" step="0.01" min="0" className="input" />
+        </Campo>
+      </div>
+      <Campo label="Dettagli" span>
+        <input name="descrizione" className="input" maxLength={200} />
+      </Campo>
+      <p className="text-xs text-muted">
+        Nasce come merce <strong className="text-ink">tenuta in casa</strong> dentro l’articolo che
+        scegli: da qui si riordina e si conta, nel merchandising la squadra la vede e la ordina.
+        Quante ce ne sono lo dirà il primo riordino ricevuto, o una rettifica.
+      </p>
+      <Invia icona="salva">Aggiungi</Invia>
+    </FormAzione>
   );
 }
 
