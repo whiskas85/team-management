@@ -199,6 +199,7 @@ model User {
   commentiAnnunci CommentoAnnuncio[]  @relation("CommentiAnnunci")
   miPiaceAnnunci  MiPiaceAnnuncio[]   @relation("MiPiaceAnnunci")
   eventsCreated  Event[]              @relation("EventCreator")
+  debriefing     Debriefing[]         @relation("DebriefingScritti")
   movimentiCassa MovimentoCassa[]     @relation("CassaRegistrante")
   tokenMcp       TokenMcp[]           @relation("TokenMcpDi")
   documenti      Documento[]          @relation("DocumentiScritti")
@@ -579,6 +580,7 @@ model Event {
   noteInterne Nota[]
   commenti    CommentoEvento[]
   miPiace     MiPiaceEvento[]
+  debriefing  Debriefing?
 
   @@index([inizio])
 }
@@ -1379,6 +1381,33 @@ model RigaOrdine {
   quantita Int
 
   @@index([voceId])
+}
+
+/// Il resoconto di una giornata, scritto dopo.
+///
+/// Una gara finisce e resta nella testa di chi c’era: cosa ha funzionato, chi
+/// stava dove, l’errore che non si ripete. Scritto, diventa la memoria della
+/// squadra — e chi non c’era può leggerla.
+///
+/// Uno per attività: è il racconto di quel giorno, non una bacheca. I commenti
+/// e i «mi piace» sono quelli dell’attività, perché si parla della stessa cosa
+/// e tenere due discussioni separate sullo stesso pomeriggio non aiuta
+/// nessuno.
+model Debriefing {
+  id           String   @id @default(cuid())
+  eventId      String   @unique
+  evento       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  titolo       String?
+  /// Markdown, come statuto e regolamenti.
+  testo        String
+  /// In bozza lo vede solo chi lo scrive: un resoconto a metà non si legge.
+  pubblicato   Boolean  @default(false)
+  autoreId     String?
+  autore       User?    @relation("DebriefingScritti", fields: [autoreId], references: [id], onDelete: SetNull)
+  creatoIl     DateTime @default(now())
+  aggiornatoIl DateTime @updatedAt
+
+  @@index([pubblicato])
 }
 
 model Impostazioni {

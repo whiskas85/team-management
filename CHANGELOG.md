@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.31.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Il debriefing di un’attività.** Una gara finisce e resta nella testa di chi
+  c’era — cosa ha funzionato, chi stava dove, l’errore che non si ripete:
+  scritto, diventa la memoria della squadra. Lo scrivono team leader e admin
+  dalla scheda dell’attività, in **markdown** con lo stesso editore di statuto
+  e regolamenti, e nasce **in bozza**: si scrive a pezzi, la sera, e a metà non
+  si legge.
+- **Una pagina che li raccoglie tutti**, in ordine di giornata: chi c’era
+  rilegge, chi non c’era capisce, e chi arriva l’anno dopo trova scritto
+  perché si fa in un certo modo. Si vedono solo quelli pubblicati, e solo
+  delle attività che si potrebbero comunque vedere.
+- **I «mi piace» e i commenti sono quelli dell’attività**, non una seconda
+  discussione: si parla della stessa giornata, e due conversazioni separate
+  sullo stesso pomeriggio non aiutano nessuno. Dalla pagina dei debriefing si
+  apre l’attività e si commenta lì.
+
 ## 1.30.0 — 8 settembre 2026
 
 ### Aggiunto

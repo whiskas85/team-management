@@ -159,6 +159,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       gruppo: 'principale',
       badge: attivitaNuove,
     },
+    // la memoria della squadra: com’è andata alle giocate, scritto da chi le
+    // ha portate in campo
+    { href: '/debriefing', label: 'Debriefing', icona: 'bozza', gruppo: 'principale' },
     { href: '/profilo', label: 'Profilo', icona: 'profilo', gruppo: 'principale' },
     {
       href: '/pagamenti',

@@ -64,6 +64,7 @@ import {
 } from '@/lib/assicurazione';
 import { ScegliPartecipanti, type Candidato } from '@/components/ScegliPartecipanti';
 import { Social, type Commento } from '@/components/Social';
+import { Debriefing } from '@/components/Debriefing';
 import { BloccoNote, FormNota, type NotaLetta } from '@/components/Note';
 import { citabili } from '@/lib/note';
 import { haIncarichi } from '@/lib/domain';
@@ -105,6 +106,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           },
         },
         orderBy: { respondedAt: 'asc' },
+      },
+      // il resoconto della giornata, se qualcuno l'ha scritto
+      debriefing: {
+        include: { autore: { select: { nome: true, cognome: true, callsign: true } } },
       },
       giornaliere: true,
       payments: {
@@ -1080,6 +1085,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ------------------------------------------------ debriefing */}
+          <Debriefing
+            eventId={evento.id}
+            debriefing={evento.debriefing}
+            scrive={tl}
+            // prima che cominci non c'è niente da raccontare
+            passata={evento.inizio <= new Date()}
+          />
 
           {/* ------------------------------------------------ commenti */}
           <Social
