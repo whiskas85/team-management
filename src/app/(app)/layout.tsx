@@ -150,6 +150,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? 1
       : 0;
 
+  // I debriefing che non hai ancora letto. La lettura è di chi legge: se lo
+  // apre un altro, a te resta segnalato — un resoconto che nessuno sa di dover
+  // leggere non lo legge nessuno.
+  const debriefingDaLeggere = await prisma.debriefing.count({
+    where: {
+      pubblicato: true,
+      letture: { none: { userId: utente.id } },
+      evento: filtroVisibilita(utente.stato, isAdmin(utente.roles)),
+    },
+  });
+
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Home', icona: 'dashboard', gruppo: 'principale' },
     {
@@ -161,7 +172,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     },
     // la memoria della squadra: com’è andata alle giocate, scritto da chi le
     // ha portate in campo
-    { href: '/debriefing', label: 'Debriefing', icona: 'bozza', gruppo: 'principale' },
+    {
+      href: '/debriefing',
+      label: 'Debriefing',
+      icona: 'bozza',
+      gruppo: 'principale',
+      badge: debriefingDaLeggere,
+    },
     { href: '/profilo', label: 'Profilo', icona: 'profilo', gruppo: 'principale' },
     {
       href: '/pagamenti',

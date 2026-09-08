@@ -200,6 +200,7 @@ model User {
   miPiaceAnnunci  MiPiaceAnnuncio[]   @relation("MiPiaceAnnunci")
   eventsCreated  Event[]              @relation("EventCreator")
   debriefing     Debriefing[]         @relation("DebriefingScritti")
+  debriefingLetti LetturaDebriefing[] @relation("LettoreDebriefing")
   movimentiCassa MovimentoCassa[]     @relation("CassaRegistrante")
   tokenMcp       TokenMcp[]           @relation("TokenMcpDi")
   documenti      Documento[]          @relation("DocumentiScritti")
@@ -1407,7 +1408,26 @@ model Debriefing {
   creatoIl     DateTime @default(now())
   aggiornatoIl DateTime @updatedAt
 
+  letture LetturaDebriefing[]
+
   @@index([pubblicato])
+}
+
+/// Chi ha letto quale debriefing.
+///
+/// La lettura è di chi legge, non della squadra: se lo apre un altro, a te
+/// resta segnalato. Stessa idea del pallino sulle attività nuove — un
+/// resoconto della squadra che nessuno sa di dover leggere non lo legge
+/// nessuno.
+model LetturaDebriefing {
+  debriefingId String
+  debriefing   Debriefing @relation(fields: [debriefingId], references: [id], onDelete: Cascade)
+  userId       String
+  utente       User       @relation("LettoreDebriefing", fields: [userId], references: [id], onDelete: Cascade)
+  lettoIl      DateTime   @default(now())
+
+  @@id([debriefingId, userId])
+  @@index([userId])
 }
 
 model Impostazioni {

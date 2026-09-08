@@ -18,10 +18,70 @@ export type DebriefingLetto = {
 };
 
 /**
- * Il debriefing dentro la scheda dell'attività.
+ * Il modulo del debriefing: uguale dovunque lo si apra.
  *
- * Sta sotto ai partecipanti e sopra ai commenti, che è l'ordine in cui si
- * legge una giornata: chi c'era, com'è andata, cosa ne pensa la gente. In
+ * Si scrive dalla scheda dell'attività e si corregge anche dalla pagina che li
+ * raccoglie: uno rilegge il proprio racconto lì, e lì gli viene voglia di
+ * sistemare la frase storta.
+ */
+export function FormDebriefing({
+  eventId,
+  debriefing,
+}: {
+  eventId: string;
+  debriefing: DebriefingLetto | null;
+}) {
+  return (
+    <FormAzione azione={salvaDebriefing}>
+      <input type="hidden" name="eventId" value={eventId} />
+
+      <Campo label="Titolo" span>
+        <input
+          name="titolo"
+          defaultValue={debriefing?.titolo ?? ''}
+          className="input"
+          maxLength={120}
+          placeholder="es. Come è andata a Silent Ridge"
+        />
+      </Campo>
+
+      <Campo label="Il racconto" span>
+        <EditoreMarkdown
+          nome="testo"
+          valore={debriefing?.testo}
+          righe={18}
+          segnaposto={
+            '## Come è andata\n\nIl piano, cosa ha funzionato, cosa no.\n\n## Da rifare\n\n## Da non rifare'
+          }
+        />
+      </Campo>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="pubblicato"
+          defaultChecked={debriefing?.pubblicato ?? false}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span>
+          Pubblicato
+          <span className="block text-[11px] text-muted">
+            Finché è in bozza lo vedi solo tu: si scrive a pezzi, la sera, e a metà non si legge.
+            Pubblicato, lo trova anche chi quel giorno non c’era — nella pagina dei debriefing.
+          </span>
+        </span>
+      </label>
+
+      <Invia icona="salva">Salva</Invia>
+    </FormAzione>
+  );
+}
+
+/**
+ * Il debriefing dentro la scheda dell’attività.
+ *
+ * Sta sotto ai partecipanti e sopra ai commenti, che è l’ordine in cui si
+ * legge una giornata: chi c’era, com’è andata, cosa ne pensa la gente. In
  * bozza lo vede solo chi lo scrive — un resoconto a metà non si legge.
  */
 export function Debriefing({
@@ -63,49 +123,7 @@ export function Debriefing({
               className={debriefing ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}
               larga
             >
-              <FormAzione azione={salvaDebriefing}>
-                <input type="hidden" name="eventId" value={eventId} />
-
-                <Campo label="Titolo" span>
-                  <input
-                    name="titolo"
-                    defaultValue={debriefing?.titolo ?? ''}
-                    className="input"
-                    maxLength={120}
-                    placeholder="es. Come è andata a Silent Ridge"
-                  />
-                </Campo>
-
-                <Campo label="Il racconto" span>
-                  <EditoreMarkdown
-                    nome="testo"
-                    valore={debriefing?.testo}
-                    righe={18}
-                    segnaposto={
-                      '## Come è andata\n\nIl piano, cosa ha funzionato, cosa no.\n\n## Da rifare\n\n## Da non rifare'
-                    }
-                  />
-                </Campo>
-
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="pubblicato"
-                    defaultChecked={debriefing?.pubblicato ?? false}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
-                  />
-                  <span>
-                    Pubblicato
-                    <span className="block text-[11px] text-muted">
-                      Finché è in bozza lo vedi solo tu: si scrive a pezzi, la sera, e a metà non
-                      si legge. Pubblicato, lo trova anche chi quel giorno non c’era — nella
-                      pagina dei debriefing.
-                    </span>
-                  </span>
-                </label>
-
-                <Invia icona="salva">Salva</Invia>
-              </FormAzione>
+              <FormDebriefing eventId={eventId} debriefing={debriefing} />
             </BottoneModale>
           )}
           {scrive && debriefing && (

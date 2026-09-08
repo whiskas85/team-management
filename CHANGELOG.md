@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.31.1 — 8 settembre 2026
+
+### Aggiunto
+
+- **I debriefing sanno di essere stati letti**: pallino sulla voce di menu con
+  quanti ne restano, e il pallino accanto al titolo di quelli nuovi. La
+  lettura è di chi legge, non della squadra — se lo apre un altro, a te resta
+  segnalato.
+- **Si commenta dove si legge.** Like e commenti stanno dentro la pagina dei
+  debriefing, sotto il racconto: mandare altrove chi vuole dire la sua vuol
+  dire che non la dice. Restano quelli dell’attività — la giornata è quella —
+  quindi quello che si scrive qui si vede anche lì, e viceversa.
+- **Il debriefing si corregge anche da lì**, da chi l’ha scritto e da chi
+  porta la squadra in campo: uno rilegge il proprio racconto nella pagina che
+  li raccoglie, ed è lì che gli viene voglia di sistemare la frase storta. Se
+  domani non fa più il team leader, quel racconto resta comunque suo.
+
+### Corretto
+
+- **Il pulsante per copiare il link non si trovava**: compariva solo sulle
+  attività rilasciate. Adesso c’è sempre, in fondo alla card dei dati, e la
+  riga accanto dice cosa vedrà chi apre il link — su una bozza, che la vede
+  solo chi gestisce il calendario.
+
 ## 1.31.0 — 8 settembre 2026
 
 ### Aggiunto

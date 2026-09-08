@@ -52,3 +52,34 @@ export async function segnaProfiloLetto(profiloId: string): Promise<void> {
   revalidatePath('/admin/nuovi');
   revalidatePath('/dashboard');
 }
+
+/**
+ * Registra che questa persona ha letto quei debriefing.
+ *
+ * Arrivano insieme perché nella pagina che li raccoglie si leggono insieme: il
+ * testo è tutto lì, e uno che l'ha scorsa li ha visti davvero. Nella scheda di
+ * un'attività invece ne arriva uno solo, che è quello che si sta guardando.
+ */
+export async function segnaDebriefingLetti(ids: string[]): Promise<void> {
+  const me = await requireUser();
+  if (ids.length === 0) return;
+
+  const esistenti = await prisma.debriefing.findMany({
+    where: { id: { in: ids }, pubblicato: true },
+    select: { id: true },
+  });
+
+  await prisma.$transaction(
+    esistenti.map((d) =>
+      prisma.letturaDebriefing.upsert({
+        where: { debriefingId_userId: { debriefingId: d.id, userId: me.id } },
+        create: { debriefingId: d.id, userId: me.id },
+        update: { lettoIl: new Date() },
+      }),
+    ),
+  );
+
+  // il contatore vive nel menu, disegnato dal guscio: senza questo il pallino
+  // resterebbe acceso fino al primo cambio pagina
+  revalidatePath('/debriefing', 'layout');
+}

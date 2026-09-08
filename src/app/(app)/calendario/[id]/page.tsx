@@ -65,6 +65,7 @@ import {
 import { ScegliPartecipanti, type Candidato } from '@/components/ScegliPartecipanti';
 import { Social, type Commento } from '@/components/Social';
 import { Debriefing } from '@/components/Debriefing';
+import { SegnaDebriefingLetti } from '@/components/SegnaDebriefingLetti';
 import { BloccoNote, FormNota, type NotaLetta } from '@/components/Note';
 import { citabili } from '@/lib/note';
 import { haIncarichi } from '@/lib/domain';
@@ -762,14 +763,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 letto quando e dove: è quello il momento in cui viene voglia di
                 mandarlo a qualcuno. Si copia e basta — dove incollarlo lo
                 decide chi condivide, non il gestionale. */}
-            {evento.status === 'RILASCIATA' && (
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-                <p className="text-[11px] text-muted">
-                  Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.
-                </p>
-                <CondividiEvento indirizzo={indirizzoPagina} />
-              </div>
-            )}
+{/* Il link si copia sempre, anche da una bozza: chi la sta preparando lo
+                manda a chi deve dargli un parere, e il gestionale non ha motivo di
+                impedirglielo — chi apre il link vede quello che gli spetta. */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+              <p className="text-[11px] text-muted">
+                {evento.status === 'RILASCIATA'
+                  ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
+                  : evento.status === 'CREATA'
+                    ? 'È ancora una bozza: il link funziona, ma la pagina la vede solo chi gestisce il calendario.'
+                    : 'Il link apre questa pagina: quello che c’è scritto resta.'}
+              </p>
+              <CondividiEvento indirizzo={indirizzoPagina} />
+            </div>
           </div>
 
           {/* -------------------------------------------------- partecipanti */}
@@ -1087,6 +1093,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ------------------------------------------------ debriefing */}
+          {/* letto qui è letto: il testo è tutto in pagina */}
+          {evento.debriefing?.pubblicato && (
+            <SegnaDebriefingLetti ids={[evento.debriefing.id]} />
+          )}
           <Debriefing
             eventId={evento.id}
             debriefing={evento.debriefing}

@@ -25,13 +25,21 @@ function aggiorna(eventId: string) {
 
 export async function salvaDebriefing(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoSchierare(me.roles)) {
-    return { errore: 'Il debriefing lo scrive chi porta la squadra in campo.' };
-  }
 
   const eventId = str(fd, 'eventId');
   const evento = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
   if (!evento) return { errore: 'Attività non trovata.' };
+
+  // Lo scrive chi porta la squadra in campo, e lo corregge anche chi l’ha
+  // scritto: se domani non fa più il team leader, il racconto di quella
+  // giornata resta suo.
+  const gia = await prisma.debriefing.findUnique({
+    where: { eventId },
+    select: { autoreId: true },
+  });
+  if (!puoSchierare(me.roles) && gia?.autoreId !== me.id) {
+    return { errore: 'Il debriefing lo scrive chi porta la squadra in campo.' };
+  }
 
   const testo = str(fd, 'testo');
   if (!testo) return { errore: 'Scrivi qualcosa: un debriefing vuoto non racconta niente.' };
@@ -55,9 +63,15 @@ export async function salvaDebriefing(_prev: StatoForm, fd: FormData): Promise<S
 
 export async function eliminaDebriefing(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoSchierare(me.roles)) return { errore: 'Non è roba tua.' };
 
   const eventId = str(fd, 'eventId');
+  const gia = await prisma.debriefing.findUnique({
+    where: { eventId },
+    select: { autoreId: true },
+  });
+  if (!puoSchierare(me.roles) && gia?.autoreId !== me.id) {
+    return { errore: 'Non è roba tua.' };
+  }
   await prisma.debriefing.delete({ where: { eventId } }).catch(() => null);
 
   aggiorna(eventId);
