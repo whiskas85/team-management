@@ -5,6 +5,7 @@ import type { TipoDocumento } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoScrivere, slugDa } from '@/lib/documenti';
+import { SLUG_REGOLAMENTO } from '@/lib/mercatino';
 import { enumVal, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 
 /**
@@ -21,6 +22,39 @@ function aggiorna(slug?: string) {
   revalidatePath('/statuto');
   revalidatePath('/regolamenti');
   if (slug) revalidatePath(`/regolamenti/${slug}`);
+  // il regolamento del mercatino si legge anche da dentro il mercatino, ed è
+  // lì che tiene la porta chiusa finché non lo si accetta
+  if (slug === SLUG_REGOLAMENTO) apriMercatino();
+}
+
+/** Le pagine che cambiano quando qualcuno accetta il regolamento. */
+function apriMercatino() {
+  revalidatePath('/mercatino');
+  revalidatePath('/mercatino/regolamento');
+  revalidatePath('/mercatino/carrello');
+  revalidatePath('/merchandising');
+}
+
+/**
+ * «L'ho letto.»
+ *
+ * Si tiene la versione accettata, cioè la data dell'ultima modifica del testo:
+ * se il regolamento cambia si torna a chiedere, perché aver accettato altro
+ * non è aver accettato questo.
+ */
+export async function accettaRegolamento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const documento = await prisma.documento.findUnique({ where: { id: str(fd, 'id') } });
+  if (!documento) return { errore: 'Regolamento non trovato.' };
+
+  await prisma.accettazioneDocumento.upsert({
+    where: { userId_documentoId: { userId: me.id, documentoId: documento.id } },
+    create: { userId: me.id, documentoId: documento.id, versione: documento.aggiornatoIl },
+    update: { versione: documento.aggiornatoIl, accettatoIl: new Date() },
+  });
+
+  apriMercatino();
+  return { ok: 'Regolamento accettato: il mercatino è aperto.' };
 }
 
 export async function salvaDocumento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {

@@ -4,3 +4,7 @@ node_modules
 uploads
 *.md
 certificati
+
+# i testi che nascono con l'applicazione (il regolamento del mercatino) servono
+# dentro l'immagine: il seed li legge all'avvio
+!prisma/testi/*.md

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { comeChiamare, fmtDate, fmtEuro } from '@/lib/format';
 import { isContatto } from '@/lib/domain';
-import { prezzoDa, tuttoVenduto } from '@/lib/mercatino';
+import { prezzoDa, stradaAnnuncio, tuttoVenduto } from '@/lib/mercatino';
 import { Badge } from '@/components/ui';
 
 /* eslint-disable @next/next/no-img-element */
@@ -42,7 +42,7 @@ export function CardAnnuncio({
 
   return (
     <Link
-      href={`/mercatino/${annuncio.id}`}
+      href={stradaAnnuncio(annuncio)}
       className={`group flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:border-nvgdim ${
         chiuso ? 'opacity-60' : ''
       }`}

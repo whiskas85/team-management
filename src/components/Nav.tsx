@@ -36,13 +36,23 @@ const ETICHETTA_GRUPPO: Record<string, string> = {
   comando: 'Comando',
 };
 
-function attivo(pathname: string, href: string) {
-  if (href === '/dashboard') return pathname === '/dashboard';
-  return pathname === href || pathname.startsWith(href + '/');
+/**
+ * Quale voce si accende.
+ *
+ * Vince la corrispondenza piu’ lunga, non la prima: /mercatino/carrello sta
+ * sotto /mercatino, ma la voce giusta da accendere è il carrello. Con il solo
+ * confronto per prefisso si accendeva Usato ovunque dentro il mercatino.
+ */
+function voceAttiva(pathname: string, voci: VoceMenu[]) {
+  const candidate = voci.filter((v) =>
+    v.href === '/dashboard' ? pathname === '/dashboard' : pathname === v.href || pathname.startsWith(v.href + '/'),
+  );
+  return candidate.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
 export function Nav({ voci, utente, esci }: Props) {
   const pathname = usePathname();
+  const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
   // quante notifiche stanno dentro il menu: senza il pallino qui, chiuso il
   // pannello non resterebbe alcun segnale che qualcosa aspetta una risposta
@@ -90,7 +100,7 @@ export function Nav({ voci, utente, esci }: Props) {
                       <Link
                         href={v.href}
                         className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors ${
-                          attivo(pathname, v.href)
+                          acceso === v.href
                             ? 'bg-nvg/10 text-nvg'
                             : 'text-ink/80 hover:bg-surface2 hover:text-ink'
                         }`}
@@ -145,7 +155,7 @@ export function Nav({ voci, utente, esci }: Props) {
             key={v.href}
             href={v.href}
             className={`flex flex-col items-center gap-1 py-2.5 text-[10px] ${
-              attivo(pathname, v.href) ? 'text-nvg' : 'text-muted'
+              acceso === v.href ? 'text-nvg' : 'text-muted'
             }`}
           >
             <Icona nome={v.icona} size={19} />
@@ -203,7 +213,7 @@ export function Nav({ voci, utente, esci }: Props) {
                         href={v.href}
                         onClick={() => setApertoMenu(false)}
                         className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
-                          attivo(pathname, v.href)
+                          acceso === v.href
                             ? 'border-nvg/40 bg-nvg/10 text-nvg'
                             : 'border-line bg-surface2 text-ink'
                         }`}

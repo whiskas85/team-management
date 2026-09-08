@@ -1,6 +1,7 @@
 import type { Role, StatoOperatore, TipoDocumento } from '@prisma/client';
 import { prisma } from './db';
 import { puoScrivereDocumenti, vedeAttivitaSquadra } from './domain';
+import { SLUG_REGOLAMENTO } from './mercatino';
 
 /**
  * Statuto e regolamenti.
@@ -45,6 +46,31 @@ export const elencoDocumenti = (tipo: TipoDocumento) =>
     orderBy: [{ ordine: 'asc' }, { titolo: 'asc' }],
     include: { aggiornatoDa: { select: { nome: true, cognome: true, callsign: true } } },
   });
+
+/**
+ * Il regolamento del mercatino, se questa persona deve ancora accettarlo.
+ *
+ * Lì le regole non sono un cartello ma un patto fra due persone che si
+ * scambiano soldi e roba: il mercatino non si apre finché non le si è lette.
+ * Se il testo cambia si torna a chiedere — aver accettato altro non è aver
+ * accettato questo — e se il regolamento è vuoto non si obbliga nessuno a
+ * leggere una pagina bianca.
+ */
+export async function regolamentoDaAccettare(userId: string) {
+  const documento = await prisma.documento.findUnique({
+    where: { slug: SLUG_REGOLAMENTO },
+    include: {
+      aggiornatoDa: { select: { nome: true, cognome: true, callsign: true } },
+      accettazioni: { where: { userId }, select: { versione: true } },
+    },
+  });
+  if (!documento || !documento.testo.trim()) return null;
+
+  const gia = documento.accettazioni[0];
+  if (gia && gia.versione >= documento.aggiornatoIl) return null;
+
+  return { documento, cambiato: gia != null };
+}
 
 export const documentoDa = (slug: string) =>
   prisma.documento.findUnique({

@@ -17,7 +17,9 @@ import { str, type StatoForm } from '@/lib/form';
  */
 
 const aggiorna = (annuncioId: string) => {
+  // l’annuncio si apre da due porte, e la pagina è la stessa
   revalidatePath(`/mercatino/${annuncioId}`);
+  revalidatePath(`/merchandising/${annuncioId}`);
   revalidatePath('/mercatino');
   revalidatePath('/merchandising');
 };

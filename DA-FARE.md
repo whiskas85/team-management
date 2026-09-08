@@ -284,13 +284,17 @@ il primo dato orfano si scopre sempre troppo tardi.
    raccolta di quell'articolo. Il riepilogo conta gli ordini ancora in
    raccolta, che è esattamente la domanda a cui doveva rispondere, senza una
    tabella in più da tenere allineata.
-5. **Interruttore per i nuovi** e regolamento del mercatino nella sezione
-   Regolamenti.
+5. **Interruttore per i nuovi**; ~~regolamento del mercatino~~ — fatto
+   (1.25.0), ma nel gruppo Mercatino e non solo fra i Regolamenti: le regole di
+   una bacheca si leggono mentre la si usa. È lo stesso documento, aperto da
+   due porte, e **il mercatino non si apre finché non lo si accetta** — se il
+   testo cambia si ripassa di lì.
 6. **Push del browser**, quando c'è il dominio.
 
 Fuori strada per ora, scritto qui per non ridiscuterlo ogni volta: recensioni
-del venditore, spedizioni, carrello che mette insieme annunci diversi, pagamenti
-online. Sono tutte cose da negozio vero, e questa è la bacheca di una squadra di
+del venditore, spedizioni, pagamenti online. *(Il carrello che mette insieme
+articoli diversi stava in questo elenco: è rientrato in 1.25.0, perché uno che
+ordina una maglietta e due patch fa un giro solo e deve avere una quota sola.)* Sono tutte cose da negozio vero, e questa è la bacheca di una squadra di
 venti persone che si vedono la domenica.
 
 Due innesti che costano poco e si faranno quando il resto è in piedi:
@@ -358,6 +362,13 @@ Due conseguenze che vengono dalla stessa parte:
 - Le conversazioni le leggono solo i due, salvo segnalazione.
 - Il riepilogo del merchandising conta per giri di raccolta, non in assoluto.
 - Il prezzo si congela al momento dell'ordine.
+- Il carrello è uno solo e attraversa il catalogo; il checkout fa un ordine e
+  una quota, anche con pezzi di articoli diversi.
+- Non tutta la merce si ordina al fornitore: quella comprata in blocco sta a
+  **magazzino**, ha una giacenza che scende e un costo d'acquisto che si tiene
+  — serve a sapere se su un pezzo ci si guadagna.
+- Le regole del mercatino si accettano prima di entrare, e si riaccettano se
+  cambiano.
 
 ## Codice su GitHub
 

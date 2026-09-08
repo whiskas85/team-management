@@ -64,6 +64,15 @@ export const filtroBacheca = (userId: string): Prisma.AnnuncioWhereInput => ({
   OR: [{ stato: { in: ['PUBBLICATO', 'RITIRATO'] } }, { venditoreId: userId }],
 });
 
+/**
+ * L'indirizzo di un annuncio.
+ *
+ * Il catalogo del team ha una porta sua: se si aprisse tutto da /mercatino, il
+ * menu si sposterebbe su *Usato* ogni volta che si guarda una maglietta.
+ */
+export const stradaAnnuncio = (a: { id: string; ufficiale: boolean }) =>
+  `${a.ufficiale ? '/merchandising' : '/mercatino'}/${a.id}`;
+
 /** Chi può metterci mano: chi l'ha scritto. L'admin può solo ritirarlo. */
 export const eMio = (annuncio: { venditoreId: string }, userId: string) =>
   annuncio.venditoreId === userId;
@@ -142,6 +151,53 @@ export function vociCitate(
   return voci.filter((v) => scritte.has(v.maniglia)).map((v) => v.id);
 }
 
+// ------------------------------------------------------------------ magazzino
+
+/** Gli stati in cui un ordine tiene occupata della merce. */
+export const IMPEGNA = ['RACCOLTA', 'ORDINATO', 'ARRIVATO'];
+
+export type Giacenza = {
+  caricate: number;
+  /** Promesse a qualcuno ma non ancora consegnate. */
+  impegnate: number;
+  consegnate: number;
+  disponibili: number;
+  /** Quanto è costato al team un pezzo, in media sui carichi fatti. */
+  costoMedio: number | null;
+  /** Quanto ci è stato speso in tutto. */
+  spesa: number;
+};
+
+/**
+ * Cosa resta di una voce tenuta in magazzino.
+ *
+ * *Impegnate* e *consegnate* sono due cose diverse: una patch promessa a
+ * qualcuno non è più disponibile per un altro, anche se sta ancora nella
+ * scatola. Contare solo le consegnate vorrebbe dire venderla due volte.
+ */
+export function giacenzaDi(
+  carichi: { quantita: number; costoUnitario: unknown }[],
+  righe: { quantita: number; stato: string }[],
+): Giacenza {
+  const caricate = carichi.reduce((s, c) => s + c.quantita, 0);
+  const spesa = carichi.reduce((s, c) => s + c.quantita * Number(c.costoUnitario), 0);
+  const consegnate = righe
+    .filter((r) => r.stato === 'CONSEGNATO')
+    .reduce((s, r) => s + r.quantita, 0);
+  const impegnate = righe
+    .filter((r) => IMPEGNA.includes(r.stato))
+    .reduce((s, r) => s + r.quantita, 0);
+
+  return {
+    caricate,
+    impegnate,
+    consegnate,
+    disponibili: caricate - consegnate - impegnate,
+    costoMedio: caricate > 0 ? spesa / caricate : null,
+    spesa,
+  };
+}
+
 // ------------------------------------------------------------------ ordini
 
 /**
@@ -162,6 +218,9 @@ export const puoVedereOrdini = puoGestirePagamenti;
  */
 export const ordinabile = (v: { natura: string; attiva?: boolean }) =>
   v.attiva !== false && v.natura === 'RIORDINABILE';
+
+/** Lo slug del regolamento che apre il mercatino. */
+export const SLUG_REGOLAMENTO = 'mercatino';
 
 export const ETICHETTA_ORDINE: Record<string, string> = {
   RACCOLTA: 'in raccolta',

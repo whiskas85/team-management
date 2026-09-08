@@ -204,6 +204,9 @@ model User {
   annunci        Annuncio[]           @relation("AnnunciDi")
   vociPrenotate  VoceAnnuncio[]       @relation("VociPrenotate")
   ordini         Ordine[]             @relation("OrdiniDi")
+  carrello       RigaCarrello[]       @relation("CarrelloDi")
+  carichi        CaricoMagazzino[]    @relation("CarichiRegistrati")
+  documentiAccettati AccettazioneDocumento[] @relation("DocumentiAccettati")
 
   @@index([stato])
 }
@@ -960,6 +963,8 @@ model Documento {
   aggiornatoDaId String?
   aggiornatoDa   User?         @relation("DocumentiScritti", fields: [aggiornatoDaId], references: [id], onDelete: SetNull)
 
+  accettazioni AccettazioneDocumento[]
+
   @@index([tipo, ordine])
 }
 
@@ -1014,7 +1019,6 @@ model Annuncio {
   foto      FotoAnnuncio[]     @relation("FotoDi")
   commenti  CommentoAnnuncio[]
   miPiace   MiPiaceAnnuncio[]
-  ordini    Ordine[]
 
   @@index([stato, ufficiale])
 }
@@ -1051,6 +1055,11 @@ model VoceAnnuncio {
   /// un modello che non si fa più — e all'usato, per mettere da parte una cosa
   /// senza cancellarla e perderne i commenti.
   attiva        Boolean    @default(true)
+  /// Roba che il team compra in blocco e tiene in casa: le patch si ordinano
+  /// cento alla volta e poi si consegnano man mano. Non entra nel giro di
+  /// raccolta — non c'è niente da chiedere al fornitore a ogni ordine — ma ha
+  /// una giacenza che scende, e finita è finita.
+  aMagazzino    Boolean    @default(false)
   /// Solo per i pezzi unici: su una maglietta "venduta" non vuol dire niente.
   stato         StatoVoce  @default(DISPONIBILE)
   prenotataDaId String?
@@ -1058,8 +1067,10 @@ model VoceAnnuncio {
   prenotataIl   DateTime?
   ordine        Int        @default(0)
 
-  citata CitazioneVoce[]
-  righe  RigaOrdine[]
+  citata    CitazioneVoce[]
+  righe     RigaOrdine[]
+  carrelli  RigaCarrello[]
+  carichi   CaricoMagazzino[]
 
   @@unique([annuncioId, maniglia])
   @@index([annuncioId, ordine])
@@ -1109,6 +1120,72 @@ model MiPiaceAnnuncio {
 
 /// Le poche cose che si regolano senza toccare il codice. Una riga sola, come
 /// per le credenziali federali e il ponte WhatsApp.
+/// Chi ha letto e accettato un regolamento, e quale versione.
+///
+/// Serve dove le regole non sono un cartello ma un patto: il mercatino non si
+/// apre finché non le si è lette. La **versione** è la data dell'ultima
+/// modifica del testo — se il regolamento cambia si torna a chiedere, perché
+/// aver accettato altro non è aver accettato questo.
+model AccettazioneDocumento {
+  userId      String
+  utente      User      @relation("DocumentiAccettati", fields: [userId], references: [id], onDelete: Cascade)
+  documentoId String
+  documento   Documento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  accettatoIl DateTime  @default(now())
+  versione    DateTime
+
+  @@id([userId, documentoId])
+  @@index([documentoId])
+}
+
+/// Una scorta comprata in blocco: quante e quanto sono costate.
+///
+/// Il costo non serve alla cassa — quello passa dai movimenti come sempre —
+/// ma a sapere **quanto ci guadagna o ci rimette il team** su ogni pezzo: una
+/// patch venduta a 5 che ne è costata 4,20 è un'altra cosa da una che ne è
+/// costata 1,50, e senza scriverlo da qualche parte non se lo ricorda nessuno.
+///
+/// I carichi si sommano invece di aggiornare un numero solo: così resta la
+/// storia dei prezzi pagati, e una quantità sbagliata si corregge togliendo la
+/// riga sbagliata e non indovinando il totale giusto.
+model CaricoMagazzino {
+  id             String       @id @default(cuid())
+  voceId         String
+  voce           VoceAnnuncio @relation(fields: [voceId], references: [id], onDelete: Cascade)
+  quantita       Int
+  /// Quanto è costato al team un singolo pezzo.
+  costoUnitario  Decimal      @db.Decimal(10, 2)
+  fornitore      String?
+  note           String?
+  compratoIl     DateTime     @default(now())
+  registratoDaId String?
+  registratoDa   User?        @relation("CarichiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
+
+  @@index([voceId])
+}
+
+/// Il carrello di una persona, che aspetta.
+///
+/// Sta nel database e non nella pagina perché è **uno solo e attraversa il
+/// catalogo**: si aggiunge una maglietta oggi, due patch domani, e si ordina
+/// quando si è finito di girare. Un carrello che vive dentro una pagina si
+/// svuota ogni volta che si cambia articolo, ed è esattamente il motivo per
+/// cui non funzionava.
+model RigaCarrello {
+  id         String       @id @default(cuid())
+  userId     String
+  utente     User         @relation("CarrelloDi", fields: [userId], references: [id], onDelete: Cascade)
+  voceId     String
+  voce       VoceAnnuncio @relation(fields: [voceId], references: [id], onDelete: Cascade)
+  quantita   Int
+  aggiuntaIl DateTime     @default(now())
+
+  /// Una riga sola per voce: aggiungerla di nuovo alza il numero, non
+  /// raddoppia la riga.
+  @@unique([userId, voceId])
+  @@index([userId])
+}
+
 /// Vita di un ordine del merchandising, dal carrello alla consegna.
 ///
 /// *Pagato* e *consegnato* sono due cose diverse: uno paga oggi e ritira fra
@@ -1125,6 +1202,10 @@ enum StatoOrdine {
 
 /// Un ordine del merchandising: il carrello di una persona, spedito.
 ///
+/// Non appartiene a un articolo solo: il carrello attraversa il catalogo, e
+/// una maglietta più due patch sono **un** ordine e **una** quota. A quale
+/// articolo appartiene ogni riga lo dice la voce che ha dentro.
+///
 /// Nasce insieme alla sua quota, che compare fra i pagamenti di chi ordina e
 /// in cassa come tutto il resto. È il bollino di ufficiale sull'annuncio a
 /// deciderlo: una vendita privata fra due soci non passa dai soldi del
@@ -1133,8 +1214,6 @@ model Ordine {
   id           String      @id @default(cuid())
   /// Progressivo leggibile: "ordine 14" si dice a voce, un cuid no.
   numero       Int         @default(autoincrement())
-  annuncioId   String
-  annuncio     Annuncio    @relation(fields: [annuncioId], references: [id], onDelete: Restrict)
   userId       String
   utente       User        @relation("OrdiniDi", fields: [userId], references: [id], onDelete: Cascade)
   stato        StatoOrdine @default(RACCOLTA)

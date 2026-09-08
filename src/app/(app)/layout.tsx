@@ -96,6 +96,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     },
   });
 
+  // il carrello è uno solo e attraversa il catalogo: il pallino dice quanti
+  // pezzi ci sono dentro, o uno lo dimentica pieno per settimane
+  const nelCarrello = puoVedereMerchandising(utente.stato)
+    ? await prisma.rigaCarrello.aggregate({
+        where: { userId: utente.id },
+        _sum: { quantita: true },
+      })
+    : null;
+
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Situazione', icona: 'dashboard', gruppo: 'principale' },
     {
@@ -130,7 +139,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       icona: 'maglietta',
       gruppo: 'mercatino',
     });
+    voci.push({
+      href: '/mercatino/carrello',
+      label: 'Carrello',
+      icona: 'carrello',
+      gruppo: 'mercatino',
+      badge: nelCarrello?._sum.quantita ?? 0,
+    });
   }
+
+  // le regole della bacheca si leggono mentre la si usa, non andandole a
+  // cercare in un'altra sezione: è lo stesso documento che sta fra i
+  // regolamenti, aperto da dove serve
+  voci.push({
+    href: '/mercatino/regolamento',
+    label: 'Regolamento',
+    icona: 'regolamento',
+    gruppo: 'mercatino',
+  });
 
   // I regolamenti li legge chiunque abbia un account, contatti compresi: sono
   // quello che si mostra a chi si sta affacciando. Lo statuto no — dice come

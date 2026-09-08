@@ -102,10 +102,29 @@ async function importaDocumenti() {
     },
   ];
 
+  // Il regolamento del mercatino invece nasce con l'applicazione: il testo
+  // sta nel repository e arriva insieme al codice che descrive. Da qui in poi
+  // è un documento come gli altri e lo si corregge dall'interfaccia — questo
+  // giro non lo tocca più, perché controlla solo se lo slug esiste.
+  const suoTesto = await readFile(
+    new URL('./testi/regolamento-mercatino.md', import.meta.url),
+    'utf8',
+  ).catch(() => null);
+  if (suoTesto !== null) {
+    daPortare.push({
+      slug: 'mercatino',
+      tipo: 'REGOLAMENTO',
+      titolo: 'Regolamento del mercatino',
+      sottotitolo: 'Cosa si vende, come ci si comporta, come funzionano gli ordini',
+      testo: suoTesto,
+      ordine: 10,
+    });
+  }
+
   for (const d of daPortare) {
     if (await prisma.documento.findUnique({ where: { slug: d.slug } })) continue;
 
-    const testo = await readFile(path.join(cartella, d.file), 'utf8').catch(() => null);
+    const testo = d.testo ?? (await readFile(path.join(cartella, d.file), 'utf8').catch(() => null));
 
     // lo statuto si crea comunque, anche vuoto: è la pagina che chi ha i
     // permessi va ad aprire per scriverlo. Un regolamento che non c'è invece
@@ -119,6 +138,7 @@ async function importaDocumenti() {
         titolo: d.titolo,
         sottotitolo: d.sottotitolo,
         testo: testo ?? '',
+        ordine: d.ordine ?? 0,
       },
     });
     console.log(`[seed] documento "${d.slug}" ${testo === null ? 'creato vuoto' : 'importato dal file'}`);

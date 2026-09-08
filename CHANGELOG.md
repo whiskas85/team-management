@@ -5,6 +5,68 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.25.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Il carrello è uno solo e attraversa il catalogo.** Su ogni voce si sceglie
+  quanti pezzi e si preme *Aggiungi*; il carrello aspetta nella sua voce di
+  menu, con il pallino che dice quanti pezzi ci sono dentro, e da lì si manda
+  l'ordine. Prima il carrello viveva dentro la pagina di un articolo e si
+  svuotava appena si cambiava articolo: si girava il catalogo e non restava
+  niente.
+- **Quello che si ordina insieme è un ordine solo e una quota sola**, anche se
+  sono una maglietta e due patch di articoli diversi. Con un ordine per
+  articolo la segreteria si ritroverebbe a incassare quattro righe alla stessa
+  persona nello stesso giorno.
+- **Regolamento del mercatino**, nella sua voce dentro il gruppo Mercatino: le
+  regole di una bacheca si leggono mentre la si usa, non andandole a cercare in
+  un'altra sezione. È un documento come lo statuto e gli altri regolamenti —
+  chi ha i permessi lo corregge dall'interfaccia, senza un rilascio — e resta
+  anche nell'elenco dei Regolamenti. Il testo di partenza arriva scritto con
+  l'applicazione.
+- **Il mercatino si apre dopo aver letto il regolamento.** Alla prima visita
+  c'è il testo intero e il pulsante *Ho letto e accetto* in fondo; da lì in poi
+  non si vede più. Altrove i regolamenti si leggono se si vuole, qui no: fra
+  due persone che si scambiano soldi e roba le regole non sono un cartello ma
+  il patto su cui si discuterà se qualcosa va storto. Se il testo cambia si
+  ripassa di lì — aver accettato la versione di prima non è aver accettato
+  questa.
+- **Il magazzino.** Non tutta la merce si ordina al fornitore a ogni giro: le
+  patch si comprano cento alla volta e si consegnano man mano. Una voce si può
+  segnare come tenuta in casa, e allora ha una **giacenza** che scende: si vede
+  *ne restano 34*, e quando finisce non si può più ordinare finché non ne
+  arrivano altre. Ogni carico porta **quanto è costato un pezzo**, quindi la
+  pagina degli ordini dice anche costo medio, margine e valore di quello che
+  resta in scatola — una patch venduta a 5 che ne è costata 4,20 è un'altra
+  cosa da una che ne è costata 1,50.
+
+### Corretto
+
+- **Aprendo un articolo del merchandising il menu si spostava su *Usato*.** Gli
+  articoli del team adesso hanno un indirizzo loro (`/merchandising/…`) e i
+  vecchi link portano lì da soli; e la voce accesa nel menu è quella che
+  corrisponde più a lungo, così anche il carrello e il regolamento non
+  accendono più il mercatino intero.
+
+### Cambiato
+
+- **Le voci si riordinano trascinandole**, non più con le frecce su e giù. Si
+  prende dalla **maniglia** a sinistra e da nient'altro: una card che si
+  trascina da qualunque punto si sposta per sbaglio ogni volta che si prova a
+  leggerla o a premere un pulsante che ha dentro.
+- Funziona **anche dal telefono**: il trascinamento passa dai *pointer event* e
+  non da quello nativo del browser, che sul telefono non esiste. Da tastiera la
+  maniglia resta un pulsante come gli altri, con freccia su e freccia giù.
+- L'ordine si sistema subito sotto le dita e **si salva quando si molla**, in
+  un colpo solo: al server arriva l'elenco intero e non «questa sale di uno»,
+  che è l'unico modo perché quello che si vede e quello che finisce nel
+  database siano la stessa cosa.
+- **Il giro di raccolta si chiude una volta sola**, per tutto il merchandising
+  insieme: dato che un ordine può contenere pezzi di articoli diversi,
+  chiuderlo articolo per articolo vorrebbe dire spezzare anche la sua quota. Il
+  riepilogo resta diviso per articolo, che è la forma in cui si compra.
+
 ## 1.24.0 — 7 settembre 2026
 
 ### Aggiunto

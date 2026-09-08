@@ -26,7 +26,13 @@ const MAX_FOTO = 8;
 
 function aggiorna(id?: string) {
   revalidatePath('/mercatino');
-  if (id) revalidatePath(`/mercatino/${id}`);
+  revalidatePath('/merchandising');
+  // l'annuncio si apre da due porte, e la pagina è la stessa: senza il secondo
+  // giro una delle due resterebbe indietro
+  if (id) {
+    revalidatePath(`/mercatino/${id}`);
+    revalidatePath(`/merchandising/${id}`);
+  }
 }
 
 /** L'annuncio, ma solo se è di chi sta chiedendo. */
@@ -144,8 +150,11 @@ export async function eliminaAnnuncio(_prev: StatoForm, fd: FormData): Promise<S
 
   // con degli ordini dentro non si cancella: porterebbe via le quote di altre
   // persone. Per toglierlo di mezzo c'è "ritira", che lo lascia leggibile
-  const ordini = await prisma.ordine.count({
-    where: { annuncioId: annuncio.id, stato: { not: 'ANNULLATO' } },
+  // l'ordine non punta più all'annuncio ma alle sue voci: il carrello
+  // attraversa il catalogo, e la domanda giusta è se qualcuno ha ordinato
+  // qualcosa di qui dentro
+  const ordini = await prisma.rigaOrdine.count({
+    where: { voce: { annuncioId: annuncio.id }, ordine: { stato: { not: 'ANNULLATO' } } },
   });
   if (ordini > 0) {
     return {
@@ -190,6 +199,9 @@ export async function salvaVoce(_prev: StatoForm, fd: FormData): Promise<StatoFo
     // spenta resta scritta ma non è in vendita: cancellarla porterebbe via
     // anche i commenti che la nominano, che sono di altre persone
     attiva: bool(fd, 'attiva'),
+    // tenuta in casa: non entra nel giro di raccolta, ma ha una giacenza che
+    // scende e finita è finita
+    aMagazzino: bool(fd, 'aMagazzino'),
   };
 
   const id = strOpt(fd, 'id');
@@ -242,38 +254,40 @@ export async function eliminaVoce(_prev: StatoForm, fd: FormData): Promise<Stato
 }
 
 /**
- * Sposta una voce su o giù.
+ * Rimette le voci nell'ordine deciso trascinandole.
  *
- * L'ordine in cui si leggono le voci è una scelta di chi vende: la taglia S
- * prima della XL, il pezzo importante in cima. Si scambia con la vicina e poi
- * si rinumera tutto da zero — così i buchi lasciati dalle voci cancellate non
- * si accumulano fino a rendere lo scambio imprevedibile.
+ * Arriva l'elenco intero e non «questa sale di uno»: chi trascina può
+ * spostare una voce di quattro posti in un gesto solo, e mandare il risultato
+ * invece dei passaggi è l'unico modo perché quello che si vede sotto le dita e
+ * quello che finisce nel database siano la stessa cosa.
+ *
+ * Si rinumera da zero tutte le volte, così i buchi lasciati dalle voci
+ * cancellate non si accumulano.
  */
-export async function spostaVoce(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+export async function ordinaVoci(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  const voce = await prisma.voceAnnuncio.findUnique({
-    where: { id: str(fd, 'id') },
-    include: { annuncio: true },
-  });
-  if (!voce || !eMio(voce.annuncio, me.id)) return { errore: 'Voce non trovata, o non è tua.' };
+  const annuncio = await mioAnnuncio(str(fd, 'annuncioId'), me.id);
+  if (!annuncio) return { errore: 'Annuncio non trovato, o non è tuo.' };
 
-  const su = str(fd, 'verso') === 'su';
   const voci = await prisma.voceAnnuncio.findMany({
-    where: { annuncioId: voce.annuncioId },
-    orderBy: [{ ordine: 'asc' }, { titolo: 'asc' }],
+    where: { annuncioId: annuncio.id },
     select: { id: true },
   });
 
-  const dove = voci.findIndex((v) => v.id === voce.id);
-  const verso = su ? dove - 1 : dove + 1;
-  if (dove < 0 || verso < 0 || verso >= voci.length) return {};
+  // l'elenco che arriva dalla pagina si accetta solo se parla esattamente
+  // delle voci di questo annuncio: né una in meno (resterebbe senza posto) né
+  // una di un altro annuncio
+  const sue = new Set(voci.map((v) => v.id));
+  const nuovo = str(fd, 'ids').split(',').filter((id) => sue.has(id));
+  if (nuovo.length !== voci.length || new Set(nuovo).size !== voci.length) {
+    return { errore: 'L’elenco è cambiato mentre lo spostavi: ricarica la pagina.' };
+  }
 
-  [voci[dove], voci[verso]] = [voci[verso], voci[dove]];
   await prisma.$transaction(
-    voci.map((v, i) => prisma.voceAnnuncio.update({ where: { id: v.id }, data: { ordine: i } })),
+    nuovo.map((id, i) => prisma.voceAnnuncio.update({ where: { id }, data: { ordine: i } })),
   );
 
-  aggiorna(voce.annuncioId);
+  aggiorna(annuncio.id);
   return {};
 }
 
