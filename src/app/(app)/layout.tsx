@@ -18,6 +18,7 @@ import {
   vedeAttivitaSquadra,
 } from '@/lib/domain';
 import { filtroVisibilita } from '@/lib/query';
+import { mancanze, qualcosaManca } from '@/lib/consensi';
 import { Nav, type VoceMenu } from '@/components/Nav';
 import { ContenitoreToast } from '@/components/Toast';
 import { puoVedereMerchandising } from '@/lib/mercatino';
@@ -31,6 +32,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // propria. La pagina sta fuori da questo gruppo, altrimenti si rimanderebbe
   // a se stessa
   if (utente.deveCambiarePassword) redirect('/cambia-password');
+
+  // Poi i consensi: informativa privacy e regole del club sono obbligatorie,
+  // la scelta sulle foto va fatta — in un senso o nell’altro. Anche questa
+  // pagina sta fuori dal gruppo, o si rimanderebbe a sé stessa.
+  const daAccettare = await mancanze(utente.id);
+  if (qualcosaManca(daAccettare)) redirect('/consensi');
 
   // contatori mostrati come pallino accanto alle voci di back office
   let certificatiDaVagliare = 0;

@@ -1,7 +1,7 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin, statoEffettivo } from '@/lib/domain';
-import { fmtDate, fmtDateTime } from '@/lib/format';
+import { fmtDate, fmtDateTime, nomeCompleto } from '@/lib/format';
 import { Campo, Intestazione, Statistica } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
@@ -50,6 +50,13 @@ export default async function OperatoriPage() {
         .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0),
     };
   });
+
+  // Chi ha detto di no alle foto. Serve a chi pubblica: il consenso si chiede
+  // a tutti, e chi si è tirato indietro va saputo prima di caricare l'album
+  // della domenica, non dopo.
+  const nienteFoto = operatori.filter(
+    (o) => o.consensoImmaginiIl !== null && !o.consensoImmagini && o.stato !== 'DISABILITATO',
+  );
 
   const inSquadra = righe.filter((r) => r.stato === 'SQUADRA').length;
   const daRiconfermare = righe.filter((r) => r.stato === 'DA_RICONFERMARE').length;
@@ -119,6 +126,17 @@ export default async function OperatoriPage() {
           tono={conDebito ? 'warn' : 'ok'}
         />
       </div>
+
+      {/* Chi non vuole comparire nelle foto. Il consenso si chiede a tutti, e
+          chi si è tirato indietro va saputo prima di caricare l'album della
+          domenica — dopo è tardi. */}
+      {nienteFoto.length > 0 && (
+        <div className="mb-6 rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+          <strong>Niente foto pubblicate</strong>:{' '}
+          {nienteFoto.map((o) => nomeCompleto(o)).join(', ')}. Hanno detto di no, ed è una risposta
+          buona quanto l'altra: quando pubblichi, tienili fuori.
+        </div>
+      )}
 
       <ElencoOperatori
         righe={righe}

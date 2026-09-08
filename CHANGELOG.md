@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.30.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Tre cose si accettano prima di entrare**, in una pagina che compare una
+  volta sola: **l’informativa privacy** e **statuto e regolamenti** — senza la
+  prima non si possono trattare i dati di nessuno, senza le seconde non si
+  prende parte a un club che di regole è fatto — e la **scelta sulle foto**,
+  che ha due risposte buone. Si entra dicendo sì e si entra dicendo no: quello
+  che non si può fare è non chiederlo.
+- **Il no alle foto si vede a chi pubblica.** In Operatori c’è l’elenco di chi
+  ha risposto di no, perché va saputo prima di caricare l’album della domenica,
+  non dopo. La scelta si cambia quando si vuole dal proprio profilo.
+- **Se uno dei testi cambia si ripassa di lì**, e solo da quello che è
+  cambiato: aver accettato altro non è aver accettato questo. Di ogni consenso
+  restano data e versione — un consenso senza data non è un consenso, è
+  un’opinione.
+
+A chi si è appena affacciato si chiede solo la privacy: statuto e regolamenti
+riguardano chi al club prende parte.
+
 ## 1.29.0 — 8 settembre 2026
 
 ### Aggiunto
