@@ -389,3 +389,41 @@ export async function tieniAMagazzino(_prev: StatoForm, fd: FormData): Promise<S
       : `${voce.titolo} torna a ordinarsi a ogni giro.`,
   };
 }
+
+/**
+ * Toglie di mezzo una voce di magazzino.
+ *
+ * Con degli ordini o dei riordini alle spalle non si cancella: sarebbero
+ * righe che parlano di una cosa che non esiste più, e il registro non
+ * tornerebbe. Per quello c'è *non la tengo più*, che la lascia nel catalogo
+ * e le toglie solo la giacenza.
+ */
+export async function eliminaVoceMagazzino(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoGestirePagamenti(me.roles)) {
+    return { errore: 'L’inventario lo tengono admin e segreteria.' };
+  }
+
+  const voce = await prisma.voceAnnuncio.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { _count: { select: { righe: true, riordini: true } } },
+  });
+  if (!voce) return { errore: 'Voce non trovata.' };
+
+  if (voce._count.righe > 0) {
+    return {
+      errore:
+        'Qualcuno l’ha ordinata: non si cancella. Se non la tieni più, toglila dal magazzino.',
+    };
+  }
+  if (voce._count.riordini > 0) {
+    return {
+      errore: 'C’è un riordino che la nomina: cancella prima quello, o toglila dal magazzino.',
+    };
+  }
+
+  await prisma.voceAnnuncio.delete({ where: { id: voce.id } });
+
+  aggiorna(voce.id);
+  return { ok: `${voce.titolo} eliminata: se ne vanno anche i suoi carichi.` };
+}

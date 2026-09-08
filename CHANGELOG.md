@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.27.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Un’uscita di cassa può essere un acquisto di magazzino.** Nel modulo
+  dell’uscita si sceglie la merce e quanti pezzi: la giacenza sale da sola e
+  il costo di un pezzo si ricava dividendo l’importo per i pezzi. Sono gli
+  stessi soldi, e farli scrivere due volte — una in cassa, una in magazzino —
+  è il modo più sicuro perché un giorno non tornino. Cancellata la spesa, se ne
+  va anche l’entrata: se quei soldi non sono usciti, quella roba non è entrata.
+- **Una voce di magazzino si elimina**, dalla riga dell’inventario. Se qualcuno
+  l’ha ordinata o c’è un riordino che la nomina non si cancella — sarebbero
+  righe che parlano di una cosa che non esiste più — e per quel caso c’è *non
+  la tengo*, che la lascia nel catalogo e le toglie solo la giacenza.
+
 ## 1.26.5 — 8 settembre 2026
 
 ### Aggiunto

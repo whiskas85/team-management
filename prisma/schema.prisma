@@ -728,6 +728,10 @@ model MovimentoCassa {
 
   /// Il riordino che ha generato questa uscita, se ne viene.
   riordino Riordino?
+  /// La merce entrata in magazzino con questa uscita, se la spesa era un
+  /// acquisto: si compra, si scrive quanto è costata, e la giacenza sale da
+  /// sola invece di dover ricopiare gli stessi numeri in due posti.
+  carico   CaricoMagazzino?
 
   @@index([data])
 }
@@ -1277,6 +1281,12 @@ model CaricoMagazzino {
   /// l'ordine 7* invece di un +50 che non si sa da dove esca.
   rigaRiordinoId String?      @unique
   rigaRiordino   RigaRiordino? @relation(fields: [rigaRiordinoId], references: [id], onDelete: SetNull)
+  /// L'uscita di cassa con cui questa merce è stata comprata, quando la spesa
+  /// si registra dalla cassa invece che da un riordino. Sparita la spesa
+  /// sparisce il carico: se quei soldi non sono usciti, quella roba non è
+  /// entrata.
+  movimentoId    String?      @unique
+  movimento      MovimentoCassa? @relation(fields: [movimentoId], references: [id], onDelete: Cascade)
   registratoDaId String?
   registratoDa   User?        @relation("CarichiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
 

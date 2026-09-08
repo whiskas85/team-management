@@ -20,9 +20,14 @@ type Movimento = {
   categoria: string | null;
   note: string | null;
   metodoId: string | null;
+  /** Se la spesa era un acquisto: la merce entrata e quanti pezzi. */
+  carico?: { voceId: string; quantita: number } | null;
 };
 
 type Metodo = { id: string; nome: string };
+
+/** Una voce di magazzino, come si sceglie: articolo e specifica. */
+type Merce = { id: string; titolo: string; articolo: string };
 
 /**
  * Una riga del registro di cassa. Ci finiscono sia i movimenti scritti a mano
@@ -58,12 +63,15 @@ export default async function CassaPage({
   const sp = await searchParams;
   const origine = (Object.keys(ORIGINI).includes(sp.origine ?? '') ? sp.origine : 'tutte') as Origine;
 
-  const [movimenti, pagamenti, metodi] = await Promise.all([
+  const [movimenti, pagamenti, metodi, scorte] = await Promise.all([
     prisma.movimentoCassa.findMany({
       orderBy: { data: 'desc' },
       include: {
         metodo: { select: { nome: true } },
         registratoBy: { select: { nome: true, cognome: true } },
+        // serve al modulo di modifica: senza, riaprirlo e salvare toglierebbe
+        // in silenzio la merce entrata con quella spesa
+        carico: { select: { voceId: true, quantita: true } },
       },
     }),
     prisma.payment.findMany({
@@ -89,7 +97,15 @@ export default async function CassaPage({
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true },
     }),
+    // la merce di magazzino: una spesa può essere il suo acquisto
+    prisma.voceAnnuncio.findMany({
+      where: { aMagazzino: true },
+      orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
+      select: { id: true, titolo: true, annuncio: { select: { titolo: true } } },
+    }),
   ]);
+
+  const merci = scorte.map((v) => ({ id: v.id, titolo: v.titolo, articolo: v.annuncio.titolo }));
 
   // quello che entra dalle attività, al netto di ciò che è stato restituito
   const incassiQuote = pagamenti
@@ -176,7 +192,7 @@ export default async function CassaPage({
             >
               <FormAzione azione={salvaMovimento}>
                 <input type="hidden" name="tipo" value="USCITA" />
-                <CampiMovimento metodi={metodi} />
+                <CampiMovimento metodi={metodi} merci={merci} />
                 <Invia icona="salva">Registra uscita</Invia>
               </FormAzione>
             </BottoneModale>
@@ -298,7 +314,7 @@ export default async function CassaPage({
               </div>
               {admin && v.movimento && (
                 <div className="mt-3 flex gap-2 border-t border-line pt-3">
-                  <Azioni movimento={v.movimento} metodi={metodi} />
+                  <Azioni movimento={v.movimento} metodi={metodi} merci={merci} />
                 </div>
               )}
             </div>
@@ -353,7 +369,7 @@ export default async function CassaPage({
                       <td className="whitespace-nowrap">
                         {v.movimento ? (
                           <div className="flex gap-2">
-                            <Azioni movimento={v.movimento} metodi={metodi} />
+                            <Azioni movimento={v.movimento} metodi={metodi} merci={merci} />
                           </div>
                         ) : (
                           <span className="text-[11px] text-muted">dal pagamento</span>
@@ -371,7 +387,15 @@ export default async function CassaPage({
   );
 }
 
-function Azioni({ movimento, metodi }: { movimento: Movimento; metodi: Metodo[] }) {
+function Azioni({
+  movimento,
+  metodi,
+  merci,
+}: {
+  movimento: Movimento;
+  metodi: Metodo[];
+  merci: Merce[];
+}) {
   return (
     <>
       <BottoneModale
@@ -383,7 +407,11 @@ function Azioni({ movimento, metodi }: { movimento: Movimento; metodi: Metodo[] 
         <FormAzione azione={salvaMovimento}>
           <input type="hidden" name="id" value={movimento.id} />
           <input type="hidden" name="tipo" value={movimento.tipo} />
-          <CampiMovimento metodi={metodi} movimento={movimento} />
+          <CampiMovimento
+            metodi={metodi}
+            movimento={movimento}
+            merci={movimento.tipo === 'USCITA' ? merci : undefined}
+          />
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
       </BottoneModale>
@@ -404,9 +432,12 @@ function Azioni({ movimento, metodi }: { movimento: Movimento; metodi: Metodo[] 
 function CampiMovimento({
   metodi,
   movimento,
+  merci,
 }: {
   metodi: Metodo[];
   movimento?: Movimento;
+  /** Solo sulle uscite: se la spesa è un acquisto, entra in magazzino. */
+  merci?: Merce[];
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -464,6 +495,41 @@ function CampiMovimento({
       <Campo label="Note" span>
         <textarea name="note" rows={2} defaultValue={movimento?.note ?? ''} className="input" />
       </Campo>
+
+      {/* Se la spesa è un acquisto di magazzino, i pezzi entrano da soli e il
+          costo del pezzo esce dalla divisione: sono gli stessi soldi, e
+          scriverli due volte è il modo più sicuro perché un giorno non
+          tornino. */}
+      {merci && merci.length > 0 && (
+        <>
+          <Campo label="È un acquisto di magazzino?" span>
+            <select name="voceId" defaultValue={movimento?.carico?.voceId ?? ''} className="input">
+              <option value="">— no, è una spesa e basta —</option>
+              {merci.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.articolo} — {m.titolo}
+                </option>
+              ))}
+            </select>
+          </Campo>
+
+          <Campo label="Quanti pezzi">
+            <input
+              name="quantita"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue={movimento?.carico?.quantita ?? ''}
+              className="input"
+            />
+          </Campo>
+
+          <p className="self-end text-[11px] text-muted sm:col-span-1">
+            La giacenza sale di quei pezzi, e il costo di uno si ricava dividendo l’importo per i
+            pezzi.
+          </p>
+        </>
+      )}
     </div>
   );
 }

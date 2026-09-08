@@ -18,6 +18,7 @@ import {
   tieniAMagazzino,
   eliminaRigaRiordino,
   eliminaRiordino,
+  eliminaVoceMagazzino,
   pagaRiordino,
   riceviRiordino,
 } from '@/actions/inventario';
@@ -264,13 +265,33 @@ export default async function InventarioPage() {
                       {v.inVendita && margine !== null ? fmtEuro(margine) : '—'}
                     </td>
                     <td>
-                      <BottoneModale
-                        etichetta="Rettifica"
-                        titolo={`Rettifica · ${v.articolo} ${v.titolo}`}
-                        className="btn-ghost btn-sm"
-                      >
-                        <FormRettifica voce={v} />
-                      </BottoneModale>
+                      <span className="flex flex-wrap items-center justify-end gap-2">
+                        <BottoneModale
+                          etichetta="Rettifica"
+                          titolo={`Rettifica · ${v.articolo} ${v.titolo}`}
+                          className="btn-ghost btn-sm"
+                        >
+                          <FormRettifica voce={v} />
+                        </BottoneModale>
+                        {/* due modi di toglierla di mezzo: uno la lascia nel
+                            catalogo senza giacenza, l'altro la cancella */}
+                        <AzioneBottone
+                          azione={tieniAMagazzino}
+                          valori={{ id: v.id, verso: 'fuori' }}
+                          conferma="Toglierla dal magazzino? Resta nel catalogo, ma senza giacenza."
+                          className="text-[11px] text-muted transition-colors hover:text-ink"
+                        >
+                          non la tengo
+                        </AzioneBottone>
+                        <AzioneBottone
+                          azione={eliminaVoceMagazzino}
+                          valori={{ id: v.id }}
+                          conferma={`Eliminare "${v.titolo}"? Se ne vanno anche i suoi carichi.`}
+                          className="text-[11px] text-muted transition-colors hover:text-danger"
+                        >
+                          elimina
+                        </AzioneBottone>
+                      </span>
                     </td>
                   </tr>
                 );
