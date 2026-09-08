@@ -29,6 +29,7 @@ import {
 } from '@/lib/domain';
 import { comeChiamare, fmtDate, fmtDateTime, fmtEuro, fmtTime, umanizza } from '@/lib/format';
 import { listinoAttivo, quotaPer } from '@/lib/quote';
+import { stagioniAperte } from '@/lib/stagioni';
 import { Avatar, Badge, Campo, Dato, Intestazione, Vuoto } from '@/components/ui';
 import { Conferma, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -258,7 +259,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     evento.status !== 'RILASCIATA' ||
     (!!evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date());
 
-  const [campi, tipologie, operatoriGrezzi, listino] = tl
+  const [campi, tipologie, operatoriGrezzi, listino, stagioni] = tl
     ? await Promise.all([
         // teniamo anche la voce già collegata, se nel frattempo è stata
         // archiviata: modificando l'attività non deve sparire
@@ -293,8 +294,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         }),
         // serve solo al modulo di modifica, che è dell'admin
         admin ? listinoAttivo() : Promise.resolve([]),
+        // le stagioni servono al modulo: un’attività si può spostare in quella dopo
+        admin ? stagioniAperte() : Promise.resolve([]),
       ])
-    : [[], [], [], []];
+    : [[], [], [], [], []];
 
   const gia = new Set(evento.rsvps.map((r) => r.userId));
 
@@ -476,6 +479,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     tipologie={tipologie}
                     listino={listino}
                     stagioneId={evento.stagioneId}
+                    stagioni={stagioni}
                     evento={evento}
                     soloLogistica={!admin}
                   />

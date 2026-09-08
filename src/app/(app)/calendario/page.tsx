@@ -15,7 +15,7 @@ import { AzioniEvento } from '@/components/AzioniEvento';
 import { CalendarioMese, type GiornoEvento } from '@/components/CalendarioMese';
 import { salvaEvento } from '@/actions/eventi';
 import { listinoAttivo } from '@/lib/quote';
-import { stagioneAttiva } from '@/lib/stagioni';
+import { stagioneAttiva, stagioniAperte } from '@/lib/stagioni';
 
 export default async function CalendarioPage({
   searchParams,
@@ -31,7 +31,7 @@ export default async function CalendarioPage({
   const admin = isAdmin(me.roles);
 
   // il listino serve al modulo di creazione: le quote si compongono da lì
-  const [campi, tipologie, listino, stagione] = admin
+  const [campi, tipologie, listino, stagione, stagioni] = admin
     ? await Promise.all([
         prisma.field.findMany({ where: { attivo: true }, orderBy: { nome: 'asc' } }),
         prisma.tipoAttivita.findMany({
@@ -41,8 +41,9 @@ export default async function CalendarioPage({
         }),
         listinoAttivo(),
         stagioneAttiva(),
+        stagioniAperte(),
       ])
-    : [[], [], [], null];
+    : [[], [], [], null, []];
 
   // legenda dei colori: sempre visibile, anche a chi non gestisce il calendario
   const legenda = await prisma.tipoAttivita.findMany({
@@ -178,6 +179,7 @@ export default async function CalendarioPage({
                       tipologie={tipologie}
                       listino={listino}
                       stagioneId={stagione?.id ?? null}
+                    stagioni={stagioni}
                       compatto
                     />
                     <Invia icona="aggiungi">Crea attività</Invia>
@@ -199,6 +201,7 @@ export default async function CalendarioPage({
                       tipologie={tipologie}
                       listino={listino}
                       stagioneId={stagione?.id ?? null}
+                    stagioni={stagioni}
                     />
                     <Invia icona="aggiungi">Crea attività</Invia>
                     <p className="text-xs text-muted">

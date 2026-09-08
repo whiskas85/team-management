@@ -135,9 +135,13 @@ export async function eliminaCertificato(_prev: StatoForm, fd: FormData): Promis
   // costringere a *rifiutarlo* per farlo sparire lascia in elenco una riga
   // rossa che racconta una bocciatura mai avvenuta. Chi tiene l'elenco deve
   // poterlo tenere pulito.
-  const mioNonAncoraVagliato = cert.userId === me.id && cert.status === 'IN_ATTESA';
-  if (!mioNonAncoraVagliato && !puoAmministrare(me.roles)) {
-    return { errore: 'Puoi eliminare solo un tuo certificato non ancora approvato.' };
+  // Il proprio certificato si toglie sempre, anche approvato: il caso vero è
+  // il file sbagliato, e obbligare a tenerselo perché qualcuno l’ha già
+  // guardato non protegge nessuno — chi lo cancella resta senza copertura, e
+  // il danno se lo fa da solo.
+  const mio = cert.userId === me.id;
+  if (!mio && !puoAmministrare(me.roles)) {
+    return { errore: 'Puoi eliminare solo i tuoi certificati.' };
   }
 
   await prisma.medicalCertificate.delete({ where: { id } });

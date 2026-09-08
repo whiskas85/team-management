@@ -60,11 +60,23 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   const fine = data(fd, 'fine');
   if (fine && inizio && fine < inizio) return { errore: 'La fine non può precedere l’inizio.' };
 
-  // la stagione resta quella in cui l'attività è nata: le voci di listino da
-  // usare sono le sue, non quelle dell'anno in cui la si sta ritoccando
   const esistente = id ? await prisma.event.findUnique({ where: { id } }) : null;
   if (id && !esistente) return { errore: 'Attività non trovata.' };
-  const stagioneId = esistente ? esistente.stagioneId : (await stagioneAttiva()).id;
+
+  // Ogni attività appartiene a una stagione: di solito quella in corso, ma la
+  // gara di settembre si organizza a giugno e va nella stagione dopo. Chi la
+  // scrive lo dice qui; senza indicazione resta quella in cui l'attività è
+  // nata, perché le voci di listino da usare sono le sue e non quelle
+  // dell'anno in cui la si sta ritoccando.
+  const stagioneScelta = strOpt(fd, 'stagioneId');
+  const stagioneId = stagioneScelta
+    ? ((
+        await prisma.stagione.findFirst({
+          where: { id: stagioneScelta, chiusa: false },
+          select: { id: true },
+        })
+      )?.id ?? esistente?.stagioneId ?? (await stagioneAttiva()).id)
+    : (esistente?.stagioneId ?? (await stagioneAttiva()).id);
 
   // due quote: chi è in squadra e chi viene da fuori non pagano la stessa cosa
   const squadra = await componiQuota(fd, {

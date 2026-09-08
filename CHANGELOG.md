@@ -5,6 +5,33 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.29.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **La stagione si sceglie sull’attività.** Di solito è quella in corso, ma la
+  gara di settembre si organizza a giugno e appartiene all’anno dopo: adesso
+  lo si può dire. Le attività nate prima, che una stagione non ce l’avevano,
+  se la sono presa da sola — quella in cui cade la loro data.
+
+### Cambiato
+
+- **La pagina del certificato medico risponde a una domanda sola: sono a
+  posto, e fino a quando?** In cima c’è il certificato che vale adesso con il
+  suo tipo — agonistico o no, che non è un dettaglio —, i giorni che mancano e
+  una **linea che disegna la sua vita**: dalla visita alla scadenza, con
+  l’ultimo mese in giallo e il segno di dov’è oggi. Sotto, i caricamenti
+  vecchi.
+- **Il caricamento è in una finestra** (*Aggiungi certificato*) invece di
+  occupare mezza pagina: si carica una volta l’anno, e il resto del tempo la
+  pagina serve a guardare.
+- **Il proprio certificato si può eliminare**, anche approvato: il caso vero è
+  il file sbagliato, e tenerselo perché qualcuno l’ha già guardato non protegge
+  nessuno.
+- **Il pallino sul menu avvisa quando il certificato manca, è scaduto o sta per
+  scadere**: arriva un mese prima, che è il tempo che serve per prenotare la
+  visita.
+
 ## 1.28.0 — 8 settembre 2026
 
 ### Cambiato

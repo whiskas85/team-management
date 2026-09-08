@@ -84,6 +84,7 @@ export function FormEvento({
   tipologie,
   listino,
   stagioneId,
+  stagioni = [],
   evento,
   inizioPredefinito,
   compatto = false,
@@ -95,6 +96,8 @@ export function FormEvento({
   listino: VoceListino[];
   /** Stagione in cui l'attività vive: filtra il listino. */
   stagioneId: string | null;
+  /** Le stagioni in cui si può metterla: la corrente e quelle che verranno. */
+  stagioni?: { id: string; nome: string; corrente: boolean }[];
   evento?: Evento;
   inizioPredefinito?: string;
   compatto?: boolean;
@@ -239,6 +242,31 @@ export function FormEvento({
               className="input"
             />
           </Campo>
+
+          {/* La stagione: di solito quella in corso, ma la gara di settembre
+              si organizza a giugno e appartiene all'anno dopo. Da qui dipendono
+              anche le voci di listino con cui si compongono le quote. */}
+          {stagioni.length > 0 && (
+            <Campo label="Stagione">
+              <select
+                name="stagioneId"
+                defaultValue={
+                  evento?.stagioneId ??
+                  stagioneId ??
+                  stagioni.find((s) => s.corrente)?.id ??
+                  stagioni[0].id
+                }
+                className="input"
+              >
+                {stagioni.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                    {s.corrente ? ' (in corso)' : ''}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
 
           <Campo label="Descrizione" span>
             <textarea

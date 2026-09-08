@@ -3,7 +3,10 @@ import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { puoVedereDatiMedici } from '@/lib/medico';
 import {
+  certificatoInScadenza,
   etichettaRuolo,
+  inRegola,
+  statoEffettivo,
   haIncarichi,
   isAdmin,
   puoAmministrare,
@@ -120,6 +123,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? await prisma.segnalazione.count({ where: { stato: 'APERTA' } })
     : 0;
 
+  // Il proprio certificato: il pallino si accende quando manca, è scaduto o
+  // sta per scadere. È l'unico avviso che si può dare — non c'è una posta a cui
+  // scrivere — e arriva un mese prima, che è il tempo che serve per prenotare
+  // la visita e rifarla.
+  const certificatiMiei = vedeAreaTesseramento(utente.stato)
+    ? await prisma.medicalCertificate.findMany({
+        where: { userId: utente.id },
+        select: { status: true, scadeIl: true },
+      })
+    : [];
+
+  const certificatoDaFare =
+    vedeAreaTesseramento(utente.stato) &&
+    (!inRegola(certificatiMiei) ||
+      certificatiMiei.some(
+        (c) => statoEffettivo(c) === 'VALIDO' && certificatoInScadenza(c.scadeIl),
+      ))
+      ? 1
+      : 0;
+
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Home', icona: 'dashboard', gruppo: 'principale' },
     {
@@ -193,6 +216,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: 'Miei certificati',
       icona: 'certificato',
       gruppo: 'principale',
+      badge: certificatoDaFare,
     });
   }
 

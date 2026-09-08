@@ -33,6 +33,21 @@ export async function stagioneAttiva() {
  * Restituisce null quando la voce non è a listino: chi chiama decide se è un
  * caso da segnalare o semplicemente una cosa gratis.
  */
+/**
+ * Le stagioni in cui si può mettere un'attività: quella in corso e quelle che
+ * verranno.
+ *
+ * Le chiuse restano fuori: una stagione si chiude quando i conti sono fatti, e
+ * infilarci dentro un'attività nuova vorrebbe dire rifarli.
+ */
+export async function stagioniAperte() {
+  return prisma.stagione.findMany({
+    where: { chiusa: false },
+    orderBy: { inizio: 'asc' },
+    select: { id: true, nome: true, corrente: true },
+  });
+}
+
 export async function tariffa(
   uso: VoceTariffa,
   stagioneId?: string | null,
