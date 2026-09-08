@@ -5,6 +5,54 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.26.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Ruolo Moderatore.** Tiene pulite le conversazioni e non fa nient'altro:
+  riceve le segnalazioni e toglie i messaggi fuori posto. È un ruolo suo e non
+  un pezzo di admin, perché chi scrive una cosa che urta qualcuno non deve
+  trovarsi giudicato da chi decide anche se gioca la domenica.
+- **Pulsante *segnala* su ogni messaggio**, sotto le attività e sotto gli
+  annunci. Chi legge una cosa fuori posto la passa a chi se ne occupa invece di
+  rispondere a tono, e chi ha scritto non sa chi ha segnalato. Il motivo è
+  facoltativo: obbligarlo vorrebbe dire che chi si è preso un insulto deve
+  anche scrivere un tema per poterlo dire.
+- **Pagina Segnalazioni**, con il pallino finché ce n'è una da guardare. Il
+  moderatore decide leggendo: c'è il testo com'era, chi l'aveva scritto, chi ha
+  segnalato e perché, e il link al posto dov'è nato. Due pulsanti — *va bene
+  così* oppure *togli il messaggio* — e resta scritto chi ha chiuso la
+  segnalazione e quando.
+- **Inventario, in Segreteria.** In una pagina sola: cosa c'è in casa (con
+  disponibili, impegnate, costo medio e margine), i **riordini al fornitore** e
+  il **registro** di quello che è entrato e uscito, in ordine di data.
+- **I riordini hanno due pulsanti separati**, perché la realtà ha due momenti:
+  *Paga* scrive l'uscita in cassa con l'importo dell'ordine — categoria
+  Merchandising — e *Ricevi* fa entrare i pezzi in magazzino, che nel registro
+  diventano un *+50 per l'ordine 7*. Si può pagare prima o dopo che la merce
+  arriva; finché non è arrivata l'ordine si annulla, e con lui se ne va l'uscita
+  di cassa: quei soldi non sono usciti.
+- **La rettifica**, per quello che entra senza un ordine dietro: un avanzo, un
+  regalo, una giacenza contata male. La strada normale resta il riordino.
+- **Nel regolamento del mercatino c'è come si scrive**: niente insulti, niente
+  battute su come uno è fatto, niente molestie né minacce, niente panni sporchi
+  in pubblico, e il promemoria che il sarcasmo scritto non si sente. Con quello
+  che succede a chi segnala e a chi viene segnalato.
+
+### Cambiato
+
+- **Le righe di un ordine si leggono una per una**, con dentro il loro
+  articolo: *2× Patch - PVC*. Prima le voci stavano da una parte («PVC × 2, S ×
+  1») e gli articoli dall'altra («Patch, Maglietta del Club»), e toccava a chi
+  legge indovinare quale stesse con quale.
+- **Le giacenze si sono spostate da Ordini a Inventario**: in Ordini si guarda
+  cosa ordina la squadra, in Inventario cosa c'è in casa e cosa si compra dal
+  fornitore. Sono due mestieri diversi anche se parlano delle stesse patch.
+- **Il testo di serie del regolamento continua ad arrivare con l'applicazione**
+  finché nessuno l'ha corretto a mano; al primo salvataggio dall'interfaccia
+  diventa del team e non viene più toccato. Quando cambia, chi l'aveva
+  accettato lo rilegge — le regole non sono più quelle di prima.
+
 ## 1.25.1 — 8 settembre 2026
 
 ### Cambiato

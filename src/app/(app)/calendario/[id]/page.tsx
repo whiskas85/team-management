@@ -16,6 +16,7 @@ import {
   etichettaAssegnazione,
   occupaPosto,
   puoGestirePagamenti,
+  puoModerareChat,
   schierato,
   puoSchierare,
   isContatto,
@@ -1068,7 +1069,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             mioMiPiace={mioMiPiace != null}
             ioSono={me.id}
             chiSono={comeChiamare(me, { incarico: false, diSquadra: true }).nome}
-            puoModerare={admin}
+            puoModerare={admin || puoModerareChat(me.roles)}
           />
 
           {/* ------------------------------------------------ note private */}

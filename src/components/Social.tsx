@@ -3,6 +3,7 @@ import { Avatar } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
+import { Segnala } from '@/components/Segnala';
 import { commentaEvento, eliminaCommento, miPiaceEvento } from '@/actions/social';
 
 /**
@@ -126,6 +127,8 @@ export function Social({
                       elimina
                     </AzioneBottone>
                   )}
+                  {/* di chi lo subisce, non di chi lo possiede */}
+                  {c.userId !== ioSono && <Segnala tipo="evento" id={c.id} />}
                 </div>
               </div>
             </div>

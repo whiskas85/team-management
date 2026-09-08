@@ -240,13 +240,29 @@ export const ETICHETTA_ORDINE: Record<string, string> = {
  */
 export const inRaccolta = (o: { stato: string }) => o.stato === 'RACCOLTA';
 
+/** Quanto costa un riordino al fornitore: quantità per costo del pezzo. */
+export const totaleRiordino = (righe: { quantita: number; costoUnitario: unknown }[]) =>
+  righe.reduce((s, r) => s + r.quantita * Number(r.costoUnitario), 0);
+
 /** Quanto costa un carrello: le righe hanno già il prezzo congelato. */
 export const totaleRighe = (righe: { prezzo: unknown; quantita: number }[]) =>
   righe.reduce((s, r) => s + Number(r.prezzo) * r.quantita, 0);
 
-/** Cosa c'è dentro, in una riga sola: "Maglietta M × 2, Patch × 1". */
-export const dettaglioRighe = (righe: { titolo: string; quantita: number }[]) =>
-  righe.map((r) => `${r.titolo} × ${r.quantita}`).join(', ');
+/**
+ * Una riga d'ordine come si legge: **2× Patch - PVC**.
+ *
+ * L'articolo va detto dentro la riga e non a parte: con le voci da un lato
+ * («PVC × 2, S × 1») e gli articoli dall'altro («Patch, Maglietta del Club»)
+ * tocca a chi legge indovinare quale sta con quale, e con tre righe non ci
+ * riesce più nessuno.
+ */
+export const descriviRiga = (r: { titolo: string; quantita: number; articolo: string }) =>
+  `${r.quantita}× ${r.articolo} - ${r.titolo}`;
+
+/** Le stesse righe in fila, per un messaggio o la descrizione di una quota. */
+export const dettaglioRighe = (
+  righe: { titolo: string; quantita: number; articolo: string }[],
+) => righe.map(descriviRiga).join(', ');
 
 /** Serve solo a non ripetere la stessa `include` in quattro punti. */
 export const CON_TUTTO = {

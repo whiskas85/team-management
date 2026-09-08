@@ -8,6 +8,7 @@ import {
   isAdmin,
   puoAmministrare,
   puoGestirePagamenti,
+  puoModerareChat,
   puoVedereNuovi,
   vedeAreaTesseramento,
   vedeAttivitaSquadra,
@@ -58,6 +59,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? await prisma.ordine.count({ where: { stato: 'RACCOLTA' } })
     : 0;
 
+  // i riordini al fornitore ancora da pagare: sono soldi che devono uscire, e
+  // un ordine aperto dimenticato è merce che non arriva
+  const riordiniDaPagare = puoGestirePagamenti(utente.roles)
+    ? await prisma.riordino.count({ where: { stato: 'APERTO' } })
+    : 0;
+
   const [pagamentiDaConfermare, rimborsiDaErogare] = puoGestirePagamenti(utente.roles)
     ? await Promise.all([
         prisma.payment.count({
@@ -104,6 +111,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         _sum: { quantita: true },
       })
     : null;
+
+  // i messaggi che qualcuno ha trovato fuori posto: il pallino resta finché
+  // non li si è guardati, perché una segnalazione lasciata lì è una persona
+  // che non ha avuto risposta
+  const segnalazioniAperte = puoModerareChat(utente.roles)
+    ? await prisma.segnalazione.count({ where: { stato: 'APERTA' } })
+    : 0;
 
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Situazione', icona: 'dashboard', gruppo: 'principale' },
@@ -229,6 +243,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
   }
 
+  // Moderazione: è un ruolo suo, e può essere l'unico che uno ha. La voce
+  // compare a chi modera, admin compreso.
+  if (puoModerareChat(utente.roles)) {
+    voci.push({
+      href: '/admin/segnalazioni',
+      label: 'Segnalazioni',
+      icona: 'commento',
+      gruppo: 'amministrazione',
+      badge: segnalazioniAperte,
+    });
+  }
+
   if (puoGestirePagamenti(utente.roles)) {
     voci.push(
       {
@@ -245,6 +271,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         icona: 'carrello',
         gruppo: 'segreteria',
         badge: ordiniInRaccolta,
+      },
+      {
+        href: '/admin/inventario',
+        label: 'Inventario',
+        icona: 'maglietta',
+        gruppo: 'segreteria',
+        badge: riordiniDaPagare,
       },
     );
   }

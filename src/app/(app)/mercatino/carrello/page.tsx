@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { fmtDateTime, fmtEuro } from '@/lib/format';
 import {
   ETICHETTA_ORDINE,
+  descriviRiga,
   ordinabile,
   puoVedereMerchandising,
   stradaAnnuncio,
@@ -54,7 +55,10 @@ export default async function CarrelloPage() {
       where: { userId: me.id, stato: { not: 'ANNULLATO' } },
       orderBy: { creatoIl: 'desc' },
       take: 20,
-      include: { righe: true, payment: { select: { status: true, pagato: true } } },
+      include: {
+        righe: { include: { voce: { select: { annuncio: { select: { titolo: true } } } } } },
+        payment: { select: { status: true, pagato: true } },
+      },
     }),
   ]);
 
@@ -207,9 +211,17 @@ export default async function CarrelloPage() {
                   </span>
                   <span className="num font-semibold text-nvg">{fmtEuro(totaleRighe(o.righe))}</span>
                 </div>
-                <p className="mt-1 text-sm">
-                  {o.righe.map((r) => `${r.titolo} × ${r.quantita}`).join(', ')}
-                </p>
+                <ul className="mt-1 space-y-0.5 text-sm">
+                  {o.righe.map((r) => (
+                    <li key={r.id}>
+                      {descriviRiga({
+                        titolo: r.titolo,
+                        quantita: r.quantita,
+                        articolo: r.voce.annuncio.titolo,
+                      })}
+                    </li>
+                  ))}
+                </ul>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge tono={o.stato === 'ARRIVATO' ? 'ok' : 'info'}>
                     {ETICHETTA_ORDINE[o.stato]}

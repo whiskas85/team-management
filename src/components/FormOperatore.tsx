@@ -2,11 +2,12 @@ import type { Role, StatoOperatore } from '@prisma/client';
 import { Campo } from './ui';
 import { etichettaRuolo, etichettaStato } from '@/lib/domain';
 
-const RUOLI: Role[] = ['ATLETA', 'TL', 'AMMINISTRAZIONE', 'SEGRETERIA', 'ADMIN'];
+const RUOLI: Role[] = ['ATLETA', 'TL', 'MODERATORE', 'AMMINISTRAZIONE', 'SEGRETERIA', 'ADMIN'];
 
 const DESCRIZIONE: Record<Role, string> = {
   ATLETA: 'Membro della squadra',
   TL: 'Compone squadra e riserve negli eventi',
+  MODERATORE: 'Riceve le segnalazioni e toglie i messaggi fuori posto',
   AMMINISTRAZIONE: 'Iscrizioni, certificati medici, tessere',
   SEGRETERIA: 'Pagamenti e quote',
   ADMIN: 'Accesso completo',

@@ -13,6 +13,16 @@ export const puoAmministrare = (roles: Role[]) => ha(roles, 'ADMIN', 'AMMINISTRA
 /** Segreteria: quote e pagamenti. */
 export const puoGestirePagamenti = (roles: Role[]) => ha(roles, 'ADMIN', 'SEGRETERIA');
 
+/**
+ * Moderatore: tiene pulite le conversazioni.
+ *
+ * È un mestiere a parte da comandare la squadra, e per questo è un ruolo suo:
+ * legge le segnalazioni e cancella i messaggi fuori posto, e non può fare
+ * nient'altro. Chi scrive una cosa che urta qualcuno non deve trovarsi
+ * giudicato da chi decide anche se giochi la domenica.
+ */
+export const puoModerareChat = (roles: Role[]) => ha(roles, 'ADMIN', 'MODERATORE');
+
 /** Team leader: schiera titolari e riserve. */
 export const puoSchierare = (roles: Role[]) => ha(roles, 'ADMIN', 'TL');
 
@@ -295,6 +305,7 @@ export const tonoRuolo: Record<Role, Tono> = {
   AMMINISTRAZIONE: 'info',
   SEGRETERIA: 'info',
   TL: 'warn',
+  MODERATORE: 'info',
   ATLETA: 'ok',
 };
 
@@ -303,6 +314,7 @@ export const etichettaRuolo: Record<Role, string> = {
   AMMINISTRAZIONE: 'Amministrazione',
   SEGRETERIA: 'Segreteria',
   TL: 'Team Leader',
+  MODERATORE: 'Moderatore',
   ATLETA: 'Atleta',
 };
 
@@ -318,6 +330,8 @@ export const SPIEGA_RUOLO: Record<Role, string> = {
   AMMINISTRAZIONE: 'Segue le persone: chi entra, chi è in regola con i documenti, chi è tesserato.',
   SEGRETERIA: 'Segue i soldi: quote da incassare, pagamenti dichiarati, cassa.',
   TL: 'Porta la squadra in campo: decide chi gioca e registra chi c’era davvero.',
+  MODERATORE:
+    'Tiene pulite le conversazioni: riceve le segnalazioni e toglie i messaggi fuori posto.',
   ATLETA: 'Membro della squadra: è il ruolo di chi gioca e basta.',
 };
 
@@ -348,6 +362,10 @@ export const POTERI_RUOLO: Record<Role, string[]> = {
     'Aggiunge partecipanti e fa l’appello a fine attività',
     'Assicura con la giornaliera chi gioca senza tessera',
     'Schede operatore e dati sanitari, che in gara servono',
+  ],
+  MODERATORE: [
+    'Segnalazioni: le riceve e le chiude',
+    'Commenti: toglie quelli fuori posto, sotto le attività e sotto gli annunci',
   ],
   ATLETA: [
     'Calendario della squadra e adesioni',

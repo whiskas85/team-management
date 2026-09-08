@@ -122,7 +122,25 @@ async function importaDocumenti() {
   }
 
   for (const d of daPortare) {
-    if (await prisma.documento.findUnique({ where: { slug: d.slug } })) continue;
+    const esistente = await prisma.documento.findUnique({ where: { slug: d.slug } });
+
+    if (esistente) {
+      // Il regolamento del mercatino nasce con l'applicazione, quindi finché
+      // nessuno l'ha corretto a mano le sue nuove versioni continuano ad
+      // arrivare da qui. Al primo salvataggio dall'interfaccia il testo diventa
+      // del team e questo giro non lo tocca più.
+      const maiToccato = d.testo && !esistente.aggiornatoDaId;
+      if (maiToccato && esistente.testo !== d.testo) {
+        await prisma.documento.update({
+          where: { id: esistente.id },
+          data: { testo: d.testo, titolo: d.titolo, sottotitolo: d.sottotitolo },
+        });
+        // cambiando il testo cambia anche la data: chi l'aveva accettato lo
+        // rilegge, ed è giusto — le regole non sono più quelle
+        console.log(`[seed] documento "${d.slug}" aggiornato dal testo di serie`);
+      }
+      continue;
+    }
 
     const testo = d.testo ?? (await readFile(path.join(cartella, d.file), 'utf8').catch(() => null));
 

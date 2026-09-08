@@ -5,8 +5,7 @@ import { prisma } from '@/lib/db';
 import { fmtDateTime, fmtEuro, nomeCompleto } from '@/lib/format';
 import {
   ETICHETTA_ORDINE,
-  dettaglioRighe,
-  giacenzaDi,
+  descriviRiga,
   puoVedereOrdini,
   stradaAnnuncio,
   totaleRighe,
@@ -98,38 +97,9 @@ export default async function OrdiniPage({
     prisma.ordine.findMany({ where: { stato: 'RACCOLTA' }, include: CON_RIGHE }),
   ]);
 
-  // Il magazzino: la roba comprata in blocco che sta in casa. Non entra nel
-  // "da ordinare" — non c'è niente da chiedere al fornitore a ogni ordine — ma
-  // è il posto dove si vede se sta finendo, e quanto ci si guadagna.
-  const scorte = await prisma.voceAnnuncio.findMany({
-    where: { aMagazzino: true },
-    orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
-    include: {
-      annuncio: { select: { id: true, titolo: true, ufficiale: true } },
-      carichi: { select: { quantita: true, costoUnitario: true } },
-      righe: {
-        where: { ordine: { stato: { not: 'ANNULLATO' } } },
-        select: { quantita: true, ordine: { select: { stato: true } } },
-      },
-    },
-  });
-
-  const magazzino = scorte.map((v) => ({
-    id: v.id,
-    titolo: v.titolo,
-    articolo: v.annuncio.titolo,
-    strada: stradaAnnuncio(v.annuncio),
-    prezzo: Number(v.prezzo),
-    conto: giacenzaDi(
-      v.carichi,
-      v.righe.map((r) => ({ quantita: r.quantita, stato: r.ordine.stato })),
-    ),
-  }));
-
-  const valoreMagazzino = magazzino.reduce(
-    (s, v) => s + Math.max(0, v.conto.disponibili) * (v.conto.costoMedio ?? 0),
-    0,
-  );
+  // Il magazzino non si conta qui: ha una pagina sua. Serve solo sapere se
+  // esiste, per mandarci chi lo cerca.
+  const scorte = await prisma.voceAnnuncio.count({ where: { aMagazzino: true } });
 
   // il riepilogo: per ogni articolo, quanti pezzi di ogni voce servono adesso
   const giri = new Map<string, { titolo: string; strada: string; pezzi: Map<string, number> }>();
@@ -222,66 +192,17 @@ export default async function OrdiniPage({
         </div>
       )}
 
-      {/* ------------------------------------------------ magazzino */}
-      {magazzino.length > 0 && (
-        <div className="mb-6">
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="titolo-sezione">Magazzino</p>
-            <p className="num text-xs text-muted">
-              valore di quello che resta: {fmtEuro(valoreMagazzino)}
-            </p>
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-            <table className="tabella">
-              <thead>
-                <tr>
-                  <th>Cosa</th>
-                  <th>Articolo</th>
-                  <th>Disponibili</th>
-                  <th>Impegnate</th>
-                  <th>Costo medio</th>
-                  <th>Prezzo</th>
-                  <th>Margine</th>
-                </tr>
-              </thead>
-              <tbody>
-                {magazzino.map((v) => {
-                  const margine = v.conto.costoMedio === null ? null : v.prezzo - v.conto.costoMedio;
-                  return (
-                    <tr key={v.id}>
-                      <td className="font-medium">{v.titolo}</td>
-                      <td>
-                        <Link href={v.strada} className="text-muted hover:text-nvg">
-                          {v.articolo}
-                        </Link>
-                      </td>
-                      <td>
-                        <Badge tono={v.conto.disponibili > 0 ? 'ok' : 'warn'}>
-                          {v.conto.disponibili}
-                        </Badge>
-                      </td>
-                      <td className="num">{v.conto.impegnate}</td>
-                      <td className="num">
-                        {v.conto.costoMedio === null ? '—' : fmtEuro(v.conto.costoMedio)}
-                      </td>
-                      <td className="num">{fmtEuro(v.prezzo)}</td>
-                      <td className={`num ${margine !== null && margine < 0 ? 'text-danger' : ''}`}>
-                        {margine === null ? '—' : fmtEuro(margine)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="mt-2 text-[11px] text-muted">
-            I carichi si registrano dalla scheda dell’articolo, sulla voce: quantità e quanto è
-            costato un pezzo. <em>Impegnate</em> sono quelle promesse a qualcuno e non ancora
-            consegnate.
-          </p>
-        </div>
+      {/* il magazzino ha una pagina sua: qui si guarda cosa ordina la
+          squadra, là cosa c’è in casa e cosa si compra dal fornitore */}
+      {scorte > 0 && (
+        <p className="mb-6 text-xs text-muted">
+          Quello che sta in casa non entra in questo elenco: giacenze, riordini al fornitore e
+          registro stanno in{' '}
+          <Link href="/admin/inventario" className="text-nvg hover:underline">
+            Inventario
+          </Link>
+          .
+        </p>
       )}
 
       {/* ------------------------------------------------ elenco */}
@@ -308,7 +229,6 @@ export default async function OrdiniPage({
           {ordini.map((o) => {
             const avanti = AVANTI[o.stato];
             const incassato = o.payment != null && Number(o.payment.pagato) > 0;
-            const articoli = [...new Set(o.righe.map((r) => r.voce.annuncio.titolo))].join(', ');
             return (
               <div key={o.id} className="card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -317,10 +237,20 @@ export default async function OrdiniPage({
                       {nomeCompleto(o.utente)}
                       <span className="num ml-2 text-[11px] text-muted">n. {o.numero}</span>
                     </p>
-                    <p className="mt-0.5 text-sm text-muted">{dettaglioRighe(o.righe)}</p>
-                    <p className="num mt-0.5 text-[11px] text-muted">
-                      {articoli} · {fmtDateTime(o.creatoIl)}
-                    </p>
+                    {/* una riga per pezzo, con dentro il suo articolo: chi
+                        legge non deve indovinare quale voce sta con quale */}
+                    <ul className="mt-1 space-y-0.5 text-sm">
+                      {o.righe.map((r) => (
+                        <li key={r.id}>
+                          {descriviRiga({
+                            titolo: r.titolo,
+                            quantita: r.quantita,
+                            articolo: r.voce.annuncio.titolo,
+                          })}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="num mt-1 text-[11px] text-muted">{fmtDateTime(o.creatoIl)}</p>
                     {o.note && <p className="mt-1 text-sm">«{o.note}»</p>}
                   </div>
                   <p className="num shrink-0 text-lg font-semibold text-nvg">

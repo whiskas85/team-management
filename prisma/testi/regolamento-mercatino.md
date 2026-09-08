@@ -86,6 +86,45 @@ vendere.
 - **Non si pubblicano recapiti di altri**, né si girano fuori le informazioni di
   chi compra o vende.
 
+## Come si scrive
+
+Commenti e messaggi li legge la squadra, e restano scritti. Qui non serve un
+codice di condotta lungo tre pagine: basta scrivere come si parlerebbe a
+qualcuno che si ha davanti al campo, la domenica mattina.
+
+Poi ci sono le righe che non si passano, e sono poche:
+
+- **Niente insulti e niente offese personali.** Si può dire che un prezzo è
+  alto; non si può dire cos'è chi lo chiede.
+- **Niente battute su come uno è fatto**: aspetto, età, provenienza, religione,
+  orientamento, genere, condizioni di salute. Non è permalosità: è che quelle
+  cose non c'entrano niente con una radio usata.
+- **Niente molestie.** Insistere con qualcuno che ha già detto di no, scrivere
+  di continuo, allusioni sessuali non gradite: se l'altro ha chiuso il
+  discorso, è chiuso.
+- **Niente minacce**, nemmeno per scherzo. Scritte non fanno ridere nessuno.
+- **Niente panni sporchi in pubblico.** Se hai un problema con una persona lo
+  risolvi con quella persona, non sotto il suo annuncio.
+- **Niente foto, numeri o fatti di altri** senza che l'altro sia d'accordo.
+- **Il sarcasmo scritto non si sente.** Una frase che a voce è una presa in
+  giro fra amici, letta da un altro a freddo è un insulto. Nel dubbio, una
+  parola in più.
+
+**I messaggi che urtano si segnalano.** Accanto a ogni messaggio c'è
+*segnala*: chi lo trova fuori posto lo passa ai **moderatori**, che sono
+persone della squadra incaricate di guardare quelle cose e nient'altro. Chi
+segnala non viene detto a chi ha scritto.
+
+Il moderatore legge e decide: se il messaggio è fuori posto lo toglie, se non
+lo è lascia le cose come stanno. Non è censura sul merito — nessuno toglie un
+commento perché dice che il prezzo è alto — è tenere il posto vivibile. Chi
+insiste dopo che gli è stato tolto un messaggio non è più un problema di
+moderazione: da lì in poi vale lo statuto.
+
+**Rispondere a tono non serve a niente**, e di solito peggiora tutto: segnala e
+lascia perdere. È l'unico modo perché la bacheca resti un posto dove si ha
+voglia di scrivere.
+
 ## Se qualcosa va storto
 
 Il gestionale registra quello che succede, **non fa da arbitro**: in una vendita

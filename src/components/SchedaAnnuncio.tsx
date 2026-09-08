@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isAdmin, isContatto, puoVedereNuovi } from '@/lib/domain';
+import { isAdmin, isContatto, puoModerareChat, puoVedereNuovi } from '@/lib/domain';
 import { comeChiamare, fmtDate, fmtEuro } from '@/lib/format';
 import {
   CON_TUTTO,
@@ -409,7 +409,7 @@ export async function SchedaAnnuncio({
             mioMiPiace={mioMiPiace != null}
             ioSono={me.id}
             chiSono={comeChiamare(me, { incarico: false, diSquadra: true }).nome}
-            puoModerare={mio || isAdmin(me.roles)}
+            puoModerare={mio || puoModerareChat(me.roles)}
           />
         </div>
 

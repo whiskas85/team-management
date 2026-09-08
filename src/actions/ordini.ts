@@ -5,6 +5,7 @@ import type { StatoOrdine } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import {
+  descriviRiga,
   dettaglioRighe,
   giacenzaDi,
   ordinabile,
@@ -223,7 +224,17 @@ export async function inviaOrdine(_prev: StatoForm, fd: FormData): Promise<Stato
   }));
 
   const totale = totaleRighe(righe);
-  const dettaglio = dettaglioRighe(righe);
+  // nella descrizione della quota l'articolo sta dentro la riga: "2× Patch -
+  // PVC" si capisce anche fra sei mesi, "PVC × 2" no
+  const dettaglio = buone
+    .map((r) =>
+      descriviRiga({
+        titolo: r.voce.titolo,
+        quantita: r.quantita,
+        articolo: r.voce.annuncio.titolo,
+      }),
+    )
+    .join(', ');
 
   await prisma.$transaction(async (tx) => {
     const quota = await tx.payment.create({

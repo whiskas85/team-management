@@ -360,6 +360,9 @@ Due conseguenze che vengono dalla stessa parte:
 - Il merchandising ufficiale lo crea solo l'admin e genera una quota in cassa;
   la vendita privata non passa dai soldi del gestionale.
 - Le conversazioni le leggono solo i due, salvo segnalazione.
+- La moderazione è un ruolo a parte (1.26.0): riceve le segnalazioni e toglie i
+  messaggi, e non può fare altro. Quando arriveranno i messaggi privati, una
+  conversazione segnalata finisce nella stessa pagina.
 - Il riepilogo del merchandising conta per giri di raccolta, non in assoluto.
 - Il prezzo si congela al momento dell'ordine.
 - Il carrello è uno solo e attraversa il catalogo; il checkout fa un ordine e

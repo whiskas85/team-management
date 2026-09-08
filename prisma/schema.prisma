@@ -15,6 +15,7 @@ enum Role {
   AMMINISTRAZIONE // iscrizioni, certificati medici, tessere FIGT
   SEGRETERIA // pagamenti e quote
   TL // team leader: schiera titolari e riserve negli eventi
+  MODERATORE // tiene pulite le conversazioni: legge le segnalazioni e cancella
   ATLETA // membro effettivo della squadra
 }
 
@@ -207,6 +208,9 @@ model User {
   carrello       RigaCarrello[]       @relation("CarrelloDi")
   carichi        CaricoMagazzino[]    @relation("CarichiRegistrati")
   documentiAccettati AccettazioneDocumento[] @relation("DocumentiAccettati")
+  riordini            Riordino[]          @relation("RiordiniCreati")
+  segnalazioniFatte   Segnalazione[]      @relation("SegnalazioniFatte")
+  segnalazioniGestite Segnalazione[]      @relation("SegnalazioniGestite")
 
   @@index([stato])
 }
@@ -722,6 +726,9 @@ model MovimentoCassa {
   registratoBy   User?            @relation("CassaRegistrante", fields: [registratoById], references: [id])
   createdAt      DateTime         @default(now())
 
+  /// Il riordino che ha generato questa uscita, se ne viene.
+  riordino Riordino?
+
   @@index([data])
 }
 
@@ -784,6 +791,8 @@ model CommentoEvento {
   testo        String
   createdAt    DateTime  @default(now())
   modificatoIl DateTime?
+
+  segnalazioni Segnalazione[]
 
   @@index([eventId])
 }
@@ -1071,6 +1080,7 @@ model VoceAnnuncio {
   righe     RigaOrdine[]
   carrelli  RigaCarrello[]
   carichi   CaricoMagazzino[]
+  riordini  RigaRiordino[]
 
   @@unique([annuncioId, maniglia])
   @@index([annuncioId, ordine])
@@ -1087,7 +1097,8 @@ model CommentoAnnuncio {
   createdAt    DateTime  @default(now())
   modificatoIl DateTime?
 
-  citate CitazioneVoce[]
+  citate        CitazioneVoce[]
+  segnalazioni  Segnalazione[]
 
   @@index([annuncioId])
 }
@@ -1120,6 +1131,109 @@ model MiPiaceAnnuncio {
 
 /// Le poche cose che si regolano senza toccare il codice. Una riga sola, come
 /// per le credenziali federali e il ponte WhatsApp.
+enum StatoSegnalazione {
+  APERTA
+  ACCOLTA // il messaggio è stato tolto
+  RESPINTA // guardata, ma non c'era niente da togliere
+}
+
+/// Un messaggio che ha urtato qualcuno.
+///
+/// Chi legge una cosa fuori posto la passa a chi può occuparsene, invece di
+/// rispondere a tono sotto: è l'unico modo perché una bacheca resti un posto
+/// dove si ha voglia di scrivere.
+///
+/// Il testo si **copia qui dentro** al momento della segnalazione. Se il
+/// messaggio viene cancellato — dal moderatore o da chi l'ha scritto — resta
+/// scritto cosa era stato segnalato, altrimenti la segnalazione diventerebbe
+/// un rimando a niente e nessuno saprebbe più se era fondata.
+///
+/// I due riferimenti sono due colonne vere e non una sola "cosa segnalata":
+/// così è il database a controllare che puntino a qualcosa che esiste, e non
+/// ci si ritrova con righe orfane che si scoprono sempre troppo tardi.
+model Segnalazione {
+  id                 String            @id @default(cuid())
+  segnalatoreId      String
+  segnalatore        User              @relation("SegnalazioniFatte", fields: [segnalatoreId], references: [id], onDelete: Cascade)
+  commentoAnnuncioId String?
+  commentoAnnuncio   CommentoAnnuncio? @relation(fields: [commentoAnnuncioId], references: [id], onDelete: SetNull)
+  commentoEventoId   String?
+  commentoEvento     CommentoEvento?   @relation(fields: [commentoEventoId], references: [id], onDelete: SetNull)
+  /// Copia del messaggio com'era, e di chi l'aveva scritto.
+  testo              String
+  autore             String
+  /// Perché è stato segnalato, se chi segnala ha voluto dirlo.
+  motivo             String?
+  stato              StatoSegnalazione @default(APERTA)
+  gestitaDaId        String?
+  gestitaDa          User?             @relation("SegnalazioniGestite", fields: [gestitaDaId], references: [id], onDelete: SetNull)
+  gestitaIl          DateTime?
+  createdAt          DateTime          @default(now())
+
+  /// Una segnalazione per persona e per messaggio: il secondo clic non è una
+  /// segnalazione in più, è la stessa.
+  @@unique([segnalatoreId, commentoAnnuncioId])
+  @@unique([segnalatoreId, commentoEventoId])
+  @@index([stato])
+}
+
+/// Dove sta un riordino al fornitore.
+///
+/// I due passaggi sono separati perché nella realtà lo sono: si paga quando si
+/// paga e la roba arriva quando arriva, a volte prima, a volte tre settimane
+/// dopo. Lo stato dice fin dove si è arrivati; se i soldi sono usciti lo dice
+/// la data del pagamento, non lo stato.
+enum StatoRiordino {
+  APERTO // scritto: niente soldi e niente merce
+  PAGATO // l'uscita di cassa c'è
+  RICEVUTO // la merce è entrata in magazzino
+  ANNULLATO
+}
+
+/// Un ordine di riordino al fornitore: la merce che il team compra per sé.
+///
+/// È il contrario di un ordine del merchandising — lì la squadra compra dal
+/// team, qui il team compra dal fornitore — e per questo tocca la cassa dalla
+/// parte delle **uscite**, non degli incassi.
+model Riordino {
+  id          String          @id @default(cuid())
+  /// Progressivo leggibile: "il riordino 7" si dice a voce, un cuid no.
+  numero      Int             @default(autoincrement())
+  fornitore   String?
+  note        String?
+  stato       StatoRiordino   @default(APERTO)
+  creatoIl    DateTime        @default(now())
+  pagatoIl    DateTime?
+  ricevutoIl  DateTime?
+  /// L'uscita di cassa che ne è nata. Annullando il riordino se ne va con lui:
+  /// quei soldi non sono più usciti.
+  movimentoId String?         @unique
+  movimento   MovimentoCassa? @relation(fields: [movimentoId], references: [id], onDelete: SetNull)
+  creatoDaId  String?
+  creatoDa    User?           @relation("RiordiniCreati", fields: [creatoDaId], references: [id], onDelete: SetNull)
+
+  righe RigaRiordino[]
+
+  @@index([stato])
+}
+
+/// Una riga di riordino: quanti pezzi di cosa, e a quanto.
+model RigaRiordino {
+  id            String       @id @default(cuid())
+  riordinoId    String
+  riordino      Riordino     @relation(fields: [riordinoId], references: [id], onDelete: Cascade)
+  voceId        String
+  voce          VoceAnnuncio @relation(fields: [voceId], references: [id], onDelete: Restrict)
+  quantita      Int
+  costoUnitario Decimal      @db.Decimal(10, 2)
+
+  /// Il carico che la ricezione ha generato: c'è solo dopo che la merce è
+  /// arrivata, e serve a non ricevere due volte la stessa riga.
+  carico CaricoMagazzino?
+
+  @@index([riordinoId])
+}
+
 /// Chi ha letto e accettato un regolamento, e quale versione.
 ///
 /// Serve dove le regole non sono un cartello ma un patto: il mercatino non si
@@ -1158,6 +1272,11 @@ model CaricoMagazzino {
   fornitore      String?
   note           String?
   compratoIl     DateTime     @default(now())
+  /// La riga di riordino che questo carico ha ricevuto, se non è una rettifica
+  /// fatta a mano. È quello che permette al registro di dire *+50 per
+  /// l'ordine 7* invece di un +50 che non si sa da dove esca.
+  rigaRiordinoId String?      @unique
+  rigaRiordino   RigaRiordino? @relation(fields: [rigaRiordinoId], references: [id], onDelete: SetNull)
   registratoDaId String?
   registratoDa   User?        @relation("CarichiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
 
