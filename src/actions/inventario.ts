@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoGestirePagamenti } from '@/lib/domain';
 import { manigliaUnica, totaleRiordino } from '@/lib/mercatino';
-import { data, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { bool, data, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 /**
  * L'inventario: quello che il team ha in casa, e i riordini al fornitore.
@@ -300,9 +300,15 @@ export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<Sta
   const titolo = str(fd, 'titolo');
   if (!titolo) return { errore: 'Come si chiama la merce?' };
 
+  // Non tutto quello che sta in magazzino è in vendita: un generatore lo si
+  // vuole avere contato, non venduto. Chi non va in vendita non ha un prezzo
+  // da chiedere, e resta spento — quindi fuori dal catalogo, dai carrelli e
+  // dall'intervallo di prezzo che la bacheca mostra.
+  const inVendita = bool(fd, 'inVendita');
+
   const prezzo = num(fd, 'prezzo');
-  if (prezzo === null || prezzo < 0) {
-    return { errore: 'Scrivi a quanto la vendi: il prezzo è sempre obbligatorio.' };
+  if (inVendita && (prezzo === null || prezzo < 0)) {
+    return { errore: 'Se la vendi serve il prezzo. Se non la vendi, togli la spunta.' };
   }
 
   // l'articolo si cerca per nome, e se non c'è nasce adesso: in bozza, perché
@@ -325,17 +331,21 @@ export async function aggiungiMerce(_prev: StatoForm, fd: FormData): Promise<Sta
       annuncioId: annuncio.id,
       titolo,
       maniglia: manigliaUnica(gia.map((v) => v.maniglia), titolo),
-      prezzo,
+      prezzo: inVendita ? (prezzo ?? 0) : 0,
       descrizione: strOpt(fd, 'descrizione'),
       // roba comprata in blocco: si riordina, e la giacenza la tiene questa
       // pagina
       natura: 'RIORDINABILE',
+      attiva: inVendita,
       aMagazzino: true,
       ordine: gia.length,
     },
   });
 
   aggiorna(voce.id);
+  if (!inVendita) {
+    return { ok: `${voce.titolo} è in magazzino, dentro «${annuncio.titolo}»: contata, non in vendita.` };
+  }
   return {
     ok:
       annuncio.stato === 'PUBBLICATO'

@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.26.5 — 8 settembre 2026
+
+### Aggiunto
+
+- **Merce che non si vende.** Nel magazzino ci va anche la roba che al team
+  serve e basta — un generatore, una radio di servizio, il materiale comune:
+  togliendo la spunta *La vendo alla squadra* il prezzo non serve più, la voce
+  non finisce in nessun carrello e nella tabella al posto del prezzo c’è *non
+  in vendita*. Giacenza, costi e riordini funzionano come per tutto il resto:
+  quello che cambia è solo se qualcuno la può comprare.
+
 ## 1.26.4 — 8 settembre 2026
 
 ### Cambiato

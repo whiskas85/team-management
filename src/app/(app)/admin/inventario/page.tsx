@@ -120,6 +120,7 @@ export default async function InventarioPage() {
   const magazzino = scorte.map((v) => ({
     id: v.id,
     titolo: v.titolo,
+    inVendita: v.attiva,
     articolo: v.annuncio.titolo,
     strada: stradaAnnuncio(v.annuncio),
     prezzo: Number(v.prezzo),
@@ -254,9 +255,13 @@ export default async function InventarioPage() {
                     <td className="num">
                       {v.conto.costoMedio === null ? '—' : fmtEuro(v.conto.costoMedio)}
                     </td>
-                    <td className="num">{fmtEuro(v.prezzo)}</td>
-                    <td className={`num ${margine !== null && margine < 0 ? 'text-danger' : ''}`}>
-                      {margine === null ? '—' : fmtEuro(margine)}
+                    {/* la roba che non si vende non ha un prezzo da chiedere
+                        né un margine da fare: contarla basta */}
+                    <td className="num">
+                      {v.inVendita ? fmtEuro(v.prezzo) : <Badge tono="neutro">non in vendita</Badge>}
+                    </td>
+                    <td className={`num ${v.inVendita && margine !== null && margine < 0 ? 'text-danger' : ''}`}>
+                      {v.inVendita && margine !== null ? fmtEuro(margine) : '—'}
                     </td>
                     <td>
                       <BottoneModale
@@ -530,6 +535,23 @@ function FormMerce({ articoli }: { articoli: { id: string; titolo: string }[] })
       <Campo label="Dettagli" span>
         <input name="descrizione" className="input" maxLength={200} />
       </Campo>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="inVendita"
+          defaultChecked
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span>
+          La vendo alla squadra
+          <span className="block text-[11px] text-muted">
+            Togli la spunta per la roba che vuoi solo tenere contata — un generatore, una radio di
+            servizio, il materiale del team. Niente prezzo, niente carrello: resta qui dentro con
+            la sua giacenza e i suoi costi.
+          </span>
+        </span>
+      </label>
       <p className="text-xs text-muted">
         Nasce come merce <strong className="text-ink">tenuta in casa</strong>: da qui si riordina e
         si conta. Se l’articolo non esiste ancora lo creo io, <strong className="text-ink">in
