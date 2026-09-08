@@ -30,6 +30,11 @@ export type EventoLista = {
   mioStato: string | null;
   miaNota: string | null;
   adesioniAperte: boolean;
+  /** Chi c'era davvero, dopo l'appello. Serve allo storico. */
+  presenze: number;
+  mancati: number;
+  appelloFatto: boolean;
+  mioPresente: boolean | null;
 };
 
 /**
@@ -166,63 +171,98 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
   );
 }
 
-export function RigaEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }) {
+/**
+ * Un'attività finita, in riga.
+ *
+ * Nello storico non si risponde e non si schiera più nessuno: quello che
+ * serve è **chi c'era davvero**, quanto è costata e com'è andata a finire.
+ * I pulsanti di partecipazione e le azioni di gestione qui non hanno niente
+ * da fare, e messi in fondo a una riga vecchia si premono per sbaglio.
+ */
+export function RigaStorico({ e }: { e: EventoLista }) {
   return (
     <tr>
       <td>
         <Link
           href={`/calendario/${e.id}`}
-          className="inline-flex items-center gap-2 font-medium hover:text-nvg"
+          className="font-medium hover:text-nvg"
         >
-          {e.nuovo && (
-            <span
-              title="Non l'hai ancora aperta"
-              className="h-2 w-2 shrink-0 rounded-full bg-nvg"
-            />
-          )}
           {e.titolo}
         </Link>
         <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
           {e.tipo}
-          {e.visibilita === 'TUTTI' && <span className="text-warn"> · tutti</span>}
         </p>
       </td>
       <td className="whitespace-nowrap text-muted num">{fmtDateTime(e.inizio)}</td>
-      <td className="text-muted">
-        {e.campo ? (
-          <span className="flex items-center gap-2">
-            {e.campo}
-            <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
+      <td className="text-muted">{e.campo ?? '—'}</td>
+      <td>
+        {e.appelloFatto ? (
+          <span className="num">
+            <span className="font-semibold text-nvg">{e.presenze}</span>
+            <span className="text-muted"> presenti</span>
+            {e.mancati > 0 && <span className="text-muted"> · {e.mancati} mancati</span>}
           </span>
         ) : (
-          '—'
+          <span className="num text-muted">{e.presenti} adesioni · appello non fatto</span>
         )}
       </td>
-      <td className="whitespace-nowrap">
-        <ContoAdesioni e={e} />
-      </td>
-      <td className="whitespace-nowrap text-muted num">{fmtEuro(e.costo)}</td>
+      <td className="num text-muted">{e.costo !== null ? fmtEuro(e.costo) : '—'}</td>
       <td>
-        <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
-          {etichettaEvento[e.status] ?? umanizza(e.status)}
-        </Badge>
-      </td>
-      <td>
-        {e.adesioniAperte ? (
-          <AdesioneEvento
-            eventId={e.id}
-            scelta={e.mioStato}
-            nota={e.miaNota}
-            pieno={!!e.maxPartecipanti && e.presenti >= e.maxPartecipanti}
-            compatta
-          />
-        ) : e.mioStato ? (
-          <Badge tono={tonoRsvp[e.mioStato] ?? 'neutro'}>{umanizza(e.mioStato)}</Badge>
+        {e.status !== 'CONCLUSA' && e.status !== 'RILASCIATA' ? (
+          <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
+            {etichettaEvento[e.status] ?? umanizza(e.status)}
+          </Badge>
+        ) : e.mioPresente === true ? (
+          <Badge tono="ok">c'eri</Badge>
+        ) : e.mioPresente === false ? (
+          <Badge tono="danger">non c'eri</Badge>
         ) : (
-          <span className="text-xs text-muted">—</span>
+          <span className="text-[11px] text-muted">—</span>
         )}
       </td>
-      {azioni && <td className="min-w-[300px]">{azioni}</td>}
     </tr>
+  );
+}
+
+/** La stessa attività finita, per il telefono. */
+export function CardStorico({ e }: { e: EventoLista }) {
+  return (
+    <Link
+      href={`/calendario/${e.id}`}
+      className="block rounded-lg border border-line bg-surface p-4 transition-colors hover:border-nvgdim"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
+            {e.tipo}
+          </p>
+          <h3 className="mt-1 truncate font-medium">{e.titolo}</h3>
+          <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
+          {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
+        </div>
+        {e.mioPresente === true ? (
+          <Badge tono="ok">c'eri</Badge>
+        ) : e.mioPresente === false ? (
+          <Badge tono="danger">non c'eri</Badge>
+        ) : (
+          <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
+            {etichettaEvento[e.status] ?? umanizza(e.status)}
+          </Badge>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-[11px]">
+        {e.appelloFatto ? (
+          <span className="num">
+            <span className="font-semibold text-nvg">{e.presenze}</span>
+            <span className="text-muted"> presenti</span>
+            {e.mancati > 0 && <span className="text-muted"> · {e.mancati} mancati</span>}
+          </span>
+        ) : (
+          <span className="num text-muted">{e.presenti} adesioni · appello non fatto</span>
+        )}
+        {e.costo !== null && <span className="num text-muted">{fmtEuro(e.costo)}</span>}
+      </div>
+    </Link>
   );
 }

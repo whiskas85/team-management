@@ -5,7 +5,7 @@ import { eventiPerLista, filtroVisibilita } from '@/lib/query';
 import { etichettaEvento, isAdmin, tonoEvento } from '@/lib/domain';
 import { fmtDateTime, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Elenco, Vuoto } from '@/components/ui';
-import { CardEvento, ContoAdesioni, RigaEvento } from '@/components/CardEvento';
+import { CardEvento, CardStorico, ContoAdesioni, RigaStorico } from '@/components/CardEvento';
 import { Naviga } from '@/components/Naviga';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { FormAzione, Fisarmonica } from '@/components/Form';
@@ -190,7 +190,8 @@ export default async function CalendarioPage({
             />
           ) : (
             <>
-              {admin && (
+              {/* nello storico non si crea niente: quello che è passato è passato */}
+              {admin && attuale !== 'passati' && (
                 <Fisarmonica titolo="Nuova attività">
                   <FormAzione azione={salvaEvento}>
                     <FormEvento
@@ -240,23 +241,14 @@ export default async function CalendarioPage({
                   ))}
                 </div>
               ) : (
+                /* Storico: non si risponde e non si schiera più nessuno. Quello
+                   che serve è chi c'era davvero, quanto è costata e com'è
+                   andata a finire; i pulsanti di partecipazione e le azioni di
+                   gestione, in fondo a una riga vecchia, si premono soltanto
+                   per sbaglio. */
                 <Elenco
                   cards={lista.map((e) => (
-                    <CardEvento
-                      key={e.id}
-                      e={e}
-                      azioni={
-                        admin ? (
-                          <AzioniEvento
-                            id={e.id}
-                            titolo={e.titolo}
-                            status={e.status}
-                            visibilita={e.visibilita}
-                            compatto
-                          />
-                        ) : undefined
-                      }
-                    />
+                    <CardStorico key={e.id} e={e} />
                   ))}
                   tabella={
                     <table className="tabella">
@@ -265,30 +257,14 @@ export default async function CalendarioPage({
                           <th>Attività</th>
                           <th>Quando</th>
                           <th>Campo</th>
-                          <th>Adesioni</th>
+                          <th>Presenze</th>
                           <th>Quota</th>
-                          <th>Stato</th>
                           <th>Tu</th>
-                          {admin && <th>Azioni</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {lista.map((e) => (
-                          <RigaEvento
-                            key={e.id}
-                            e={e}
-                            azioni={
-                              admin ? (
-                                <AzioniEvento
-                                  id={e.id}
-                                  titolo={e.titolo}
-                                  status={e.status}
-                                  visibilita={e.visibilita}
-                                  compatto
-                                />
-                              ) : undefined
-                            }
-                          />
+                          <RigaStorico key={e.id} e={e} />
                         ))}
                       </tbody>
                     </table>

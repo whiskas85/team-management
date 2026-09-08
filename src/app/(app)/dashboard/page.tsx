@@ -229,6 +229,7 @@ export default async function DashboardPage({
                 certAttuale?.scadeIl ? `scade il ${fmtDate(certAttuale.scadeIl)}` : undefined
               }
               tono={statoCert ? tonoCertificato[statoCert] : 'danger'}
+              href="/certificati"
             />
             <Statistica
               etichetta="Iscrizione"
@@ -257,6 +258,7 @@ export default async function DashboardPage({
           valore={fmtEuro(daPagare)}
           dettaglio={`${pagamenti.length} voci aperte`}
           tono={daPagare > 0 ? 'warn' : 'ok'}
+          href="/pagamenti"
         />
       </div>
 
@@ -375,31 +377,6 @@ export default async function DashboardPage({
         )}
       </section>
 
-      {/* ------------------------------------------------ ultimi certificati */}
-      {tesserato && certificati.length > 0 && (
-        <section className="mt-8">
-          <h2 className="titolo-sezione mb-3">I tuoi certificati</h2>
-          <div className="space-y-2">
-            {certificati.map((c) => {
-              const stato = statoEffettivo(c);
-              return (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm">{umanizza(c.tipo)}</p>
-                    <p className="text-xs text-muted num">
-                      Scadenza {fmtDate(c.scadeIl)} · caricato il {fmtDate(c.createdAt)}
-                    </p>
-                  </div>
-                  <Badge tono={tonoCertificato[stato]}>{umanizza(stato)}</Badge>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
     </>
   );
 }

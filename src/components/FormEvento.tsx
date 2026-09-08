@@ -30,6 +30,8 @@ type Evento = {
   chiusuraIscrizioni: Date | null;
   note: string | null;
   linkRiunione: string | null;
+  /** Riservata alla squadra o aperta a tutti: decide se serve la quota esterni. */
+  visibilita?: string | null;
   tipo?: { riunione: boolean } | null;
 };
 
@@ -302,6 +304,10 @@ export function FormEvento({
                   // spuntata: è il caso normale, e chi vuole regalarla scrive
                   // zero
                   preselezionaEsterni={!evento}
+                  // rilasciata alla sola squadra: la quota esterni non verrà
+                  // mai a nessuno, e tenerla lì si presta solo a sbagliare
+                  // casella
+                  mostraEsterni={evento?.visibilita !== 'TEAM'}
                 />
               </div>
             </Sezione>

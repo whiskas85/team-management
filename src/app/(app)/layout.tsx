@@ -10,6 +10,7 @@ import {
   puoGestirePagamenti,
   puoModerareChat,
   puoVedereNuovi,
+  puoVedereOperatori,
   vedeAreaTesseramento,
   vedeAttivitaSquadra,
 } from '@/lib/domain';
@@ -120,7 +121,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     : 0;
 
   const voci: VoceMenu[] = [
-    { href: '/dashboard', label: 'Situazione', icona: 'dashboard', gruppo: 'principale' },
+    { href: '/dashboard', label: 'Home', icona: 'dashboard', gruppo: 'principale' },
     {
       href: '/calendario',
       label: 'Calendario',
@@ -201,14 +202,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     voci.push({ href: '/note', label: 'Note', icona: 'bozza', gruppo: 'principale' });
   }
 
-  // i contatti li seguono comando, amministrazione e segreteria: sono gli unici
-  // a vederli con nome e cognome e ad aprirne la scheda
+  // Le persone stanno in un gruppo loro: chi è già in squadra e chi si sta
+  // affacciando sono la stessa cosa in due momenti diversi, e chi le segue
+  // apre l'una o l'altra pagina di continuo. In mezzo ai dati di base — campi,
+  // tariffe, tipologie — ci finivano solo perché lì c'era posto.
+  if (puoVedereOperatori(utente.roles)) {
+    voci.push({ href: '/admin/operatori', label: 'Operatori', icona: 'operatori', gruppo: 'persone' });
+  }
   if (puoVedereNuovi(utente.roles)) {
     voci.push({
       href: '/admin/nuovi',
       label: 'Nuovi',
       icona: 'nuovi',
-      gruppo: 'amministrazione',
+      gruppo: 'persone',
       badge: nuoviDaLeggere,
     });
   }
@@ -234,7 +240,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (puoVedereDatiMedici(utente.roles)) {
+  // L'elenco ICE di tutti lo apre solo l'admin: è l'anagrafica sanitaria della
+  // squadra in una pagina sola, e non serve a nessun altro averla sott'occhio.
+  // Quello che serve in campo — i dati di chi c'è quel giorno — sta dentro
+  // l'attività, dove lo vedono admin e team leader.
+  if (isAdmin(utente.roles)) {
     voci.push({
       href: '/ice',
       label: 'ICE · emergenze',
@@ -284,7 +294,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (isAdmin(utente.roles)) {
     voci.push(
-      { href: '/admin/operatori', label: 'Operatori', icona: 'operatori', gruppo: 'comando' },
       { href: '/admin/ruoli', label: 'Ruoli', icona: 'chiave', gruppo: 'comando' },
       { href: '/admin/campi', label: 'Campi', icona: 'campi', gruppo: 'comando' },
       { href: '/admin/squadre', label: 'Squadre esterne', icona: 'squadra', gruppo: 'comando' },

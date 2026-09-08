@@ -5,6 +5,37 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 1.28.0 — 8 settembre 2026
+
+### Cambiato
+
+- **Sulle attività riservate alla squadra la quota esterni non compare**: non
+  verrà mai a nessuno, e due caselle di prezzo affiancate sono il modo più
+  facile per scrivere la cifra in quella sbagliata. Le due quote hanno anche
+  la loro icona, che le distingue a colpo d’occhio.
+- **Condividi copia il link**, invece di aprire WhatsApp: il link finisce dove
+  serve — la chat della squadra, un messaggio, un promemoria — e a deciderlo
+  è chi condivide. Sta in fondo alla card dei dati, dove uno arriva dopo aver
+  letto quando e dove.
+- **Nella riga di un partecipante lo schieramento sta su una riga sua**, sotto
+  nota, quota e rimuovi: sopra le cose che si fanno una volta, sotto quelle
+  che si toccano e ritoccano finché la formazione non torna.
+- **Lo storico è un’altra cosa dal calendario**: niente pulsanti di
+  partecipazione né azioni di gestione, e al loro posto quello che di
+  un’attività finita si va a cercare — **chi c’era davvero**, quanto è costata,
+  e se c’eri anche tu.
+- **«Situazione» si chiama Home**, e i suoi riquadri portano dove promettono:
+  il certificato ai propri certificati, il da saldare ai propri pagamenti.
+  L’elenco dei certificati in fondo alla pagina se n’è andato: la stessa cosa
+  c’era già nella sua voce di menu.
+- **Operatori e Nuovi stanno in un gruppo loro**, *Atleti & nuovi*: sono la
+  stessa cosa in due momenti diversi, e chi le segue apre l’una o l’altra di
+  continuo. In mezzo ai dati di base ci finivano solo perché lì c’era posto.
+- **L’elenco ICE di tutti è dell’admin.** Quello che serve in campo — gruppo
+  sanguigno, allergie e chi chiamare **di chi c’è quel giorno** — ora sta
+  dentro l’attività, dove lo vedono admin e team leader: se qualcuno è per
+  terra non si cerca in un’altra pagina.
+
 ## 1.27.1 — 8 settembre 2026
 
 ### Cambiato

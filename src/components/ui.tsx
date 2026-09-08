@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { Tono } from '@/lib/domain';
 
@@ -47,11 +48,19 @@ export function Statistica({
   valore,
   dettaglio,
   tono = 'neutro',
+  href,
 }: {
   etichetta: string;
   valore: string | number;
   dettaglio?: string;
   tono?: Tono;
+  /**
+   * Dove porta il riquadro, se porta da qualche parte. Un numero che riguarda
+   * qualcosa — il certificato, i soldi da saldare — la prima cosa che fa
+   * venire voglia è di andarci: senza il collegamento tocca cercarsi la voce
+   * di menu giusta.
+   */
+  href?: string;
 }) {
   const colore =
     tono === 'ok'
@@ -61,13 +70,23 @@ export function Statistica({
         : tono === 'danger'
           ? 'text-danger'
           : 'text-ink';
-  return (
-    <div className="card">
+  const dentro = (
+    <>
       <p className="titolo-sezione">{etichetta}</p>
       <p className={`mt-2 num text-2xl font-semibold ${colore}`}>{valore}</p>
       {dettaglio && <p className="mt-1 text-xs text-muted">{dettaglio}</p>}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="card block transition-colors hover:border-nvgdim">
+        {dentro}
+      </Link>
+    );
+  }
+
+  return <div className="card">{dentro}</div>;
 }
 
 export function Campo({

@@ -47,7 +47,9 @@ export async function eventiPerLista({
       tipo: { select: { nome: true, colore: true, riserve: true } },
       field: { select: { nome: true, citta: true, indirizzo: true, lat: true, lng: true } },
       // tutte le risposte: servono i tre conteggi, non solo i presenti
-      rsvps: { select: { status: true, userId: true, note: true, assegnazione: true } },
+      rsvps: {
+        select: { status: true, userId: true, note: true, assegnazione: true, presente: true },
+      },
       payments: { where: { userId }, select: { importo: true, pagato: true, status: true } },
       // se c'è la riga, quest'attività l'ho già aperta
       letture: { where: { userId }, select: { userId: true } },
@@ -103,6 +105,12 @@ export async function eventiPerLista({
     // per sempre sarebbe un pallino che non si spegne mai.
     nuovo:
       e.status === 'RILASCIATA' && e.inizio >= inizioDiOggi && e.letture.length === 0,
+    // Su un'attività finita conta chi c'era davvero, non chi si era proposto:
+    // è l'unico numero che nello storico si va a cercare.
+    presenze: e.rsvps.filter((r) => r.presente === true).length,
+    mancati: e.rsvps.filter((r) => r.presente === false).length,
+    appelloFatto: e.rsvps.some((r) => r.presente !== null),
+    mioPresente: e.rsvps.find((r) => r.userId === userId)?.presente ?? null,
   }));
 }
 

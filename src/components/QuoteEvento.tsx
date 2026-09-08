@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Campo } from './ui';
+import { Icona, type NomeIcona } from './Icona';
 import type { VoceListino } from './CampiRichiesta';
 
 /**
@@ -22,6 +23,7 @@ export function QuoteEvento({
   costo,
   costoEsterni,
   preselezionaEsterni = false,
+  mostraEsterni = true,
 }: {
   listino: VoceListino[];
   /** Stagione dell'attività: filtra le voci valide. */
@@ -30,6 +32,12 @@ export function QuoteEvento({
   costoEsterni?: number | null;
   /** Alla creazione la giocata per gli esterni si propone già spuntata. */
   preselezionaEsterni?: boolean;
+  /**
+   * Su un'attività riservata alla squadra la quota esterni non si mostra: non
+   * verrà mai a nessuno, e due caselle di prezzo affiancate sono il modo più
+   * facile per scrivere la cifra in quella sbagliata.
+   */
+  mostraEsterni?: boolean;
 }) {
   // Qui si vedono solo le voci che riguardano le attività: iscrizioni, rinnovi
   // e tessere federali stanno nello stesso tariffario ma non c'entrano niente
@@ -52,9 +60,12 @@ export function QuoteEvento({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-2">
+    <div
+      className={`grid grid-cols-1 gap-4 sm:col-span-2 ${mostraEsterni ? 'sm:grid-cols-2' : ''}`}
+    >
       <Quota
         titolo="Quota squadra"
+        icona="squadra"
         spiega="Quanto paga chi è in squadra. Vuoto: per loro l'attività è gratis."
         campoImporto="costo"
         campoVoci="tariffeSquadra"
@@ -62,21 +73,30 @@ export function QuoteEvento({
         importo={costo}
         iniziali={[]}
       />
-      <Quota
-        titolo="Quota esterni"
-        spiega="Quanto paga chi in squadra non è. Vuoto: pagano come la squadra; zero: offerta."
-        campoImporto="costoEsterni"
-        campoVoci="tariffeEsterni"
-        voci={applicabili}
-        importo={costoEsterni}
-        iniziali={preselezionaEsterni ? giocate : []}
-      />
+      {mostraEsterni ? (
+        <Quota
+          titolo="Quota esterni"
+          icona="nuovi"
+          spiega="Quanto paga chi in squadra non è. Vuoto: pagano come la squadra; zero: offerta."
+          campoImporto="costoEsterni"
+          campoVoci="tariffeEsterni"
+          voci={applicabili}
+          importo={costoEsterni}
+          iniziali={preselezionaEsterni ? giocate : []}
+        />
+      ) : (
+        <p className="text-[11px] text-muted sm:col-span-2">
+          Questa attività è riservata alla squadra: la quota esterni non serve. Comparirà se un
+          giorno la aprirai anche a chi in squadra non è.
+        </p>
+      )}
     </div>
   );
 }
 
 function Quota({
   titolo,
+  icona,
   spiega,
   campoImporto,
   campoVoci,
@@ -85,6 +105,7 @@ function Quota({
   iniziali,
 }: {
   titolo: string;
+  icona: NomeIcona;
   spiega: string;
   campoImporto: string;
   campoVoci: string;
@@ -106,7 +127,10 @@ function Quota({
 
   return (
     <div className="rounded-lg border border-line bg-surface2/40 p-3">
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+      {/* l'icona distingue le due caselle a colpo d'occhio: sono uguali, e
+          quello che cambia è chi paga */}
+      <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+        <Icona nome={icona} size={14} />
         {titolo}
       </p>
       <p className="mb-3 text-[11px] text-muted">{spiega}</p>

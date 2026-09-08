@@ -91,6 +91,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               frase: true,
               // servono a capire chi è già coperto dalla tessera annuale
               figtCards: { select: { status: true, scadeIl: true } },
+              // ICE: quello che serve se qualcuno si fa male in campo. Lo
+              // leggono solo admin e team leader, e solo di chi c'è quel
+              // giorno — l'elenco di tutta la squadra è un'altra cosa e sta
+              // nella sua pagina.
+              telefono: true,
+              gruppoSanguigno: true,
+              allergie: true,
+              emergenzaNome: true,
+              emergenzaTel: true,
             },
           },
         },
@@ -435,21 +444,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         sottotitolo={`${evento.tipo?.nome ?? 'Senza tipologia'} · ${fmtDateTime(evento.inizio)}`}
         azioni={
           <div className="flex flex-wrap items-center gap-2">
-            {/* si manda in chat il link della pagina, non un riassunto: chi lo
-                riceve entra e trova adesioni, quote e mappa aggiornate */}
-            {evento.status === 'RILASCIATA' && (
-              <CondividiEvento
-                titolo={evento.titolo}
-                inizio={evento.inizio}
-                dove={
-                  evento.field
-                    ? [evento.field.nome, evento.field.citta].filter(Boolean).join(' · ')
-                    : evento.luogo
-                }
-                indirizzo={indirizzoPagina}
-              />
-            )}
-
             {/* la propria risposta, in testa: aprendo l'attività la prima cosa
                 da sapere è se ci si è già segnati, e la card sta più in basso */}
             {mio ? (
@@ -754,6 +748,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 <p className="whitespace-pre-wrap text-sm text-muted">{evento.note}</p>
               </div>
             )}
+
+            {/* Il link si copia in fondo ai dati, dove uno arriva dopo aver
+                letto quando e dove: è quello il momento in cui viene voglia di
+                mandarlo a qualcuno. Si copia e basta — dove incollarlo lo
+                decide chi condivide, non il gestionale. */}
+            {evento.status === 'RILASCIATA' && (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+                <p className="text-[11px] text-muted">
+                  Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.
+                </p>
+                <CondividiEvento indirizzo={indirizzoPagina} />
+              </div>
+            )}
           </div>
 
           {/* -------------------------------------------------- partecipanti */}
@@ -837,6 +844,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                             </div>
                             </div>
 
+                            {/* Due piani: sopra quello che si legge e le cose
+                                che si fanno una volta — nota, quota, polizza,
+                                rimuovi — sotto lo schieramento, che invece si
+                                tocca e ritocca finché la formazione non torna.
+                                In fila unica i pulsanti si allungavano oltre la
+                                riga e il "rimuovi" finiva sotto il pollice. */}
+                            <div className="flex flex-col gap-2 sm:items-end">
                             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             {/* Nota al volo su questa persona in questa attività.
                                 Nasce già legata a tutte e due: è il momento in cui
@@ -966,71 +980,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 risposta: è l'unico che conta ancora */}
                             {r.presente !== null ? (
                               <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
-                            ) : tl && schieraQuesta && r.status === 'PRESENTE' ? (
-                              <div className="flex flex-wrap items-center gap-1">
-                                {/* Chi è dentro si può scambiare con una riserva:
-                                    uno si fa male il giorno prima e la formazione
-                                    non si smonta a mano. Se aveva già pagato, chi
-                                    subentra non paga — la somma per quel posto il
-                                    club l'ha incassata. */}
-                                {(r.assegnazione === 'TITOLARE' ||
-                                  r.assegnazione === 'CONVOCATO') &&
-                                  riserve.length > 0 && (
-                                    <BottoneModale
-                                      etichetta="Sostituisci"
-                                      icona="squadra"
-                                      titolo={`Chi entra al posto di ${nomeDi(r.user)}?`}
-                                      className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-nvgdim hover:text-ink"
-                                    >
-                                      <div className="space-y-2">
-                                        {riserve.map((s) => (
-                                          <div
-                                            key={s.id}
-                                            className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2"
-                                          >
-                                            <span className="min-w-0 truncate text-sm">
-                                              {nomeDi(s.user)}
-                                            </span>
-                                            <AzioneBottone
-                                              azione={scambiaTitolare}
-                                              valori={{ rsvpId: r.id, conRsvpId: s.id }}
-                                              icona="squadra"
-                                              className="btn-primary btn-sm"
-                                            >
-                                              Fai entrare
-                                            </AzioneBottone>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </BottoneModale>
-                                  )}
-
-                                {(['TITOLARE', 'TOC', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
-                                  <AzioneBottone
-                                    key={a}
-                                    azione={schiera}
-                                    valori={{ rsvpId: r.id, assegnazione: a }}
-                                    className={`rounded border px-2 py-1 text-[11px] transition-colors ${
-                                      r.assegnazione === a ||
-                                      (a === 'TITOLARE' && r.assegnazione === 'CONVOCATO')
-                                        ? a === 'TITOLARE'
-                                          ? 'border-nvg bg-nvg/15 text-nvg'
-                                          : a === 'TOC'
-                                            ? 'border-sky-400 bg-sky-400/15 text-sky-300'
-                                            : a === 'RISERVA'
-                                              ? 'border-warn bg-warn/15 text-warn'
-                                              : 'border-line bg-surface2 text-muted'
-                                        : 'border-line text-muted hover:border-nvgdim'
-                                    }`}
-                                  >
-                                    {a === 'NON_ASSEGNATO'
-                                      ? '—'
-                                      : a === 'TITOLARE' && r.assegnazione === 'CONVOCATO'
-                                        ? 'Convocato'
-                                        : etichettaAssegnazione[a]}
-                                  </AzioneBottone>
-                                ))}
-                              </div>
                             ) : (
                               !schieraQuesta && (
                                 <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
@@ -1047,6 +996,75 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               >
                                 <span className="sr-only">Rimuovi</span>
                               </AzioneBottone>
+                            )}
+                            </div>
+
+                            {/* lo schieramento, su una riga sua */}
+                            {r.presente === null && tl && schieraQuesta && r.status === 'PRESENTE' && (
+                              <div className="flex flex-wrap items-center gap-1 sm:justify-end">
+                                {/* Chi è dentro si può scambiare con una riserva:
+                                    uno si fa male il giorno prima e la formazione
+                                    non si smonta a mano. Se aveva già pagato, chi
+                                    subentra non paga — la somma per quel posto il
+                                    club l'ha incassata. */}
+                                {(r.assegnazione === 'TITOLARE' ||
+                                  r.assegnazione === 'CONVOCATO') &&
+                                  riserve.length > 0 && (
+                                    <BottoneModale
+                                      etichetta="Sostituisci"
+                                      icona="squadra"
+                                      titolo={`Chi entra al posto di ${nomeDi(r.user)}?`}
+                                      className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-nvgdim hover:text-ink"
+                                    >
+                                      <div className="space-y-2">
+                                        {riserve.map((s) => (
+                                          <div
+                                            key={s.id}
+                                            className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2"
+                                          >
+                                            <span className="min-w-0 truncate text-sm">
+                                              {nomeDi(s.user)}
+                                            </span>
+                                            <AzioneBottone
+                                              azione={scambiaTitolare}
+                                              valori={{ rsvpId: r.id, conRsvpId: s.id }}
+                                              icona="squadra"
+                                              className="btn-primary btn-sm"
+                                            >
+                                              Fai entrare
+                                            </AzioneBottone>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </BottoneModale>
+                                  )}
+
+                                {(['TITOLARE', 'TOC', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
+                                  <AzioneBottone
+                                    key={a}
+                                    azione={schiera}
+                                    valori={{ rsvpId: r.id, assegnazione: a }}
+                                    className={`rounded border px-2 py-1 text-[11px] transition-colors ${
+                                      r.assegnazione === a ||
+                                      (a === 'TITOLARE' && r.assegnazione === 'CONVOCATO')
+                                        ? a === 'TITOLARE'
+                                          ? 'border-nvg bg-nvg/15 text-nvg'
+                                          : a === 'TOC'
+                                            ? 'border-sky-400 bg-sky-400/15 text-sky-300'
+                                            : a === 'RISERVA'
+                                              ? 'border-warn bg-warn/15 text-warn'
+                                              : 'border-line bg-surface2 text-muted'
+                                        : 'border-line text-muted hover:border-nvgdim'
+                                    }`}
+                                  >
+                                    {a === 'NON_ASSEGNATO'
+                                      ? '—'
+                                      : a === 'TITOLARE' && r.assegnazione === 'CONVOCATO'
+                                        ? 'Convocato'
+                                        : etichettaAssegnazione[a]}
+                                  </AzioneBottone>
+                                ))}
+                              </div>
                             )}
                             </div>
                           </div>
@@ -1086,6 +1104,42 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
         {/* -------------------------------------------------- laterale */}
         <div className="space-y-6">
+          {/* ICE di chi viene: gruppo sanguigno, allergie e chi chiamare. In
+              campo serve avere questi dati addosso, non doverli cercare in
+              un'altra pagina mentre qualcuno è per terra. Li vedono solo admin
+              e team leader, e solo di chi si è segnato. */}
+          {tl && daAppello.length > 0 && (
+            <div className="card">
+              <p className="titolo-sezione mb-1">ICE · chi c’è</p>
+              <p className="mb-3 text-[11px] text-muted">
+                Se succede qualcosa in campo. Dati sanitari: si guardano quando servono.
+              </p>
+              <div className="space-y-2">
+                {daAppello.map((r) => (
+                  <div key={r.id} className="rounded-lg border border-line px-3 py-2">
+                    <p className="text-sm font-medium">{nomeDi(r.user)}</p>
+                    <p className="num text-[11px] text-muted">
+                      {r.user.gruppoSanguigno ? `gruppo ${r.user.gruppoSanguigno}` : 'gruppo —'}
+                      {r.user.telefono && ` · ${r.user.telefono}`}
+                    </p>
+                    {r.user.allergie?.trim() && (
+                      <p className="mt-1 text-[11px] text-warn">{r.user.allergie}</p>
+                    )}
+                    {r.user.emergenzaTel ? (
+                      <p className="mt-1 text-[11px] text-muted">
+                        chiamare {r.user.emergenzaNome ?? '—'}:{' '}
+                        <a href={`tel:${r.user.emergenzaTel}`} className="text-nvg">
+                          {r.user.emergenzaTel}
+                        </a>
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-[11px] text-danger">nessun contatto d’emergenza</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {admin && (
             <div className="card">
               <p className="titolo-sezione mb-3">Stato dell’attività</p>

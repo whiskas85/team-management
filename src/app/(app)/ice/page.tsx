@@ -1,6 +1,6 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { etichettaStato, tonoStato } from '@/lib/domain';
+import { etichettaStato, isAdmin, tonoStato } from '@/lib/domain';
 import { puoVedereDatiMedici } from '@/lib/medico';
 import { fmtDate, iniziali, nomeCompleto } from '@/lib/format';
 import { Avatar, Badge, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
@@ -13,7 +13,10 @@ import { Icona } from '@/components/Icona';
  * mediche, e chi chiamare.
  */
 export default async function IcePage() {
-  await requirePermesso(puoVedereDatiMedici);
+  // L’elenco di tutti è dell’admin: è l’anagrafica sanitaria della squadra in
+  // una pagina sola. Quello che serve in campo — i dati di chi c’è quel giorno
+  // — sta dentro l’attività, dove lo vedono anche i team leader.
+  await requirePermesso(isAdmin);
 
   const operatori = await prisma.user.findMany({
     where: { stato: { in: ['SQUADRA', 'SOSPESO'] } },
