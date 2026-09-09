@@ -16,8 +16,10 @@ import { comeChiamare, fmtDate, fmtDateTime, fmtEuro, nomeCompleto } from '../fo
 import { filtroVisibilita } from '../query';
 import { quotaPer } from '../quote';
 import { documentoDa, elencoDocumenti, puoLeggere } from '../documenti';
+import { SCATENANTI } from '../messaggi';
 import { rispondiEvento, salvaEvento } from '@/actions/eventi';
 import { segnaPagato } from '@/actions/pagamenti';
+import { aggiungiTesti } from '@/actions/messaggi';
 
 /**
  * Quello che un assistente può fare nel gestionale.
@@ -619,6 +621,76 @@ const registraIncasso: Strumento = {
   },
 };
 
+const modelliMessaggi: Strumento = {
+  nome: 'modelli_messaggi',
+  descrizione:
+    'I modelli di messaggio automatico e i testi che contengono già. Serve prima di aggiungi_testi: dice il titolo con cui chiamare il modello, i segnaposto che accetta, e cosa c’è scritto dentro — così i testi nuovi non ripetono quelli vecchi.',
+  permesso: (me) => puoAmministrare(me.roles),
+  parametri: {
+    type: 'object',
+    properties: {
+      titolo: { type: 'string', description: 'Solo questo modello, invece di tutti.' },
+    },
+  },
+  async esegui(_me, arg) {
+    const cercato = testo(arg, 'titolo');
+    const modelli = await prisma.modelloMessaggio.findMany({
+      where: cercato ? { titolo: { equals: cercato, mode: 'insensitive' } } : {},
+      orderBy: { titolo: 'asc' },
+      include: { testi: { orderBy: { createdAt: 'asc' } } },
+    });
+
+    return modelli.map((m) => ({
+      titolo: m.titolo,
+      quando: SCATENANTI[m.scatenante].quando,
+      dove: m.destinazione === 'GRUPPO' ? 'nel gruppo, lo leggono tutti' : 'in privato alla persona',
+      attivo: m.attivo,
+      segnaposto: SCATENANTI[m.scatenante].segnaposto.map((v) => `{${v}}`),
+      testi: m.testi.map((t) => ({ testo: t.testo, attivo: t.attivo, volte: t.volte })),
+    }));
+  },
+};
+
+const proponiTesti: Strumento = {
+  nome: 'aggiungi_testi',
+  descrizione:
+    'Aggiunge modi nuovi di dire lo stesso messaggio dentro un modello che esiste già. I testi entrano SPENTI: nessuno parte finché una persona non li ha letti e accesi nel gestionale. Usa i segnaposto che dà modelli_messaggi, e guarda prima cosa c’è dentro per non ripeterlo.',
+  permesso: (me) => puoAmministrare(me.roles),
+  scrive: true,
+  parametri: {
+    type: 'object',
+    properties: {
+      titolo: { type: 'string', description: 'Il titolo del modello, da modelli_messaggi.' },
+      testi: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Un testo per elemento, con i segnaposto già dentro.',
+      },
+    },
+    required: ['titolo', 'testi'],
+  },
+  async esegui(_me, arg) {
+    const cercato = testo(arg, 'titolo');
+    const modello = await prisma.modelloMessaggio.findFirst({
+      where: { titolo: { equals: cercato, mode: 'insensitive' } },
+      select: { id: true, titolo: true },
+    });
+    if (!modello) throw new Error(`Non c'è nessun modello che si chiama "${cercato}".`);
+
+    const testi = Array.isArray(arg.testi)
+      ? arg.testi.filter((t): t is string => typeof t === 'string' && t.trim() !== '')
+      : [];
+    if (testi.length === 0) throw new Error('Non hai passato nessun testo.');
+
+    // l'azione del gestionale spezza sui trattini e fa i suoi controlli: qui non
+    // si scrive sul database a mano, come per ogni altro strumento che cambia i dati
+    return esitoAzione(aggiungiTesti, {
+      modelloId: modello.id,
+      testo: testi.map((t) => t.trim()).join('\n---\n'),
+    });
+  },
+};
+
 const datiDiBase: Strumento = {
   nome: 'tipologie_e_campi',
   descrizione:
@@ -658,6 +730,8 @@ export const STRUMENTI: Strumento[] = [
   datiDiBase,
   creaAttivita,
   registraIncasso,
+  modelliMessaggi,
+  proponiTesti,
 ];
 
 /**

@@ -4,6 +4,7 @@ import { STATI_CONTATTO, isAdmin, puoAmministrare, puoVedereNuovi } from '@/lib/
 import { fmtDate } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { Intestazione, Statistica } from '@/components/ui';
+import { BottoneCreaOperatore } from '@/components/FormOperatore';
 import { ElencoNuovi, type RigaNuovo } from '@/components/ElencoNuovi';
 
 /** Da quanti giorni un contatto è considerato "sparito". */
@@ -81,9 +82,12 @@ export default async function NuoviPage() {
 
   return (
     <>
+      {/* chi arriva a un'open lo si registra da qui, dove ci si accorge che manca:
+          crearlo resta un gesto da admin, come nella pagina degli operatori */}
       <Intestazione
         titolo="Nuovi"
         sottotitolo="Chi si sta approcciando al team: monitora chi torna e chi no, poi invita o elimina"
+        azioni={isAdmin(me.roles) ? <BottoneCreaOperatore stato="NUOVO" /> : undefined}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

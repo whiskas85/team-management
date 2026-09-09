@@ -9,14 +9,10 @@ import {
 } from '@/lib/domain';
 import { fmtDate, fmtDateTime, iniziali, nomeCompleto } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
-import { Campo, Intestazione, Statistica } from '@/components/ui';
-import { FormAzione } from '@/components/Form';
-import { BottoneModale } from '@/components/Modale';
-import { Invia } from '@/components/Bottone';
+import { Intestazione, Statistica } from '@/components/ui';
 import { ElencoOperatori, type RigaOperatore } from '@/components/ElencoOperatori';
 import { ElencoRegolarita, type RigaRegolarita } from '@/components/ElencoRegolarita';
-import { SceltaRuoli, SceltaStato } from '@/components/FormOperatore';
-import { creaOperatore } from '@/actions/operatori';
+import { BottoneCreaOperatore } from '@/components/FormOperatore';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,42 +97,7 @@ async function Gestione() {
       <Intestazione
         titolo="Operatori"
         sottotitolo="Atleti registrati del team · anagrafica completa"
-        azioni={
-          <BottoneModale etichetta="Crea operatore" icona="operatori" titolo="Nuovo operatore" larga>
-            <FormAzione azione={creaOperatore}>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Campo label="Nome *">
-                  <input name="nome" required className="input" />
-                </Campo>
-                <Campo label="Cognome *">
-                  <input name="cognome" required className="input" />
-                </Campo>
-                <Campo label="Email *">
-                  <input name="email" type="email" required className="input" />
-                </Campo>
-                <Campo label="Callsign">
-                  <input name="callsign" className="input" />
-                </Campo>
-                <Campo label="Telefono">
-                  <input name="telefono" className="input" />
-                </Campo>
-                <SceltaStato />
-                <Campo label="Password provvisoria *" span>
-                  <input name="password" type="text" minLength={8} required className="input" />
-                </Campo>
-              </div>
-
-              <SceltaRuoli attuali={['ATLETA']} />
-
-              <Invia icona="aggiungi">
-            Crea operatore
-          </Invia>
-              <p className="text-xs text-muted">
-                Comunica tu la password provvisoria: l’operatore potrà cambiarla dal suo profilo.
-              </p>
-            </FormAzione>
-          </BottoneModale>
-        }
+        azioni={<BottoneCreaOperatore />}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

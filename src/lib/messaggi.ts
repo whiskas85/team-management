@@ -41,6 +41,21 @@ export const SCATENANTI: Record<
   },
 };
 
+/**
+ * Spezza un incollato in tanti testi.
+ *
+ * Due modi, e si capisce da solo quale: se c'è una riga con soli trattini
+ * separa lì, e allora i testi possono andare a capo quanto vogliono; altrimenti
+ * una riga è un testo. Trenta auguri brevi si incollano dal blocco note senza
+ * pensarci, e quelli lunghi hanno comunque come farsi capire.
+ */
+export function spezzaTesti(grezzo: string): string[] {
+  const pezzi = /^\s*-{3,}\s*$/m.test(grezzo)
+    ? grezzo.split(/^\s*-{3,}\s*$/m)
+    : grezzo.split(/\r?\n/);
+  return pezzi.map((t) => t.trim()).filter(Boolean);
+}
+
 /** Sostituisce i {segnaposto}; quelli senza valore spariscono invece di restare a vista. */
 export function componi(testo: string, valori: Record<string, string | null | undefined>) {
   return testo
@@ -49,18 +64,36 @@ export function componi(testo: string, valori: Record<string, string | null | un
     .trim();
 }
 
+function pesca(scatenante: ScatenanteMessaggio, escludi: string[]) {
+  return prisma.testoModello.findFirst({
+    where: {
+      attivo: true,
+      modello: { scatenante, attivo: true },
+      ...(escludi.length ? { id: { notIn: escludi } } : {}),
+    },
+    orderBy: [{ usatoIl: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
+    include: { modello: true },
+  });
+}
+
 /**
- * Sceglie il modello da usare: fra quelli attivi, quello fermo da più tempo.
+ * Sceglie il testo da usare: fra quelli attivi, quello fermo da più tempo.
  *
  * È una rotazione, non un sorteggio: con dieci auguri scritti, dieci persone di
  * fila ne ricevono dieci diversi. A caso, statisticamente, qualcuno si sarebbe
  * beccato la stessa frase del compagno il giorno dopo.
+ *
+ * `escludi` tiene il conto dentro un giro solo. La data di ultimo uso si scrive
+ * quando il messaggio entra nel registro, che è dopo: senza questa lista due
+ * compleanni dello stesso giorno pescavano lo stesso testo e finivano identici
+ * uno sotto l'altro nel gruppo — proprio il caso in cui la ripetizione si vede.
+ * Se i testi finiscono prima delle persone si ricomincia da capo: ripetersi è
+ * meglio che tacere.
  */
-export async function modelloDaUsare(scatenante: ScatenanteMessaggio) {
-  return prisma.modelloMessaggio.findFirst({
-    where: { scatenante, attivo: true },
-    orderBy: [{ usatoIl: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
-  });
+export async function testoDaUsare(scatenante: ScatenanteMessaggio, escludi: string[] = []) {
+  const scelto = await pesca(scatenante, escludi);
+  if (scelto) return scelto;
+  return escludi.length ? pesca(scatenante, []) : null;
 }
 
 export const etaCompiuta = (nascita: Date, quando = new Date()) => {
@@ -89,17 +122,23 @@ export type Bozza = {
   destinazione: string;
   scatenante: ScatenanteMessaggio;
   testo: string;
-  modelloId: string | null;
+  testoId: string | null;
   eventId?: string;
   /** Chiave che impedisce il doppione. */
   occasione: string;
 };
 
-/** Il gruppo su cui scrive un modello: il suo, oppure quello predefinito. */
-async function gruppoDi(modello: { gruppoId: string | null }) {
-  if (modello.gruppoId) return { id: modello.gruppoId, nome: 'gruppo' };
+type Gruppo = { id: string; nome: string };
+
+/** Il gruppo scelto una volta per tutte nel collegamento. */
+async function gruppoPredefinito(): Promise<Gruppo | null> {
   const c = await prisma.collegamentoWhatsapp.findUnique({ where: { id: 'whatsapp' } });
   return c?.gruppoId ? { id: c.gruppoId, nome: c.gruppoNome ?? 'gruppo' } : null;
+}
+
+/** Il gruppo su cui scrive un modello: il suo, oppure quello predefinito. */
+function gruppoDi(modello: { gruppoId: string | null }, predefinito: Gruppo | null) {
+  return modello.gruppoId ? { id: modello.gruppoId, nome: 'gruppo' } : predefinito;
 }
 
 /**
@@ -112,6 +151,7 @@ async function gruppoDi(modello: { gruppoId: string | null }) {
  */
 export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
   const bozze: Bozza[] = [];
+  const predefinito = await gruppoPredefinito();
 
   const inizioGiorno = new Date(quando);
   inizioGiorno.setHours(0, 0, 0, 0);
@@ -121,8 +161,7 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
   dopodomani.setDate(dopodomani.getDate() + 1);
 
   // --- compleanni di oggi
-  const modelloCompleanno = await modelloDaUsare('COMPLEANNO');
-  if (modelloCompleanno) {
+  {
     const tutti = await prisma.user.findMany({
       where: {
         stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] },
@@ -139,13 +178,19 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
       },
     });
 
-    const gruppo = await gruppoDi(modelloCompleanno);
+    // ogni festeggiato pesca il suo: due compleanni lo stesso giorno non sono
+    // due volte la stessa frase, che è dove la ripetizione si nota di più
+    const usati: string[] = [];
 
     for (const u of tutti) {
       const n = u.dataNascita!;
       if (n.getDate() !== quando.getDate() || n.getMonth() !== quando.getMonth()) continue;
 
-      const testo = componi(modelloCompleanno.testo, {
+      const scelto = await testoDaUsare('COMPLEANNO', usati);
+      if (!scelto) break;
+
+      const gruppo = gruppoDi(scelto.modello, predefinito);
+      const testo = componi(scelto.testo, {
         nome: u.nome,
         callsign: u.callsign ?? u.nome,
         anni: String(etaCompiuta(n, quando)),
@@ -153,14 +198,15 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
 
       // nel gruppo gli auguri li leggono tutti, ed è come si fa fra compagni;
       // in privato serve il consenso, perché è un messaggio diretto
-      if (modelloCompleanno.destinazione === 'GRUPPO') {
+      if (scelto.modello.destinazione === 'GRUPPO') {
         if (!gruppo) continue;
+        usati.push(scelto.id);
         bozze.push({
           userId: u.id,
           aChi: gruppo.nome,
           destinazione: gruppo.id,
           scatenante: 'COMPLEANNO',
-          modelloId: modelloCompleanno.id,
+          testoId: scelto.id,
           testo,
           occasione: `COMPLEANNO-${u.id}-${quando.getFullYear()}`,
         });
@@ -169,12 +215,14 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
 
       const numero = numeroInternazionale(u.telefono);
       if (!numero || !u.consensoComunicaz) continue;
+      // segnato solo adesso: chi viene saltato non deve bruciare una frase
+      usati.push(scelto.id);
       bozze.push({
         userId: u.id,
         aChi: `${u.nome} ${u.cognome}`,
         destinazione: numero,
         scatenante: 'COMPLEANNO',
-        modelloId: modelloCompleanno.id,
+        testoId: scelto.id,
         testo,
         occasione: `COMPLEANNO-${u.id}-${quando.getFullYear()}`,
       });
@@ -182,8 +230,7 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
   }
 
   // --- attività di domani, a chi ha detto di esserci
-  const modelloPromemoria = await modelloDaUsare('PROMEMORIA_ATTIVITA');
-  if (modelloPromemoria) {
+  {
     const attivita = await prisma.event.findMany({
       where: { status: 'RILASCIATA', inizio: { gte: domani, lt: dopodomani } },
       include: {
@@ -206,7 +253,7 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
       },
     });
 
-    const gruppo = await gruppoDi(modelloPromemoria);
+    const usati: string[] = [];
 
     for (const e of attivita) {
       const indirizzo = e.field
@@ -227,17 +274,22 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
         mappa,
       };
 
+      const perGruppo = await testoDaUsare('PROMEMORIA_ATTIVITA', usati);
+      if (!perGruppo) break;
+
       // nel gruppo basta un messaggio per tutti: sedici messaggi identici, uno
       // per iscritto, sono il modo migliore per farsi silenziare la chat
-      if (modelloPromemoria.destinazione === 'GRUPPO') {
+      if (perGruppo.modello.destinazione === 'GRUPPO') {
+        const gruppo = gruppoDi(perGruppo.modello, predefinito);
         if (!gruppo) continue;
+        usati.push(perGruppo.id);
         bozze.push({
           aChi: gruppo.nome,
           destinazione: gruppo.id,
           scatenante: 'PROMEMORIA_ATTIVITA',
-          modelloId: modelloPromemoria.id,
+          testoId: perGruppo.id,
           eventId: e.id,
-          testo: componi(modelloPromemoria.testo, { ...dati, nome: '', callsign: '' }),
+          testo: componi(perGruppo.testo, { ...dati, nome: '', callsign: '' }),
           occasione: `PROMEMORIA-${e.id}`,
         });
         continue;
@@ -248,14 +300,18 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
         const numero = numeroInternazionale(r.user.telefono);
         if (!numero) continue;
 
+        const scelto = await testoDaUsare('PROMEMORIA_ATTIVITA', usati);
+        if (!scelto) break;
+        usati.push(scelto.id);
+
         bozze.push({
           userId: r.user.id,
           aChi: `${r.user.nome} ${r.user.cognome}`,
           destinazione: numero,
           scatenante: 'PROMEMORIA_ATTIVITA',
-          modelloId: modelloPromemoria.id,
+          testoId: scelto.id,
           eventId: e.id,
-          testo: componi(modelloPromemoria.testo, {
+          testo: componi(scelto.testo, {
             ...dati,
             nome: r.user.nome,
             callsign: r.user.callsign ?? r.user.nome,
@@ -269,20 +325,19 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
   return bozze;
 }
 
-/** Segna il modello come usato: è così che la rotazione avanza. */
-export async function segnaUsato(modelloId: string) {
-  await prisma.modelloMessaggio.update({
-    where: { id: modelloId },
+/** Segna il testo come usato: è così che la rotazione avanza. */
+export async function segnaUsato(testoId: string) {
+  await prisma.testoModello.update({
+    where: { id: testoId },
     data: { usatoIl: new Date(), volte: { increment: 1 } },
   });
 }
 
 /** Quote aperte e certificati in scadenza, su richiesta e non a calendario. */
 export async function bozzeSuRichiesta(scatenante: 'QUOTA_APERTA' | 'CERTIFICATO_IN_SCADENZA') {
-  const modello = await modelloDaUsare(scatenante);
-  if (!modello) return [];
   const bozze: Bozza[] = [];
   const oggi = new Date();
+  const usati: string[] = [];
 
   if (scatenante === 'QUOTA_APERTA') {
     const pagamenti = await prisma.payment.findMany({
@@ -299,13 +354,16 @@ export async function bozzeSuRichiesta(scatenante: 'QUOTA_APERTA' | 'CERTIFICATO
     for (const p of pagamenti) {
       const numero = numeroInternazionale(p.user.telefono);
       if (!numero) continue;
+      const scelto = await testoDaUsare(scatenante, usati);
+      if (!scelto) break;
+      usati.push(scelto.id);
       bozze.push({
         userId: p.user.id,
         aChi: `${p.user.nome} ${p.user.cognome}`,
         destinazione: numero,
         scatenante,
-        modelloId: modello.id,
-        testo: componi(modello.testo, {
+        testoId: scelto.id,
+        testo: componi(scelto.testo, {
           nome: p.user.nome,
           callsign: p.user.callsign ?? p.user.nome,
           importo: fmtEuro(Number(p.importo) - Number(p.pagato)),
@@ -332,13 +390,16 @@ export async function bozzeSuRichiesta(scatenante: 'QUOTA_APERTA' | 'CERTIFICATO
       const numero = numeroInternazionale(c.user.telefono);
       if (!numero || !c.scadeIl) continue;
       const giorni = Math.round((c.scadeIl.getTime() - oggi.getTime()) / 86400000);
+      const scelto = await testoDaUsare(scatenante, usati);
+      if (!scelto) break;
+      usati.push(scelto.id);
       bozze.push({
         userId: c.user.id,
         aChi: `${c.user.nome} ${c.user.cognome}`,
         destinazione: numero,
         scatenante,
-        modelloId: modello.id,
-        testo: componi(modello.testo, {
+        testoId: scelto.id,
+        testo: componi(scelto.testo, {
           nome: c.user.nome,
           callsign: c.user.callsign ?? c.user.nome,
           scadenza: fmtDate(c.scadeIl),

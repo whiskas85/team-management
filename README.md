@@ -357,11 +357,23 @@ inquadrato il codice, e nessun altro amministratore può mandare messaggi da que
 numero: deve scollegare e collegare il proprio. Nel database non finisce nessun
 token — solo di chi è il collegamento e su quale gruppo scrive.
 
-**Modelli a rotazione.** Dello stesso tipo se ne scrivono quanti si vuole; il
-gestionale usa a turno quello fermo da più tempo, così dieci auguri di fila non
-sono dieci volte la stessa frase. Nel testo si mettono segnaposto come `{nome}`,
-`{callsign}`, `{anni}`, `{attivita}`, `{indirizzo}`, `{mappa}`: quelli senza
-valore spariscono invece di restare a vista.
+**Il modello dice quando e dove, i testi dicono come.** Un modello — «Auguri di
+compleanno» — sceglie una volta sola il momento e il gruppo su cui scrivere, e
+dentro tiene quanti testi si vuole. Il gestionale usa a turno quello fermo da più
+tempo, così dieci auguri di fila non sono dieci volte la stessa frase, e due
+compleanni lo stesso giorno non escono identici uno sotto l'altro. Il giorno che
+la squadra apre un gruppo nuovo si cambia una riga, non trenta.
+
+Nel testo si mettono segnaposto come `{nome}`, `{callsign}`, `{anni}`,
+`{attivita}`, `{indirizzo}`, `{mappa}`: quelli senza valore spariscono invece di
+restare a vista.
+
+**I testi si incollano in blocco.** Trenta modi di fare gli auguri, uno per riga
+(o separati da una riga di `---` se vanno a capo), entrano in un colpo solo:
+passarli uno per uno da una finestra che si apre e si chiude è il motivo per cui
+poi restano due. Un assistente collegato può proporne di suoi con
+`aggiungi_testi` — entrano **spenti**, perché cinquanta frasi generate
+contengono sempre le tre che non diresti mai, e qualcuno deve leggerle prima.
 
 **Si prepara, si guarda, poi si manda.** I messaggi non partono da soli: prima
 compaiono in elenco col testo definitivo, e si scartano quelli che stonano. Un

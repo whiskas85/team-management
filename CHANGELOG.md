@@ -5,6 +5,100 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.9.0 — 9 settembre 2026
+
+### Cambiato
+
+- **Il chip in alto a destra non apre una tendina: si apre lui.** Cliccandolo
+  cresce verso sinistra e verso il basso restando agganciato al suo angolo, e
+  il callsign con la faccia non si spostano di un pixel — sono la stessa cosa
+  di un momento prima, più grande. Prima sbucava un riquadro staccato sotto,
+  che era un secondo oggetto da riconoscere; adesso si vede da dove viene.
+- Il menu parte **all'altezza della barra**, non due centimetri sotto: è il
+  chip stesso ad allungarsi, quindi non c'è uno stacco da attraversare con
+  l'occhio.
+- Dentro compare il **nome per esteso**, che è quello che il chip non ha spazio
+  di dire. Il **callsign non si ripete**: sta già in cima, e leggerlo due volte
+  a due centimetri di distanza faceva sembrare la scheda scritta da due persone
+  che non si erano parlate.
+- L'apertura misura la larghezza di partenza invece di indovinarla — il chip è
+  largo quanto il callsign di chi guarda — e l'altezza scende con le righe che
+  ci sono davvero: gli incarichi vanno da zero a sei, e un'altezza fissa
+  sarebbe stata giusta per una persona sola. Chi ha chiesto al sistema meno
+  animazioni non ne vede nessuna.
+- Nella barra non si sposta niente: sotto al chip che si allarga resta un
+  segnaposto della sua misura, o aprendo il menu il logo scivolerebbe di lato.
+
+## 2.8.0 — 9 settembre 2026
+
+### Aggiunto
+
+- **«Crea operatore» c'è anche nei Nuovi.** È da lì che si guarda quando ci si
+  accorge che qualcuno manca — è arrivato a un'open, va segnato — e mandare a
+  cercare la pagina degli operatori è il modo migliore per rimandare
+  l'inserimento a dopo, cioè a mai.
+- Aperto dai contatti, il modulo parte già su **Nuovo** e senza ruoli: chi si è
+  affacciato a un'open non è un atleta, e l'incarico arriva quando entra in
+  squadra. Aperto dagli operatori si comporta come prima.
+- Il pulsante resta un **gesto da admin** anche qui: amministrazione e
+  segreteria vedono i contatti ma non lo trovano, invece di trovarlo e sentirsi
+  dire di no dopo aver compilato.
+
+### Cambiato
+
+- Il modulo di creazione è **un componente solo**, usato dalle due pagine invece
+  di essere copiato: due form gemelli prima o poi divergono su un campo
+  obbligatorio.
+- **Telefono, data e luogo di nascita sono obbligatori** quando si crea una
+  persona a mano, e i due campi di nascita al modulo mancavano del tutto. Sono i
+  dati che servono per tesseramento e polizza: chi si registra da solo li
+  compila nel modulo d'iscrizione, chi viene inserito a mano non passa di lì e
+  restava una scheda a metà — da rincorrere mesi dopo, quando chiedere è molto
+  più caro. Il controllo è nel modulo **e** nell'azione, non solo nel browser.
+
+## 2.7.0 — 9 settembre 2026
+
+### Cambiato
+
+- **Il modello di messaggio si divide in due: quando e dove da una parte, i
+  testi dall'altra.** Prima ogni frase portava con sé il proprio gruppo
+  WhatsApp: finché i modelli erano due si notava appena, ma con trenta modi di
+  fare gli auguri diventava trenta volte la stessa scelta — e il giorno che la
+  squadra apre una chat nuova, trenta modifiche a mano per spostarli tutti.
+- Adesso un modello ha un **titolo** («Auguri di compleanno»), dice quando
+  parlare e su quale gruppo scrivere, e dentro tiene quanti testi si vuole.
+  Cambiare gruppo è una riga sola, e vale per tutti i suoi testi.
+- La **rotazione scende di un piano**: gira sui testi, non sui modelli. Il
+  comportamento visto da fuori è lo stesso di prima — a turno quello fermo da
+  più tempo — ma adesso il barattolo da cui pesca si riempie senza riscrivere
+  ogni volta la configurazione.
+
+### Aggiunto
+
+- **I testi si incollano in blocco.** Una riga, un testo; se servono testi che
+  vanno a capo si separano con una riga di trattini. Trenta auguri passano in
+  un gesto invece che in trenta finestre — che è il motivo per cui prima ne
+  restavano due.
+- Ogni testo si **accende e si spegne** dal suo posto, senza aprire niente:
+  spento resta scritto ma non esce, così una frase si mette da parte senza
+  perderla. Accanto si legge quante volte è stata usata e quando.
+- Due strumenti per gli assistenti collegati: **`modelli_messaggi`** dice quali
+  modelli ci sono, che segnaposto accettano e cosa contengono già — serve a non
+  riproporre frasi che ci sono — e **`aggiungi_testi`** ne infila di nuovi in un
+  modello chiamandolo per titolo. Entrano **spenti**: cinquanta frasi generate
+  contengono sempre le tre che non diresti mai, e nessuna parte finché una
+  persona non l'ha letta.
+
+### Corretto
+
+- **Due compleanni lo stesso giorno non escono più identici.** Il testo veniva
+  scelto una volta sola per tutto il giro e poi riusato per ogni festeggiato:
+  nel gruppo si leggevano due messaggi uguali uno sotto l'altro, che è
+  esattamente il caso in cui la ripetizione si nota. Adesso ognuno pesca il
+  suo, e vale anche per i promemoria e i solleciti mandati in blocco.
+- Il registro degli invii resta agganciato alla frase con cui il messaggio è
+  partito, anche per i modelli che la migrazione ha fuso insieme.
+
 ## 2.6.0 — 9 settembre 2026
 
 ### Cambiato

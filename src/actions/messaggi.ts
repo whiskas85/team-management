@@ -5,7 +5,7 @@ import type { ScatenanteMessaggio } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin } from '@/lib/domain';
-import { bozzeDiOggi, bozzeSuRichiesta, segnaUsato, type Bozza } from '@/lib/messaggi';
+import { bozzeDiOggi, bozzeSuRichiesta, segnaUsato, spezzaTesti, type Bozza } from '@/lib/messaggi';
 import { gruppiWhatsapp, inviaWhatsapp, scollegaPonte, statoPonte } from '@/lib/whatsapp';
 import { enumVal, str, strOpt, type StatoForm } from '@/lib/form';
 
@@ -112,27 +112,39 @@ export async function scegliGruppo(_prev: StatoForm, fd: FormData): Promise<Stat
 
 // ------------------------------------------------------------------ modelli
 
+/**
+ * Il modello: quando parlare e dove scrivere. Il testo sta di là.
+ *
+ * È la riga che si tocca una volta l'anno — il giorno che la squadra apre un
+ * gruppo nuovo — e per questo non moltiplica: cambiare gruppo qui li sposta
+ * tutti, invece di chiedere trenta modifiche uguali.
+ */
 export async function salvaModello(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin scrive i modelli.' };
 
-  const testo = str(fd, 'testo');
-  if (!testo) return { errore: 'Il testo è vuoto.' };
+  const titolo = str(fd, 'titolo');
+  if (!titolo) return { errore: 'Dài un titolo al modello: serve a ritrovarlo.' };
 
   const id = strOpt(fd, 'id');
   const dati = {
+    titolo,
     scatenante: enumVal(fd, 'scatenante', SCATENANTI, 'LIBERO') as ScatenanteMessaggio,
     destinazione: enumVal(fd, 'destinazione', DOVE, 'GRUPPO'),
     gruppoId: strOpt(fd, 'gruppoId'),
-    testo,
     attivo: fd.get('attivo') !== null,
   };
+
+  const gemello = await prisma.modelloMessaggio.findUnique({ where: { titolo } });
+  if (gemello && gemello.id !== id) {
+    return { errore: `C’è già un modello che si chiama "${titolo}".` };
+  }
 
   if (id) await prisma.modelloMessaggio.update({ where: { id }, data: dati });
   else await prisma.modelloMessaggio.create({ data: dati });
 
   aggiorna();
-  return { ok: id ? 'Modello aggiornato.' : 'Modello aggiunto: entra nella rotazione.' };
+  return { ok: id ? 'Modello aggiornato.' : 'Modello creato: adesso scrivici dentro i testi.' };
 }
 
 export async function eliminaModello(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
@@ -141,7 +153,82 @@ export async function eliminaModello(_prev: StatoForm, fd: FormData): Promise<St
 
   await prisma.modelloMessaggio.delete({ where: { id: str(fd, 'id') } });
   aggiorna();
-  return { ok: 'Modello eliminato.' };
+  return { ok: 'Modello eliminato, con i suoi testi.' };
+}
+
+// ------------------------------------------------------------------- testi
+
+/**
+ * Aggiunge testi a un modello, uno o trenta in un colpo.
+ *
+ * L'incollata in blocco è il punto: i modi di fare gli auguri si scrivono tutti
+ * insieme, magari facendoseli proporre, e passarli uno per uno da una finestra
+ * che si apre e si chiude è il motivo per cui poi restano due.
+ */
+export async function aggiungiTesti(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin scrive i testi.' };
+
+  const modelloId = str(fd, 'modelloId');
+  const testi = spezzaTesti(str(fd, 'testo'));
+  if (testi.length === 0) return { errore: 'Non c’è niente da aggiungere.' };
+
+  const modello = await prisma.modelloMessaggio.findUnique({
+    where: { id: modelloId },
+    select: { id: true },
+  });
+  if (!modello) return { errore: 'Quel modello non c’è più.' };
+
+  const attivo = fd.get('attivo') !== null;
+  await prisma.testoModello.createMany({
+    data: testi.map((testo) => ({ modelloId, testo, attivo })),
+  });
+
+  aggiorna();
+  const quanti = testi.length === 1 ? 'Un testo aggiunto' : `${testi.length} testi aggiunti`;
+  return { ok: attivo ? `${quanti}: entrano nella rotazione.` : `${quanti}, spenti: accendili tu.` };
+}
+
+export async function salvaTesto(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin scrive i testi.' };
+
+  const testo = str(fd, 'testo');
+  if (!testo) return { errore: 'Il testo è vuoto.' };
+
+  await prisma.testoModello.update({
+    where: { id: str(fd, 'id') },
+    data: { testo, attivo: fd.get('attivo') !== null },
+  });
+
+  aggiorna();
+  return { ok: 'Testo aggiornato.' };
+}
+
+/** Accende o spegne un testo senza aprire niente: è il gesto che si fa di più. */
+export async function accendiTesto(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i testi.' };
+
+  const id = str(fd, 'id');
+  const attuale = await prisma.testoModello.findUnique({
+    where: { id },
+    select: { attivo: true },
+  });
+  if (!attuale) return { errore: 'Quel testo non c’è più.' };
+
+  await prisma.testoModello.update({ where: { id }, data: { attivo: !attuale.attivo } });
+  aggiorna();
+  return { ok: attuale.attivo ? 'Testo spento: resta scritto, non esce.' : 'Testo acceso.' };
+}
+
+export async function eliminaTesto(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i testi.' };
+
+  await prisma.testoModello.delete({ where: { id: str(fd, 'id') } });
+  aggiorna();
+  return { ok: 'Testo eliminato.' };
 }
 
 // ------------------------------------------------------------------ invio
@@ -156,7 +243,7 @@ async function registra(bozze: Bozza[]) {
         data: {
           userId: b.userId ?? null,
           scatenante: b.scatenante,
-          modelloId: b.modelloId,
+          testoId: b.testoId,
           testo: b.testo,
           destinazione: b.destinazione,
           aChi: b.aChi,
@@ -164,7 +251,7 @@ async function registra(bozze: Bozza[]) {
           occasione: b.occasione,
         },
       });
-      if (b.modelloId) await segnaUsato(b.modelloId);
+      if (b.testoId) await segnaUsato(b.testoId);
       nuove++;
     } catch {
       // già presente per quella destinazione e quell'occasione: è esattamente

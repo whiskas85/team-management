@@ -902,27 +902,53 @@ enum DoveMandare {
   PERSONA
 }
 
-/// Un modo di dire la stessa cosa.
+/// Un messaggio che il gestionale sa mandare: **quando** dirlo e **dove**.
 ///
-/// Di ogni tipo se ne scrivono quanti se ne vuole: il gestionale ruota su
-/// quello usato meno di recente, così dieci compleanni di fila non sono dieci
-/// volte la stessa frase. Nel testo si mettono segnaposto come {nome}.
+/// Qui non c'è il testo. Il testo è la cosa che si vuole moltiplicare — trenta
+/// modi di fare gli auguri — mentre il gruppo su cui scrivere è la cosa che si
+/// vuole cambiare in un posto solo. Tenerli sulla stessa riga significava
+/// riscegliere il gruppo trenta volte, e ricambiarlo trenta volte il giorno che
+/// la squadra apre una chat nuova.
 model ModelloMessaggio {
-  id           String              @id @default(cuid())
+  id String @id @default(cuid())
+  /// Come si chiama, per ritrovarlo: "Auguri di compleanno". È anche il nome
+  /// con cui un assistente lo cerca per infilarci dentro testi nuovi.
+  titolo       String              @unique
   scatenante   ScatenanteMessaggio
   destinazione DoveMandare         @default(GRUPPO)
   /// Gruppo diverso da quello predefinito, quando serve.
-  gruppoId     String?
-  testo        String
-  attivo       Boolean             @default(true)
+  gruppoId  String?
+  attivo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  testi TestoModello[]
+
+  @@index([scatenante, attivo])
+}
+
+/// Un modo di dire la stessa cosa.
+///
+/// Dentro un modello se ne scrivono quanti se ne vuole: il gestionale ruota su
+/// quello usato meno di recente, così dieci compleanni di fila non sono dieci
+/// volte la stessa frase. Nel testo si mettono segnaposto come {nome}.
+///
+/// Nasce spento quando lo propone un assistente: cinquanta frasi generate
+/// contengono sempre le tre che non diresti mai, e devono passare sotto gli
+/// occhi di qualcuno prima di finire nel gruppo.
+model TestoModello {
+  id        String           @id @default(cuid())
+  modelloId String
+  modello   ModelloMessaggio @relation(fields: [modelloId], references: [id], onDelete: Cascade)
+  testo     String
+  attivo    Boolean          @default(true)
   /// Quando è stato usato l'ultima volta: è così che si fa il giro.
-  usatoIl      DateTime?
-  volte        Int                 @default(0)
-  createdAt    DateTime            @default(now())
+  usatoIl   DateTime?
+  volte     Int              @default(0)
+  createdAt DateTime         @default(now())
 
   invii MessaggioInviato[]
 
-  @@index([scatenante, attivo])
+  @@index([modelloId, attivo])
 }
 
 enum StatoMessaggio {
@@ -945,8 +971,9 @@ model MessaggioInviato {
   userId       String?
   user         User?               @relation("MessaggiRicevuti", fields: [userId], references: [id], onDelete: SetNull)
   scatenante   ScatenanteMessaggio
-  modelloId    String?
-  modello      ModelloMessaggio?   @relation(fields: [modelloId], references: [id], onDelete: SetNull)
+  /// Quale dei testi del modello è uscito questa volta.
+  testoId      String?
+  testoUsato   TestoModello?       @relation(fields: [testoId], references: [id], onDelete: SetNull)
   /// Il testo davvero mandato, con i segnaposto già sostituiti.
   testo        String
   /// Numero o id del gruppo.

@@ -153,9 +153,23 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
   const nome = str(fd, 'nome');
   const cognome = str(fd, 'cognome');
   const password = str(fd, 'password');
+  const telefono = str(fd, 'telefono');
+  const luogoNascita = str(fd, 'luogoNascita');
+  const dataNascita = data(fd, 'dataNascita');
 
   if (!email || !nome || !cognome) return { errore: 'Email, nome e cognome sono obbligatori.' };
   if (password.length < 8) return { errore: 'La password provvisoria richiede almeno 8 caratteri.' };
+
+  // Telefono, data e luogo di nascita si chiedono qui e non dopo: sono i dati
+  // che servono per il tesseramento e per la polizza, e recuperarli a mesi di
+  // distanza vuol dire rincorrere qualcuno che intanto ha smesso di rispondere.
+  // Chi si registra da solo li compila nel modulo d'iscrizione; chi viene
+  // inserito a mano non passa di lì, e senza questo controllo resterebbe una
+  // scheda a metà.
+  if (!telefono) return { errore: 'Il telefono è obbligatorio.' };
+  if (!dataNascita) return { errore: 'La data di nascita è obbligatoria.' };
+  if (!luogoNascita) return { errore: 'Il luogo di nascita è obbligatorio.' };
+  if (dataNascita > new Date()) return { errore: 'La data di nascita è nel futuro.' };
   if (await prisma.user.findUnique({ where: { email } })) {
     return { errore: 'Esiste già un account con questa email.' };
   }
@@ -176,7 +190,9 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
       cognome,
       passwordHash: await hashPassword(password),
       callsign,
-      telefono: strOpt(fd, 'telefono'),
+      telefono,
+      dataNascita,
+      luogoNascita,
       roles: stato === 'SQUADRA' && roles.length === 0 ? ['ATLETA'] : roles,
       stato,
     },
