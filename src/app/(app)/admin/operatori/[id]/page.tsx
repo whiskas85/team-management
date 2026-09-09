@@ -20,7 +20,7 @@ import {
   tonoStato,
   vedeAreaTesseramento,
 } from '@/lib/domain';
-import { fmtDate, fmtEuro, iniziali, inputDate, nomeCompleto, umanizza } from '@/lib/format';
+import { fmtDate, fmtDateTime, fmtEuro, iniziali, inputDate, nomeCompleto, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
 import { Avatar, Badge, Campo, Dato, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Anello, Barre, mesiRecenti } from '@/components/Grafico';
@@ -165,8 +165,16 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
               {utente.frase}
             </p>
           )}
+          {/* Vista l'ultima volta, non «entrata» l'ultima volta: chi ha
+              spuntato «ricordami» non fa un accesso per due mesi pur usando il
+              gestionale tutti i giorni, e da qui sembrava sparito. L'accesso
+              resta scritto a fianco, perché «non è mai entrato» e «è entrato e
+              poi non l'ha più aperto» sono due situazioni diverse. */}
           <p className="mt-2 text-xs text-muted num">
             In archivio dal {fmtDate(utente.createdAt)}
+            {utente.ultimaAttivita
+              ? ` · visto l’ultima volta il ${fmtDateTime(utente.ultimaAttivita)}`
+              : ' · mai entrato'}
             {utente.ultimoAccesso && ` · ultimo accesso ${fmtDate(utente.ultimoAccesso)}`}
             {utente.disabledAt && ` · disabilitato il ${fmtDate(utente.disabledAt)}`}
           </p>

@@ -71,9 +71,12 @@ async function Gestione() {
       presenze: o.rsvps.filter((r) => r.presente === true).length,
       certStato: cert ? statoEffettivo(cert) : null,
       certScade: cert?.scadeIl ? fmtDate(cert.scadeIl) : null,
-      // con l'ora: sapere se è entrato stamattina o tre settimane fa cambia
-      ultimoAccesso: o.ultimoAccesso ? fmtDateTime(o.ultimoAccesso) : null,
-      ultimoAccessoIl: o.ultimoAccesso ? o.ultimoAccesso.getTime() : null,
+      // Con l'ora: sapere se c'è passato stamattina o tre settimane fa cambia.
+      // È l'ultima volta che ha **usato** il gestionale, non che ci è entrato:
+      // chi ha spuntato «ricordami» non fa un accesso per due mesi pur
+      // aprendolo tutti i giorni, e da qui sembrava sparito.
+      ultimaAttivita: o.ultimaAttivita ? fmtDateTime(o.ultimaAttivita) : null,
+      ultimaAttivitaIl: o.ultimaAttivita ? o.ultimaAttivita.getTime() : null,
       daSaldare: o.payments
         .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
         .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0),

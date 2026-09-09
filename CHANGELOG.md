@@ -5,6 +5,42 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.6.0 — 9 settembre 2026
+
+### Cambiato
+
+- **Negli operatori si legge l'ultima attività, non l'ultimo accesso.** Sono
+  due cose diverse e la seconda diceva poco: chi ha spuntato «ricordami» non
+  fa un accesso per due mesi pur aprendo il gestionale tutti i giorni, e dalla
+  sua riga sembrava sparito. Chi guardava quella data per decidere se mandare
+  un messaggio la leggeva sbagliata.
+- La data si aggiorna **mentre si naviga**, al massimo una volta ogni cinque
+  minuti: per sapere se qualcuno è passato oggi o tre settimane fa
+  quell'approssimazione non cambia niente, mentre una scrittura per ogni
+  schermata aperta sì. La colonna si ordina come prima.
+- Sulla scheda della persona restano **tutt'e due**: «visto l'ultima volta» e
+  «ultimo accesso». Non è ridondanza — «non è mai entrato» e «è entrato una
+  volta e poi non l'ha più aperto» sono due situazioni diverse, e chi segue le
+  persone le tratta in modo diverso.
+- Chi non è mai entrato resta segnato **mai entrato**, in arancione.
+
+## 2.5.0 — 9 settembre 2026
+
+### Cambiato
+
+- **Chi sei sta in alto a destra, su tutt'e due i formati**: il nick — senza
+  virgolette, perché qui non si sta citando un soprannome dentro un nome per
+  esteso, si sta dicendo come ti chiami qui dentro — e la tua faccia a destra.
+- **Cliccando sull'avatar si apre una tendina** con nome per esteso, i tuoi
+  **incarichi** come etichette colorate (Atleta, Team Leader, Segreteria…),
+  **Il mio profilo** ed **Esci**. Si chiude cliccando fuori o con Esc.
+- Gli incarichi stanno nella tendina e non sempre in vista, ed è voluto: uno sa
+  già cosa fa nella squadra. Servono nel momento in cui ci si chiede *perché
+  non vedo quella pagina?*, e allora si apre e si legge.
+- **Il piede della colonna è sparito**: nome, incarichi ed *Esci* stavano lì,
+  che è l'ultimo posto dove si guarda. Tenerli anche in fondo avrebbe voluto
+  dire due pulsanti «Esci» sulla stessa schermata.
+
 ## 2.4.1 — 9 settembre 2026
 
 ### Corretto

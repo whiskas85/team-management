@@ -63,6 +63,7 @@ export async function chiPresenta(token: string): Promise<ChiaveRiconosciuta | n
           deveCambiarePassword: true,
           roles: true,
           stato: true,
+          ultimaAttivita: true,
         },
       },
     },

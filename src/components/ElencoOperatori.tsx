@@ -23,21 +23,22 @@ export type RigaOperatore = {
   presenze: number;
   certStato: string | null;
   certScade: string | null;
-  ultimoAccesso: string | null;
+  /** L'ultima volta che ha **usato** il gestionale, non che ci è entrata. */
+  ultimaAttivita: string | null;
   /** Lo stesso istante in millisecondi: la data formattata non si può ordinare. */
-  ultimoAccessoIl: number | null;
+  ultimaAttivitaIl: number | null;
   daSaldare: number;
 };
 
 /** Le colonne su cui si può ordinare cliccando l'intestazione. */
-type Colonna = 'nome' | 'stato' | 'certificato' | 'presenze' | 'accesso' | 'saldo';
+type Colonna = 'nome' | 'stato' | 'certificato' | 'presenze' | 'attivita' | 'saldo';
 
 const VALORI: Record<Colonna, (o: RigaOperatore) => string | number | null> = {
   nome: (o) => `${o.cognome} ${o.nome}`.toLowerCase(),
   stato: (o) => o.stato,
   certificato: (o) => o.certStato ?? null,
   presenze: (o) => o.presenze,
-  accesso: (o) => o.ultimoAccessoIl,
+  attivita: (o) => o.ultimaAttivitaIl,
   saldo: (o) => o.daSaldare,
 };
 
@@ -287,8 +288,8 @@ export function ElencoOperatori({
                       {o.presenze} presenze su {o.adesioni} adesioni
                     </p>
                     <p className="text-xs num">
-                      {o.ultimoAccesso ? (
-                        <span className="text-muted">ultimo accesso {o.ultimoAccesso}</span>
+                      {o.ultimaAttivita ? (
+                        <span className="text-muted">visto {o.ultimaAttivita}</span>
                       ) : (
                         <span className="text-warn">mai entrato</span>
                       )}
@@ -328,7 +329,7 @@ export function ElencoOperatori({
                     <Titolo col="stato">Stato</Titolo>
                     {mostraCertificato && <Titolo col="certificato">Certificato</Titolo>}
                     <Titolo col="presenze">Presenze</Titolo>
-                    <Titolo col="accesso">Ultimo accesso</Titolo>
+                    <Titolo col="attivita">Ultima attività</Titolo>
                     <Titolo col="saldo">Da saldare</Titolo>
                     {puoEliminare && <th>Azioni</th>}
                   </tr>
@@ -392,8 +393,8 @@ export function ElencoOperatori({
                         {o.presenze}/{o.adesioni}
                       </td>
                       <td className="whitespace-nowrap text-xs num">
-                        {o.ultimoAccesso ? (
-                          <span className="text-muted">{o.ultimoAccesso}</span>
+                        {o.ultimaAttivita ? (
+                          <span className="text-muted">{o.ultimaAttivita}</span>
                         ) : (
                           <span className="text-warn">mai entrato</span>
                         )}

@@ -62,6 +62,7 @@ export type SessionUser = {
   deveCambiarePassword: boolean;
   roles: Role[];
   stato: StatoOperatore;
+  ultimaAttivita: Date | null;
 };
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
@@ -90,6 +91,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         deveCambiarePassword: true,
         roles: true,
         stato: true,
+        ultimaAttivita: true,
       },
     });
     if (!user || user.stato === 'DISABILITATO') return null;
@@ -113,4 +115,33 @@ export async function requirePermesso(
   const user = await requireUser();
   if (!test(user.roles)) redirect('/dashboard?errore=permessi');
   return user;
+}
+
+/**
+ * Segna che questa persona sta usando il gestionale, adesso.
+ *
+ * Si scrive **al massimo una volta ogni cinque minuti**, non a ogni pagina: la
+ * data serve a sapere se qualcuno è passato oggi o tre settimane fa, e per
+ * quella domanda cinque minuti di approssimazione non cambiano niente — mentre
+ * una scrittura per ogni schermata aperta sì.
+ *
+ * Se il database non risponde non succede niente: è un dato di comodo, e non
+ * deve poter impedire a nessuno di aprire una pagina.
+ */
+const PASSO_ATTIVITA = 5 * 60 * 1000;
+
+export async function segnaAttivita(user: {
+  id: string;
+  ultimaAttivita?: Date | null;
+}): Promise<void> {
+  const ultima = user.ultimaAttivita;
+  if (ultima && Date.now() - ultima.getTime() < PASSO_ATTIVITA) return;
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { ultimaAttivita: new Date() },
+    });
+  } catch {
+    /* vedi sopra */
+  }
 }

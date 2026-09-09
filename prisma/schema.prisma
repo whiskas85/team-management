@@ -160,6 +160,14 @@ model User {
   updatedAt            DateTime       @updatedAt
   disabledAt           DateTime?
   ultimoAccesso        DateTime?
+  /// L'ultima volta che questa persona ha **usato** il gestionale, non che ci
+  /// è entrata.
+  ///
+  /// Sono due cose diverse e la seconda dice poco: chi ha spuntato «ricordami»
+  /// non accede più per due mesi pur aprendo l'applicazione tutti i giorni, e
+  /// dalla sua scheda sembrava sparito. Questa data si aggiorna mentre si
+  /// naviga, non al momento di entrare.
+  ultimaAttivita       DateTime?
   /// Account admin creato dall'avvio per non restare chiusi fuori da
   /// un'installazione nuova. Se ne compare uno vero, questo se ne va da solo.
   /// Marcarlo è l'unico modo per riconoscerlo con certezza: l'email da sola

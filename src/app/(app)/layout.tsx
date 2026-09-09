@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth';
+import { requireUser, segnaAttivita } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { puoVedereDatiMedici } from '@/lib/medico';
 import {
   certificatoInScadenza,
-  etichettaRuolo,
   inRegola,
   statoEffettivo,
   haIncarichi,
@@ -36,6 +35,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // password generata dall'admin: prima di ogni altra cosa se ne sceglie una
   // propria. La pagina sta fuori da questo gruppo, altrimenti si rimanderebbe
   // a se stessa
+  // Passa di qui ogni pagina dell'applicazione, ed è il posto giusto per
+  // segnare che questa persona la sta usando: si scrive al massimo ogni cinque
+  // minuti, e non si aspetta il risultato — la pagina non deve rallentare per
+  // un dato di comodo.
+  void segnaAttivita(utente);
+
   if (utente.deveCambiarePassword) redirect('/cambia-password');
 
   // Poi i consensi: informativa privacy e regole del club sono obbligatorie,
@@ -418,11 +423,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const messiDaParte = new Set(preferiti);
   for (const v of voci) v.preferito = messiDaParte.has(v.href);
 
-  const ruoli =
-    utente.roles.length > 0
-      ? utente.roles.map((r) => etichettaRuolo[r]).join(' · ')
-      : 'Nuovo';
-
   return (
     <div className="min-h-screen md:pl-60">
       <Nav
@@ -434,7 +434,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           cognome: utente.cognome,
           callsign: utente.callsign,
           iniziali: iniziali(utente.nome, utente.cognome),
-          ruolo: ruoli,
+          roles: utente.roles,
         }}
         esci={esci}
       />
@@ -453,7 +453,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Il menu a disposizione della stellina, che vive nella riga del
           titolo di ogni pagina e da lì non saprebbe né dove si trova né se ci
           è già stata messa. */}
-      <main className="px-4 pb-28 pt-5 md:px-8 md:pb-12 md:pt-8">
+      {/* sul computer sopra c'è la striscia con chi sei: meno spazio in cima,
+          o il titolo scende di due centimetri per niente */}
+      <main className="px-4 pb-28 pt-5 md:px-8 md:pb-12 md:pt-2">
         <div className="mx-auto max-w-6xl">
           <ContestoMenu voci={voci}>{children}</ContestoMenu>
         </div>

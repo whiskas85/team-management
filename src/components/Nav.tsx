@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { Role } from '@prisma/client';
+import { etichettaRuolo } from '@/lib/domain';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from './Logo';
 import { Icona, type NomeIcona } from './Icona';
-import { Avatar } from './ui';
 import { ElencoPreferiti } from './Preferiti';
+import { MenuUtente } from './MenuUtente';
 import { VERSIONE } from '@/lib/versione';
 
 export type VoceMenu = {
@@ -36,7 +38,7 @@ type Props = {
     cognome: string;
     callsign: string | null;
     iniziali: string;
-    ruolo: string;
+    roles: Role[];
   };
   esci: () => Promise<void>;
 };
@@ -211,30 +213,21 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
           ))}
         </nav>
 
-        <div className="border-t border-line p-3">
-          <p className="truncate text-sm font-medium">
-            {utente.callsign ? `"${utente.callsign}"` : `${utente.nome} ${utente.cognome}`}
-          </p>
-          <p className="num text-[10px] uppercase tracking-[0.06em] text-muted">
-            {utente.ruolo}
-          </p>
-          <form action={esci} className="mt-3">
-            <button type="submit" className="btn-ghost btn-sm w-full">
-              <Icona nome="esci" size={15} /> Esci
-            </button>
-          </form>
-        </div>
+        {/* Chi sono, gli incarichi e l'uscita non stanno più qui in fondo: sono
+            passati in alto a destra, che è dove li si cerca. In fondo alla
+            colonna erano l'ultimo posto dove si guarda, e tenerli in tutt'e due
+            avrebbe voluto dire due pulsanti «Esci» sulla stessa schermata. */}
       </aside>
 
       {/* ---------------------------------------------------- header mobile */}
       {/* un solo accesso al menu: quello della barra in basso, dove arriva il
           pollice. Un secondo hamburger qui sopra ripeteva la stessa strada */}
       <header
-        className={`sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-2.5 backdrop-blur transition-transform duration-200 md:hidden ${
+        className={`sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-2.5 backdrop-blur transition-transform duration-200 md:border-0 md:bg-transparent md:px-8 md:py-3 md:translate-y-0 ${
           nascoste ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
-        <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
           <Logo size={30} />
           <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
           <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
@@ -242,20 +235,11 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
           </span>
         </Link>
 
-        {/* Chi sono e dove vado a vedermi: sul telefono non c'è la colonna con
-            il nome in fondo, e al profilo si arrivava solo aprendo il menu.
-            La stellina invece non sta più qui: è nella riga del titolo, dove
-            si guarda già per sapere su che pagina si è. */}
-        <div className="ml-auto flex items-center gap-1">
-          <Link
-            href="/profilo"
-            className="flex shrink-0 items-center gap-2 rounded-full py-0.5 pl-2 pr-0.5 transition-colors hover:bg-surface2"
-          >
-            <span className="num max-w-[70px] truncate text-[11px] font-semibold tracking-wide text-nvg">
-              {utente.callsign ?? utente.nome}
-            </span>
-            <Avatar iniziali={utente.iniziali} fotoDi={utente.id} size="sm" />
-          </Link>
+        {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
+            La stellina non sta qui: è nella riga del titolo, dove si guarda
+            già per sapere su che pagina si è. */}
+        <div className="ml-auto shrink-0">
+          <MenuUtente utente={utente} esci={esci} />
         </div>
       </header>
 
@@ -308,7 +292,7 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
                   {utente.nome} {utente.cognome}
                 </p>
                 <p className="num text-[10px] uppercase tracking-[0.06em] text-nvg">
-                  {utente.ruolo}
+                  {utente.roles.map((r) => etichettaRuolo[r]).join(' · ') || 'Nuovo'}
                 </p>
               </div>
               <button
