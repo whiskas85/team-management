@@ -7,7 +7,7 @@ import { puoAmministrare, puoGestirePagamenti, puoSchierare } from '@/lib/domain
 import { str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, contaPolizzeProva, eta } from '@/lib/figt';
-import { quotaSaldata } from '@/lib/assicurazione';
+import { quotaOnorata } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
 
 function aggiorna(eventId: string) {
@@ -28,13 +28,18 @@ function aggiorna(eventId: string) {
  * scavalcare dalla pagina accanto non è una regola. Chi non deve niente —
  * attività gratuita, giocata offerta — non ha una quota aperta e passa senza
  * dire nulla: non avere debiti non è come non averli saldati.
+ *
+ * Passa anche chi ha **dichiarato** il pagamento e aspetta la conferma della
+ * segreteria: ha detto «te li do in contanti» mettendoci la faccia, e tenerlo
+ * scoperto in campo per un passaggio di cassa non ancora spuntato sarebbe
+ * severo col rischio sbagliato.
  */
 async function quotaDaSaldare(userId: string, eventId: string) {
   const quota = await prisma.payment.findFirst({
     where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
-    select: { status: true },
+    select: { status: true, dichiaratoIl: true },
   });
-  return quotaSaldata(quota) ? null : quota;
+  return quotaOnorata(quota) ? null : quota;
 }
 
 /**
@@ -156,7 +161,7 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
   // consiglio
   if (await quotaDaSaldare(userId, eventId)) {
     return {
-      errore: `La quota di ${utente.nome} ${utente.cognome} per questa attività non risulta saldata: la copertura si registra dopo l’incasso.`,
+      errore: `La quota di ${utente.nome} ${utente.cognome} per questa attività non risulta saldata: la copertura si registra dopo l’incasso, o dopo che è stato lui a dichiarare il pagamento.`,
     };
   }
 
@@ -238,7 +243,7 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
   // la polizza la paga il club e non torna indietro: prima si incassa
   if (await quotaDaSaldare(userId, eventId)) {
     return {
-      errore: `La quota di ${utente.nome} ${utente.cognome} per questa attività non risulta saldata: la polizza si attiva dopo l’incasso.`,
+      errore: `La quota di ${utente.nome} ${utente.cognome} per questa attività non risulta saldata: la polizza si attiva dopo l’incasso, o dopo che è stato lui a dichiarare il pagamento.`,
     };
   }
 

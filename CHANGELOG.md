@@ -5,6 +5,33 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.11.0 — 9 settembre 2026
+
+### Corretto
+
+- **Nella scheda dell'attività non si assicura più chi non ha pagato.** Il
+  divieto c'era già nell'azione — la polizza la paga il club e non torna
+  indietro — ma il pulsante «Assicura» restava lì e rifiutava a modulo
+  compilato. Un pulsante che dice sempre di no insegna solo a premerlo di
+  nuovo. Adesso al suo posto c'è scritto **si assicura dopo l'incasso**,
+  esattamente come nella pagina Polizze, che si comportava già così: erano due
+  pagine sulla stessa regola con due risposte diverse.
+
+### Cambiato
+
+- **Chi dichiara di aver pagato si può assicurare subito**, senza aspettare la
+  spunta della segreteria. Ha detto «te li do in contanti» mettendoci la faccia
+  sui pagamenti, e tenerlo scoperto in campo per un passaggio di cassa non
+  ancora verificato è severo col rischio sbagliato. Resta fuori solo chi non ha
+  né pagato né detto niente.
+- Accanto alla persona le situazioni diventano **tre invece di due**: «quota
+  saldata», «pagamento dichiarato» e «quota da saldare». Quella in mezzo è
+  quella che spiega perché uno si può assicurare pur non risultando ancora
+  incassato — senza, il pulsante che compare sembrerebbe un difetto.
+- La regola vive in una funzione sola, `quotaOnorata`, usata dalle due pagine e
+  dalle due azioni: una condizione riscritta in quattro punti è una condizione
+  che fra sei mesi ne dice due cose diverse.
+
 ## 2.10.0 — 9 settembre 2026
 
 ### Cambiato

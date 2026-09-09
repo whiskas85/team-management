@@ -108,6 +108,10 @@ export default async function PolizzePage() {
                       <Badge tono="neutro">niente da pagare</Badge>
                     ) : n.pagato ? (
                       <Badge tono="ok">quota saldata</Badge>
+                    ) : n.dichiarata ? (
+                      // l'ha detto lui e manca la spunta della segreteria:
+                      // basta per coprirlo, non per dire che i soldi sono entrati
+                      <Badge tono="info">pagamento dichiarato</Badge>
                     ) : (
                       <Badge tono="warn">quota da saldare</Badge>
                     )}
@@ -123,7 +127,7 @@ export default async function PolizzePage() {
 
                     {n.serve &&
                       n.copertura !== 'ASSICURATO' &&
-                      (!n.pagato ? (
+                      (!n.copribile ? (
                         // niente pulsante e il motivo scritto: un pulsante che
                         // rifiuta sempre insegna solo a premerlo di nuovo
                         <span className="text-[11px] text-muted">

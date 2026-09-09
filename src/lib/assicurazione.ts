@@ -50,6 +50,22 @@ export const TONO_ASSICURAZIONE: Record<StatoAssicurazione, Tono> = {
 export const quotaSaldata = (quota: { status: string } | null | undefined) =>
   !quota || quota.status === 'PAGATO';
 
+/**
+ * Si può assicurare?
+ *
+ * Saldata davvero, **oppure** dichiarata dal diretto interessato: chi ha detto
+ * «te li do in contanti» ci ha messo la faccia sui pagamenti, e la segreteria
+ * ha solo da confermare l'incasso. Aspettare quella conferma vorrebbe dire
+ * lasciare scoperto in campo qualcuno che ha già fatto la sua parte.
+ *
+ * Resta fuori solo chi non ha né pagato né detto niente: la polizza la paga il
+ * club e non torna indietro, quindi il rischio si prende quando qualcuno se
+ * l'è preso prima.
+ */
+export const quotaOnorata = (
+  quota: { status: string; dichiaratoIl: Date | null } | null | undefined,
+) => quotaSaldata(quota) || quota?.dichiaratoIl != null;
+
 export type NuovoDaCoprire = {
   id: string;
   /** Per esteso, callsign compreso: chi apre questa pagina segue le persone. */
@@ -62,6 +78,10 @@ export type NuovoDaCoprire = {
   serve: boolean;
   copertura: StatoAssicurazione;
   codice: string | null;
+  /** Ha detto lui di aver pagato: la segreteria deve ancora confermare. */
+  dichiarata: boolean;
+  /** Saldata o dichiarata: è la condizione per poterlo assicurare. */
+  copribile: boolean;
   /** La quota di quella giornata è saldata. Quanto sia, qui, non si dice. */
   pagato: boolean;
   /** Ha una quota aperta: senza, "non pagato" non vorrebbe dire niente. */
@@ -105,7 +125,10 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       field: { select: { nome: true } },
       giornaliere: { select: { userId: true, stato: true, codice: true } },
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
-      payments: { where: { tipo: { not: 'RIMBORSO' } }, select: { userId: true, status: true } },
+      payments: {
+        where: { tipo: { not: 'RIMBORSO' } },
+        select: { userId: true, status: true, dichiaratoIl: true },
+      },
       rsvps: {
         where: { status: { not: 'ASSENTE' } },
         include: {
@@ -145,6 +168,11 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
           copertura: g?.stato ?? 'NON_ASSICURATO',
           codice: g?.codice ?? null,
           pagato: quotaSaldata(quota),
+          // dichiarata ma non ancora confermata: basta per coprire, non per
+          // dire che i soldi sono entrati — sono due cose diverse e si leggono
+          // diverse
+          dichiarata: quota?.dichiaratoIl != null,
+          copribile: quotaOnorata(quota),
           haQuota: quota !== null,
           datiCompleti: r.user.dataNascita !== null && r.user.luogoNascita !== null,
         } satisfies NuovoDaCoprire;

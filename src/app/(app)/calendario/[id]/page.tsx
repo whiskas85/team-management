@@ -56,6 +56,7 @@ import { chiediRimborso } from '@/actions/pagamenti';
 import {
   ETICHETTA_ASSICURAZIONE,
   TONO_ASSICURAZIONE,
+  quotaOnorata,
   serveGiornaliera,
 } from '@/lib/assicurazione';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
@@ -119,6 +120,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           importo: true,
           pagato: true,
           status: true,
+          dichiaratoIl: true,
           rimborso: { select: { id: true } },
         },
       },
@@ -941,19 +943,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 il costo dell'attività: dove c'è la formazione una
                                 riserva non deve niente, e vedersi scritto "quota da
                                 saldare" senza avere nessun pagamento era falso. */}
-                            {vedeQuoteAltrui && quotePerUtente.has(r.userId) && (
-                                <Badge
-                                  tono={
-                                    quotePerUtente.get(r.userId)?.status === 'PAGATO'
-                                      ? 'ok'
-                                      : 'warn'
-                                  }
-                                >
-                                  {quotePerUtente.get(r.userId)?.status === 'PAGATO'
-                                    ? 'quota saldata'
-                                    : 'quota da saldare'}
-                                </Badge>
-                              )}
+            {/* Tre situazioni, non due: «dichiarata» sta in mezzo, ed è
+                                quella che spiega perché uno si può assicurare pur non
+                                risultando ancora incassato. */}
+                            {vedeQuoteAltrui &&
+                              quotePerUtente.has(r.userId) &&
+                              (() => {
+                                const q = quotePerUtente.get(r.userId)!;
+                                if (q.status === 'PAGATO') {
+                                  return <Badge tono="ok">quota saldata</Badge>;
+                                }
+                                if (q.dichiaratoIl) {
+                                  return <Badge tono="info">pagamento dichiarato</Badge>;
+                                }
+                                return <Badge tono="warn">quota da saldare</Badge>;
+                              })()}
 
                             {/* copertura assicurativa: chi non ha l'annuale valida
                                 gioca solo con la giornaliera del portale */}
@@ -968,20 +972,35 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       {ETICHETTA_ASSICURAZIONE[stato]}
                                       {g?.codice ? ` · ${g.codice}` : ''}
                                     </Badge>
-                                    {tl && stato !== 'ASSICURATO' && (
-                                      <BottoneModale
-                                        etichetta="Assicura"
-                                        icona="tessera"
-                                        titolo={`Giornaliera per ${nomeDi(r.user)}`}
-                                        className="btn-ghost btn-sm"
-                                      >
-                                        <FormGiornaliera
-                                          userId={r.userId}
-                                          eventId={evento.id}
-                                          nome={nomeDi(r.user)}
-                                        />
-                                      </BottoneModale>
-                                    )}
+                                    {/* La polizza la paga il club e non torna
+                                        indietro: prima si incassa. Il divieto
+                                        c'era già nell'azione, ma il pulsante
+                                        restava lì e rifiutava a modulo
+                                        compilato — un pulsante che dice sempre
+                                        di no insegna solo a premerlo di nuovo.
+                                        Chi ha dichiarato il pagamento passa:
+                                        ci ha messo la faccia, e manca solo la
+                                        spunta della segreteria. */}
+                                    {tl &&
+                                      stato !== 'ASSICURATO' &&
+                                      (!quotaOnorata(quotePerUtente.get(r.userId)) ? (
+                                        <span className="text-[11px] text-muted">
+                                          si assicura dopo l’incasso
+                                        </span>
+                                      ) : (
+                                        <BottoneModale
+                                          etichetta="Assicura"
+                                          icona="tessera"
+                                          titolo={`Giornaliera per ${nomeDi(r.user)}`}
+                                          className="btn-ghost btn-sm"
+                                        >
+                                          <FormGiornaliera
+                                            userId={r.userId}
+                                            eventId={evento.id}
+                                            nome={nomeDi(r.user)}
+                                          />
+                                        </BottoneModale>
+                                      ))}
                                   </span>
                                 );
                               })()}
