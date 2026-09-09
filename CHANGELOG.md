@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.4.1 — 9 settembre 2026
+
+### Corretto
+
+- **Nei certificati medici mancava chi un certificato non ce l'ha proprio.**
+  La pagina elencava i certificati, e chi non ne ha mai caricato uno non ha una
+  riga da nessuna parte: era invisibile. Ma «non ce l'ha ancora» e «ce l'ha
+  scaduto» sono lo stesso problema per chi deve schierare — anzi il primo è
+  peggio, perché non se ne accorge nessuno finché quella persona non prova a
+  segnarsi.
+- C'è un filtro **Senza certificato** con accanto quanti sono, così il numero
+  si legge senza doverci entrare. Da ogni riga si carica il certificato con la
+  persona già scelta, o si apre la sua scheda.
+
 ## 2.4.0 — 9 settembre 2026
 
 ### Cambiato

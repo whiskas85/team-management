@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { StatoOperatore } from '@prisma/client';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { elencoOperatori } from '@/lib/query';
@@ -27,6 +28,12 @@ const FILTRI = {
   attesa: 'Da vagliare',
   scadenza: 'In scadenza',
   scaduti: 'Scaduti',
+  // Chi un certificato non l'ha mai caricato non ha una riga da nessuna parte,
+  // e per questo da questa pagina era invisibile: si vedevano i certificati,
+  // non le persone senza. Ma «non ce l'ha ancora» e «ce l'ha scaduto» sono lo
+  // stesso problema per chi deve schierare — anzi il primo è peggio, perché
+  // non se ne accorge nessuno.
+  mancanti: 'Senza certificato',
   validi: 'Validi',
   tutti: 'Tutti',
 } as const;
@@ -61,13 +68,28 @@ export default async function CertificatiPage({
   const sp = await searchParams;
   const filtro = (Object.keys(FILTRI).includes(sp.filtro ?? '') ? sp.filtro : 'attesa') as Filtro;
 
-  const [certificati, operatori, inAttesa] = await Promise.all([
-    prisma.medicalCertificate.findMany({
-      where: condizione(filtro),
-      orderBy: [{ status: 'asc' }, { scadeIl: 'asc' }],
-      include: {
-        user: { select: { id: true, nome: true, cognome: true, callsign: true } },
-      },
+  // Chi in rosa non ha **nessun** certificato caricato. Si conta sempre, anche
+  // guardando un'altra vista: è il numero che nessuno andrebbe a cercare, e
+  // messo sul filtro si vede senza doverci pensare.
+  const senzaCertificato = {
+    stato: { in: ['SQUADRA', 'SOSPESO'] as StatoOperatore[] },
+    certificates: { none: {} },
+  };
+
+  const [certificati, mancanti, operatori, inAttesa] = await Promise.all([
+    filtro === 'mancanti'
+      ? []
+      : prisma.medicalCertificate.findMany({
+          where: condizione(filtro),
+          orderBy: [{ status: 'asc' }, { scadeIl: 'asc' }],
+          include: {
+            user: { select: { id: true, nome: true, cognome: true, callsign: true } },
+          },
+        }),
+    prisma.user.findMany({
+      where: senzaCertificato,
+      orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, cognome: true, callsign: true, stato: true },
     }),
     elencoOperatori(true),
     prisma.medicalCertificate.count({ where: { status: 'IN_ATTESA' } }),
@@ -128,11 +150,89 @@ export default async function CertificatiPage({
             }`}
           >
             {FILTRI[f]}
+            {/* quanti sono si legge senza entrarci: un elenco che non si apre
+                non avvisa nessuno */}
+            {f === 'mancanti' && mancanti.length > 0 && (
+              <span className="num ml-1.5 rounded-full bg-danger/20 px-1.5 text-[10px] text-danger">
+                {mancanti.length}
+              </span>
+            )}
           </Link>
         ))}
       </div>
 
-      {certificati.length === 0 ? (
+      {filtro === 'mancanti' ? (
+        mancanti.length === 0 ? (
+          <Vuoto testo="Sono tutti coperti: in rosa non c'è nessuno senza certificato caricato." />
+        ) : (
+          <>
+            <div className="mb-4 rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+              <strong>
+                {mancanti.length === 1
+                  ? 'Una persona in rosa non ha mai caricato un certificato'
+                  : `${mancanti.length} persone in rosa non hanno mai caricato un certificato`}
+              </strong>
+              . Senza, non si segnano alle attività che lo richiedono: se ne accorgono la domenica
+              mattina, ed è tardi.
+            </div>
+
+            <Elenco
+              cards={mancanti.map((o) => (
+                <div key={o.id} className="card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-medium">{nomeCompleto(o)}</h3>
+                      <p className="text-xs text-muted">{umanizza(o.stato)}</p>
+                    </div>
+                    <Badge tono="danger">mancante</Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                    <AzioniMancante operatore={o} />
+                  </div>
+                </div>
+              ))}
+              tabella={
+                <table className="tabella">
+                  <thead>
+                    <tr>
+                      <th>Operatore</th>
+                      <th>Stato</th>
+                      <th>Certificato</th>
+                      <th>Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mancanti.map((o) => (
+                      <tr key={o.id}>
+                        <td>
+                          <Link
+                            href={`/admin/operatori/${o.id}`}
+                            className="font-medium hover:text-nvg"
+                          >
+                            {o.cognome} {o.nome}
+                          </Link>
+                          {o.callsign && (
+                            <span className="num text-[11px] text-muted"> · {o.callsign}</span>
+                          )}
+                        </td>
+                        <td className="text-muted">{umanizza(o.stato)}</td>
+                        <td>
+                          <Badge tono="danger">mai caricato</Badge>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <AzioniMancante operatore={o} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              }
+            />
+          </>
+        )
+      ) : certificati.length === 0 ? (
         <Vuoto testo="Nessun certificato in questa vista." />
       ) : (
         <Elenco
@@ -272,5 +372,58 @@ function Azioni({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Cosa si può fare per chi il certificato non ce l'ha.
+ *
+ * Due strade, ed è giusto che siano due: **caricarlo qui** quando la persona
+ * te l'ha mandato per messaggio — è il caso di gran lunga più frequente — o
+ * aprire la sua scheda per il resto. La persona è già scelta: da un elenco di
+ * chi manca, ricercarsi il nome in una tendina di venti è lavoro inutile.
+ */
+function AzioniMancante({
+  operatore,
+}: {
+  operatore: { id: string; nome: string; cognome: string; callsign: string | null };
+}) {
+  return (
+    <>
+      <BottoneModale
+        etichetta="Carica"
+        icona="carica"
+        titolo={`Certificato di ${nomeCompleto(operatore)}`}
+        className="btn-primary btn-sm"
+      >
+        <FormAzione azione={caricaCertificato}>
+          <input type="hidden" name="userId" value={operatore.id} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Campo label="Tipo">
+              <select name="tipo" className="input" defaultValue="NON_AGONISTICO">
+                <option value="NON_AGONISTICO">Non agonistico</option>
+                <option value="AGONISTICO">Agonistico</option>
+              </select>
+            </Campo>
+            <DateCertificato />
+          </div>
+          <Campo label="File *">
+            <input
+              type="file"
+              name="file"
+              required
+              accept="application/pdf,image/*"
+              className="input file:mr-3 file:rounded file:border-0 file:bg-nvg/15 file:px-3 file:py-1 file:text-nvg"
+            />
+          </Campo>
+          <Invia icona="carica">Carica</Invia>
+        </FormAzione>
+      </BottoneModale>
+
+      <Link href={`/admin/operatori/${operatore.id}`} className="btn-ghost btn-sm">
+        <Icona nome="apri" size={15} />
+        Scheda
+      </Link>
+    </>
   );
 }
