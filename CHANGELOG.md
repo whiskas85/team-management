@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.10.0 — 9 settembre 2026
+
+### Cambiato
+
+- **Anche chi si registra da solo lascia telefono, data e luogo di nascita.**
+  L'obbligo c'era sulla creazione a mano ma non sul modulo pubblico, ed era il
+  buco più largo dei due: da lì passa la maggior parte di chi arriva a un'open,
+  e ne usciva una scheda a metà da completare mesi dopo — cioè rincorrendo
+  qualcuno che intanto ha smesso di rispondere.
+- I due campi di nascita al modulo di registrazione mancavano del tutto; il
+  telefono c'era ma facoltativo. Il controllo è nel modulo **e** nell'azione,
+  perché il `required` del browser si aggira.
+- La data si legge con l'aiuto di sempre e non con `new Date`: «2004-05-15»
+  interpretata come mezzanotte UTC, a est di Greenwich, diventa il giorno
+  prima — su una data di nascita è un errore che nessuno nota finché non serve
+  per il tesseramento.
+
 ## 2.9.0 — 9 settembre 2026
 
 ### Cambiato

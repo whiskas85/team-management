@@ -55,9 +55,39 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="label" htmlFor="telefono">
-                Telefono
+                Telefono *
               </label>
-              <input id="telefono" name="telefono" type="tel" className="input" />
+              <input id="telefono" name="telefono" type="tel" required className="input" />
+            </div>
+          </div>
+
+          {/* Data e luogo di nascita si chiedono qui e non dopo: servono per
+              tesseramento e polizza, e chiederli a mesi di distanza vuol dire
+              rincorrere qualcuno che intanto ha smesso di rispondere. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="dataNascita">
+                Data di nascita *
+              </label>
+              <input
+                id="dataNascita"
+                name="dataNascita"
+                type="date"
+                required
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label" htmlFor="luogoNascita">
+                Luogo di nascita *
+              </label>
+              <input
+                id="luogoNascita"
+                name="luogoNascita"
+                required
+                className="input"
+                placeholder="es. Torino"
+              />
             </div>
           </div>
 

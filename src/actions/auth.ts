@@ -5,6 +5,9 @@ import { prisma } from '@/lib/db';
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { createSession, destroySession, hashPassword, verifyPassword } from '@/lib/auth';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
+// la data si legge con l'aiuto di sempre e non con `new Date`: "2004-05-15"
+// letta come mezzanotte UTC, a est di Greenwich, diventa il giorno prima
+import { data } from '@/lib/form';
 
 export type StatoForm = { errore?: string; ok?: string };
 
@@ -70,12 +73,24 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
   const email = testo(fd, 'email').toLowerCase();
   const callsign = testo(fd, 'callsign');
   const telefono = testo(fd, 'telefono');
+  const luogoNascita = testo(fd, 'luogoNascita');
+  const dataNascita = data(fd, 'dataNascita');
   const password = testo(fd, 'password');
   const conferma = testo(fd, 'conferma');
 
   if (!nome || !cognome || !email || !password) {
     return { errore: 'Nome, cognome, email e password sono obbligatori.' };
   }
+
+  // Gli stessi dati che si chiedono a chi viene inserito a mano, e per lo
+  // stesso motivo: servono per tesseramento e polizza, e recuperarli mesi dopo
+  // vuol dire rincorrere qualcuno che intanto ha smesso di rispondere. Sono
+  // quattro righe in più adesso, contro una rincorsa poi.
+  if (!telefono) return { errore: 'Il telefono è obbligatorio.' };
+  if (!dataNascita) return { errore: 'La data di nascita è obbligatoria.' };
+  if (!luogoNascita) return { errore: 'Il luogo di nascita è obbligatorio.' };
+  if (dataNascita > new Date()) return { errore: 'La data di nascita è nel futuro.' };
+
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { errore: 'Email non valida.' };
   if (password.length < 8) return { errore: 'La password deve avere almeno 8 caratteri.' };
   if (password !== conferma) return { errore: 'Le due password non coincidono.' };
@@ -102,7 +117,9 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
       nome,
       cognome,
       callsign: callsign || null,
-      telefono: telefono || null,
+      telefono,
+      dataNascita,
+      luogoNascita,
       roles: [], // nessun incarico: è un contatto, non un atleta
       stato: 'NUOVO',
       privacyAccettataIl: adesso,
