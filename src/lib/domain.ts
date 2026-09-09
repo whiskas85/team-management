@@ -50,6 +50,18 @@ export const puoVedereNuovi = (roles: Role[]) =>
 export const puoScrivereDocumenti = (roles: Role[]) =>
   ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA');
 
+/**
+ * Chi vede la memoria della squadra.
+ *
+ * Il debriefing racconta com'è andata una giocata: lo scrive chi c'era e lo
+ * rilegge chi gioca — atleti, team leader, admin. Un incarico da scrivania non
+ * basta a vederlo, e non è diffidenza: chi tiene i conti o le tessere non ha
+ * niente da farci, e una voce di menu che non si apre mai è una voce che
+ * allunga l'elenco a tutti. Chi amministra **e** gioca lo vede lo stesso: i
+ * ruoli sono un insieme, e basta averne uno di quelli giusti.
+ */
+export const vedeDebriefing = (roles: Role[]) => ha(roles, 'ADMIN', 'TL', 'ATLETA');
+
 /** Qualsiasi incarico che dia accesso a un'area riservata. */
 export const haIncarichi = (roles: Role[]) =>
   ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA', 'TL');

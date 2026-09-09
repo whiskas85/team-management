@@ -1,57 +1,51 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { Role } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoGestirePagamenti } from '@/lib/domain';
-import { eMio } from '@/lib/mercatino';
 import { data, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 /**
- * Il magazzino: la merce che il team compra in blocco e tiene in casa.
+ * I carichi: quanti pezzi di un articolo sono entrati, e a quanto.
  *
- * Le patch si ordinano cento alla volta e poi si consegnano man mano: quella
- * roba non ha senso chiederla al fornitore a ogni giro, ha una giacenza che
- * scende. Il carico tiene anche **quanto è costata**, che è il numero che dice
- * se su una patch venduta a 5 il team ci guadagna o ci rimette.
+ * Si sommano invece di aggiornare un totale, così resta la storia dei prezzi
+ * pagati e una quantità sbagliata si corregge togliendo la riga sbagliata
+ * invece di indovinare il totale giusto. Il costo del pezzo è il numero che
+ * dice se su una patch venduta a 5 il team ci guadagna o ci rimette.
  *
- * I carichi si sommano invece di aggiornare un totale: resta la storia dei
- * prezzi pagati, e una quantità sbagliata si corregge togliendo la riga
- * sbagliata invece di indovinare il totale giusto.
+ * Stanno sull'**articolo** e non sulla riga di vetrina: sono fatti del
+ * magazzino. Appesi al catalogo, sparivano insieme a una voce cancellata e
+ * con loro la storia di quanto era costata quella merce.
  */
 
-function aggiorna(annuncioId: string) {
-  revalidatePath(`/mercatino/${annuncioId}`);
-  revalidatePath(`/merchandising/${annuncioId}`);
-  revalidatePath('/admin/inventario');
+function aggiorna() {
+  revalidatePath('/admin/magazzino');
   revalidatePath('/admin/ordini');
+  revalidatePath('/admin/cassa');
+  revalidatePath('/merchandising');
 }
 
 /**
- * La voce, per chi può metterci mano sul magazzino.
+ * Il magazzino lo tiene chi tiene i conti.
  *
- * Chi ha scritto l'annuncio, e la segreteria: il magazzino è roba di cassa
- * prima che di catalogo, e chi tiene i conti deve poter correggere una
- * giacenza senza passare dall'admin.
+ * Prima ci metteva mano anche chi aveva scritto l'annuncio, perché magazzino e
+ * catalogo erano la stessa cosa. Adesso che sono due elenchi diversi la
+ * risposta è più semplice: le giacenze sono roba di cassa, e le muove chi la
+ * cassa la gestisce.
  */
-async function miaVoce(id: string, me: { id: string; roles: Role[] }) {
-  const voce = await prisma.voceAnnuncio.findUnique({
-    where: { id },
-    include: { annuncio: true },
-  });
-  if (!voce) return null;
-  if (!eMio(voce.annuncio, me.id) && !puoGestirePagamenti(me.roles)) return null;
-  return voce;
+async function articolo(id: string) {
+  return prisma.articoloMagazzino.findUnique({ where: { id } });
 }
 
 export async function registraCarico(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  const voce = await miaVoce(str(fd, 'voceId'), me);
-  if (!voce) return { errore: 'Voce non trovata, o non è tua.' };
-  if (!voce.aMagazzino) {
-    return { errore: 'Questa voce non è tenuta a magazzino: accendi l’interruttore nel modulo.' };
+  if (!puoGestirePagamenti(me.roles)) {
+    return { errore: 'Il magazzino lo tengono admin e segreteria.' };
   }
+
+  const art = await articolo(str(fd, 'articoloId'));
+  if (!art) return { errore: 'Articolo non trovato.' };
 
   // Un numero negativo toglie: è la rettifica in meno, e serve almeno quanto
   // quella in più — un 500 battuto al posto di 50 va potuto disfare senza
@@ -68,7 +62,7 @@ export async function registraCarico(_prev: StatoForm, fd: FormData): Promise<St
 
   await prisma.caricoMagazzino.create({
     data: {
-      voceId: voce.id,
+      articoloId: art.id,
       quantita,
       costoUnitario: costo,
       fornitore: strOpt(fd, 'fornitore'),
@@ -78,12 +72,12 @@ export async function registraCarico(_prev: StatoForm, fd: FormData): Promise<St
     },
   });
 
-  aggiorna(voce.annuncioId);
+  aggiorna();
   return {
     ok:
       quantita > 0
-        ? `Caricati ${quantita} pezzi di ${voce.titolo}.`
-        : `Tolti ${-quantita} pezzi di ${voce.titolo}.`,
+        ? `Caricati ${quantita} pezzi di ${art.nome}.`
+        : `Tolti ${-quantita} pezzi di ${art.nome}.`,
   };
 }
 
@@ -96,16 +90,15 @@ export async function registraCarico(_prev: StatoForm, fd: FormData): Promise<St
  */
 export async function eliminaCarico(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
+  if (!puoGestirePagamenti(me.roles)) {
+    return { errore: 'Il magazzino lo tengono admin e segreteria.' };
+  }
+
   const carico = await prisma.caricoMagazzino.findUnique({
     where: { id: str(fd, 'id') },
-    include: {
-      voce: { include: { annuncio: true } },
-      rigaRiordino: { select: { riordino: { select: { id: true, pagatoIl: true } } } },
-    },
+    include: { rigaRiordino: { select: { riordino: { select: { id: true, pagatoIl: true } } } } },
   });
-  if (!carico || (!eMio(carico.voce.annuncio, me.id) && !puoGestirePagamenti(me.roles))) {
-    return { errore: 'Carico non trovato, o non è tuo.' };
-  }
+  if (!carico) return { errore: 'Carico non trovato.' };
 
   const riordino = carico.rigaRiordino?.riordino;
 
@@ -119,7 +112,7 @@ export async function eliminaCarico(_prev: StatoForm, fd: FormData): Promise<Sta
     }
   });
 
-  aggiorna(carico.voce.annuncioId);
+  aggiorna();
   return {
     ok: riordino
       ? 'Carico annullato: il riordino torna in attesa della merce.'

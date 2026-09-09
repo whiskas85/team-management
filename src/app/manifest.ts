@@ -11,8 +11,8 @@ import type { MetadataRoute } from 'next';
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Zero Dark Team — Gestionale',
-    short_name: 'Zero Dark',
+    name: 'Zero Dark Ops',
+    short_name: 'Zero Dark Ops',
     description: 'Calendario, adesioni, certificati e quote del team Zero Dark',
     start_url: '/dashboard',
     scope: '/',

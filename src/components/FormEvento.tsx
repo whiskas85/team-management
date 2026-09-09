@@ -7,12 +7,15 @@ import type { VoceListino } from './CampiRichiesta';
 
 type CampoGioco = { id: string; nome: string; citta: string | null; attivo?: boolean };
 type Tipologia = { id: string; nome: string; attivo?: boolean };
+type TipoGara = { id: string; nome: string; attivo?: boolean };
 
 type Evento = {
   id: string;
   titolo: string;
   descrizione: string | null;
   tipoId: string | null;
+  tipoGaraId: string | null;
+  durataOre: number | null;
   inizio: Date;
   fine: Date | null;
   ritrovo: string | null;
@@ -82,6 +85,7 @@ function Sezione({
 export function FormEvento({
   campi,
   tipologie,
+  tipiGara = [],
   listino,
   stagioneId,
   stagioni = [],
@@ -92,6 +96,8 @@ export function FormEvento({
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
+  /** Che gara è: l'anagrafica dei formati. Vuota, i due campi non compaiono. */
+  tipiGara?: TipoGara[];
   /** Voci di tariffario con cui si compongono le due quote. */
   listino: VoceListino[];
   /** Stagione in cui l'attività vive: filtra il listino. */
@@ -223,6 +229,49 @@ export function FormEvento({
               ))}
             </select>
           </Campo>
+
+          {/* Che gara è, e quanto dura sul volantino.
+              Su una riunione non vogliono dire niente, quindi lì non
+              compaiono: il modulo è già lungo. */}
+          {!eRiunione && tipiGara.length > 0 && (
+            <Campo label="Tipo di gara">
+              <select
+                name="tipoGaraId"
+                defaultValue={evento?.tipoGaraId ?? ''}
+                className="input"
+              >
+                <option value="">— non è una gara —</option>
+                {tipiGara.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nome}
+                    {t.attivo === false ? ' (disattivato)' : ''}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
+
+          {!eRiunione && (
+            <Campo label="Durata dichiarata (ore)">
+              <input
+                type="number"
+                name="durataOre"
+                min="1"
+                max="240"
+                defaultValue={evento?.durataOre ?? ''}
+                className="input"
+                placeholder="24"
+              />
+              {/* Il punto di questo campo è che **non** deve tornare con le
+                  date, e chi compila deve saperlo prima di cominciare a
+                  dubitarne: una 24 ore si tiene occupata dal venerdì alla
+                  domenica, perché quello spazio serve tutto. */}
+              <span className="mt-1 block text-[11px] text-muted">
+                Quella del volantino. Non deve tornare con inizio e fine: una 24h si blocca
+                dal venerdì alla domenica, e va bene così.
+              </span>
+            </Campo>
+          )}
 
           <Campo label="Inizio *">
             <input

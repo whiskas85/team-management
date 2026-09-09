@@ -127,92 +127,94 @@ enum PaymentStatus {
 // ---------------------------------------------------------------- operatori
 
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
-  passwordHash    String
-  nome            String
-  cognome         String
-  callsign        String?
+  id                   String         @id @default(cuid())
+  email                String         @unique
+  passwordHash         String
+  nome                 String
+  cognome              String
+  callsign             String?
   /// Password generata dall'admin: finche' e' vero l'operatore non va da
   /// nessuna parte se non a cambiarla. Serve perche' non si mandano email:
   /// la password viaggia a voce, e a voce non deve restare.
-  deveCambiarePassword Boolean @default(false)
+  deveCambiarePassword Boolean        @default(false)
   /// Una riga scelta dall'operatore, sotto al nome: motto, ruolo in squadra,
   /// quello che vuole. Serve solo a farsi riconoscere, non a nient'altro.
-  frase           String?
-  telefono        String?
-  dataNascita     DateTime?
-  luogoNascita    String?
-  codiceFiscale   String?
-  indirizzo       String?
-  citta           String?
-  cap             String?
-  provincia       String?
-  emergenzaNome   String?
-  emergenzaTel    String?
-  gruppoSanguigno String?
-  allergie        String? // allergie e note mediche, su più righe
+  frase                String?
+  telefono             String?
+  dataNascita          DateTime?
+  luogoNascita         String?
+  codiceFiscale        String?
+  indirizzo            String?
+  citta                String?
+  cap                  String?
+  provincia            String?
+  emergenzaNome        String?
+  emergenzaTel         String?
+  gruppoSanguigno      String?
+  allergie             String? // allergie e note mediche, su più righe
   /// Foto del profilo: percorso relativo dentro UPLOAD_DIR.
-  fotoPath        String?
-  roles           Role[]         @default([])
-  stato           StatoOperatore @default(NUOVO)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  disabledAt      DateTime?
-  ultimoAccesso   DateTime?
+  fotoPath             String?
+  roles                Role[]         @default([])
+  stato                StatoOperatore @default(NUOVO)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  disabledAt           DateTime?
+  ultimoAccesso        DateTime?
   /// Account admin creato dall'avvio per non restare chiusi fuori da
   /// un'installazione nuova. Se ne compare uno vero, questo se ne va da solo.
   /// Marcarlo è l'unico modo per riconoscerlo con certezza: l'email da sola
   /// no, perché potrebbe essere quella di una persona vera.
-  creatoDalSeed   Boolean        @default(false)
+  creatoDalSeed        Boolean        @default(false)
 
   // --- GDPR: consensi raccolti e tracciati con data e versione dell'informativa
-  privacyAccettataIl  DateTime?
-  privacyVersione     String?
-  consensoImmagini    Boolean   @default(false)
-  consensoImmaginiIl  DateTime?
-  consensoComunicaz   Boolean   @default(false)
-  consensoComunicazIl DateTime?
+  privacyAccettataIl   DateTime?
+  privacyVersione      String?
+  consensoImmagini     Boolean   @default(false)
+  consensoImmaginiIl   DateTime?
+  consensoComunicaz    Boolean   @default(false)
+  consensoComunicazIl  DateTime?
   cancellazioneChiesta DateTime?
 
-  certificates   MedicalCertificate[] @relation("CertOwner")
-  reviewedCerts  MedicalCertificate[] @relation("CertReviewer")
-  rsvps          EventRsvp[]
-  payments       Payment[]            @relation("PaymentUser")
-  recordedPays   Payment[]            @relation("PaymentRecorder")
-  memberships    Membership[]         @relation("MembershipUser")
-  invitiInviati  Membership[]         @relation("MembershipInviter")
-  decisiMships   Membership[]         @relation("MembershipDecider")
-  figtCards      FigtCard[]
-  whatsapp       CollegamentoWhatsapp[] @relation("WhatsappDi")
-  messaggi       MessaggioInviato[]    @relation("MessaggiRicevuti")
+  certificates          MedicalCertificate[]    @relation("CertOwner")
+  reviewedCerts         MedicalCertificate[]    @relation("CertReviewer")
+  rsvps                 EventRsvp[]
+  payments              Payment[]               @relation("PaymentUser")
+  recordedPays          Payment[]               @relation("PaymentRecorder")
+  memberships           Membership[]            @relation("MembershipUser")
+  invitiInviati         Membership[]            @relation("MembershipInviter")
+  decisiMships          Membership[]            @relation("MembershipDecider")
+  figtCards             FigtCard[]
+  whatsapp              CollegamentoWhatsapp[]  @relation("WhatsappDi")
+  messaggi              MessaggioInviato[]      @relation("MessaggiRicevuti")
   tesseramentiImportati TesseramentoImportato[] @relation("TesseramentoImportato")
-  giornaliere    TesseraGiornaliera[] @relation("GiornaliereUtente")
-  eventiLetti    LetturaEvento[]  @relation("LettoreEvento")
-  letturaDaAltri LetturaProfilo[] @relation("ProfiloLetto")
-  profiliLetti   LetturaProfilo[] @relation("Lettore")
-  noteScritte    Nota[]               @relation("NoteScritte")
-  noteSuDiMe     Nota[]               @relation("NoteSuDiMe")
-  citatoInNote   NotaCitazione[]      @relation("CitatoInNote")
-  commenti       CommentoEvento[]     @relation("CommentiScritti")
-  miPiace        MiPiaceEvento[]      @relation("MiPiaceMessi")
-  commentiAnnunci CommentoAnnuncio[]  @relation("CommentiAnnunci")
-  miPiaceAnnunci  MiPiaceAnnuncio[]   @relation("MiPiaceAnnunci")
-  eventsCreated  Event[]              @relation("EventCreator")
-  debriefing     Debriefing[]         @relation("DebriefingScritti")
-  debriefingLetti LetturaDebriefing[] @relation("LettoreDebriefing")
-  movimentiCassa MovimentoCassa[]     @relation("CassaRegistrante")
-  tokenMcp       TokenMcp[]           @relation("TokenMcpDi")
-  documenti      Documento[]          @relation("DocumentiScritti")
-  annunci        Annuncio[]           @relation("AnnunciDi")
-  vociPrenotate  VoceAnnuncio[]       @relation("VociPrenotate")
-  ordini         Ordine[]             @relation("OrdiniDi")
-  carrello       RigaCarrello[]       @relation("CarrelloDi")
-  carichi        CaricoMagazzino[]    @relation("CarichiRegistrati")
-  documentiAccettati AccettazioneDocumento[] @relation("DocumentiAccettati")
-  riordini            Riordino[]          @relation("RiordiniCreati")
-  segnalazioniFatte   Segnalazione[]      @relation("SegnalazioniFatte")
-  segnalazioniGestite Segnalazione[]      @relation("SegnalazioniGestite")
+  giornaliere           TesseraGiornaliera[]    @relation("GiornaliereUtente")
+  eventiLetti           LetturaEvento[]         @relation("LettoreEvento")
+  letturaDaAltri        LetturaProfilo[]        @relation("ProfiloLetto")
+  profiliLetti          LetturaProfilo[]        @relation("Lettore")
+  noteScritte           Nota[]                  @relation("NoteScritte")
+  noteSuDiMe            Nota[]                  @relation("NoteSuDiMe")
+  citatoInNote          NotaCitazione[]         @relation("CitatoInNote")
+  commenti              CommentoEvento[]        @relation("CommentiScritti")
+  miPiace               MiPiaceEvento[]         @relation("MiPiaceMessi")
+  commentiAnnunci       CommentoAnnuncio[]      @relation("CommentiAnnunci")
+  miPiaceAnnunci        MiPiaceAnnuncio[]       @relation("MiPiaceAnnunci")
+  eventsCreated         Event[]                 @relation("EventCreator")
+  debriefing            Debriefing[]            @relation("DebriefingScritti")
+  debriefingLetti       LetturaDebriefing[]     @relation("LettoreDebriefing")
+  movimentiCassa        MovimentoCassa[]        @relation("CassaRegistrante")
+  tokenMcp              TokenMcp[]              @relation("TokenMcpDi")
+  documenti             Documento[]             @relation("DocumentiScritti")
+  annunci               Annuncio[]              @relation("AnnunciDi")
+  vociPrenotate         VoceAnnuncio[]          @relation("VociPrenotate")
+  ordini                Ordine[]                @relation("OrdiniDi")
+  carrello              RigaCarrello[]          @relation("CarrelloDi")
+  carichi               CaricoMagazzino[]       @relation("CarichiRegistrati")
+  documentiAccettati    AccettazioneDocumento[] @relation("DocumentiAccettati")
+  riordini              Riordino[]              @relation("RiordiniCreati")
+  segnalazioniFatte     Segnalazione[]          @relation("SegnalazioniFatte")
+  segnalazioniGestite   Segnalazione[]          @relation("SegnalazioniGestite")
+  preferiti             Preferito[]             @relation("PreferitiDi")
+  erroriIncontrati      ErroreClient[]          @relation("ErroriIncontrati")
 
   @@index([stato])
 }
@@ -334,23 +336,23 @@ model LetturaProfilo {
 /// puo' usare un hash: viene cifrata con AES-GCM e la chiave sta nell'ambiente.
 /// Riga unica: il collegamento e' uno solo per tutta l'associazione.
 model CredenzialeFigt {
-  id           String   @id @default("figt")
-  login        String
+  id               String    @id @default("figt")
+  login            String
   /// Password cifrata: iv, tag e testo cifrato in un'unica stringa.
-  passwordCifrata String
-  idAnagrafica String
+  passwordCifrata  String
+  idAnagrafica     String
   /// Id affiliazione: serve alle polizze prova, ed e' un numero diverso
   /// dall'id anagrafica usato per i tesseramenti annuali.
-  idAffiliazione String?
-  salvataDa    String?
-  salvataIl    DateTime @default(now())
-  ultimoAccesso DateTime?
-  ultimoEsito  String?
+  idAffiliazione   String?
+  salvataDa        String?
+  salvataIl        DateTime  @default(now())
+  ultimoAccesso    DateTime?
+  ultimoEsito      String?
   /// Polizze prova prepagate ancora da usare, come le conta il portale.
   /// Sono soldi già spesi: la cassa le mostra insieme al saldo.
-  polizzeResidue Int?
+  polizzeResidue   Int?
   polizzeAssegnate Int?
-  polizzeLetteIl DateTime?
+  polizzeLetteIl   DateTime?
 }
 
 /// Stato della copertura assicurativa per una singola partecipazione.
@@ -368,27 +370,27 @@ enum StatoAssicurazione {
 /// Come la tessera annuale, non la emettiamo noi: il numero arriva dal portale
 /// federale. Qui si tiene traccia di dove sta la pratica.
 model TesseraGiornaliera {
-  id        String             @id @default(cuid())
-  userId    String
-  user      User               @relation("GiornaliereUtente", fields: [userId], references: [id], onDelete: Cascade)
-  eventId   String
-  event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  stato     StatoAssicurazione @default(NON_ASSICURATO)
+  id               String             @id @default(cuid())
+  userId           String
+  user             User               @relation("GiornaliereUtente", fields: [userId], references: [id], onDelete: Cascade)
+  eventId          String
+  event            Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  stato            StatoAssicurazione @default(NON_ASSICURATO)
   /// Numero della polizza prova restituito dal portale.
-  codice    String?
+  codice           String?
   /// Numero della polizza infortuni della compagnia (AIG), come lo scrive il portale.
   polizzaInfortuni String?
   /// Fino a quando copre: la polizza vale fino alle 24:00 del giorno della prova.
-  valeIl    DateTime?
+  valeIl           DateTime?
   /// Id della pratica sul portale, per risalire alla scheda.
-  idPortale String?
-  richiestaIl DateTime?
-  emessaIl  DateTime?
+  idPortale        String?
+  richiestaIl      DateTime?
+  emessaIl         DateTime?
   /// Esito dell'ultimo tentativo, per capire cosa e' andato storto.
-  esito     String?
+  esito            String?
   /// Chi ha fatto partire la richiesta.
-  richiestaDaId String?
-  createdAt DateTime           @default(now())
+  richiestaDaId    String?
+  createdAt        DateTime           @default(now())
 
   @@unique([userId, eventId])
   @@index([eventId])
@@ -421,14 +423,14 @@ model TesseramentoImportato {
 /// dentro una stagione: aprirne una nuova azzera la rosa, che si ricompone
 /// reinvitando gli operatori uno a uno.
 model Stagione {
-  id       String   @id @default(cuid())
-  nome     String   @unique // "2026/2027"
-  inizio   DateTime
-  fine     DateTime
+  id        String   @id @default(cuid())
+  nome      String   @unique // "2026/2027"
+  inizio    DateTime
+  fine      DateTime
   /// La stagione in corso: una sola, è quella che il gestionale propone ovunque.
-  corrente Boolean  @default(false)
-  chiusa   Boolean  @default(false)
-  note     String?
+  corrente  Boolean  @default(false)
+  chiusa    Boolean  @default(false)
+  note      String?
   createdAt DateTime @default(now())
 
   memberships Membership[]
@@ -465,42 +467,67 @@ model Tariffa {
   nome       String
   usi        VoceTariffa[]
   stagioneId String?
-  stagione   Stagione?    @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
-  importo    Decimal      @db.Decimal(10, 2)
+  stagione   Stagione?     @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
+  importo    Decimal       @db.Decimal(10, 2)
   note       String?
-  attiva     Boolean      @default(true)
-  createdAt  DateTime     @default(now())
+  attiva     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
 
   @@index([nome])
 }
 
 model TipoAttivita {
-  id          String       @id @default(cuid())
-  nome        String       @unique
-  descrizione String?
-  colore      String       @default("verde") // tinta usata nel calendario
+  id             String      @id @default(cuid())
+  nome           String      @unique
+  descrizione    String?
+  colore         String      @default("verde") // tinta usata nel calendario
   /// Categoria con cui nascono le quote generate da questa tipologia.
-  tipoQuota   PaymentType  @default(EVENTO)
+  tipoQuota      PaymentType @default(EVENTO)
   /// Solo per le tipologie a formazione (gare, tornei): il TL schiera titolari
   /// e riserve. Per allenamenti e simili non ha senso e non viene mostrato.
-  riserve     Boolean      @default(false)
+  riserve        Boolean     @default(false)
   /// Attività riservata alla squadra: non può essere rilasciata a tutti.
-  soloInterno Boolean      @default(false)
+  soloInterno    Boolean     @default(false)
   /// Serve il certificato medico per partecipare. Spento dove non si gioca —
   /// una riunione, una cena sociale — così chi non ce l'ha può segnarsi lo stesso.
-  certMedico  Boolean      @default(true)
+  certMedico     Boolean     @default(true)
   /// Richiede il certificato AGONISTICO: con il solo non agonistico non si entra.
-  certAgonistico Boolean   @default(false)
+  certAgonistico Boolean     @default(false)
   /// È una riunione: si fa in una sala o in videochiamata, non in campo. Le
   /// tipologie con questo segno sono quelle che si possono creare al volo da
   /// un'attività, e su di esse spariscono ritrovo, posti e quote — cose che a
   /// una riunione non servono e riempiono solo il modulo.
-  riunione    Boolean      @default(false)
-  ordine      Int          @default(0)
-  attivo      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
+  riunione       Boolean     @default(false)
+  ordine         Int         @default(0)
+  attivo         Boolean     @default(true)
+  createdAt      DateTime    @default(now())
 
   events Event[]
+
+  @@index([attivo, ordine])
+}
+
+/// Che gara è: 24 ore, scenario, speedsoft, torneo a squadre.
+///
+/// È un'anagrafica a parte dalla tipologia di attività, e non un doppione: la
+/// tipologia dice **come il gestionale tratta** quella giornata — se schiera
+/// titolari, se chiede il certificato, in che categoria finisce la quota. Il
+/// tipo di gara dice **che gara è**, che riguarda chi gioca e non il
+/// gestionale: due 24 ore possono avere la stessa tipologia e non somigliarsi
+/// per niente.
+///
+/// Sta in tabella e non in un elenco scritto nel codice perché i formati li
+/// inventano gli organizzatori, non noi: ne esce uno nuovo ogni stagione, e
+/// aggiungerlo non deve voler dire fare un rilascio.
+model TipoGara {
+  id          String   @id @default(cuid())
+  nome        String   @unique
+  descrizione String?
+  ordine      Int      @default(0)
+  attivo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  eventi Event[]
 
   @@index([attivo, ordine])
 }
@@ -518,8 +545,8 @@ model MetodoPagamento {
   attivo      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  payments   Payment[]
-  movimenti  MovimentoCassa[]
+  payments  Payment[]
+  movimenti MovimentoCassa[]
 
   @@index([attivo, ordine])
 }
@@ -527,51 +554,66 @@ model MetodoPagamento {
 // ---------------------------------------------------------------- eventi
 
 model Event {
-  id                 String          @id @default(cuid())
-  titolo             String
-  descrizione        String?
-  tipoId             String?
-  tipo               TipoAttivita?   @relation(fields: [tipoId], references: [id])
-  stagioneId         String?
-  stagione           Stagione?       @relation(fields: [stagioneId], references: [id])
-  visibilita         EventVisibility? // obbligatoria solo al rilascio
-  status             EventStatus     @default(CREATA)
-  inizio             DateTime
-  fine               DateTime?
+  id                    String           @id @default(cuid())
+  titolo                String
+  descrizione           String?
+  tipoId                String?
+  tipo                  TipoAttivita?    @relation(fields: [tipoId], references: [id])
+  stagioneId            String?
+  stagione              Stagione?        @relation(fields: [stagioneId], references: [id])
+  /// Che gara è, dall'anagrafica dei tipi di gara. Vuoto su tutto ciò che una
+  /// gara non è: un allenamento, una riunione, una cena.
+  tipoGaraId            String?
+  tipoGara              TipoGara?        @relation(fields: [tipoGaraId], references: [id], onDelete: SetNull)
+  /// La durata dichiarata dall'organizzatore, in ore: la **24h** del volantino.
+  ///
+  /// **Non si confronta con inizio e fine, ed è voluto.** Una 24 ore si gioca
+  /// dentro un fine settimana che comincia il venerdì e finisce la domenica:
+  /// l'attività tiene occupato tutto quello spazio — si parte, si monta, si
+  /// dorme, si smonta — mentre la gara dura quello che dice il volantino. Sono
+  /// due fatti diversi e nessuno dei due è sbagliato. Un controllo che
+  /// pretendesse di farli coincidere costringerebbe a scrivere una data falsa
+  /// per far tacere un avviso, ed è il modo migliore per rendere inaffidabile
+  /// il calendario.
+  durataOre             Int?
+  visibilita            EventVisibility? // obbligatoria solo al rilascio
+  status                EventStatus      @default(CREATA)
+  inizio                DateTime
+  fine                  DateTime?
   /// Dove ci si trova prima di partire: il testo che si legge, e le coordinate
   /// per il pulsante "Naviga". Un ritrovo scritto a mano — "autogrill A4" —
   /// non porta nessuno da nessuna parte.
-  ritrovo            String?
-  ritrovoLat         Float?
-  ritrovoLng         Float?
-  oraRitrovo         DateTime?
-  fieldId            String?
-  field              Field?          @relation(fields: [fieldId], references: [id])
+  ritrovo               String?
+  ritrovoLat            Float?
+  ritrovoLng            Float?
+  oraRitrovo            DateTime?
+  fieldId               String?
+  field                 Field?           @relation(fields: [fieldId], references: [id])
   /// Il posto quando non è un campo dell'elenco: una fiera, un parcheggio, la
   /// sede di un'altra squadra. Non tutto quello che si fa insieme succede su un
   /// campo censito, e costringere a inventarne uno sporcherebbe l'anagrafica.
-  luogo              String?
-  luogoLat           Float?
-  luogoLng           Float?
+  luogo                 String?
+  luogoLat              Float?
+  luogoLng              Float?
   /// Il collegamento per chi partecipa da lontano. Ha senso solo su una
   /// riunione: a una partita non ci si connette.
-  linkRiunione       String?
+  linkRiunione          String?
   /// Quota di chi è in squadra. Nulla = attività gratuita per loro; si compone
   /// dalle voci di listino come le iscrizioni, e `dettaglio` racconta di cosa
   /// è fatta ("Contributo campo 5,00 €").
-  costo              Decimal?        @db.Decimal(10, 2)
-  dettaglioCosto     String?
+  costo                 Decimal?         @db.Decimal(10, 2)
+  dettaglioCosto        String?
   /// Quota di chi in squadra non è (i "nuovi" che vengono alle aperte).
   /// Nulla = pagano come la squadra; zero = la giocata è offerta.
-  costoEsterni       Decimal?        @db.Decimal(10, 2)
+  costoEsterni          Decimal?         @db.Decimal(10, 2)
   dettaglioCostoEsterni String?
-  maxPartecipanti    Int?
-  chiusuraIscrizioni DateTime?
-  note               String?
-  createdById        String?
-  createdBy          User?           @relation("EventCreator", fields: [createdById], references: [id])
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  maxPartecipanti       Int?
+  chiusuraIscrizioni    DateTime?
+  note                  String?
+  createdById           String?
+  createdBy             User?            @relation("EventCreator", fields: [createdById], references: [id])
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
   rsvps       EventRsvp[]
   payments    Payment[]
@@ -609,29 +651,29 @@ model EventRsvp {
 // ---------------------------------------------------------------- iscrizioni
 
 model Membership {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  stagioneId  String
-  stagione    Stagione         @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
-  tipo        TipoIscrizione   @default(ISCRIZIONE)
-  status      MembershipStatus @default(INVITATA)
-  quota       Decimal?         @db.Decimal(10, 2)
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  stagioneId     String
+  stagione       Stagione         @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
+  tipo           TipoIscrizione   @default(ISCRIZIONE)
+  status         MembershipStatus @default(INVITATA)
+  quota          Decimal?         @db.Decimal(10, 2)
   /// Di cosa è fatta la quota, quando nasce da più voci di listino:
   /// "Reiscrizione 50 € + Cassa comune 25 €". Serve a chi la riceve per capire
   /// cosa sta pagando, e a noi per ricostruirlo a distanza di un anno.
   dettaglioQuota String?
-  messaggio   String? // testo dell'invito
-  compilato   String? // note lasciate dall'operatore in fase di compilazione
-  note        String? // esito / motivo del rifiuto
-  invitataIl  DateTime         @default(now())
-  invitedById String?
-  invitedBy   User?            @relation("MembershipInviter", fields: [invitedById], references: [id])
-  compilataIl DateTime?
-  decisaIl    DateTime?
-  decidedById String?
-  decidedBy   User?            @relation("MembershipDecider", fields: [decidedById], references: [id])
-  scadeIl     DateTime?
+  messaggio      String? // testo dell'invito
+  compilato      String? // note lasciate dall'operatore in fase di compilazione
+  note           String? // esito / motivo del rifiuto
+  invitataIl     DateTime         @default(now())
+  invitedById    String?
+  invitedBy      User?            @relation("MembershipInviter", fields: [invitedById], references: [id])
+  compilataIl    DateTime?
+  decisaIl       DateTime?
+  decidedById    String?
+  decidedBy      User?            @relation("MembershipDecider", fields: [decidedById], references: [id])
+  scadeIl        DateTime?
 
   payments Payment[]
 
@@ -669,13 +711,13 @@ model FigtCard {
 // ---------------------------------------------------------------- pagamenti
 
 model Payment {
-  id           String         @id @default(cuid())
+  id           String           @id @default(cuid())
   userId       String
-  user         User           @relation("PaymentUser", fields: [userId], references: [id], onDelete: Cascade)
+  user         User             @relation("PaymentUser", fields: [userId], references: [id], onDelete: Cascade)
   tipo         PaymentType
   descrizione  String
-  importo      Decimal        @db.Decimal(10, 2)
-  pagato       Decimal        @default(0) @db.Decimal(10, 2)
+  importo      Decimal          @db.Decimal(10, 2)
+  pagato       Decimal          @default(0) @db.Decimal(10, 2)
   status       PaymentStatus    @default(DA_PAGARE)
   metodoId     String?
   metodo       MetodoPagamento? @relation(fields: [metodoId], references: [id])
@@ -685,23 +727,23 @@ model Payment {
   dichiaratoIl DateTime?
   note         String?
   eventId      String?
-  event        Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  event        Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
   membershipId String?
-  membership   Membership?    @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  membership   Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
   figtCardId   String?
-  figtCard     FigtCard?      @relation(fields: [figtCardId], references: [id], onDelete: SetNull)
+  figtCard     FigtCard?        @relation(fields: [figtCardId], references: [id], onDelete: SetNull)
   recordedById String?
-  recordedBy   User?          @relation("PaymentRecorder", fields: [recordedById], references: [id])
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  recordedBy   User?            @relation("PaymentRecorder", fields: [recordedById], references: [id])
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   /// Ordine del merchandising da cui nasce questa quota, se ne viene.
-  ordine       Ordine?
+  ordine Ordine?
 
   /// Quota di cui questo movimento è il rimborso.
-  rimborsoDiId String?    @unique
-  rimborsoDi   Payment?   @relation("Rimborso", fields: [rimborsoDiId], references: [id], onDelete: Cascade)
-  rimborso     Payment?   @relation("Rimborso")
+  rimborsoDiId String?  @unique
+  rimborsoDi   Payment? @relation("Rimborso", fields: [rimborsoDiId], references: [id], onDelete: Cascade)
+  rimborso     Payment? @relation("Rimborso")
 
   @@index([userId, status])
   @@index([status])
@@ -749,20 +791,20 @@ model MovimentoCassa {
 /// com'è andata solo se non finisce sotto gli occhi di altri — nemmeno di un
 /// admin. Chi vuole condividere un'osservazione ha la chat della squadra.
 model Nota {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   autoreId  String
-  autore    User     @relation("NoteScritte", fields: [autoreId], references: [id], onDelete: Cascade)
+  autore    User            @relation("NoteScritte", fields: [autoreId], references: [id], onDelete: Cascade)
   titolo    String
   /// Markdown, come statuto e regolamento.
   testo     String
   /// La persona a cui la nota è appuntata, se ce n'è una.
   userId    String?
-  persona   User?    @relation("NoteSuDiMe", fields: [userId], references: [id], onDelete: Cascade)
+  persona   User?           @relation("NoteSuDiMe", fields: [userId], references: [id], onDelete: Cascade)
   /// L'attività a cui la nota è appuntata, se ce n'è una.
   eventId   String?
-  evento    Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  evento    Event?          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
   citate    NotaCitazione[]
 
   @@index([autoreId])
@@ -814,7 +856,6 @@ model MiPiaceEvento {
   @@id([eventId, userId])
 }
 
-
 // ---------------------------------------------------------------- messaggi
 
 /// Collegamento a WhatsApp, uno solo per installazione.
@@ -825,15 +866,15 @@ model MiPiaceEvento {
 /// possa usarlo, e un altro amministratore non lo erediti per il fatto di
 /// essere admin.
 model CollegamentoWhatsapp {
-  id          String   @id @default("whatsapp")
+  id          String    @id @default("whatsapp")
   /// Numero che il ponte ha collegato, solo per mostrarlo nella pagina.
   numero      String?
   utenteId    String?
-  utente      User?    @relation("WhatsappDi", fields: [utenteId], references: [id], onDelete: SetNull)
+  utente      User?     @relation("WhatsappDi", fields: [utenteId], references: [id], onDelete: SetNull)
   /// Gruppo predefinito: quello che i modelli usano se non ne indicano un altro.
   gruppoId    String?
   gruppoNome  String?
-  collegatoIl DateTime @default(now())
+  collegatoIl DateTime  @default(now())
   ultimoInvio DateTime?
   ultimoEsito String?
 }
@@ -859,17 +900,17 @@ enum DoveMandare {
 /// quello usato meno di recente, così dieci compleanni di fila non sono dieci
 /// volte la stessa frase. Nel testo si mettono segnaposto come {nome}.
 model ModelloMessaggio {
-  id          String              @id @default(cuid())
-  scatenante  ScatenanteMessaggio
-  destinazione DoveMandare        @default(GRUPPO)
+  id           String              @id @default(cuid())
+  scatenante   ScatenanteMessaggio
+  destinazione DoveMandare         @default(GRUPPO)
   /// Gruppo diverso da quello predefinito, quando serve.
-  gruppoId    String?
-  testo       String
-  attivo      Boolean             @default(true)
+  gruppoId     String?
+  testo        String
+  attivo       Boolean             @default(true)
   /// Quando è stato usato l'ultima volta: è così che si fa il giro.
-  usatoIl     DateTime?
-  volte       Int                 @default(0)
-  createdAt   DateTime            @default(now())
+  usatoIl      DateTime?
+  volte        Int                 @default(0)
+  createdAt    DateTime            @default(now())
 
   invii MessaggioInviato[]
 
@@ -1031,23 +1072,23 @@ model Annuncio {
   creatoIl     DateTime      @default(now())
   aggiornatoIl DateTime      @updatedAt
 
-  voci      VoceAnnuncio[]
-  foto      FotoAnnuncio[]     @relation("FotoDi")
-  commenti  CommentoAnnuncio[]
-  miPiace   MiPiaceAnnuncio[]
+  voci     VoceAnnuncio[]
+  foto     FotoAnnuncio[]     @relation("FotoDi")
+  commenti CommentoAnnuncio[]
+  miPiace  MiPiaceAnnuncio[]
 
   @@index([stato, ufficiale])
 }
 
 model FotoAnnuncio {
-  id         String    @id @default(cuid())
-  annuncioId String
-  annuncio   Annuncio  @relation("FotoDi", fields: [annuncioId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  annuncioId  String
+  annuncio    Annuncio  @relation("FotoDi", fields: [annuncioId], references: [id], onDelete: Cascade)
   /// L'originale ridimensionato, e la versione piccola per le card: senza,
   /// sfogliare la bacheca dal telefono scarica venti foto intere.
-  file       String
-  miniatura  String
-  ordine     Int       @default(0)
+  file        String
+  miniatura   String
+  ordine      Int       @default(0)
   copertinaDi Annuncio? @relation("Copertina")
 
   @@index([annuncioId, ordine])
@@ -1055,42 +1096,47 @@ model FotoAnnuncio {
 
 /// Una riga dell'annuncio: titolo, prezzo e descrizione suoi.
 model VoceAnnuncio {
-  id            String     @id @default(cuid())
+  id            String             @id @default(cuid())
   annuncioId    String
-  annuncio      Annuncio   @relation(fields: [annuncioId], references: [id], onDelete: Cascade)
+  annuncio      Annuncio           @relation(fields: [annuncioId], references: [id], onDelete: Cascade)
   titolo        String
   /// Come la si nomina in un commento: @radio-m. Unica dentro il suo annuncio
   /// e non in tutto il mercatino — due persone che vendono una radio M devono
   /// poterla chiamare tutte e due così.
   maniglia      String
-  prezzo        Decimal    @db.Decimal(10, 2)
-  trattabile    Boolean    @default(false)
+  prezzo        Decimal            @db.Decimal(10, 2)
+  trattabile    Boolean            @default(false)
   descrizione   String?
-  natura        NaturaVoce @default(PEZZO_UNICO)
+  natura        NaturaVoce         @default(PEZZO_UNICO)
   /// Spenta: resta scritta ma non è più in vendita. Serve al merchandising —
   /// un modello che non si fa più — e all'usato, per mettere da parte una cosa
   /// senza cancellarla e perderne i commenti.
-  attiva        Boolean    @default(true)
-  /// Roba che il team compra in blocco e tiene in casa: le patch si ordinano
-  /// cento alla volta e poi si consegnano man mano. Non entra nel giro di
-  /// raccolta — non c'è niente da chiedere al fornitore a ogni ordine — ma ha
-  /// una giacenza che scende, e finita è finita.
-  aMagazzino    Boolean    @default(false)
+  attiva        Boolean            @default(true)
+  /// Da quale scaffale esce, quando esce da uno scaffale nostro.
+  ///
+  /// Vuoto vuol dire che la merce non è in casa: si ordina al fornitore a ogni
+  /// giro e non finisce mai, oppure è un pezzo unico dell'usato. Pieno vuol
+  /// dire che c'è una giacenza che scende, e finita è finita.
+  ///
+  /// **È un collegamento e non una spunta**, ed è la differenza che conta: la
+  /// vetrina e il magazzino sono due elenchi diversi, e questa riga dice quali
+  /// righe dell'uno pescano dall'altro.
+  articoloId    String?
+  articolo      ArticoloMagazzino? @relation(fields: [articoloId], references: [id], onDelete: SetNull)
   /// Solo per i pezzi unici: su una maglietta "venduta" non vuol dire niente.
-  stato         StatoVoce  @default(DISPONIBILE)
+  stato         StatoVoce          @default(DISPONIBILE)
   prenotataDaId String?
-  prenotataDa   User?      @relation("VociPrenotate", fields: [prenotataDaId], references: [id], onDelete: SetNull)
+  prenotataDa   User?              @relation("VociPrenotate", fields: [prenotataDaId], references: [id], onDelete: SetNull)
   prenotataIl   DateTime?
-  ordine        Int        @default(0)
+  ordine        Int                @default(0)
 
-  citata    CitazioneVoce[]
-  righe     RigaOrdine[]
-  carrelli  RigaCarrello[]
-  carichi   CaricoMagazzino[]
-  riordini  RigaRiordino[]
+  citata   CitazioneVoce[]
+  righe    RigaOrdine[]
+  carrelli RigaCarrello[]
 
   @@unique([annuncioId, maniglia])
   @@index([annuncioId, ordine])
+  @@index([articoloId])
 }
 
 /// Commento sotto un annuncio: lo legge chiunque veda l'annuncio.
@@ -1104,8 +1150,8 @@ model CommentoAnnuncio {
   createdAt    DateTime  @default(now())
   modificatoIl DateTime?
 
-  citate        CitazioneVoce[]
-  segnalazioni  Segnalazione[]
+  citate       CitazioneVoce[]
+  segnalazioni Segnalazione[]
 
   @@index([annuncioId])
 }
@@ -1226,19 +1272,90 @@ model Riordino {
 
 /// Una riga di riordino: quanti pezzi di cosa, e a quanto.
 model RigaRiordino {
-  id            String       @id @default(cuid())
+  id            String            @id @default(cuid())
   riordinoId    String
-  riordino      Riordino     @relation(fields: [riordinoId], references: [id], onDelete: Cascade)
-  voceId        String
-  voce          VoceAnnuncio @relation(fields: [voceId], references: [id], onDelete: Restrict)
+  riordino      Riordino          @relation(fields: [riordinoId], references: [id], onDelete: Cascade)
+  articoloId    String
+  articolo      ArticoloMagazzino @relation(fields: [articoloId], references: [id], onDelete: Restrict)
   quantita      Int
-  costoUnitario Decimal      @db.Decimal(10, 2)
+  costoUnitario Decimal           @db.Decimal(10, 2)
 
   /// Il carico che la ricezione ha generato: c'è solo dopo che la merce è
   /// arrivata, e serve a non ricevere due volte la stessa riga.
   carico CaricoMagazzino?
 
   @@index([riordinoId])
+}
+
+/// Un errore capitato **nel browser di qualcuno**, con quello che stava
+/// facendo.
+///
+/// Il messaggio «qualcosa si è rotto» si cura ricaricando, e per chi lo vede
+/// finisce lì. Per noi finiva lì anche l'informazione: nessuno sa cosa fosse
+/// aperto, cosa era stato premuto, se era già successo. Un difetto che si
+/// manifesta una volta al mese e non lascia traccia non si corregge — si
+/// convive, e la gente smette di segnalarlo perché tanto «poi funziona».
+///
+/// Per questo, prima del pulsante *Ricarica*, la scheda spedisce qui quello
+/// che sa: l'errore con la sua pila di chiamate, l'indirizzo, la versione del
+/// gestionale, e il **diario di bordo** — le ultime cose successe con l'orario
+/// accanto. È quello a dire *cosa stava facendo*, che è la domanda a cui non
+/// si sapeva rispondere.
+model ErroreClient {
+  id        String   @id @default(cuid())
+  quando    DateTime @default(now())
+  /// Chi l'ha incontrato. Resta nullo se è successo prima dell'accesso.
+  userId    String?
+  utente    User?    @relation("ErroriIncontrati", fields: [userId], references: [id], onDelete: SetNull)
+  messaggio String
+  /// Il nome della classe di errore: TypeError, ChunkLoadError…
+  nome      String?
+  /// Il riferimento che Next mostra a chi legge la pagina rotta: è il filo che
+  /// lega questa riga a quello che la persona ha letto sullo schermo.
+  digest    String?
+  stack     String?
+  indirizzo String?
+  /// Che browser e che telefono: metà dei difetti che capitano a uno solo
+  /// capitano al suo browser.
+  agente    String?
+  /// La versione del gestionale in quel momento: senza, un errore vecchio di
+  /// due settimane sembra ancora aperto.
+  versione  String?
+  /// Le ultime cose successe prima dello schianto, una per riga con l'ora.
+  diario    String?
+  /// Come si è saputo: il confine di React, un errore non catturato, una
+  /// promessa rifiutata.
+  origine   String?
+  /// Già guardato da chi tiene il gestionale: serve a non riesaminare le
+  /// stesse righe ogni volta che si apre la pagina.
+  visto     Boolean  @default(false)
+
+  @@index([quando])
+  @@index([visto, quando])
+}
+
+/// Le voci di menu che una persona si è messa da parte.
+///
+/// Il gestionale ha una quarantina di pagine e nessuno le usa tutte: chi tiene
+/// la cassa vive su tre schermate, un atleta su due, e sono tre schermate
+/// diverse. I preferiti sono la risposta — **non un menu diverso per ruolo, ma
+/// il proprio menu**, che ognuno si compone premendo una stellina dove gli
+/// serve.
+///
+/// Si conserva solo l'indirizzo, non l'etichetta né l'icona: quelle si
+/// ripescano ogni volta dal menu vero. Così una voce che cambia nome cambia
+/// nome anche qui, e una voce che una persona non può più vedere sparisce dai
+/// suoi preferiti da sola invece di restare a puntare su una porta chiusa.
+model Preferito {
+  userId String
+  utente User   @relation("PreferitiDi", fields: [userId], references: [id], onDelete: Cascade)
+  /// L'indirizzo della voce di menu: /admin/cassa, /calendario…
+  href   String
+  /// In che ordine li ha messi: si cambia con un pressione lunga sul menu.
+  ordine Int    @default(0)
+
+  @@id([userId, href])
+  @@index([userId, ordine])
 }
 
 /// Chi ha letto e accettato un regolamento, e quale versione.
@@ -1269,31 +1386,69 @@ model AccettazioneDocumento {
 /// I carichi si sommano invece di aggiornare un numero solo: così resta la
 /// storia dei prezzi pagati, e una quantità sbagliata si corregge togliendo la
 /// riga sbagliata e non indovinando il totale giusto.
+/// Un articolo di magazzino: una cosa che il team **ha in casa**.
+///
+/// Non è una riga del catalogo, ed è la correzione di un errore. Prima il
+/// magazzino era una spunta sulla voce del merchandising, e da quella spunta
+/// discendeva tutto quello che non tornava: mettere in conto un generatore lo
+/// affacciava in vetrina, e toglierlo dalla vendita sembrava dire che non lo
+/// si teneva più.
+///
+/// Sono due domande diverse, e tutt'e quattro le risposte esistono davvero:
+///
+/// - il **generatore**: lo tengo, non lo vendo — articolo senza voci;
+/// - le **patch**: le tengo e le vendo — articolo con una voce collegata;
+/// - le **magliette**: le vendo e non le tengo, si ordinano al fornitore a
+///   ogni giro — voce senza articolo;
+/// - una **prevendita**: la metto in vetrina prima di averla — voce senza
+///   articolo oggi, collegata quando la merce arriva.
+///
+/// Con una spunta sola se ne potevano scrivere due su quattro. Per questo è un
+/// modello suo, e il collegamento con la vetrina è facoltativo da entrambe le
+/// parti.
+model ArticoloMagazzino {
+  id           String   @id @default(cuid())
+  nome         String
+  /// Come si raggruppa in elenco: "Patch", "Materiale di squadra", "Divise".
+  /// Libera, perché ogni squadra tiene in casa cose diverse.
+  categoria    String?
+  note         String?
+  creatoIl     DateTime @default(now())
+  aggiornatoIl DateTime @updatedAt
+
+  carichi  CaricoMagazzino[]
+  riordini RigaRiordino[]
+  /// Le righe di vetrina che pescano da qui: nessuna, se non si vende.
+  voci     VoceAnnuncio[]
+
+  @@index([categoria, nome])
+}
+
 model CaricoMagazzino {
-  id             String       @id @default(cuid())
-  voceId         String
-  voce           VoceAnnuncio @relation(fields: [voceId], references: [id], onDelete: Cascade)
+  id             String            @id @default(cuid())
+  articoloId     String
+  articolo       ArticoloMagazzino @relation(fields: [articoloId], references: [id], onDelete: Cascade)
   quantita       Int
   /// Quanto è costato al team un singolo pezzo.
-  costoUnitario  Decimal      @db.Decimal(10, 2)
+  costoUnitario  Decimal           @db.Decimal(10, 2)
   fornitore      String?
   note           String?
-  compratoIl     DateTime     @default(now())
+  compratoIl     DateTime          @default(now())
   /// La riga di riordino che questo carico ha ricevuto, se non è una rettifica
   /// fatta a mano. È quello che permette al registro di dire *+50 per
   /// l'ordine 7* invece di un +50 che non si sa da dove esca.
-  rigaRiordinoId String?      @unique
-  rigaRiordino   RigaRiordino? @relation(fields: [rigaRiordinoId], references: [id], onDelete: SetNull)
+  rigaRiordinoId String?           @unique
+  rigaRiordino   RigaRiordino?     @relation(fields: [rigaRiordinoId], references: [id], onDelete: SetNull)
   /// L'uscita di cassa con cui questa merce è stata comprata, quando la spesa
   /// si registra dalla cassa invece che da un riordino. Sparita la spesa
   /// sparisce il carico: se quei soldi non sono usciti, quella roba non è
   /// entrata.
-  movimentoId    String?      @unique
-  movimento      MovimentoCassa? @relation(fields: [movimentoId], references: [id], onDelete: Cascade)
+  movimentoId    String?           @unique
+  movimento      MovimentoCassa?   @relation(fields: [movimentoId], references: [id], onDelete: Cascade)
   registratoDaId String?
-  registratoDa   User?        @relation("CarichiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
+  registratoDa   User?             @relation("CarichiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
 
-  @@index([voceId])
+  @@index([articoloId])
 }
 
 /// Il carrello di una persona, che aspetta.

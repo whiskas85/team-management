@@ -47,7 +47,7 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo size={84} />
           <h1 className="mt-4 flex items-center gap-2 text-xl font-semibold tracking-[0.3em] text-ink">
-            ZERO DARK
+            ZERO DARK OPS
             <span className="rounded border border-nvg/40 bg-nvg/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-normal text-nvg">
               v{VERSIONE}
             </span>

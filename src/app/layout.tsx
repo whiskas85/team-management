@@ -3,13 +3,13 @@ import './globals.css';
 import { RegistraApp } from '@/components/RegistraApp';
 
 export const metadata: Metadata = {
-  title: 'Zero Dark Team — Gestionale',
+  title: 'Zero Dark Ops',
   description: 'Gestionale operativo del team softair Zero Dark',
   // installato dalla schermata iniziale si comporta da applicazione: iOS legge
   // queste, Android e desktop leggono il manifest
   appleWebApp: {
     capable: true,
-    title: 'Zero Dark',
+    title: 'Zero Dark Ops',
     statusBarStyle: 'black-translucent',
   },
   icons: {

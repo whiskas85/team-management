@@ -22,7 +22,7 @@ export default function ErroreGlobale({ error }: { error: Error & { digest?: str
         }}
       >
         <div style={{ maxWidth: '28rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.75rem', letterSpacing: '0.3em', color: '#7bd88f' }}>ZERO DARK</p>
+          <p style={{ fontSize: '0.75rem', letterSpacing: '0.3em', color: '#7bd88f' }}>ZERO DARK OPS</p>
           <h1 style={{ fontSize: '1.25rem', marginTop: '1rem' }}>Il gestionale non risponde</h1>
           <p style={{ fontSize: '0.875rem', color: '#8b918b', marginTop: '0.75rem' }}>
             Ricarica la pagina. Se il problema resta, il server potrebbe essere spento o in

@@ -54,14 +54,11 @@ import {
 } from '@/actions/eventi';
 import { chiediRimborso } from '@/actions/pagamenti';
 import {
-  attivaGiornaliera,
-  emettiGiornaliera,
-} from '@/actions/assicurazione';
-import {
   ETICHETTA_ASSICURAZIONE,
   TONO_ASSICURAZIONE,
   serveGiornaliera,
 } from '@/lib/assicurazione';
+import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { ScegliPartecipanti, type Candidato } from '@/components/ScegliPartecipanti';
 import { Social, type Commento } from '@/components/Social';
 import { Debriefing } from '@/components/Debriefing';
@@ -78,6 +75,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     where: { id },
     include: {
       tipo: true,
+      tipoGara: { select: { nome: true } },
       field: { include: { squadra: { select: { nome: true } } } },
       createdBy: { select: { nome: true, cognome: true } },
       rsvps: {
@@ -265,7 +263,18 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     evento.status !== 'RILASCIATA' ||
     (!!evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date());
 
-  const [campi, tipologie, operatoriGrezzi, listino, stagioni] = tl
+  // Conclusa: la giornata è passata e registrata. Da qui in poi la scheda serve
+  // a **rileggere** com'è andata, non più a organizzarla — quindi spariscono le
+  // cose che si fanno prima o durante: la propria adesione, i dati sanitari di
+  // chi c'era, e l'appello. Le presenze restano dove sono, sulle righe dei
+  // partecipanti: quelle sono il risultato, non uno strumento.
+  const conclusa = evento.status === 'CONCLUSA';
+  // L'appello sparisce anche sulle annullate, e per un motivo in più: è lui a
+  // concludere l'attività: spuntarlo su una giornata annullata la farebbe
+  // risorgere come conclusa, cioè come se si fosse giocata.
+  const senzaAppello = conclusa || evento.status === 'ANNULLATA';
+
+  const [campi, tipologie, tipiGara, operatoriGrezzi, listino, stagioni] = tl
     ? await Promise.all([
         // teniamo anche la voce già collegata, se nel frattempo è stata
         // archiviata: modificando l'attività non deve sparire
@@ -278,6 +287,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         admin
           ? prisma.tipoAttivita.findMany({
               where: { OR: [{ attivo: true }, { id: evento.tipoId ?? '' }] },
+              orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
+              select: { id: true, nome: true, attivo: true },
+            })
+          : Promise.resolve([]),
+        // anche il tipo già scelto, se nel frattempo è stato disattivato:
+        // modificando l'attività non deve sparire da sotto le dita
+        admin
+          ? prisma.tipoGara.findMany({
+              where: { OR: [{ attivo: true }, { id: evento.tipoGaraId ?? '' }] },
               orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
               select: { id: true, nome: true, attivo: true },
             })
@@ -303,7 +321,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         // le stagioni servono al modulo: un’attività si può spostare in quella dopo
         admin ? stagioniAperte() : Promise.resolve([]),
       ])
-    : [[], [], [], [], []];
+    : [[], [], [], [], [], []];
 
   const gia = new Set(evento.rsvps.map((r) => r.userId));
 
@@ -483,6 +501,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   <FormEvento
                     campi={campi}
                     tipologie={tipologie}
+                    tipiGara={tipiGara}
                     listino={listino}
                     stagioneId={evento.stagioneId}
                     stagioni={stagioni}
@@ -575,6 +594,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Dato etichetta="Inizio" valore={fmtDateTime(evento.inizio)} />
               <Dato etichetta="Fine" valore={evento.fine ? fmtDateTime(evento.fine) : '—'} />
+              {/* Che gara è e quanto dura sul volantino. La durata sta accanto
+                  alle date apposta: è lì che uno si chiede perché una 24 ore
+                  occupi tre giorni, e la risposta deve stargli sotto gli occhi
+                  invece che venirgli il dubbio di un errore. */}
+              {(evento.tipoGara || evento.durataOre !== null) && (
+                <Dato
+                  etichetta="Gara"
+                  valore={
+                    <>
+                      {evento.tipoGara?.nome ?? '—'}
+                      {evento.durataOre !== null && (
+                        <span className="block text-[11px] text-muted">
+                          durata dichiarata {evento.durataOre}h · l’attività tiene occupato tutto
+                          lo spazio fra inizio e fine
+                        </span>
+                      )}
+                    </>
+                  }
+                />
+              )}
               <Dato
                 etichetta="Quota"
                 valore={
@@ -936,56 +975,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                         titolo={`Giornaliera per ${nomeDi(r.user)}`}
                                         className="btn-ghost btn-sm"
                                       >
-                                        <p className="mb-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-                                          Ogni attivazione consuma una polizza vera e non si può
-                                          annullare. Prima di chiamare il portale controllo che la
-                                          persona non sia già coperta, che abbia almeno 12 anni e
-                                          che il giorno rientri nella finestra ammessa.
-                                        </p>
-
-                                        <FormAzione azione={attivaGiornaliera}>
-                                          <input type="hidden" name="userId" value={r.userId} />
-                                          <input type="hidden" name="eventId" value={evento.id} />
-                                          <p className="mb-3 text-sm text-muted">
-                                            Attiva la polizza prova sul portale federale per{' '}
-                                            <strong className="text-ink">
-                                              {nomeDi(r.user)}
-                                            </strong>{' '}
-                                            e il giorno dell’attività. Servono data e luogo di
-                                            nascita nella sua scheda.
-                                          </p>
-                                          <Invia
-                                            icona="tessera"
-                                            className="btn-primary w-full"
-                                            attesa="Parlo col portale…"
-                                          >
-                                            Attiva la polizza sul portale
-                                          </Invia>
-                                        </FormAzione>
-
-                                        <details className="mt-4 border-t border-line pt-4">
-                                          <summary className="cursor-pointer text-xs text-muted">
-                                            L’ho già attivata a mano sul portale
-                                          </summary>
-                                          <FormAzione azione={emettiGiornaliera} className="mt-3">
-                                            <input type="hidden" name="userId" value={r.userId} />
-                                            <input type="hidden" name="eventId" value={evento.id} />
-                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                              <Campo label="Numero polizza *">
-                                                <input
-                                                  name="codice"
-                                                  required
-                                                  className="input"
-                                                  placeholder="es. 2793"
-                                                />
-                                              </Campo>
-                                              <Campo label="Id pratica sul portale">
-                                                <input name="idPortale" className="input" />
-                                              </Campo>
-                                            </div>
-                                            <Invia icona="salva">Registra il numero</Invia>
-                                          </FormAzione>
-                                        </details>
+                                        <FormGiornaliera
+                                          userId={r.userId}
+                                          eventId={evento.id}
+                                          nome={nomeDi(r.user)}
+                                        />
                                       </BottoneModale>
                                     )}
                                   </span>
@@ -1017,70 +1011,134 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
                             {/* lo schieramento, su una riga sua */}
                             {r.presente === null && tl && schieraQuesta && r.status === 'PRESENTE' && (
-                              <div className="flex flex-wrap items-center gap-1 sm:justify-end">
-                                {/* Chi è dentro si può scambiare con una riserva:
-                                    uno si fa male il giorno prima e la formazione
-                                    non si smonta a mano. Se aveva già pagato, chi
-                                    subentra non paga — la somma per quel posto il
-                                    club l'ha incassata. */}
-                                {(r.assegnazione === 'TITOLARE' ||
-                                  r.assegnazione === 'CONVOCATO') &&
-                                  riserve.length > 0 && (
-                                    <BottoneModale
-                                      etichetta="Sostituisci"
-                                      icona="squadra"
-                                      titolo={`Chi entra al posto di ${nomeDi(r.user)}?`}
-                                      className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-nvgdim hover:text-ink"
-                                    >
-                                      <div className="space-y-2">
-                                        {riserve.map((s) => (
-                                          <div
-                                            key={s.id}
-                                            className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2"
-                                          >
-                                            <span className="min-w-0 truncate text-sm">
-                                              {nomeDi(s.user)}
-                                            </span>
-                                            <AzioneBottone
-                                              azione={scambiaTitolare}
-                                              valori={{ rsvpId: r.id, conRsvpId: s.id }}
-                                              icona="squadra"
-                                              className="btn-primary btn-sm"
-                                            >
-                                              Fai entrare
-                                            </AzioneBottone>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </BottoneModale>
-                                  )}
-
-                                {(['TITOLARE', 'TOC', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
-                                  <AzioneBottone
-                                    key={a}
-                                    azione={schiera}
-                                    valori={{ rsvpId: r.id, assegnazione: a }}
-                                    className={`rounded border px-2 py-1 text-[11px] transition-colors ${
-                                      r.assegnazione === a ||
-                                      (a === 'TITOLARE' && r.assegnazione === 'CONVOCATO')
-                                        ? a === 'TITOLARE'
-                                          ? 'border-nvg bg-nvg/15 text-nvg'
-                                          : a === 'TOC'
-                                            ? 'border-sky-400 bg-sky-400/15 text-sky-300'
-                                            : a === 'RISERVA'
-                                              ? 'border-warn bg-warn/15 text-warn'
-                                              : 'border-line bg-surface2 text-muted'
-                                        : 'border-line text-muted hover:border-nvgdim'
-                                    }`}
-                                  >
-                                    {a === 'NON_ASSEGNATO'
-                                      ? '—'
-                                      : a === 'TITOLARE' && r.assegnazione === 'CONVOCATO'
-                                        ? 'Convocato'
-                                        : etichettaAssegnazione[a]}
-                                  </AzioneBottone>
-                                ))}
-                              </div>
+                              <div className="flex flex-wrap items-center gap-1 sm:justify-end">
+
+                                {/* Chi è dentro si può scambiare con una riserva:
+
+                                    uno si fa male il giorno prima e la formazione
+
+                                    non si smonta a mano. Se aveva già pagato, chi
+
+                                    subentra non paga — la somma per quel posto il
+
+                                    club l'ha incassata. */}
+
+                                {(r.assegnazione === 'TITOLARE' ||
+
+                                  r.assegnazione === 'CONVOCATO') &&
+
+                                  riserve.length > 0 && (
+
+                                    <BottoneModale
+
+                                      etichetta="Sostituisci"
+
+                                      icona="squadra"
+
+                                      titolo={`Chi entra al posto di ${nomeDi(r.user)}?`}
+
+                                      className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-nvgdim hover:text-ink"
+
+                                    >
+
+                                      <div className="space-y-2">
+
+                                        {riserve.map((s) => (
+
+                                          <div
+
+                                            key={s.id}
+
+                                            className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2"
+
+                                          >
+
+                                            <span className="min-w-0 truncate text-sm">
+
+                                              {nomeDi(s.user)}
+
+                                            </span>
+
+                                            <AzioneBottone
+
+                                              azione={scambiaTitolare}
+
+                                              valori={{ rsvpId: r.id, conRsvpId: s.id }}
+
+                                              icona="squadra"
+
+                                              className="btn-primary btn-sm"
+
+                                            >
+
+                                              Fai entrare
+
+                                            </AzioneBottone>
+
+                                          </div>
+
+                                        ))}
+
+                                      </div>
+
+                                    </BottoneModale>
+
+                                  )}
+
+
+
+                                {(['TITOLARE', 'TOC', 'RISERVA', 'NON_ASSEGNATO'] as const).map((a) => (
+
+                                  <AzioneBottone
+
+                                    key={a}
+
+                                    azione={schiera}
+
+                                    valori={{ rsvpId: r.id, assegnazione: a }}
+
+                                    className={`rounded border px-2 py-1 text-[11px] transition-colors ${
+
+                                      r.assegnazione === a ||
+
+                                      (a === 'TITOLARE' && r.assegnazione === 'CONVOCATO')
+
+                                        ? a === 'TITOLARE'
+
+                                          ? 'border-nvg bg-nvg/15 text-nvg'
+
+                                          : a === 'TOC'
+
+                                            ? 'border-sky-400 bg-sky-400/15 text-sky-300'
+
+                                            : a === 'RISERVA'
+
+                                              ? 'border-warn bg-warn/15 text-warn'
+
+                                              : 'border-line bg-surface2 text-muted'
+
+                                        : 'border-line text-muted hover:border-nvgdim'
+
+                                    }`}
+
+                                  >
+
+                                    {a === 'NON_ASSEGNATO'
+
+                                      ? '—'
+
+                                      : a === 'TITOLARE' && r.assegnazione === 'CONVOCATO'
+
+                                        ? 'Convocato'
+
+                                        : etichettaAssegnazione[a]}
+
+                                  </AzioneBottone>
+
+                                ))}
+
+                              </div>
+
                             )}
                             </div>
                           </div>
@@ -1136,8 +1194,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           {/* ICE di chi viene: gruppo sanguigno, allergie e chi chiamare. In
               campo serve avere questi dati addosso, non doverli cercare in
               un'altra pagina mentre qualcuno è per terra. Li vedono solo admin
-              e team leader, e solo di chi si è segnato. */}
-          {tl && daAppello.length > 0 && (
+              e team leader, e solo di chi si è segnato.
+
+              A giornata conclusa spariscono: sono dati sanitari, e servono
+              **mentre** si gioca. Tenerli affacciati su ogni attività passata
+              vorrebbe dire lasciare in giro il gruppo sanguigno di venti
+              persone su schede che nessuno chiude più. */}
+          {tl && !conclusa && daAppello.length > 0 && (
             <div className="card">
               <p className="titolo-sezione mb-1">ICE · chi c’è</p>
               <p className="mb-3 text-[11px] text-muted">
@@ -1182,6 +1245,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
+          {/* A giornata conclusa la propria adesione non c'è più: non si risponde
+              a un invito per una domenica passata. Quello che ne resta — c'eri
+              o non c'eri — è scritto sulla riga dei partecipanti, ed è un fatto,
+              non una scelta ancora da fare. */}
+          {!conclusa && (
           <div className="card">
             <p className="titolo-sezione mb-3">
               {schieraQuesta ? 'La tua disponibilità' : 'La tua adesione'}
@@ -1202,9 +1270,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   ? 'Attività in bozza: non è ancora stata rilasciata.'
                   : evento.status === 'ANNULLATA'
                     ? 'Attività annullata.'
-                    : evento.status === 'CONCLUSA'
-                      ? 'Attività conclusa.'
-                      : 'Le adesioni sono chiuse.'}
+                    : 'Le adesioni sono chiuse.'}
               </p>
             ) : (
               <>
@@ -1276,8 +1342,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </>
             )}
           </div>
+          )}
 
-          {tl && (
+          {tl && !senzaAppello && (
             <>
               <div className="card">
                 <p className="titolo-sezione mb-3">Appello</p>

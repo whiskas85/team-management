@@ -7,11 +7,34 @@ import { puoAmministrare, puoGestirePagamenti, puoSchierare } from '@/lib/domain
 import { str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, contaPolizzeProva, eta } from '@/lib/figt';
+import { quotaSaldata } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
 
 function aggiorna(eventId: string) {
   revalidatePath(`/calendario/${eventId}`);
   revalidatePath('/calendario');
+  revalidatePath('/admin/polizze');
+}
+
+/**
+ * La quota della giornata dev'essere saldata prima di assicurare.
+ *
+ * Una polizza attivata consuma una polizza vera, non si annulla e la paga il
+ * club: metterla prima dell'incasso vuol dire che se l'ospite poi non viene —
+ * o non paga — quei soldi il team li ha già spesi. Prima si incassa, poi si
+ * copre.
+ *
+ * Vale ovunque, anche dalla scheda dell'attività: una regola che si può
+ * scavalcare dalla pagina accanto non è una regola. Chi non deve niente —
+ * attività gratuita, giocata offerta — non ha una quota aperta e passa senza
+ * dire nulla: non avere debiti non è come non averli saldati.
+ */
+async function quotaDaSaldare(userId: string, eventId: string) {
+  const quota = await prisma.payment.findFirst({
+    where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
+    select: { status: true },
+  });
+  return quotaSaldata(quota) ? null : quota;
 }
 
 /**
@@ -128,6 +151,15 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
   ]);
   if (!utente || !evento) return { errore: 'Partecipante o attività non trovati.' };
 
+  // vale anche quando la pratica è già stata fatta sul portale: la regola è
+  // che prima si incassa, e scriverla qui solo per metà la renderebbe un
+  // consiglio
+  if (await quotaDaSaldare(userId, eventId)) {
+    return {
+      errore: `La quota di ${utente.nome} ${utente.cognome} per questa attività non risulta saldata: la copertura si registra dopo l’incasso.`,
+    };
+  }
+
   const dati = {
     stato: 'ASSICURATO' as const,
     codice,
@@ -201,6 +233,13 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
   // gia' assicurato: rifarlo brucerebbe una polizza per niente
   if (gia?.stato === 'ASSICURATO') {
     return { errore: `Già coperto dalla polizza ${gia.codice ?? ''}. Non ne attivo un’altra.` };
+  }
+
+  // la polizza la paga il club e non torna indietro: prima si incassa
+  if (await quotaDaSaldare(userId, eventId)) {
+    return {
+      errore: `La quota di ${utente.nome} ${utente.cognome} per questa attività non risulta saldata: la polizza si attiva dopo l’incasso.`,
+    };
   }
 
   if (!cred) return { errore: 'Il portale federale non è collegato: mancano le credenziali.' };

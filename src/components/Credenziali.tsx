@@ -29,7 +29,7 @@ export function Credenziali({
   const [fallito, setFallito] = useState(false);
 
   const messaggio = [
-    'Accesso al gestionale Zero Dark',
+    'Accesso a Zero Dark Ops',
     indirizzo ? `Indirizzo: ${indirizzo}` : null,
     `Utente: ${utente}`,
     `Password: ${password}`,

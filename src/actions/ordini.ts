@@ -70,21 +70,28 @@ async function voceOrdinabile(voceId: string, stato: string) {
 }
 
 /**
- * Quanti pezzi restano di una voce tenuta a magazzino.
+ * Quanti pezzi restano dello scaffale da cui pesca questa voce.
  *
- * `null` vuol dire che la voce non sta in magazzino: si ordina al fornitore a
- * ogni giro, e quindi non finisce mai.
+ * `null` vuol dire che la voce non pesca da nessuno scaffale: si ordina al
+ * fornitore a ogni giro, e quindi non finisce mai.
+ *
+ * Le righe d'ordine si contano su **tutte** le voci collegate allo stesso
+ * articolo, non solo su questa: se la stessa patch sta in due punti della
+ * vetrina, i pezzi che escono dalla scatola sono gli stessi.
  */
-async function disponibiliDi(voce: { id: string; aMagazzino: boolean }) {
-  if (!voce.aMagazzino) return null;
+async function disponibiliDi(voce: { id: string; articoloId: string | null }) {
+  if (!voce.articoloId) return null;
 
   const [carichi, righe] = await Promise.all([
     prisma.caricoMagazzino.findMany({
-      where: { voceId: voce.id },
+      where: { articoloId: voce.articoloId },
       select: { quantita: true, costoUnitario: true },
     }),
     prisma.rigaOrdine.findMany({
-      where: { voceId: voce.id, ordine: { stato: { not: 'ANNULLATO' } } },
+      where: {
+        voce: { articoloId: voce.articoloId },
+        ordine: { stato: { not: 'ANNULLATO' } },
+      },
       select: { quantita: true, ordine: { select: { stato: true } } },
     }),
   ]);

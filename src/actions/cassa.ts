@@ -11,7 +11,7 @@ const TIPI = ['ENTRATA', 'USCITA'] as const;
 function aggiorna() {
   revalidatePath('/admin/cassa');
   revalidatePath('/admin/statistiche');
-  revalidatePath('/admin/inventario');
+  revalidatePath('/admin/magazzino');
 }
 
 /**
@@ -30,13 +30,13 @@ async function allineaMagazzino(
 ) {
   const gia = await prisma.caricoMagazzino.findUnique({ where: { movimentoId } });
 
-  const voceId = strOpt(fd, 'voceId');
+  const articoloId = strOpt(fd, 'articoloId');
   const pezzi = intOpt(fd, 'quantita');
-  const voce = voceId
-    ? await prisma.voceAnnuncio.findUnique({ where: { id: voceId }, select: { id: true, aMagazzino: true } })
+  const art = articoloId
+    ? await prisma.articoloMagazzino.findUnique({ where: { id: articoloId }, select: { id: true } })
     : null;
 
-  const buona = tipo === 'USCITA' && voce?.aMagazzino && pezzi !== null && pezzi > 0;
+  const buona = tipo === 'USCITA' && art !== null && pezzi !== null && pezzi > 0;
 
   // tolta la merce dal movimento, se ne va anche il carico: la spesa resta,
   // ma non dice più che è entrato qualcosa
@@ -46,7 +46,7 @@ async function allineaMagazzino(
   }
 
   const dati = {
-    voceId: voce!.id,
+    articoloId: art!.id,
     quantita: pezzi!,
     costoUnitario: importo / pezzi!,
     note: 'Comprata con un’uscita di cassa',
@@ -96,7 +96,7 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
   await allineaMagazzino(movimento.id, valori.tipo, importo, fd);
 
   const pezzi = intOpt(fd, 'quantita');
-  const inMagazzino = valori.tipo === 'USCITA' && strOpt(fd, 'voceId') && pezzi && pezzi > 0;
+  const inMagazzino = valori.tipo === 'USCITA' && strOpt(fd, 'articoloId') && pezzi && pezzi > 0;
 
   aggiorna();
   return {

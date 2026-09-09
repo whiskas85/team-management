@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Stellina } from './Preferiti';
 import type { ReactNode } from 'react';
 import type { Tono } from '@/lib/domain';
 
@@ -25,10 +26,18 @@ export function Intestazione({
 }) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{titolo}</h1>
+      {/* La stellina sta attaccata al titolo, non in fondo alla riga: là in
+          fondo, in mezzo ai pulsanti della pagina, si perdeva — bisognava
+          cercarla ogni volta. Qui la si trova senza guardare, perché il titolo
+          è la prima cosa che si legge aprendo una pagina. */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{titolo}</h1>
+          <Stellina />
+        </div>
         {sottotitolo && <p className="mt-1 text-sm text-muted">{sottotitolo}</p>}
       </div>
+
       {azioni && <div className="flex flex-wrap gap-2">{azioni}</div>}
     </div>
   );

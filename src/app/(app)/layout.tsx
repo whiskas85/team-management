@@ -16,10 +16,15 @@ import {
   puoVedereOperatori,
   vedeAreaTesseramento,
   vedeAttivitaSquadra,
+  vedeDebriefing,
 } from '@/lib/domain';
+import { attivitaDaCoprire } from '@/lib/assicurazione';
 import { filtroVisibilita } from '@/lib/query';
+import { iniziali } from '@/lib/format';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
 import { Nav, type VoceMenu } from '@/components/Nav';
+import { ContestoMenu } from '@/components/ContestoMenu';
+import { Diario } from '@/components/Diario';
 import { ContenitoreToast } from '@/components/Toast';
 import { puoVedereMerchandising } from '@/lib/mercatino';
 import { inTest } from '@/lib/ambiente';
@@ -153,13 +158,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // I debriefing che non hai ancora letto. La lettura è di chi legge: se lo
   // apre un altro, a te resta segnalato — un resoconto che nessuno sa di dover
   // leggere non lo legge nessuno.
-  const debriefingDaLeggere = await prisma.debriefing.count({
-    where: {
-      pubblicato: true,
-      letture: { none: { userId: utente.id } },
-      evento: filtroVisibilita(utente.stato, isAdmin(utente.roles)),
-    },
-  });
+  const debriefingDaLeggere = vedeDebriefing(utente.roles)
+    ? await prisma.debriefing.count({
+        where: {
+          pubblicato: true,
+          letture: { none: { userId: utente.id } },
+          evento: filtroVisibilita(utente.stato, isAdmin(utente.roles)),
+        },
+      })
+    : 0;
+
+  // Le polizze giornaliere ancora da fare: ospiti che hanno pagato, non sono
+  // coperti e hanno i dati per esserlo. Il pallino conta esattamente quello
+  // che la pagina mostra — è la stessa lettura — perché un numero che dice
+  // tre davanti a un elenco di due non lo si guarda più.
+  const polizzeDaFare = puoAmministrare(utente.roles)
+    ? (await attivitaDaCoprire()).reduce((t, a) => t + a.daFare, 0)
+    : 0;
+
+  // I guasti arrivati dai browser e non ancora guardati: senza il pallino,
+  // un registro che si riempie da solo non lo apre mai nessuno.
+  const guastiDaGuardare = isAdmin(utente.roles)
+    ? await prisma.erroreClient.count({ where: { visto: false } })
+    : 0;
 
   const voci: VoceMenu[] = [
     { href: '/dashboard', label: 'Home', icona: 'dashboard', gruppo: 'principale' },
@@ -170,15 +191,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       gruppo: 'principale',
       badge: attivitaNuove,
     },
-    // la memoria della squadra: com’è andata alle giocate, scritto da chi le
-    // ha portate in campo
-    {
-      href: '/debriefing',
-      label: 'Debriefing',
-      icona: 'bozza',
-      gruppo: 'principale',
-      badge: debriefingDaLeggere,
-    },
+    // La memoria della squadra — com’è andata alle giocate — la rilegge chi
+    // gioca e chi la porta in campo. Un incarico da scrivania non basta: il
+    // debriefing non gli serve a niente, e una voce che non si apre mai è solo
+    // un elenco più lungo per tutti.
+    ...(vedeDebriefing(utente.roles)
+      ? [
+          {
+            href: '/debriefing',
+            label: 'Debriefing',
+            icona: 'bozza',
+            gruppo: 'principale',
+            badge: debriefingDaLeggere,
+          } satisfies VoceMenu,
+        ]
+      : []),
     { href: '/profilo', label: 'Profilo', icona: 'profilo', gruppo: 'principale' },
     {
       href: '/pagamenti',
@@ -238,7 +265,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // certificati e tesseramento hanno senso solo per chi è in squadra
   if (vedeAreaTesseramento(utente.stato)) {
-    voci.splice(3, 0, {
+    // prima del profilo, non alla terza riga: con il debriefing che ora può
+    // non esserci, un numero scritto a mano finiva per infilarli in mezzo ai
+    // pagamenti
+    voci.splice(voci.findIndex((v) => v.href === '/profilo'), 0, {
       href: '/certificati',
       label: 'Miei certificati',
       icona: 'certificato',
@@ -288,6 +318,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         badge: certificatiDaVagliare,
       },
       { href: '/admin/tessere', label: 'Tessere FIGT', icona: 'tessera', gruppo: 'amministrazione' },
+      {
+        href: '/admin/polizze',
+        label: 'Polizze giornaliere',
+        icona: 'scudo',
+        gruppo: 'amministrazione',
+        badge: polizzeDaFare,
+      },
     );
   }
 
@@ -334,8 +371,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         badge: ordiniInRaccolta,
       },
       {
-        href: '/admin/inventario',
-        label: 'Inventario',
+        href: '/admin/magazzino',
+        label: 'Magazzino',
         icona: 'maglietta',
         gruppo: 'segreteria',
         badge: riordiniDaPagare,
@@ -351,11 +388,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/stagioni', label: 'Stagioni', icona: 'calendario', gruppo: 'comando' },
       { href: '/admin/tariffe', label: 'Tariffario', icona: 'pagamenti', gruppo: 'comando' },
       { href: '/admin/tipologie', label: 'Tipologie attività', icona: 'bozza', gruppo: 'comando' },
+      { href: '/admin/tipi-gara', label: 'Tipi di gara', icona: 'titolare', gruppo: 'comando' },
       { href: '/admin/metodi', label: 'Metodi di pagamento', icona: 'incassa', gruppo: 'comando' },
       { href: '/admin/statistiche', label: 'Statistiche', icona: 'grafici', gruppo: 'comando' },
       { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },
+      {
+        href: '/admin/errori',
+        label: 'Guasti',
+        icona: 'annulla',
+        gruppo: 'comando',
+        badge: guastiDaGuardare,
+      },
     );
   }
+
+  // I preferiti di chi sta guardando: solo gli indirizzi, nell'ordine che ha
+  // scelto. Etichette e icone le mette il menu, che è l'unico a sapere cosa
+  // questa persona può vedere davvero.
+  const preferiti = (
+    await prisma.preferito.findMany({
+      where: { userId: utente.id },
+      orderBy: { ordine: 'asc' },
+      select: { href: true },
+    })
+  ).map((p) => p.href);
+
+  // la stellina si accende sulla voce che si sta guardando: la risposta la sa
+  // il menu, e gliela si porta dietro invece di farla ricalcolare al client
+  const messiDaParte = new Set(preferiti);
+  for (const v of voci) v.preferito = messiDaParte.has(v.href);
 
   const ruoli =
     utente.roles.length > 0
@@ -366,10 +427,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen md:pl-60">
       <Nav
         voci={voci}
+        preferiti={preferiti}
         utente={{
+          id: utente.id,
           nome: utente.nome,
           cognome: utente.cognome,
           callsign: utente.callsign,
+          iniziali: iniziali(utente.nome, utente.cognome),
           ruolo: ruoli,
         }}
         esci={esci}
@@ -383,9 +447,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       )}
 
       <ContenitoreToast />
+      {/* tiene il diario di bordo e raccoglie i guasti che nessuno vedrebbe */}
+      <Diario />
 
+      {/* Il menu a disposizione della stellina, che vive nella riga del
+          titolo di ogni pagina e da lì non saprebbe né dove si trova né se ci
+          è già stata messa. */}
       <main className="px-4 pb-28 pt-5 md:px-8 md:pb-12 md:pt-8">
-        <div className="mx-auto max-w-6xl">{children}</div>
+        <div className="mx-auto max-w-6xl">
+          <ContestoMenu voci={voci}>{children}</ContestoMenu>
+        </div>
       </main>
     </div>
   );

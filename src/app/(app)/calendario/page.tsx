@@ -31,10 +31,15 @@ export default async function CalendarioPage({
   const admin = isAdmin(me.roles);
 
   // il listino serve al modulo di creazione: le quote si compongono da lì
-  const [campi, tipologie, listino, stagione, stagioni] = admin
+  const [campi, tipologie, tipiGara, listino, stagione, stagioni] = admin
     ? await Promise.all([
         prisma.field.findMany({ where: { attivo: true }, orderBy: { nome: 'asc' } }),
         prisma.tipoAttivita.findMany({
+          where: { attivo: true },
+          orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
+          select: { id: true, nome: true },
+        }),
+        prisma.tipoGara.findMany({
           where: { attivo: true },
           orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
           select: { id: true, nome: true },
@@ -43,7 +48,7 @@ export default async function CalendarioPage({
         stagioneAttiva(),
         stagioniAperte(),
       ])
-    : [[], [], [], null, []];
+    : [[], [], [], [], null, []];
 
   // legenda dei colori: sempre visibile, anche a chi non gestisce il calendario
   const legenda = await prisma.tipoAttivita.findMany({
@@ -177,6 +182,7 @@ export default async function CalendarioPage({
                     <FormEvento
                       campi={campi}
                       tipologie={tipologie}
+                      tipiGara={tipiGara}
                       listino={listino}
                       stagioneId={stagione?.id ?? null}
                     stagioni={stagioni}
@@ -199,6 +205,7 @@ export default async function CalendarioPage({
                     <FormEvento
                       campi={campi}
                       tipologie={tipologie}
+                      tipiGara={tipiGara}
                       listino={listino}
                       stagioneId={stagione?.id ?? null}
                     stagioni={stagioni}

@@ -21,13 +21,13 @@ type Movimento = {
   note: string | null;
   metodoId: string | null;
   /** Se la spesa era un acquisto: la merce entrata e quanti pezzi. */
-  carico?: { voceId: string; quantita: number } | null;
+  carico?: { articoloId: string; quantita: number } | null;
 };
 
 type Metodo = { id: string; nome: string };
 
-/** Una voce di magazzino, come si sceglie: articolo e specifica. */
-type Merce = { id: string; titolo: string; articolo: string };
+/** Un articolo di magazzino, come si sceglie: categoria e nome. */
+type Merce = { id: string; nome: string; categoria: string | null };
 
 /**
  * Una riga del registro di cassa. Ci finiscono sia i movimenti scritti a mano
@@ -71,7 +71,7 @@ export default async function CassaPage({
         registratoBy: { select: { nome: true, cognome: true } },
         // serve al modulo di modifica: senza, riaprirlo e salvare toglierebbe
         // in silenzio la merce entrata con quella spesa
-        carico: { select: { voceId: true, quantita: true } },
+        carico: { select: { articoloId: true, quantita: true } },
       },
     }),
     prisma.payment.findMany({
@@ -97,15 +97,14 @@ export default async function CassaPage({
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true },
     }),
-    // la merce di magazzino: una spesa può essere il suo acquisto
-    prisma.voceAnnuncio.findMany({
-      where: { aMagazzino: true },
-      orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
-      select: { id: true, titolo: true, annuncio: { select: { titolo: true } } },
+    // il magazzino: una spesa può essere l'acquisto di uno di questi articoli
+    prisma.articoloMagazzino.findMany({
+      orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, categoria: true },
     }),
   ]);
 
-  const merci = scorte.map((v) => ({ id: v.id, titolo: v.titolo, articolo: v.annuncio.titolo }));
+  const merci: Merce[] = scorte;
 
   // quello che entra dalle attività, al netto di ciò che è stato restituito
   const incassiQuote = pagamenti
@@ -503,11 +502,15 @@ function CampiMovimento({
       {merci && merci.length > 0 && (
         <>
           <Campo label="È un acquisto di magazzino?" span>
-            <select name="voceId" defaultValue={movimento?.carico?.voceId ?? ''} className="input">
+            <select
+              name="articoloId"
+              defaultValue={movimento?.carico?.articoloId ?? ''}
+              className="input"
+            >
               <option value="">— no, è una spesa e basta —</option>
               {merci.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.articolo} — {m.titolo}
+                  {m.categoria ? `${m.categoria} — ${m.nome}` : m.nome}
                 </option>
               ))}
             </select>

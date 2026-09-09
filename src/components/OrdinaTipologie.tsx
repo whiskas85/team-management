@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { Elenco } from './ui';
-import { riordinaTipologie } from '@/actions/tipologie';
+import type { StatoForm } from '@/lib/form';
 
 export type RigaTipologia = {
   id: string;
@@ -14,7 +14,7 @@ export type RigaTipologia = {
 };
 
 /**
- * L'elenco delle tipologie, riordinabile trascinando.
+ * Un elenco di anagrafica, riordinabile trascinando.
  *
  * Si trascina dalla maniglia, non da tutta la riga: dentro ci sono link e
  * pulsanti, e un trascinamento che parte ovunque se li mangia.
@@ -26,7 +26,14 @@ export type RigaTipologia = {
  * server rifiuta si torna com'era, invece di lasciare a video un ordine che il
  * database non ha.
  */
-export function OrdinaTipologie({ righe }: { righe: RigaTipologia[] }) {
+export function OrdinaTipologie({
+  righe,
+  azione,
+}: {
+  righe: RigaTipologia[];
+  /** Chi salva il nuovo ordine: l'elenco lo usano due anagrafiche. */
+  azione: (ids: string[]) => Promise<StatoForm>;
+}) {
   const [ordine, setOrdine] = useState(righe);
   const [preso, setPreso] = useState<string | null>(null);
   const [sopra, setSopra] = useState<string | null>(null);
@@ -48,7 +55,7 @@ export function OrdinaTipologie({ righe }: { righe: RigaTipologia[] }) {
     setOrdine(nuovo);
     setEsito({});
     avvia(async () => {
-      const r = await riordinaTipologie(nuovo.map((x) => x.id));
+      const r = await azione(nuovo.map((x) => x.id));
       if (r.errore) {
         setOrdine(prima);
         setEsito({ errore: r.errore });

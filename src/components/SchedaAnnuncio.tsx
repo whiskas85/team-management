@@ -133,31 +133,39 @@ export async function SchedaAnnuncio({
   for (const r of ordinate) giaOrdinate.set(r.voceId, (giaOrdinate.get(r.voceId) ?? 0) + r.quantita);
   const nelCarrello = new Map(carrello.map((r) => [r.voceId, r.quantita]));
 
-  // Il magazzino: quello che il team compra in blocco e tiene in casa. Non
-  // entra nel giro di raccolta — non c'è niente da chiedere al fornitore a
-  // ogni ordine — ma ha una giacenza che scende, e finita è finita.
-  const inMagazzino = annuncio.voci.filter((v) => v.aMagazzino);
-  const [carichi, prenotate] = inMagazzino.length
+  // Il magazzino, per le voci che ci pescano.
+  //
+  // La giacenza sta sull'articolo e non sulla riga di vetrina: sono i pezzi
+  // nella scatola, e se la stessa patch è in vendita in due punti del catalogo
+  // la scatola resta una. Per questo i pezzi promessi si contano su tutte le
+  // voci collegate allo stesso articolo, non solo su quella che si sta
+  // guardando.
+  const articoliQui = [...new Set(annuncio.voci.map((v) => v.articoloId).filter(Boolean))] as string[];
+  const [carichi, prenotate] = articoliQui.length
     ? await Promise.all([
         prisma.caricoMagazzino.findMany({
-          where: { voceId: { in: inMagazzino.map((v) => v.id) } },
+          where: { articoloId: { in: articoliQui } },
           orderBy: { compratoIl: 'desc' },
         }),
         prisma.rigaOrdine.findMany({
           where: {
-            voceId: { in: inMagazzino.map((v) => v.id) },
+            voce: { articoloId: { in: articoliQui } },
             ordine: { stato: { not: 'ANNULLATO' } },
           },
-          select: { voceId: true, quantita: true, ordine: { select: { stato: true } } },
+          select: {
+            quantita: true,
+            ordine: { select: { stato: true } },
+            voce: { select: { articoloId: true } },
+          },
         }),
       ])
     : [[], []];
 
   const magazzino = new Map(
-    inMagazzino.map((v) => {
-      const suoi = carichi.filter((c) => c.voceId === v.id);
+    articoliQui.map((articoloId) => {
+      const suoi = carichi.filter((c) => c.articoloId === articoloId);
       return [
-        v.id,
+        articoloId,
         {
           carichi: suoi.map((c) => ({
             id: c.id,
@@ -169,13 +177,27 @@ export async function SchedaAnnuncio({
           conto: giacenzaDi(
             suoi,
             prenotate
-              .filter((r) => r.voceId === v.id)
+              .filter((r) => r.voce.articoloId === articoloId)
               .map((r) => ({ quantita: r.quantita, stato: r.ordine.stato })),
           ),
         },
       ];
     }),
   );
+
+  // Gli scaffali a cui una voce si può collegare.
+  //
+  // È il campo che ha preso il posto della vecchia spunta «la tengo in
+  // magazzino»: non si dice più *questa voce è anche una scorta*, si dice *da
+  // dove esce questa voce*. Il magazzino esiste per conto suo, e la vetrina ci
+  // punta — o non ci punta, e allora si ordina al fornitore a ogni giro.
+  const scaffali =
+    mio && annuncio.ufficiale
+      ? await prisma.articoloMagazzino.findMany({
+          orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
+          select: { id: true, nome: true, categoria: true },
+        })
+      : [];
 
   const chi = comeChiamare(annuncio.venditore, {
     incarico: puoVedereNuovi(me.roles),
@@ -351,7 +373,11 @@ export async function SchedaAnnuncio({
               </div>
               {mio && (
                 <BottoneModale etichetta="Aggiungi voce" icona="aggiungi" titolo="Nuova voce" larga>
-                  <FormVoce annuncioId={annuncio.id} ufficiale={annuncio.ufficiale} />
+                  <FormVoce
+                    annuncioId={annuncio.id}
+                    ufficiale={annuncio.ufficiale}
+                    scaffali={scaffali}
+                  />
                 </BottoneModale>
               )}
             </div>
@@ -374,7 +400,8 @@ export async function SchedaAnnuncio({
                       siOrdina={siOrdina}
                       gia={giaOrdinate.get(v.id) ?? 0}
                       inCarrello={nelCarrello.get(v.id) ?? 0}
-                      magazzino={magazzino.get(v.id)}
+                      magazzino={v.articoloId ? magazzino.get(v.articoloId) : undefined}
+                      scaffali={scaffali}
                     />
                   ),
                 }))}
@@ -390,7 +417,8 @@ export async function SchedaAnnuncio({
                     siOrdina={siOrdina}
                     gia={giaOrdinate.get(v.id) ?? 0}
                     inCarrello={nelCarrello.get(v.id) ?? 0}
-                    magazzino={magazzino.get(v.id)}
+                    magazzino={v.articoloId ? magazzino.get(v.articoloId) : undefined}
+                    scaffali={scaffali}
                   />
                 ))}
               </div>
@@ -452,9 +480,13 @@ type VoceInRiga = {
   descrizione: string | null;
   natura: string;
   attiva: boolean;
-  aMagazzino: boolean;
+  /** Da quale scaffale esce, se esce da uno scaffale nostro. */
+  articoloId: string | null;
   stato: string;
 };
+
+/** Uno scaffale del magazzino, come si sceglie nel modulo di una voce. */
+export type Scaffale = { id: string; nome: string; categoria: string | null };
 
 type Carico = {
   id: string;
@@ -481,10 +513,13 @@ function RigaVoce({
   gia,
   inCarrello,
   magazzino,
+  scaffali,
 }: {
   voce: VoceInRiga;
   mio: boolean;
   annuncio: { id: string; ufficiale: boolean };
+  /** Gli scaffali fra cui scegliere quando si corregge la voce. */
+  scaffali: Scaffale[];
   /** Vero sul catalogo del team pubblicato: è l'unica roba che si ordina. */
   siOrdina: boolean;
   /** Quante ne ha già ordinate chi guarda, e non ancora ricevute. */
@@ -593,7 +628,12 @@ function RigaVoce({
             className="btn-ghost btn-sm"
             larga
           >
-            <FormVoce annuncioId={annuncio.id} voce={v} ufficiale={annuncio.ufficiale} />
+            <FormVoce
+              annuncioId={annuncio.id}
+              voce={v}
+              ufficiale={annuncio.ufficiale}
+              scaffali={scaffali}
+            />
           </BottoneModale>
           <AzioneBottone
             azione={eliminaVoce}
@@ -637,7 +677,9 @@ function FormCarico({ voce, scorta }: { voce: VoceInRiga; scorta: Scorta }) {
       </div>
 
       <FormAzione azione={registraCarico}>
-        <input type="hidden" name="voceId" value={voce.id} />
+        {/* il carico entra sullo scaffale, non sulla riga di vetrina: sono
+            pezzi in una scatola, e la scatola è del magazzino */}
+        <input type="hidden" name="articoloId" value={voce.articoloId ?? ''} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Quanti pezzi">
             <input name="quantita" type="number" step="1" className="input" placeholder="100 · -12" />
@@ -706,6 +748,7 @@ function FormVoce({
   annuncioId,
   voce,
   ufficiale,
+  scaffali,
 }: {
   annuncioId: string;
   voce?: {
@@ -716,10 +759,12 @@ function FormVoce({
     descrizione: string | null;
     natura: string;
     attiva: boolean;
-    aMagazzino: boolean;
+    articoloId: string | null;
   };
   /** Sul merchandising la natura di partenza è l'altra. */
   ufficiale: boolean;
+  /** Gli scaffali del magazzino: vuoto fuori dal merchandising. */
+  scaffali: Scaffale[];
 }) {
   return (
     <FormAzione azione={salvaVoce}>
@@ -779,25 +824,29 @@ function FormVoce({
         Prezzo trattabile
       </label>
 
-      {/* solo sul catalogo del team: fra due soci non c'è niente da tenere in
-          magazzino, si vende quello che si ha in mano */}
+      {/* Da quale scaffale esce.
+          Solo sul catalogo del team: il magazzino è roba comprata con i soldi
+          della squadra, e a una vendita fra due soci non si collega. Prima qui
+          c'era una spunta «la tengo in magazzino», e diceva la cosa sbagliata:
+          faceva sembrare che mettere in vendita e tenere in casa fossero la
+          stessa decisione. Sono due, e questa è la seconda. */}
       {ufficiale && (
-        <label className="flex items-start gap-2 text-sm sm:col-span-2">
-          <input
-            type="checkbox"
-            name="aMagazzino"
-            defaultChecked={voce?.aMagazzino}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
-          />
-          <span>
-            La tengo in magazzino
-            <span className="block text-[11px] text-muted">
-              Per la roba comprata in blocco — le patch, gli adesivi — che si consegna man mano.
-              Non entra nel «da ordinare al fornitore», ma ha una giacenza: quando finisce non si
-              può più ordinare finché non ne arrivano altre.
-            </span>
+        <Campo label="Da dove esce" span>
+          <select name="articoloId" defaultValue={voce?.articoloId ?? ''} className="input">
+            <option value="">Si ordina al fornitore a ogni giro</option>
+            {scaffali.map((a) => (
+              <option key={a.id} value={a.id}>
+                Dal magazzino · {a.categoria ? `${a.categoria} — ${a.nome}` : a.nome}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-[11px] text-muted">
+            Collegata a uno scaffale, questa voce ha una giacenza che scende e finita è finita.
+            Scollegata, si chiede al fornitore a ogni raccolta e non finisce mai. Gli scaffali si
+            creano nel <strong className="text-ink">magazzino</strong>, e quello che c’è in casa
+            non deve per forza stare qui.
           </span>
-        </label>
+        </Campo>
       )}
 
       <label className="flex items-start gap-2 text-sm sm:col-span-2">

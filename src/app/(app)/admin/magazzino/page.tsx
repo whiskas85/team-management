@@ -11,27 +11,35 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { eliminaCarico, registraCarico } from '@/actions/magazzino';
 import {
-  aggiungiMerce,
+  aggiungiArticolo,
   aggiungiRigaRiordino,
   annullaRiordino,
   creaRiordino,
-  tieniAMagazzino,
+  eliminaArticolo,
   eliminaRigaRiordino,
   eliminaRiordino,
-  eliminaVoceMagazzino,
   pagaRiordino,
   riceviRiordino,
-} from '@/actions/inventario';
+  salvaArticolo,
+  scollegaDaMagazzino,
+} from '@/actions/magazzino-riordini';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * L'inventario, per chi tiene i conti.
+ * Il magazzino, per chi tiene i conti.
  *
  * Tre cose, in quest'ordine: **cosa c'è in casa**, **cosa è stato ordinato al
- * fornitore**, **cosa è entrato e uscito**. Il magazzino è quello del
- * merchandising — la roba che il team compra in blocco e consegna man mano — e
- * non un secondo elenco da tenere allineato al catalogo.
+ * fornitore**, **cosa è entrato e uscito**.
+ *
+ * Il magazzino è un elenco di oggetti, e basta. Non è il catalogo visto da
+ * un'altra angolazione: prima lo era, e da lì venivano tutti i guai — si
+ * metteva in conto un generatore e ci si ritrovava un annuncio in bozza col
+ * generatore dentro, e toglierlo dalla vendita sembrava dire che non lo si
+ * teneva più. Cosa ho in casa e cosa vendo sono due domande diverse, e questa
+ * pagina risponde solo alla prima. La colonna «in vetrina» dice se qualcuno
+ * gli ha collegato una riga del merchandising, che è un fatto dell'altra
+ * pagina.
  *
  * I riordini hanno due pulsanti separati perché la realtà ha due momenti: si
  * paga quando si paga, la merce arriva quando arriva. Il primo fa uscire i
@@ -52,19 +60,28 @@ const ETICHETTA: Record<string, string> = {
   ANNULLATO: 'annullato',
 };
 
-export default async function InventarioPage() {
+export default async function MagazzinoPage() {
   await requirePermesso(puoGestirePagamenti);
 
-  const [scorte, riordini, metodi, carichi, uscite, articoli, fuori] = await Promise.all([
-    prisma.voceAnnuncio.findMany({
-      where: { aMagazzino: true },
-      orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
+  const [articoli, riordini, metodi, carichi, uscite] = await Promise.all([
+    prisma.articoloMagazzino.findMany({
+      orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
       include: {
-        annuncio: { select: { id: true, titolo: true, ufficiale: true } },
         carichi: { select: { quantita: true, costoUnitario: true } },
-        righe: {
-          where: { ordine: { stato: { not: 'ANNULLATO' } } },
-          select: { quantita: true, ordine: { select: { stato: true } } },
+        // le righe di vetrina che pescano da qui: sono la risposta a «questo
+        // si vende?», e i pezzi promessi si contano su tutte insieme
+        voci: {
+          select: {
+            id: true,
+            titolo: true,
+            prezzo: true,
+            attiva: true,
+            annuncio: { select: { id: true, titolo: true, ufficiale: true, stato: true } },
+            righe: {
+              where: { ordine: { stato: { not: 'ANNULLATO' } } },
+              select: { quantita: true, ordine: { select: { stato: true } } },
+            },
+          },
         },
       },
     }),
@@ -72,7 +89,7 @@ export default async function InventarioPage() {
       orderBy: { creatoIl: 'desc' },
       take: 40,
       include: {
-        righe: { include: { voce: { select: { titolo: true } } } },
+        righe: { include: { articolo: { select: { nome: true } } } },
         creatoDa: { select: { nome: true, cognome: true, callsign: true } },
       },
     }),
@@ -82,17 +99,17 @@ export default async function InventarioPage() {
       orderBy: { compratoIl: 'desc' },
       take: 40,
       include: {
-        voce: { select: { titolo: true, annuncio: { select: { titolo: true } } } },
+        articolo: { select: { nome: true, categoria: true } },
         rigaRiordino: { select: { riordino: { select: { numero: true } } } },
       },
     }),
     // …e quello che è uscito, cioè consegnato a qualcuno
     prisma.rigaOrdine.findMany({
-      where: { voce: { aMagazzino: true }, ordine: { stato: 'CONSEGNATO' } },
+      where: { voce: { articoloId: { not: null } }, ordine: { stato: 'CONSEGNATO' } },
       orderBy: { ordine: { consegnatoIl: 'desc' } },
       take: 40,
       include: {
-        voce: { select: { annuncio: { select: { titolo: true } } } },
+        voce: { select: { articolo: { select: { nome: true, categoria: true } } } },
         ordine: {
           select: {
             numero: true,
@@ -102,40 +119,38 @@ export default async function InventarioPage() {
         },
       },
     }),
-    // gli articoli del catalogo, per appendere la merce nuova a uno di loro
-    prisma.annuncio.findMany({
-      where: { ufficiale: true },
-      orderBy: { titolo: 'asc' },
-      select: { id: true, titolo: true },
-    }),
-    // la roba del catalogo che il magazzino non segue: si ordina al fornitore a
-    // ogni giro e non finisce mai. Sta qui perché è da qui che uno se ne
-    // accorge — "questa dovrei tenerla in casa" — e con un clic la sposta.
-    prisma.voceAnnuncio.findMany({
-      where: { aMagazzino: false, natura: 'RIORDINABILE', annuncio: { ufficiale: true } },
-      orderBy: [{ annuncio: { titolo: 'asc' } }, { ordine: 'asc' }],
-      select: { id: true, titolo: true, annuncio: { select: { titolo: true } } },
-    }),
   ]);
 
-  const magazzino = scorte.map((v) => ({
-    id: v.id,
-    titolo: v.titolo,
-    inVendita: v.attiva,
-    articolo: v.annuncio.titolo,
-    strada: stradaAnnuncio(v.annuncio),
-    prezzo: Number(v.prezzo),
-    conto: giacenzaDi(
-      v.carichi,
+  const scaffale = articoli.map((a) => {
+    // i pezzi promessi escono dalla stessa scatola, comunque siano stati
+    // ordinati: si sommano le righe di tutte le voci collegate
+    const righe = a.voci.flatMap((v) =>
       v.righe.map((r) => ({ quantita: r.quantita, stato: r.ordine.stato })),
-    ),
-  }));
+    );
+    return {
+      id: a.id,
+      nome: a.nome,
+      categoria: a.categoria,
+      note: a.note,
+      conto: giacenzaDi(a.carichi, righe),
+      vetrina: a.voci.map((v) => ({
+        id: v.id,
+        titolo: v.titolo,
+        prezzo: Number(v.prezzo),
+        attiva: v.attiva,
+        articolo: v.annuncio.titolo,
+        strada: stradaAnnuncio(v.annuncio),
+        bozza: v.annuncio.stato === 'BOZZA',
+      })),
+    };
+  });
 
-  const valore = magazzino.reduce(
-    (s, v) => s + Math.max(0, v.conto.disponibili) * (v.conto.costoMedio ?? 0),
+  const valore = scaffale.reduce(
+    (s, a) => s + Math.max(0, a.conto.disponibili) * (a.conto.costoMedio ?? 0),
     0,
   );
-  const pezzi = magazzino.reduce((s, v) => s + Math.max(0, v.conto.disponibili), 0);
+  const pezzi = scaffale.reduce((s, a) => s + Math.max(0, a.conto.disponibili), 0);
+  const inVetrina = scaffale.filter((a) => a.vetrina.length > 0).length;
   const daPagare = riordini.filter((r) => r.stato === 'APERTO');
   const inArrivo = riordini.filter((r) => r.stato === 'PAGATO');
 
@@ -150,8 +165,8 @@ export default async function InventarioPage() {
       daRiordino: c.rigaRiordino ? c.rigaRiordino.riordino.numero : null,
       quando: c.compratoIl,
       quanti: c.quantita,
-      articolo: c.voce.annuncio.titolo,
-      cosa: c.voce.titolo,
+      cosa: c.articolo.nome,
+      categoria: c.articolo.categoria,
       da: c.rigaRiordino
         ? `riordino ${c.rigaRiordino.riordino.numero}`
         : (c.note ?? 'rettifica a mano'),
@@ -162,8 +177,8 @@ export default async function InventarioPage() {
       daRiordino: null as number | null,
       quando: u.ordine.consegnatoIl ?? new Date(0),
       quanti: -u.quantita,
-      articolo: u.voce.annuncio.titolo,
-      cosa: u.titolo,
+      cosa: u.voce.articolo?.nome ?? u.titolo,
+      categoria: u.voce.articolo?.categoria ?? null,
       da: `consegnato a ${nomeCompleto(u.ordine.utente)} · ordine ${u.ordine.numero}`,
     })),
   ]
@@ -173,27 +188,27 @@ export default async function InventarioPage() {
   return (
     <>
       <Intestazione
-        titolo="Inventario"
+        titolo="Magazzino"
         sottotitolo="Quello che il team ha in casa, e quello che ha ordinato al fornitore"
         azioni={
           <>
             <BottoneModale
-              etichetta="Aggiungi merce"
+              etichetta="Aggiungi articolo"
               icona="aggiungi"
-              titolo="Nuova merce a magazzino"
-              className={magazzino.length > 0 ? 'btn-ghost' : 'btn-primary'}
+              titolo="Nuovo articolo in magazzino"
+              className={scaffale.length > 0 ? 'btn-ghost' : 'btn-primary'}
               larga
             >
-              <FormMerce articoli={articoli} />
+              <FormArticolo />
             </BottoneModale>
-            {magazzino.length > 0 && (
+            {scaffale.length > 0 && (
               <BottoneModale
                 etichetta="Nuovo riordino"
                 icona="carrello"
                 titolo="Nuovo riordino"
                 larga
               >
-                <FormRiordino voci={magazzino} />
+                <FormRiordino articoli={scaffale} />
               </BottoneModale>
             )}
           </>
@@ -204,89 +219,116 @@ export default async function InventarioPage() {
         <Statistica etichetta="Pezzi in casa" valore={pezzi} />
         <Statistica etichetta="Valore" valore={fmtEuro(valore)} dettaglio="al costo d’acquisto" />
         <Statistica
+          etichetta="In vetrina"
+          valore={`${inVetrina} di ${scaffale.length}`}
+          dettaglio="il resto lo tieni e basta"
+        />
+        <Statistica
           etichetta="Da pagare"
           valore={daPagare.length}
           tono={daPagare.length > 0 ? 'warn' : 'neutro'}
-        />
-        <Statistica
-          etichetta="In arrivo"
-          valore={inArrivo.length}
-          tono={inArrivo.length > 0 ? 'info' : 'neutro'}
+          dettaglio={inArrivo.length > 0 ? `${inArrivo.length} in arrivo` : undefined}
         />
       </div>
 
       {/* ------------------------------------------------ giacenze */}
       <p className="titolo-sezione mb-2">Cosa c’è in casa</p>
-      {magazzino.length === 0 ? (
-        <Vuoto testo="Niente a magazzino. Con «Aggiungi merce» ci metti la roba che il team compra in blocco: patch, adesivi, magliette." />
+      {scaffale.length === 0 ? (
+        <Vuoto testo="Magazzino vuoto. Con «Aggiungi articolo» ci metti quello che il team tiene: patch, adesivi, bandiere, il generatore. Venderlo è un’altra decisione, e si prende dal merchandising." />
       ) : (
         <div className="mb-6 overflow-x-auto rounded-lg border border-line bg-surface">
           <table className="tabella">
             <thead>
               <tr>
-                {/* prima l'articolo e poi la specifica: la roba si chiama
-                    "Maglietta del Club", e S o XL dicono quale */}
                 <th>Articolo</th>
-                <th>Specifica</th>
                 <th>Disponibili</th>
                 <th>Impegnate</th>
                 <th>Costo medio</th>
-                <th>Prezzo</th>
+                <th>In vetrina</th>
                 <th>Margine</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {magazzino.map((v) => {
-                const margine = v.conto.costoMedio === null ? null : v.prezzo - v.conto.costoMedio;
+              {scaffale.map((a) => {
+                // il margine ha senso su quello che si vende: di un generatore
+                // non c'è nessun prezzo da confrontare col costo
+                const prezzo = a.vetrina.find((v) => v.attiva)?.prezzo ?? null;
+                const margine =
+                  a.conto.costoMedio === null || prezzo === null ? null : prezzo - a.conto.costoMedio;
                 return (
-                  <tr key={v.id}>
+                  <tr key={a.id}>
                     <td>
-                      <Link href={v.strada} className="font-medium hover:text-nvg">
-                        {v.articolo}
-                      </Link>
+                      <span className="font-medium">{a.nome}</span>
+                      {a.categoria && (
+                        <span className="block text-[11px] text-muted">{a.categoria}</span>
+                      )}
                     </td>
-                    <td className="text-muted">{v.titolo}</td>
                     <td>
-                      <Badge tono={v.conto.disponibili > 0 ? 'ok' : 'warn'}>
-                        {v.conto.disponibili}
+                      <Badge tono={a.conto.disponibili > 0 ? 'ok' : 'warn'}>
+                        {a.conto.disponibili}
                       </Badge>
                     </td>
-                    <td className="num">{v.conto.impegnate}</td>
+                    <td className="num">{a.conto.impegnate}</td>
                     <td className="num">
-                      {v.conto.costoMedio === null ? '—' : fmtEuro(v.conto.costoMedio)}
+                      {a.conto.costoMedio === null ? '—' : fmtEuro(a.conto.costoMedio)}
                     </td>
-                    {/* la roba che non si vende non ha un prezzo da chiedere
-                        né un margine da fare: contarla basta */}
-                    <td className="num">
-                      {v.inVendita ? fmtEuro(v.prezzo) : <Badge tono="neutro">non in vendita</Badge>}
+                    {/* Non tutto quello che si tiene si vende, ed è il senso di
+                        questa pagina: qui si legge se qualcuno gli ha collegato
+                        una riga di vetrina, non lo si decide. */}
+                    <td>
+                      {a.vetrina.length === 0 ? (
+                        <span className="text-[11px] text-muted">non in vendita</span>
+                      ) : (
+                        <span className="flex flex-col gap-0.5">
+                          {a.vetrina.map((v) => (
+                            <span key={v.id} className="flex items-center gap-1.5">
+                              <Link href={v.strada} className="text-[11px] hover:text-nvg">
+                                {v.articolo} — {v.titolo}
+                              </Link>
+                              {!v.attiva && <Badge tono="neutro">spenta</Badge>}
+                              {v.bozza && <Badge tono="warn">bozza</Badge>}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </td>
-                    <td className={`num ${v.inVendita && margine !== null && margine < 0 ? 'text-danger' : ''}`}>
-                      {v.inVendita && margine !== null ? fmtEuro(margine) : '—'}
+                    <td className={`num ${margine !== null && margine < 0 ? 'text-danger' : ''}`}>
+                      {margine !== null ? fmtEuro(margine) : '—'}
                     </td>
                     <td>
                       <span className="flex flex-wrap items-center justify-end gap-2">
                         <BottoneModale
                           etichetta="Rettifica"
-                          titolo={`Rettifica · ${v.articolo} ${v.titolo}`}
+                          titolo={`Rettifica · ${a.nome}`}
                           className="btn-ghost btn-sm"
                         >
-                          <FormRettifica voce={v} />
+                          <FormRettifica articolo={a} />
                         </BottoneModale>
-                        {/* due modi di toglierla di mezzo: uno la lascia nel
-                            catalogo senza giacenza, l'altro la cancella */}
-                        <AzioneBottone
-                          azione={tieniAMagazzino}
-                          valori={{ id: v.id, verso: 'fuori' }}
-                          conferma="Toglierla dal magazzino? Resta nel catalogo, ma senza giacenza."
-                          className="text-[11px] text-muted transition-colors hover:text-ink"
+                        <BottoneModale
+                          etichetta="Modifica"
+                          titolo={`Modifica · ${a.nome}`}
+                          className="btn-ghost btn-sm"
                         >
-                          non la tengo
-                        </AzioneBottone>
+                          <FormArticolo articolo={a} />
+                        </BottoneModale>
+                        {/* staccare non è cancellare: l'articolo resta, la
+                            voce resta in vendita, cambia solo da dove esce */}
+                        {a.vetrina.map((v) => (
+                          <AzioneBottone
+                            key={v.id}
+                            azione={scollegaDaMagazzino}
+                            valori={{ voceId: v.id }}
+                            conferma={`Staccare "${v.titolo}" dal magazzino? Resta in vendita, ma da ordinare al fornitore a ogni giro.`}
+                            className="text-[11px] text-muted transition-colors hover:text-ink"
+                          >
+                            stacca
+                          </AzioneBottone>
+                        ))}
                         <AzioneBottone
-                          azione={eliminaVoceMagazzino}
-                          valori={{ id: v.id }}
-                          conferma={`Eliminare "${v.titolo}"? Se ne vanno anche i suoi carichi.`}
+                          azione={eliminaArticolo}
+                          valori={{ id: a.id }}
+                          conferma={`Eliminare "${a.nome}" dal magazzino? Se ne vanno anche i suoi carichi.`}
                           className="text-[11px] text-muted transition-colors hover:text-danger"
                         >
                           elimina
@@ -301,75 +343,40 @@ export default async function InventarioPage() {
         </div>
       )}
 
-      {/* ------------------------------------------------ non a magazzino */}
-      {fuori.length > 0 && (
-        <div className="mb-6">
-          <p className="titolo-sezione mb-2">Nel catalogo, ma non in casa</p>
-          <div className="flex flex-wrap gap-2">
-            {fuori.map((v) => (
-              <span
-                key={v.id}
-                className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm"
-              >
-                <span>
-                  {v.annuncio.titolo} — <strong className="font-medium">{v.titolo}</strong>
-                </span>
-                <AzioneBottone
-                  azione={tieniAMagazzino}
-                  valori={{ id: v.id, verso: 'dentro' }}
-                  className="text-[11px] text-muted transition-colors hover:text-nvg"
-                >
-                  tieni a magazzino
-                </AzioneBottone>
-              </span>
-            ))}
-          </div>
-          <p className="mt-2 text-[11px] text-muted">
-            Questa roba si ordina al fornitore a ogni giro e non finisce mai. Portala a magazzino
-            se invece la comprate in blocco e la consegnate man mano.
-          </p>
-        </div>
-      )}
+      <p className="mb-6 text-xs text-muted">
+        Quello che sta qui è quello che il team <strong className="text-ink">ha in casa</strong>,
+        che si venda o no. Per metterlo in vendita si apre il merchandising e si collega una voce a
+        questo articolo: sono due decisioni, e restano due.
+      </p>
 
       {/* ------------------------------------------------ riordini */}
-      <p className="titolo-sezione mb-2">Riordini al fornitore</p>
+      <p className="titolo-sezione mb-2">Ordinato al fornitore</p>
       {riordini.length === 0 ? (
-        <Vuoto testo="Nessun riordino. Quando la merce sta finendo, se ne apre uno." />
+        <Vuoto testo="Nessun riordino. È il giro con cui il team ricompra la merce: prima si apre, poi si paga, poi arriva." />
       ) : (
         <div className="mb-6 space-y-3">
           {riordini.map((r) => {
             const totale = totaleRiordino(r.righe);
             return (
-              <div
-                key={r.id}
-                className={`card ${r.stato === 'APERTO' ? 'border-l-2 border-l-warn' : ''}`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-medium">
-                      Riordino {r.numero}
-                      {r.fornitore && <span className="text-muted"> · {r.fornitore}</span>}
-                    </p>
-                    <p className="num mt-0.5 text-[11px] text-muted">
-                      aperto il {fmtDate(r.creatoIl)}
-                      {r.creatoDa && ` da ${nomeCompleto(r.creatoDa)}`}
-                      {r.pagatoIl && ` · pagato il ${fmtDate(r.pagatoIl)}`}
-                      {r.ricevutoIl && ` · ricevuto il ${fmtDate(r.ricevutoIl)}`}
-                    </p>
-                    {r.note && <p className="mt-1 text-sm">«{r.note}»</p>}
-                  </div>
-                  <p className="num shrink-0 text-lg font-semibold text-nvg">{fmtEuro(totale)}</p>
+              <div key={r.id} className="card">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="num font-medium">Riordino {r.numero}</span>
+                    <Badge tono={TONO[r.stato]}>{ETICHETTA[r.stato]}</Badge>
+                    {r.fornitore && <span className="text-xs text-muted">{r.fornitore}</span>}
+                  </span>
+                  <span className="num text-sm">{fmtEuro(totale)}</span>
                 </div>
 
-                <ul className="mt-2 space-y-0.5 text-sm">
+                <ul className="mb-3 space-y-1 text-sm">
                   {r.righe.map((riga) => (
-                    <li key={riga.id} className="flex flex-wrap items-baseline gap-2">
+                    <li key={riga.id} className="flex items-center justify-between gap-2">
                       <span>
-                        {riga.quantita}× {riga.voce.titolo}
-                      </span>
-                      <span className="num text-[11px] text-muted">
-                        {fmtEuro(Number(riga.costoUnitario))} l’uno ·{' '}
-                        {fmtEuro(riga.quantita * Number(riga.costoUnitario))}
+                        {riga.quantita} × {riga.articolo.nome}
+                        <span className="text-muted">
+                          {' '}
+                          a {fmtEuro(Number(riga.costoUnitario))}
+                        </span>
                       </span>
                       {r.stato === 'APERTO' && (
                         <AzioneBottone
@@ -382,64 +389,66 @@ export default async function InventarioPage() {
                       )}
                     </li>
                   ))}
+                  {r.righe.length === 0 && (
+                    <li className="text-xs text-muted">Nessuna riga: aggiungine una.</li>
+                  )}
                 </ul>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-                  <Badge tono={TONO[r.stato]}>{ETICHETTA[r.stato]}</Badge>
-                  {r.stato === 'RICEVUTO' && !r.pagatoIl && (
-                    <Badge tono="warn">mai passato in cassa</Badge>
-                  )}
-
-                  <span className="ml-auto flex flex-wrap items-center gap-2">
-                    {r.stato === 'APERTO' && (
+                <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                  {r.stato === 'APERTO' && (
+                    <>
                       <BottoneModale
                         etichetta="Aggiungi riga"
                         icona="aggiungi"
-                        titolo={`Riordino ${r.numero} · nuova riga`}
+                        titolo={`Riga sul riordino ${r.numero}`}
                         className="btn-ghost btn-sm"
                         larga
                       >
-                        <FormRigaRiordino riordinoId={r.id} voci={magazzino} />
+                        <FormRigaRiordino riordinoId={r.id} articoli={scaffale} />
                       </BottoneModale>
-                    )}
-
-                    {!r.pagatoIl && r.stato !== 'ANNULLATO' && (
                       <BottoneModale
                         etichetta="Paga"
                         icona="incassa"
-                        titolo={`Riordino ${r.numero} · uscita di cassa`}
+                        titolo={`Paga il riordino ${r.numero}`}
                         className="btn-ghost btn-sm"
                       >
                         <FormPagamento riordinoId={r.id} totale={totale} metodi={metodi} />
                       </BottoneModale>
-                    )}
-
-                    {r.stato !== 'RICEVUTO' && r.stato !== 'ANNULLATO' && (
-                      <AzioneBottone
-                        azione={riceviRiordino}
-                        valori={{ id: r.id }}
-                        icona="carica"
-                        conferma="La merce è arrivata? Entra in magazzino con le quantità di queste righe."
-                        className="btn-primary btn-sm"
-                      >
-                        Ricevi
-                      </AzioneBottone>
-                    )}
-
-                    {r.stato !== 'RICEVUTO' && r.stato !== 'ANNULLATO' && (
-                      <AzioneBottone
-                        azione={r.pagatoIl ? annullaRiordino : eliminaRiordino}
-                        valori={{ id: r.id }}
-                        conferma={
-                          r.pagatoIl
-                            ? 'Annullare il riordino? Se ne va anche l’uscita di cassa.'
-                            : 'Eliminare il riordino?'
-                        }
-                        className="text-[11px] text-muted transition-colors hover:text-danger"
-                      >
-                        {r.pagatoIl ? 'annulla' : 'elimina'}
-                      </AzioneBottone>
-                    )}
+                    </>
+                  )}
+                  {r.stato !== 'RICEVUTO' && r.stato !== 'ANNULLATO' && (
+                    <AzioneBottone
+                      azione={riceviRiordino}
+                      valori={{ id: r.id }}
+                      icona="carica"
+                      className="btn-ghost btn-sm"
+                    >
+                      Ricevi la merce
+                    </AzioneBottone>
+                  )}
+                  {r.stato !== 'RICEVUTO' && r.stato !== 'ANNULLATO' && (
+                    <AzioneBottone
+                      azione={annullaRiordino}
+                      valori={{ id: r.id }}
+                      conferma="Annullare il riordino? Se era pagato se ne va anche l’uscita di cassa."
+                      className="text-[11px] text-muted transition-colors hover:text-danger"
+                    >
+                      annulla
+                    </AzioneBottone>
+                  )}
+                  {r.stato !== 'RICEVUTO' && !r.movimentoId && (
+                    <AzioneBottone
+                      azione={eliminaRiordino}
+                      valori={{ id: r.id }}
+                      conferma="Eliminare il riordino?"
+                      className="text-[11px] text-muted transition-colors hover:text-danger"
+                    >
+                      elimina
+                    </AzioneBottone>
+                  )}
+                  <span className="ml-auto text-[11px] text-muted">
+                    aperto il {fmtDate(r.creatoIl)}
+                    {r.creatoDa ? ` da ${nomeCompleto(r.creatoDa)}` : ''}
                   </span>
                 </div>
               </div>
@@ -449,9 +458,9 @@ export default async function InventarioPage() {
       )}
 
       {/* ------------------------------------------------ registro */}
-      <p className="titolo-sezione mb-2">Registro</p>
+      <p className="titolo-sezione mb-2">Entrato e uscito</p>
       {registro.length === 0 ? (
-        <Vuoto testo="Ancora niente: il registro si riempie quando la merce entra o esce." />
+        <Vuoto testo="Niente ancora. Qui finiscono i carichi e le consegne, in ordine di data." />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line bg-surface">
           <table className="tabella">
@@ -459,8 +468,7 @@ export default async function InventarioPage() {
               <tr>
                 <th>Quando</th>
                 <th>Articolo</th>
-                <th>Specifica</th>
-                <th>Quanti</th>
+                <th>Pezzi</th>
                 <th>Perché</th>
                 <th />
               </tr>
@@ -468,14 +476,18 @@ export default async function InventarioPage() {
             <tbody>
               {registro.map((m) => (
                 <tr key={m.id}>
-                  <td className="num">{fmtDateTime(m.quando)}</td>
-                  <td>{m.articolo}</td>
-                  <td className="text-muted">{m.cosa}</td>
-                  <td className={`num font-semibold ${m.quanti > 0 ? 'text-nvg' : 'text-warn'}`}>
+                  <td className="num text-muted">{fmtDateTime(m.quando)}</td>
+                  <td>
+                    {m.cosa}
+                    {m.categoria && (
+                      <span className="block text-[11px] text-muted">{m.categoria}</span>
+                    )}
+                  </td>
+                  <td className={`num ${m.quanti < 0 ? 'text-warn' : 'text-nvg'}`}>
                     {m.quanti > 0 ? `+${m.quanti}` : m.quanti}
                   </td>
                   <td className="text-muted">{m.da}</td>
-                  <td>
+                  <td className="text-right">
                     {m.caricoId && (
                       <AzioneBottone
                         azione={eliminaCarico}
@@ -501,16 +513,22 @@ export default async function InventarioPage() {
   );
 }
 
-type VoceMagazzino = { id: string; titolo: string; articolo: string };
+type ArticoloInPagina = {
+  id: string;
+  nome: string;
+  categoria: string | null;
+  note: string | null;
+  conto: { costoMedio: number | null };
+};
 
-/** Le voci fra cui scegliere, scritte come si riconoscono: articolo e taglia. */
-function SceltaVoce({ voci }: { voci: VoceMagazzino[] }) {
+/** Le voci fra cui scegliere, scritte come si riconoscono. */
+function SceltaArticolo({ articoli }: { articoli: ArticoloInPagina[] }) {
   return (
-    <Campo label="Merce">
-      <select name="voceId" className="input">
-        {voci.map((v) => (
-          <option key={v.id} value={v.id}>
-            {v.articolo} — {v.titolo}
+    <Campo label="Articolo">
+      <select name="articoloId" className="input">
+        {articoli.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.categoria ? `${a.categoria} — ${a.nome}` : a.nome}
           </option>
         ))}
       </select>
@@ -519,76 +537,60 @@ function SceltaVoce({ voci }: { voci: VoceMagazzino[] }) {
 }
 
 /**
- * Merce nuova, creata da qui.
+ * Un articolo di magazzino: nome, come si raggruppa, e basta.
  *
- * Resta una voce del catalogo — è la stessa cosa vista da due parti: qui
- * quante ce ne sono, nel merchandising come si comprano — ma nasce già segnata
- * come roba da tenere in casa, che è il motivo per cui uno apre l'inventario.
+ * Niente prezzo e niente spunta «in vendita», ed è il punto di tutta la
+ * correzione: qui si dice **cosa si ha**. Che si venda o no lo decide il
+ * merchandising, collegando una sua voce a questo articolo, e quella decisione
+ * si può prendere domani o mai.
  */
-function FormMerce({ articoli }: { articoli: { id: string; titolo: string }[] }) {
+function FormArticolo({ articolo }: { articolo?: ArticoloInPagina }) {
   return (
-    <FormAzione azione={aggiungiMerce}>
-      <Campo label="Articolo" span>
-        <input
-          name="articolo"
-          className="input"
-          maxLength={120}
-          list="articoli-del-team"
-          placeholder="Maglietta del Club"
-          autoComplete="off"
-        />
-        {/* i nomi che ci sono già sono un suggerimento, non una gabbia: se
-            scrivi qualcosa di nuovo, l'articolo nasce insieme alla merce */}
-        <datalist id="articoli-del-team">
-          {articoli.map((a) => (
-            <option key={a.id} value={a.titolo} />
-          ))}
-        </datalist>
-      </Campo>
+    <FormAzione azione={articolo ? salvaArticolo : aggiungiArticolo}>
+      {articolo && <input type="hidden" name="id" value={articolo.id} />}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Campo label="Specifica">
-          <input name="titolo" className="input" maxLength={80} placeholder="XL, nera, PVC…" />
+        <Campo label="Cosa">
+          <input
+            name="nome"
+            defaultValue={articolo?.nome}
+            className="input"
+            maxLength={120}
+            placeholder="Patch PVC, Generatore, Bandiera…"
+          />
         </Campo>
-        <Campo label="A quanto la vendi (€)">
-          <input name="prezzo" type="number" step="0.01" min="0" className="input" />
+        <Campo label="Categoria">
+          <input
+            name="categoria"
+            defaultValue={articolo?.categoria ?? ''}
+            className="input"
+            maxLength={80}
+            placeholder="Patch, Materiale di squadra…"
+          />
         </Campo>
       </div>
-      <Campo label="Dettagli" span>
-        <input name="descrizione" className="input" maxLength={200} />
-      </Campo>
-
-      <label className="flex items-start gap-2 text-sm">
+      <Campo label="Note" span>
         <input
-          type="checkbox"
-          name="inVendita"
-          defaultChecked
-          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+          name="note"
+          defaultValue={articolo?.note ?? ''}
+          className="input"
+          maxLength={200}
+          placeholder="Dove sta, a chi è affidato, il modello…"
         />
-        <span>
-          La vendo alla squadra
-          <span className="block text-[11px] text-muted">
-            Togli la spunta per la roba che vuoi solo tenere contata — un generatore, una radio di
-            servizio, il materiale del team. Niente prezzo, niente carrello: resta qui dentro con
-            la sua giacenza e i suoi costi.
-          </span>
-        </span>
-      </label>
+      </Campo>
       <p className="text-xs text-muted">
-        Nasce come merce <strong className="text-ink">tenuta in casa</strong>: da qui si riordina e
-        si conta. Se l’articolo non esiste ancora lo creo io, <strong className="text-ink">in
-        bozza</strong> — il magazzino c’è, e metterlo in vendita nel merchandising resta una
-        decisione a parte. Quanti pezzi ci sono lo dirà il primo riordino ricevuto, o una
-        rettifica.
+        Entra in magazzino e <strong className="text-ink">non va in vendita</strong>: metterlo in
+        vetrina è un’altra decisione, e si prende dal merchandising collegandogli una voce. Quanti
+        pezzi ci sono lo dirà il primo riordino ricevuto, o una rettifica.
       </p>
-      <Invia icona="salva">Aggiungi</Invia>
+      <Invia icona="salva">{articolo ? 'Salva' : 'Aggiungi'}</Invia>
     </FormAzione>
   );
 }
 
-function FormRiordino({ voci }: { voci: VoceMagazzino[] }) {
+function FormRiordino({ articoli }: { articoli: ArticoloInPagina[] }) {
   return (
     <FormAzione azione={creaRiordino}>
-      <SceltaVoce voci={voci} />
+      <SceltaArticolo articoli={articoli} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo label="Quanti pezzi">
           <input name="quantita" type="number" min="1" className="input" placeholder="100" />
@@ -622,15 +624,15 @@ function FormRiordino({ voci }: { voci: VoceMagazzino[] }) {
 
 function FormRigaRiordino({
   riordinoId,
-  voci,
+  articoli,
 }: {
   riordinoId: string;
-  voci: VoceMagazzino[];
+  articoli: ArticoloInPagina[];
 }) {
   return (
     <FormAzione azione={aggiungiRigaRiordino}>
       <input type="hidden" name="riordinoId" value={riordinoId} />
-      <SceltaVoce voci={voci} />
+      <SceltaArticolo articoli={articoli} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo label="Quanti pezzi">
           <input name="quantita" type="number" min="1" className="input" />
@@ -688,14 +690,10 @@ function FormPagamento({
  * Serve per la roba arrivata in regalo, per un avanzo trovato in cantina, o
  * per correggere una giacenza sbagliata. La strada normale resta il riordino.
  */
-function FormRettifica({
-  voce,
-}: {
-  voce: { id: string; titolo: string; conto: { costoMedio: number | null } };
-}) {
+function FormRettifica({ articolo }: { articolo: ArticoloInPagina }) {
   return (
     <FormAzione azione={registraCarico}>
-      <input type="hidden" name="voceId" value={voce.id} />
+      <input type="hidden" name="articoloId" value={articolo.id} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo label="Quanti pezzi">
           <input name="quantita" type="number" step="1" className="input" placeholder="50 · -12" />
@@ -706,7 +704,7 @@ function FormRettifica({
             type="number"
             step="0.01"
             min="0"
-            defaultValue={voce.conto.costoMedio?.toFixed(2) ?? ''}
+            defaultValue={articolo.conto.costoMedio?.toFixed(2) ?? ''}
             className="input"
           />
         </Campo>

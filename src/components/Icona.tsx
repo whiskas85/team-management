@@ -11,6 +11,7 @@ export type NomeIcona =
   | 'operatori'
   | 'nuovi'
   | 'tessera'
+  | 'scudo'
   | 'iscrizioni'
   | 'grafici'
   | 'menu'
@@ -129,15 +130,29 @@ const PATHS: Record<NomeIcona, string> = {
     'M7 10.5v9.5H4.5a1 1 0 0 1-1-1v-7.5a1 1 0 0 1 1-1H7Zm0 0 4.3-6.8a1 1 0 0 1 1.8.5V9.5h5a2 2 0 0 1 2 2.4l-1.3 6.1a2 2 0 0 1-2 1.5H7',
   commento:
     'M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
+  scudo: 'M12 3l7.5 2.7v5.6c0 4.3-3.1 8.3-7.5 9.7-4.4-1.4-7.5-5.4-7.5-9.7V5.7L12 3Zm-3 8.8 2.2 2.2L15.5 10',
 };
 
-export function Icona({ nome, size = 20 }: { nome: NomeIcona; size?: number }) {
+export function Icona({
+  nome,
+  size = 20,
+  /**
+   * Riempita invece che disegnata di contorno. Serve dove il pieno e il vuoto
+   * sono due stati della stessa cosa — la stellina dei preferiti accesa o
+   * spenta — e il solo colore non basterebbe a chi i colori li distingue male.
+   */
+  riempi = false,
+}: {
+  nome: NomeIcona;
+  size?: number;
+  riempi?: boolean;
+}) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={riempi ? 'currentColor' : 'none'}
       stroke="currentColor"
       strokeWidth="1.7"
       strokeLinecap="round"

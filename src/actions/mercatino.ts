@@ -179,6 +179,21 @@ export async function eliminaAnnuncio(_prev: StatoForm, fd: FormData): Promise<S
 
 // ------------------------------------------------------------------ voci
 
+/**
+ * L'articolo di magazzino scelto nel modulo, se esiste davvero.
+ *
+ * Vuoto è una risposta buona: vuol dire che quella riga di vetrina non pesca
+ * da nessuno scaffale — si ordina al fornitore a ogni giro, o è un pezzo unico
+ * dell'usato. Un id inventato invece si scarta, invece di scrivere in
+ * database un collegamento verso il nulla.
+ */
+async function articoloValido(fd: FormData) {
+  const id = strOpt(fd, 'articoloId');
+  if (!id) return null;
+  const art = await prisma.articoloMagazzino.findUnique({ where: { id }, select: { id: true } });
+  return art?.id ?? null;
+}
+
 export async function salvaVoce(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   const annuncio = await mioAnnuncio(str(fd, 'annuncioId'), me.id);
@@ -199,9 +214,10 @@ export async function salvaVoce(_prev: StatoForm, fd: FormData): Promise<StatoFo
     // spenta resta scritta ma non è in vendita: cancellarla porterebbe via
     // anche i commenti che la nominano, che sono di altre persone
     attiva: bool(fd, 'attiva'),
-    // tenuta in casa: non entra nel giro di raccolta, ma ha una giacenza che
-    // scende e finita è finita
-    aMagazzino: bool(fd, 'aMagazzino'),
+    // Da quale scaffale esce, se esce da uno scaffale nostro. Vuoto vuol dire
+    // che si ordina al fornitore a ogni giro. Il magazzino è roba comprata coi
+    // soldi del team: a un annuncio privato non ci si collega.
+    articoloId: annuncio.ufficiale ? (await articoloValido(fd)) : null,
   };
 
   const id = strOpt(fd, 'id');

@@ -370,8 +370,39 @@ Due conseguenze che vengono dalla stessa parte:
 - Non tutta la merce si ordina al fornitore: quella comprata in blocco sta a
   **magazzino**, ha una giacenza che scende e un costo d'acquisto che si tiene
   — serve a sapere se su un pezzo ci si guadagna.
+- **Il magazzino e la vetrina sono due elenchi diversi** (2.0.0). Il magazzino
+  dice cosa il team ha in casa, il merchandising cosa mette in vendita, e fra i
+  due c’è un collegamento facoltativo in tutt’e due i versi. Aggiungere merce
+  in magazzino non la pubblica; spegnerla in vetrina non dice che non la si
+  tiene più.
 - Le regole del mercatino si accettano prima di entrare, e si riaccettano se
   cambiano.
+
+## Ruoli e visibilità
+
+### Deciso, per memoria
+
+- Il debriefing lo vedono atleti, team leader e admin: è la memoria di chi
+  gioca. Un incarico da scrivania non basta, ma chi amministra ed è anche
+  atleta lo vede — i ruoli sono un insieme.
+- «Operatori» è un indirizzo solo con due pagine: l'admin **gestisce** le
+  persone, gli altri incarichi **controllano** se sono a posto. Una voce di
+  menu che rimbalza sulla home è peggio di una voce che non c'è.
+- La polizza giornaliera si attiva solo a quota saldata, da qualunque pagina:
+  la paga il club e non torna indietro. Nessuna quota aperta vuol dire niente
+  da pagare, non «non ha pagato».
+- Chi amministra le persone, dei soldi sa una cosa sola: se sono entrati. Gli
+  importi sono della segreteria.
+
+### Da fare: chi vede cosa, senza rifare un rilascio
+
+Oggi i permessi sono funzioni sui ruoli in `lib/domain.ts`, e la stessa
+risposta va tenuta d'accordo in tre posti — il menu nel layout, la guardia
+della pagina, la guardia dell'azione. Quando divergono nasce esattamente il
+bug di «Operatori». L'idea è di dare un nome ai permessi, farli dichiarare
+una volta sola dalla rotta, e far derivare il menu da lì; poi portare i ruoli
+in tabella, così che se ne possano comporre di nuovi senza toccare il codice.
+Il ragionamento per esteso è nella conversazione che ha prodotto la 1.33.0.
 
 ## Codice su GitHub
 

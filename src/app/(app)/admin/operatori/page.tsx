@@ -1,17 +1,46 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isAdmin, statoEffettivo } from '@/lib/domain';
-import { fmtDate, fmtDateTime, nomeCompleto } from '@/lib/format';
+import {
+  certificatoInScadenza,
+  isAdmin,
+  inRegola,
+  puoVedereOperatori,
+  statoEffettivo,
+} from '@/lib/domain';
+import { fmtDate, fmtDateTime, iniziali, nomeCompleto } from '@/lib/format';
+import { stagioneAttiva } from '@/lib/stagioni';
 import { Campo, Intestazione, Statistica } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { ElencoOperatori, type RigaOperatore } from '@/components/ElencoOperatori';
+import { ElencoRegolarita, type RigaRegolarita } from '@/components/ElencoRegolarita';
 import { SceltaRuoli, SceltaStato } from '@/components/FormOperatore';
 import { creaOperatore } from '@/actions/operatori';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * Gli operatori, in due pagine dietro allo stesso indirizzo.
+ *
+ * Chi apre «Operatori» cerca le persone della squadra, ma non tutti per lo
+ * stesso motivo: l'admin le **gestisce** — le crea, dà i ruoli, azzera una
+ * password — mentre amministrazione, segreteria e team leader le
+ * **controllano**, e di un compagno hanno bisogno di sapere se è a posto con
+ * l'iscrizione e con il certificato.
+ *
+ * Prima la voce c'era per tutti e la pagina la apriva solo l'admin: agli altri
+ * rispondeva rimbalzandoli sulla home, che è il modo peggiore di dire di no —
+ * sembra un guasto. Un indirizzo solo, due pagine: il menu non mente e nessuno
+ * si trova davanti pulsanti che non gli competono.
+ */
 export default async function OperatoriPage() {
-  await requirePermesso(isAdmin);
+  const me = await requirePermesso(puoVedereOperatori);
+  return isAdmin(me.roles) ? <Gestione /> : <Regolarita />;
+}
+
+/** Quello che l'admin fa con le persone: crearle, dare ruoli, toglierle. */
+async function Gestione() {
 
   // Qui vivono gli atleti registrati: i contatti da valutare stanno in "Nuovi".
   // Chi è da riconfermare va tenuto dentro: aprendo una stagione tutta la rosa
@@ -144,6 +173,111 @@ export default async function OperatoriPage() {
         puoEliminare
         puoAssegnareRuoli
       />
+    </>
+  );
+}
+
+/**
+ * Quello che chi segue le persone ha bisogno di sapere: chi è in regola.
+ *
+ * Guarda solo la rosa — chi è in squadra, sospeso o da riconfermare: i
+ * contatti stanno in «Nuovi» e hanno un percorso loro, i disabilitati non
+ * giocano più e riempirebbero l'elenco di righe rosse che non riguardano
+ * nessuno.
+ */
+async function Regolarita() {
+  const stagione = await stagioneAttiva();
+
+  const operatori = await prisma.user.findMany({
+    where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] } },
+    orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+    include: {
+      certificates: { select: { status: true, scadeIl: true, tipo: true } },
+      // iscrizione e tessera si guardano nella stagione in corso: quella
+      // dell'anno scorso era valida allora, e mostrarla direbbe che è a posto
+      // uno che deve ancora rinnovare
+      memberships: { where: { stagioneId: stagione.id }, select: { status: true } },
+      figtCards: { where: { stagioneId: stagione.id }, select: { status: true } },
+    },
+  });
+
+  const righe: RigaRegolarita[] = operatori.map((o) => {
+    // Il certificato che conta è il migliore che vale oggi: fra due validi
+    // vince l'agonistico — dove serve quello, l'altro non basta — e a parità
+    // quello che scade più tardi. Se non ne vale nessuno si mostra comunque
+    // l'ultimo, perché «in attesa» e «scaduto» sono due problemi diversi e
+    // chiamarli entrambi «mancante» manderebbe a rifare una visita già fatta.
+    const conStato = o.certificates.map((c) => ({ ...c, effettivo: statoEffettivo(c) }));
+    const validi = conStato
+      .filter((c) => c.effettivo === 'VALIDO')
+      .sort(
+        (a, b) =>
+          Number(b.tipo === 'AGONISTICO') - Number(a.tipo === 'AGONISTICO') ||
+          (b.scadeIl?.getTime() ?? 0) - (a.scadeIl?.getTime() ?? 0),
+      );
+    const ripiego = [...conStato].sort(
+      (a, b) => (b.scadeIl?.getTime() ?? 0) - (a.scadeIl?.getTime() ?? 0),
+    )[0];
+    const cert = validi[0] ?? ripiego ?? null;
+
+    const iscrizione = o.memberships[0]?.status ?? null;
+
+    return {
+      id: o.id,
+      nome: nomeCompleto(o),
+      iniziali: iniziali(o.nome, o.cognome),
+      stato: o.stato,
+      iscrizione,
+      certStato: cert ? cert.effettivo : null,
+      certTipo: cert?.tipo ?? null,
+      certScade: cert?.scadeIl ? fmtDate(cert.scadeIl) : null,
+      certInScadenza: cert?.effettivo === 'VALIDO' && certificatoInScadenza(cert.scadeIl),
+      tessera: o.figtCards[0]?.status ?? null,
+      // «a posto» sono le due cose che questa pagina esiste per sapere:
+      // iscrizione della stagione attiva e un certificato valido oggi
+      aPosto: iscrizione === 'ATTIVA' && inRegola(o.certificates),
+    };
+  });
+
+  const daSistemare = righe.filter((r) => !r.aPosto).length;
+  const senzaCertificato = righe.filter((r) => r.certStato !== 'VALIDO').length;
+  const senzaIscrizione = righe.filter((r) => r.iscrizione !== 'ATTIVA').length;
+
+  return (
+    <>
+      <Intestazione
+        titolo="Operatori"
+        sottotitolo={`Chi è in regola con iscrizione e certificato · stagione ${stagione.nome}`}
+      />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Statistica etichetta="In rosa" valore={righe.length} />
+        <Statistica
+          etichetta="Da sistemare"
+          valore={daSistemare}
+          tono={daSistemare > 0 ? 'warn' : 'ok'}
+        />
+        <Statistica
+          etichetta="Senza certificato valido"
+          valore={senzaCertificato}
+          tono={senzaCertificato > 0 ? 'danger' : 'ok'}
+          href="/admin/certificati"
+        />
+        <Statistica
+          etichetta="Iscrizione non attiva"
+          valore={senzaIscrizione}
+          tono={senzaIscrizione > 0 ? 'warn' : 'ok'}
+          href="/admin/richieste"
+        />
+      </div>
+
+      <ElencoRegolarita righe={righe} />
+
+      <p className="mt-4 text-xs text-muted">
+        Si vede la rosa della stagione in corso: i contatti da valutare stanno in{' '}
+        <strong className="text-ink">Nuovi</strong>. Aprendo una persona c’è la sua scheda con
+        certificati, iscrizione e tessera per esteso.
+      </p>
     </>
   );
 }

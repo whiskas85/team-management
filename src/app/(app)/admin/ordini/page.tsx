@@ -61,7 +61,7 @@ const CON_RIGHE = {
     include: {
       voce: {
         select: {
-          aMagazzino: true,
+          articoloId: true,
           annuncio: { select: { id: true, titolo: true, ufficiale: true } },
         },
       },
@@ -99,7 +99,7 @@ export default async function OrdiniPage({
 
   // Il magazzino non si conta qui: ha una pagina sua. Serve solo sapere se
   // esiste, per mandarci chi lo cerca.
-  const scorte = await prisma.voceAnnuncio.count({ where: { aMagazzino: true } });
+  const scorte = await prisma.articoloMagazzino.count();
 
   // il riepilogo: per ogni articolo, quanti pezzi di ogni voce servono adesso
   const giri = new Map<string, { titolo: string; strada: string; pezzi: Map<string, number> }>();
@@ -107,7 +107,9 @@ export default async function OrdiniPage({
     for (const r of o.righe) {
       // quello che sta in magazzino non si chiede al fornitore: si prende
       // dalla scatola, e il suo conto sta più sotto
-      if (r.voce.aMagazzino) continue;
+      // quello che sta sullo scaffale non si chiede al fornitore a ogni giro:
+      // c'è già in casa, e il conto dei pezzi da ordinare lo falserebbe
+      if (r.voce.articoloId) continue;
       const a = r.voce.annuncio;
       const giro = giri.get(a.id) ?? {
         titolo: a.titolo,
@@ -198,8 +200,8 @@ export default async function OrdiniPage({
         <p className="mb-6 text-xs text-muted">
           Quello che sta in casa non entra in questo elenco: giacenze, riordini al fornitore e
           registro stanno in{' '}
-          <Link href="/admin/inventario" className="text-nvg hover:underline">
-            Inventario
+          <Link href="/admin/magazzino" className="text-nvg hover:underline">
+            Magazzino
           </Link>
           .
         </p>

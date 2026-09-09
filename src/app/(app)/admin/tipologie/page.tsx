@@ -9,7 +9,7 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { SelettoreColore } from '@/components/SelettoreColore';
 import { OrdinaTipologie } from '@/components/OrdinaTipologie';
-import { eliminaTipologia, salvaTipologia } from '@/actions/tipologie';
+import { eliminaTipologia, riordinaTipologie, salvaTipologia } from '@/actions/tipologie';
 
 const QUOTE = [
   'EVENTO',
@@ -63,6 +63,7 @@ export default async function TipologiePage() {
         <Vuoto testo="Nessuna tipologia definita: aggiungine una per poter creare attività." />
       ) : (
         <OrdinaTipologie
+          azione={riordinaTipologie}
           righe={tipologie.map((t) => ({
             id: t.id,
             attivo: t.attivo,

@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { filtroVisibilita } from '@/lib/query';
-import { isAdmin, puoModerareChat, puoSchierare } from '@/lib/domain';
+import { isAdmin, puoModerareChat, puoSchierare, vedeDebriefing } from '@/lib/domain';
 import { comeChiamare, fmtDate, nomeCompleto } from '@/lib/format';
 import { Badge, Intestazione, Vuoto } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
@@ -30,6 +31,9 @@ export const dynamic = 'force-dynamic';
  */
 export default async function DebriefingPage() {
   const me = await requireUser();
+  // la voce di menu non compare a chi non gioca, ma la pagina non si fida del
+  // menu: un indirizzo si indovina
+  if (!vedeDebriefing(me.roles)) redirect('/dashboard');
   const scrive = puoSchierare(me.roles);
 
   const debriefing = await prisma.debriefing.findMany({

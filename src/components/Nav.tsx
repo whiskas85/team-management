@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from './Logo';
 import { Icona, type NomeIcona } from './Icona';
+import { Avatar } from './ui';
+import { ElencoPreferiti } from './Preferiti';
 import { VERSIONE } from '@/lib/versione';
 
 export type VoceMenu = {
@@ -20,11 +22,22 @@ export type VoceMenu = {
     | 'segreteria'
     | 'comando';
   badge?: number;
+  /** Se questa persona se l'è messa da parte con la stellina. */
+  preferito?: boolean;
 };
 
 type Props = {
   voci: VoceMenu[];
-  utente: { nome: string; cognome: string; callsign: string | null; ruolo: string };
+  /** Gli indirizzi messi da parte, nell'ordine scelto da chi guarda. */
+  preferiti: string[];
+  utente: {
+    id: string;
+    nome: string;
+    cognome: string;
+    callsign: string | null;
+    iniziali: string;
+    ruolo: string;
+  };
   esci: () => Promise<void>;
 };
 
@@ -52,7 +65,7 @@ function voceAttiva(pathname: string, voci: VoceMenu[]) {
   return candidate.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
-export function Nav({ voci, utente, esci }: Props) {
+export function Nav({ voci, preferiti, utente, esci }: Props) {
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
@@ -96,8 +109,23 @@ export function Nav({ voci, utente, esci }: Props) {
   ].filter(
     (g) => voci.some((v) => v.gruppo === g),
   );
-  // sul telefono la barra in basso tiene le quattro voci più usate
-  const rapide = voci.filter((v) => v.gruppo === 'principale').slice(0, 4);
+  // I preferiti, nell'ordine scelto da chi guarda. Si risolvono contro il menu
+  // vero invece di conservare etichetta e icona: una voce rinominata si
+  // rinomina anche qui, e una che questa persona non può più vedere sparisce
+  // da sola invece di restare a puntare su una porta chiusa.
+  const perHref = new Map(voci.map((v) => [v.href, v]));
+  const vociPreferite = preferiti
+    .map((h) => perHref.get(h))
+    .filter((v): v is VoceMenu => v !== undefined);
+
+  // Sul telefono la barra in basso tiene i preferiti, che è tutto il senso di
+  // averli: quattro porte dove arriva il pollice, scelte da chi le usa. Chi non
+  // ne ha ancora si tiene le prime quattro voci operative, così la barra non
+  // nasce vuota.
+  const rapide =
+    vociPreferite.length > 0
+      ? vociPreferite.slice(0, 4)
+      : voci.filter((v) => v.gruppo === 'principale').slice(0, 4);
 
   return (
     <>
@@ -107,7 +135,7 @@ export function Nav({ voci, utente, esci }: Props) {
           <Logo size={36} />
           <div className="leading-tight">
             <p className="num flex items-center gap-1.5 text-[13px] font-semibold tracking-widest text-ink">
-              ZERO DARK
+              ZERO DARK OPS
               <span className="rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold tracking-normal text-nvg">
                 v{VERSIONE}
               </span>
@@ -117,6 +145,41 @@ export function Nav({ voci, utente, esci }: Props) {
         </Link>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {/* I preferiti stanno sopra tutto: sono le porte che questa persona
+              apre ogni giorno, e farle cercare in mezzo alle altre trenta
+              vanificherebbe l'averle scelte. */}
+          {vociPreferite.length > 0 && (
+            <div className="mb-5">
+              <p className="titolo-sezione px-2 pb-2">Preferiti</p>
+              <ElencoPreferiti
+                voci={vociPreferite}
+                acceso={acceso}
+                riga={(v, { attivo, presa }) => (
+                  <span
+                    className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors ${
+                      presa
+                        ? 'bg-nvg/20 text-nvg shadow-lg ring-1 ring-nvg/40'
+                        : attivo
+                          ? 'bg-nvg/10 text-nvg'
+                          : 'text-ink/80 hover:bg-surface2 hover:text-ink'
+                    }`}
+                  >
+                    <Icona nome={v.icona} size={18} />
+                    <span className="flex-1">{v.label}</span>
+                    {!!v.badge && (
+                      <span className="rounded-full bg-warn/20 px-1.5 py-0.5 num text-[10px] text-warn">
+                        {v.badge}
+                      </span>
+                    )}
+                  </span>
+                )}
+              />
+              <p className="px-2 pt-1.5 text-[10px] text-muted">
+                Tieni premuto per riordinarli
+              </p>
+            </div>
+          )}
+
           {gruppi.map((g) => (
             <div key={g} className="mb-5">
               <p className="titolo-sezione px-2 pb-2">{ETICHETTA_GRUPPO[g]}</p>
@@ -167,22 +230,42 @@ export function Nav({ voci, utente, esci }: Props) {
       {/* un solo accesso al menu: quello della barra in basso, dove arriva il
           pollice. Un secondo hamburger qui sopra ripeteva la stessa strada */}
       <header
-        className={`sticky top-0 z-30 flex items-center border-b border-line bg-bg/95 px-4 py-3 backdrop-blur transition-transform duration-200 md:hidden ${
+        className={`sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-2.5 backdrop-blur transition-transform duration-200 md:hidden ${
           nascoste ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
           <Logo size={30} />
-          <span className="num text-xs font-semibold tracking-widest">ZERO DARK</span>
-          <span className="rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
+          <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
+          <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
             v{VERSIONE}
           </span>
         </Link>
+
+        {/* Chi sono e dove vado a vedermi: sul telefono non c'è la colonna con
+            il nome in fondo, e al profilo si arrivava solo aprendo il menu.
+            La stellina invece non sta più qui: è nella riga del titolo, dove
+            si guarda già per sapere su che pagina si è. */}
+        <div className="ml-auto flex items-center gap-1">
+          <Link
+            href="/profilo"
+            className="flex shrink-0 items-center gap-2 rounded-full py-0.5 pl-2 pr-0.5 transition-colors hover:bg-surface2"
+          >
+            <span className="num max-w-[70px] truncate text-[11px] font-semibold tracking-wide text-nvg">
+              {utente.callsign ?? utente.nome}
+            </span>
+            <Avatar iniziali={utente.iniziali} fotoDi={utente.id} size="sm" />
+          </Link>
+        </div>
       </header>
 
       {/* ---------------------------------------------------- barra inferiore mobile */}
       <nav
-        className={`fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/97 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-transform duration-200 md:hidden ${
+        // le colonne sono quante sono le voci più il menu: con due preferiti
+        // una griglia fissa da cinque lascerebbe tre buchi e il pulsante del
+        // menu a metà schermo
+        style={{ gridTemplateColumns: `repeat(${rapide.length + 1}, minmax(0, 1fr))` }}
+        className={`fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface/97 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-transform duration-200 md:hidden ${
           nascoste ? 'translate-y-full' : 'translate-y-0'
         }`}
       >
@@ -237,6 +320,46 @@ export function Nav({ voci, utente, esci }: Props) {
               </button>
             </div>
 
+            {/* Qui i preferiti sono le voci della barra in basso: riordinarli
+                vuol dire decidere cosa si ha sotto il pollice. Per questo si
+                riordinano da dentro il menu, dove si vedono tutti, e non dalla
+                barra, dove ce ne stanno quattro. */}
+            {vociPreferite.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-baseline justify-between gap-2 pb-2">
+                  <p className="titolo-sezione">Preferiti</p>
+                  <p className="text-[10px] text-muted">tieni premuto per riordinare</p>
+                </div>
+                <ElencoPreferiti
+                  voci={vociPreferite}
+                  acceso={acceso}
+                  onVai={() => setApertoMenu(false)}
+                  riga={(v, { attivo, presa }) => (
+                    <span
+                      className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
+                        presa
+                          ? 'border-nvg bg-nvg/20 text-nvg shadow-lg'
+                          : attivo
+                            ? 'border-nvg/40 bg-nvg/10 text-nvg'
+                            : 'border-line bg-surface2 text-ink'
+                      }`}
+                    >
+                      <Icona nome={v.icona} size={18} />
+                      <span className="flex-1 truncate">{v.label}</span>
+                      {!!v.badge && (
+                        <span className="rounded-full bg-warn/20 px-1.5 py-0.5 num text-[10px] text-warn">
+                          {v.badge}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                />
+                <p className="pt-1.5 text-[10px] text-muted">
+                  I primi quattro stanno nella barra in basso.
+                </p>
+              </div>
+            )}
+
             {gruppi.map((g) => (
               <div key={g} className="mb-4">
                 <p className="titolo-sezione pb-2">{ETICHETTA_GRUPPO[g]}</p>
@@ -266,6 +389,13 @@ export function Nav({ voci, utente, esci }: Props) {
                 </div>
               </div>
             ))}
+
+            {vociPreferite.length === 0 && (
+              <p className="mb-4 rounded-md border border-dashed border-line px-3 py-2 text-[11px] text-muted">
+                La <strong className="text-ink">stellina</strong> in alto a destra mette una pagina
+                fra i preferiti: finiscono qui, in cima al menu, e nella barra in basso.
+              </p>
+            )}
 
             <form action={esci}>
               <button type="submit" className="btn-ghost w-full">

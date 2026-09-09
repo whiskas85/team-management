@@ -110,6 +110,15 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     ...logistica,
     descrizione: strOpt(fd, 'descrizione'),
     tipoId: strOpt(fd, 'tipoId'),
+    tipoGaraId: strOpt(fd, 'tipoGaraId'),
+    // La durata dichiarata si scrive e basta: **non si confronta con inizio e
+    // fine**. Una 24 ore si gioca dentro un fine settimana che parte il
+    // venerdì, perché quello spazio va tenuto occupato tutto — si viaggia, si
+    // monta, si dorme, si smonta. La gara dura quello che dice il volantino,
+    // l'attività dura quello che occupa: sono due fatti diversi e nessuno dei
+    // due è sbagliato. Un controllo che pretendesse di farli coincidere
+    // costringerebbe a scrivere una data falsa per far tacere un avviso.
+    durataOre: intOpt(fd, 'durataOre'),
     inizio: inizio!,
     fine,
     costo: squadra.quota,

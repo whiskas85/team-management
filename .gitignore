@@ -13,3 +13,9 @@ tsconfig.tsbuildinfo
 # certificati/genera.sh, non si pubblicano.
 certificati/*.pem
 certificati/openssl.cnf
+
+# I dump del database: dentro ci sono i dati delle persone — certificati
+# medici, recapiti, impronte delle password. Restano sulla macchina, non nel
+# repository, e non si pubblicano da nessuna parte.
+backup/
+*.sql.gz

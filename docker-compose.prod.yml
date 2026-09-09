@@ -1,0 +1,126 @@
+# Il gestionale su una macchina pubblica, con un nome e un certificato veri.
+#
+# È un file a parte e non una variante di `docker-compose.yml`, perché in casa
+# e in rete le cose da fare sono diverse: in LAN nessuna autorità può firmare
+# un 10.x.x.x e il certificato se lo fa da sé, qui il nome esiste e il
+# certificato lo rilascia Let's Encrypt. Tenerli nello stesso file avrebbe
+# voluto dire un groviglio di variabili per dire "in questo caso no".
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Il TAK **non sta qui dentro**: ha una sua distribuzione con il suo compose e
+# il suo database, e ogni suo aggiornamento romperebbe questo file. Sta sulla
+# stessa macchina, a fianco, con le sue porte. La spiegazione è in
+# `deploy/DEPLOY.md`.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zd-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?serve un utente per il database}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?serve una password vera, non quella di esempio}
+      POSTGRES_DB: ${POSTGRES_DB:-zerodark}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Nessuna porta pubblicata, e non è una dimenticanza: al database si arriva
+    # solo dalla rete di Docker. Da fuori ci si passa con `docker compose exec`,
+    # dopo essere entrati sulla macchina — che a sua volta si apre solo dalla
+    # rete privata.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-zerodark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Il TAK ufficiale vuole i suoi 8 GB e non chiede permesso: senza un tetto
+    # qui, sotto carico si mangerebbero la RAM a vicenda e a cadere sarebbe
+    # quello che si sveglia per ultimo.
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  app:
+    build:
+      context: .
+    container_name: zd-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione lunga almeno 32 caratteri}
+      # dietro HTTPS vero il cookie viaggia solo su connessione cifrata
+      COOKIE_SECURE: "1"
+      # in produzione non esistono scorciatoie di accesso
+      DEBUG_LOGIN: "0"
+      AMBIENTE: prod
+      UPLOAD_DIR: /data/uploads
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?serve un'email per l'admin di partenza}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?serve una password per l'admin di partenza}
+      NODE_ENV: production
+      TZ: ${TZ:-Europe/Rome}
+      WHATSAPP_URL: http://whatsapp:3001
+      SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
+    volumes:
+      - uploads:/data/uploads
+    # Nemmeno l'applicazione pubblica una porta: ci arriva il proxy, e basta.
+    # In LAN la 3000 in chiaro serviva a entrare senza passare dal certificato
+    # autofirmato; qui sarebbe solo una seconda porta da difendere.
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  whatsapp:
+    build: ./whatsapp
+    container_name: zd-whatsapp
+    restart: unless-stopped
+    environment:
+      SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
+      LIVELLO_LOG: ${LIVELLO_LOG_WHATSAPP:-warn}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - whatsapp:/dati
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  # Caddy al posto di nginx, e solo qui.
+  #
+  # Non per gusto: il certificato lo chiede, lo installa e lo rinnova da solo,
+  # senza certbot, senza cron e senza il giro dell'uovo e della gallina in cui
+  # nginx non parte perché il certificato non c'è ancora e il certificato non
+  # arriva perché nginx non parte. In LAN resta nginx con l'autofirmato, dove
+  # non c'è niente da rinnovare e quel giro non serve.
+  proxy:
+    image: caddy:2-alpine
+    container_name: zd-proxy
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMINIO: ${DOMINIO:?serve il nome a dominio, es. gestionale.zerodark.it}
+      EMAIL_CERTIFICATI: ${EMAIL_CERTIFICATI:?serve un'email per gli avvisi di Let's Encrypt}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # i certificati ottenuti: senza questo volume, ogni riavvio ne
+      # richiederebbe di nuovi e Let's Encrypt ha un limite settimanale
+      - caddy-dati:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+volumes:
+  db-data:
+  uploads:
+  whatsapp:
+  caddy-dati:
+  caddy-config:

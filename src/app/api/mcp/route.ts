@@ -163,7 +163,7 @@ async function eseguiUna(r: Richiesta, chi: Awaited<ReturnType<typeof chiPresent
 export async function GET() {
   return NextResponse.json(
     {
-      nome: 'Zero Dark — gestionale',
+      nome: 'Zero Dark Ops',
       protocollo: PROTOCOLLO,
       versione: VERSIONE,
       come: 'POST JSON-RPC 2.0 con intestazione Authorization: Bearer <chiave personale>.',

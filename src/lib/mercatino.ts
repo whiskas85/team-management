@@ -181,7 +181,7 @@ export type Giacenza = {
 };
 
 /**
- * Cosa resta di una voce tenuta in magazzino.
+ * Cosa resta di un articolo di magazzino.
  *
  * *Impegnate* e *consegnate* sono due cose diverse: una patch promessa a
  * qualcuno non è più disponibile per un altro, anche se sta ancora nella
@@ -230,6 +230,7 @@ export const puoVedereOrdini = puoGestirePagamenti;
  */
 export const ordinabile = (v: { natura: string; attiva?: boolean }) =>
   v.attiva !== false && v.natura === 'RIORDINABILE';
+
 
 /** Lo slug del regolamento che apre il mercatino. */
 export const SLUG_REGOLAMENTO = 'mercatino';

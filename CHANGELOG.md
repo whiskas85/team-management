@@ -5,6 +5,284 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.4.0 — 9 settembre 2026
+
+### Cambiato
+
+- **A giornata conclusa la scheda serve a rileggere, non più a organizzare.**
+  Spariscono le tre cose che si fanno prima o durante: **l'appello**, i **dati
+  sanitari (ICE)** di chi c'era, e **la propria adesione**. Restano le presenze
+  sulle righe dei partecipanti — quelle sono il risultato, non uno strumento
+  ancora da usare.
+- I dati sanitari in particolare servono **mentre** si gioca: tenerli
+  affacciati su ogni attività passata vorrebbe dire lasciare in giro il gruppo
+  sanguigno di venti persone su schede che nessuno chiude più.
+- Alla propria adesione non si risponde per una domenica passata: c'eri o non
+  c'eri è già scritto, ed è un fatto, non una scelta ancora da fare.
+
+### Corretto
+
+- **L'appello non compare più sulle attività annullate.** È lui a concludere
+  l'attività: spuntarlo su una giornata annullata la faceva risorgere come
+  conclusa, cioè come se si fosse giocata.
+
+### Da sapere
+
+- Per correggere un appello sbagliato si **riapre l'attività** (Stato
+  dell'attività → Riapri), si sistema e si conclude di nuovo. È un passaggio in
+  più ed è voluto: rimettere le mani sulle presenze di una giornata chiusa
+  dev'essere una decisione, non un clic di passaggio.
+
+## 2.3.3 — 9 settembre 2026
+
+### Cambiato
+
+- **Sul telefono callsign e faccia sono invertiti**: prima il nome, poi
+  l'avatar all'estremità. La faccia sta così nell'angolo, dove il pollice
+  arriva senza attraversare la scritta.
+
+## 2.3.2 — 9 settembre 2026
+
+### Cambiato
+
+- **L'applicazione si chiama Zero Dark Ops.** Il nome cambia dove si legge il
+  gestionale: linguetta del browser, nome sotto l'icona quando lo si installa
+  sul telefono, marchio in cima alla colonna, sulla striscia del telefono e
+  sulla pagina di accesso. **Zero Dark Team** resta dov'è il nome della
+  squadra e non dell'applicazione — titolare del trattamento dei dati,
+  intestazione dei documenti: lì non si parla del programma ma di chi risponde
+  di quello che c'è dentro.
+
+## 2.3.1 — 9 settembre 2026
+
+### Cambiato
+
+- **La stellina sta attaccata al titolo**, non più in fondo alla riga. In fondo
+  si perdeva in mezzo ai pulsanti della pagina e bisognava cercarla ogni volta;
+  accanto al titolo la si trova senza guardare, perché il titolo è la prima
+  cosa che si legge aprendo una pagina. Una sola, uguale su telefono e
+  computer.
+
+## 2.3.0 — 9 settembre 2026
+
+### Aggiunto
+
+- **I guasti si raccontano da soli.** Quando una pagina si rompe, prima ancora
+  che qualcuno prema *Ricarica*, la scheda spedisce quello che sa: l'errore con
+  la pila di chiamate, la pagina, il browser, la versione del gestionale e —
+  soprattutto — il **diario di bordo**, cioè le ultime quaranta cose successe
+  con l'orario accanto. È quello a rispondere all'unica domanda che contava e a
+  cui non si sapeva rispondere: *cosa stavi facendo?*. Prima l'informazione se
+  ne andava con il ricaricamento, e un difetto che si presenta una volta al
+  mese non si correggeva mai.
+- **Chi trova la pagina rotta vede un riferimento di sei cifre**, lo stesso che
+  compare nel registro: «mi dava errore stamattina» diventa una riga sola da
+  cercare invece di una caccia per orario.
+- **Si raccolgono anche i guasti che non rompono niente**: una promessa
+  rifiutata, un errore dentro un gestore di eventi. Non fanno comparire nessun
+  messaggio, lasciano la pagina **storta** — un pulsante che non risponde, un
+  elenco che resta vuoto — e sono i più difficili da farsi raccontare, perché
+  chi li subisce non ha niente da riferire se non «non andava».
+- **Una pagina per leggerli**, in Comando → *Guasti*, con il pallino di quanti
+  restano da guardare. Le righe si segnano come guardate invece di cancellarle:
+  un difetto che ritorna si riconosce solo se le vecchie sono ancora lì.
+
+### Cambiato
+
+- **La stellina si è spostata nella riga del titolo**, tutta a destra: sul
+  telefono in fondo alla riga dove c'è scritto «Calendario», sul computer in
+  fondo alla stessa riga, dopo i pulsanti. Stava in una striscia sua sopra la
+  pagina, che era un posto in più dove guardare.
+
+### Deciso
+
+- **Nel diario non finisce niente di quello che si scrive**: solo dove si è
+  andati, cosa si è premuto e cosa ha risposto il server. Un diario che
+  raccogliesse anche i contenuti sarebbe la registrazione di quello che la
+  gente fa, che è un'altra cosa da un registro dei guasti.
+- **Gli aggiornamenti non sono guasti.** Quando il messaggio compare solo
+  perché il gestionale è cambiato sotto una scheda rimasta aperta, non si
+  spedisce niente: riempirne il registro coprirebbe i difetti veri.
+- **La segnalazione non chiede permessi.** L'errore arriva proprio quando
+  qualcosa non funziona, e pretendere una sessione in ordine per poterlo
+  raccontare vorrebbe dire perdere esattamente i casi peggiori. Leggerli invece
+  è dell'admin: dentro ci sono indirizzi visitati e pile di chiamate.
+
+## 2.2.0 — 9 settembre 2026
+
+### Aggiunto
+
+- **I preferiti: il proprio menu, non un menu diverso per ruolo.** In alto a
+  destra, su ogni pagina, c'è una **stellina**: accesa, quella pagina finisce
+  fra i preferiti. Il gestionale ha una quarantina di schermate e nessuno le
+  usa tutte — chi tiene la cassa ne apre tre, un atleta due, e sono schermate
+  diverse. Invece di indovinare per ruolo, ognuno si compone le sue.
+- **Sul computer** i preferiti stanno in cima alla colonna, sopra tutti i
+  gruppi. **Sul telefono** sono le voci della barra in basso, dove arriva il
+  pollice: ci stanno i primi quattro, gli altri restano nel menu.
+- **Si riordinano tenendo premuto**: si preme finché la riga si stacca, si
+  trascina dove va, si lascia. Un gesto solo, dall'inizio alla fine, e funziona
+  anche sul telefono — dove il trascinamento HTML non esiste, ed è proprio lì
+  che l'ordine conta, perché decide cosa si ha sotto il pollice.
+- **Sul telefono, in alto a destra, la propria faccia e il proprio callsign**,
+  e si toccano per aprire il profilo. Sul computer quelle due cose stanno in
+  fondo alla colonna; sul telefono la colonna non c'è, e al profilo si
+  arrivava solo aprendo il menu.
+
+### Deciso
+
+- **La stellina compare solo dove la pagina è una voce di menu.** Sulla scheda
+  di una singola attività non c'è: un preferito è una porta, non un foglio, e
+  riempire il menu di indirizzi che fra un mese non vogliono più dire niente lo
+  renderebbe inutile.
+- **Si conserva solo l'indirizzo**, non l'etichetta né l'icona: quelle si
+  ripescano ogni volta dal menu vero. Così una voce rinominata si rinomina
+  anche qui, e una voce che una persona non può più vedere sparisce dai suoi
+  preferiti da sola, invece di restare a puntare su una porta chiusa.
+- **Dodici al massimo.** Oltre, non sono più una scorciatoia: sono un secondo
+  menu da cercare come il primo.
+
+## 2.1.0 — 9 settembre 2026
+
+### Aggiunto
+
+- **Il tipo di gara**, da un'anagrafica sua: 24 ore, scenario, speedsoft,
+  torneo a squadre. Si gestisce in *Tipi di gara* fra i dati di base, si
+  trascina per riordinarlo, e un formato che non si usa più si disattiva senza
+  cancellarlo — le gare dell'anno scorso non devono perdere il loro nome. È
+  una tabella a parte dalle tipologie di attività e non un doppione: la
+  tipologia dice **come il gestionale tratta** quella giornata (chi schiera,
+  che certificato serve, dove finisce la quota), il tipo di gara dice **che
+  gara è**, che riguarda chi gioca. I formati li inventano gli organizzatori,
+  quindi aggiungerne uno non deve voler dire fare un rilascio.
+- **La durata dichiarata**, in ore: la «24h» del volantino. Si scrive
+  sull'attività e compare accanto alle date, dove serve.
+- La tendina nasce già piena con **PCR, PLR, MILSIM, SMR**. Si aggiungono solo
+  se la tabella è vuota: chi li rinomina o ne toglie uno non se li ritrova
+  ricomparire al riavvio.
+
+### Deciso
+
+- **La durata dichiarata non si confronta con inizio e fine, ed è voluto.**
+  Una 24 ore si gioca dentro un fine settimana che parte il venerdì e finisce
+  la domenica, perché quello spazio va tenuto occupato tutto: si viaggia, si
+  monta, si dorme, si smonta. La gara dura quello che dice il volantino,
+  l'attività dura quello che occupa — sono due fatti diversi e nessuno dei due
+  è sbagliato. Un controllo che pretendesse di farli coincidere costringerebbe
+  a scrivere una data falsa per far tacere un avviso, ed è il modo più rapido
+  per rendere inaffidabile il calendario. Sotto il campo c'è scritto, così chi
+  compila non si mette a dubitare di aver sbagliato.
+
+## 2.0.0 — 9 settembre 2026
+
+**Il magazzino si stacca dalla vetrina.** Erano la stessa cosa, e non lo sono:
+per questo cambia il numero grosso.
+
+### Cambiato
+
+- **Il magazzino è un elenco di oggetti che il team ha in casa**, e basta.
+  Prima era una spunta sulla riga del merchandising — *questa la tengo* — e da
+  quella spunta veniva tutto quello che non tornava: si aggiungeva un
+  generatore alle scorte e ci si ritrovava in vetrina un generatore, e
+  toglierlo dalla vendita faceva scrivere «non si vende» su una cosa che si
+  teneva eccome. Adesso l’articolo di magazzino esiste per conto suo: ha un
+  nome, una categoria, una giacenza, e non sa niente di prezzi.
+- **Il merchandising è la vetrina**, e ci si mette quello che si decide di
+  mettere. Aggiungere merce al magazzino non la pubblica più: sono due
+  decisioni, e adesso sono due gesti. Tutt’e quattro i casi veri si possono
+  scrivere — lo tengo e non lo vendo (il generatore), lo vendo e non lo tengo
+  (le magliette, che si ordinano al fornitore a ogni giro), lo tengo e lo vendo
+  (le patch), lo metto in vetrina prima di averlo.
+- **Nel modulo di una voce c’è «da dove esce»** al posto della vecchia spunta:
+  o si ordina al fornitore a ogni giro, o si pesca da uno scaffale del
+  magazzino. Collegata a uno scaffale, la voce ha una giacenza che scende;
+  scollegata, non finisce mai. E se la stessa merce sta in vendita in due punti
+  del catalogo, la scatola da cui esce resta una sola.
+- **«Inventario» si chiama Magazzino**, che è la parola giusta: l’inventario è
+  il gesto di contare, il magazzino è il posto dove sta la roba.
+- Nel magazzino ogni articolo dice **se è in vetrina e dove**, e da lì lo si può
+  staccare senza toglierlo dalla vendita: resta in catalogo, si ordina al
+  fornitore.
+
+### Come passa la roba che c’è già
+
+Niente si perde. Ogni voce che era segnata a magazzino diventa un articolo con
+il suo nome, e **resta collegata** alla riga di vetrina da cui veniva: carichi,
+riordini e giacenze la seguono. Quello che in vetrina non doveva starci — il
+generatore, le bandiere — lo si stacca dalla pagina del magazzino, e
+l’annuncio in bozza che gli era nato intorno si cancella dal merchandising.
+
+### Tolto
+
+- **«Prendi dall’inventario»**, arrivato con la 1.32.0, non c’è più. Spostava
+  una voce da un articolo all’altro perché magazzino e catalogo erano la stessa
+  tabella: con due tabelle separate non c’è più niente da spostare, si collega e
+  basta — ed è il campo «da dove esce» del modulo.
+
+## 1.33.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Operatori ha una seconda faccia, per chi le persone le controlla invece di
+  gestirle.** Amministrazione, segreteria e team leader ci trovano un elenco
+  con una domanda sola: chi è a posto e chi no. Iscrizione della stagione in
+  corso, certificato medico — agonistico o no, con la scadenza e l’avviso un
+  mese prima — e tessera federale a fianco. Si cerca per nome, si filtra per
+  «da sistemare», e da ogni riga si apre la scheda. Niente ruoli da assegnare,
+  niente password da azzerare, niente euro: quella è la pagina dell’admin, e
+  resta sua.
+- **Le polizze giornaliere hanno una pagina loro.** Le attività in programma,
+  una card ciascuna, e dentro solo chi viene da fuori: se ha pagato, se è
+  coperto, e il pulsante per assicurarlo. Prima bisognava aprire il calendario,
+  entrare in ogni attività e ricostruire a mente chi fosse ospite, chi già
+  tesserato e chi in regola con la quota. Le attività di soli soci non
+  compaiono: non c’è niente da fare.
+- **Sul menu il pallino dice quante polizze aspettano**, e conta esattamente
+  quello che la pagina elenca — pagati, scoperti, con data e luogo di nascita
+  a posto.
+
+### Cambiato
+
+- **La polizza si attiva a quota saldata, dappertutto.** Una polizza consumata
+  la paga il club e non torna indietro: farla prima dell’incasso vuol dire
+  spendere per chi magari non viene. Vale anche dalla scheda dell’attività —
+  una regola scavalcabile dalla pagina accanto non è una regola. Chi non deve
+  niente (attività gratuita, giocata offerta) passa senza che nessuno chieda
+  nulla: non avere debiti non è come non averli saldati.
+- **Il debriefing lo vede chi gioca e chi porta in campo**: atleti, team
+  leader, admin. Un incarico da scrivania — amministrazione, segreteria,
+  moderazione — non lo apre più, perché non gli serve a niente e una voce che
+  non si usa mai allunga l’elenco a tutti. Chi amministra **e** gioca continua
+  a vederlo: basta avere uno dei ruoli giusti.
+
+### Corretto
+
+- **«Operatori» rimbalzava sulla home.** La voce c’era per amministrazione,
+  segreteria e team leader, ma la pagina la apriva solo l’admin: chi ci
+  cliccava si ritrovava sulla home senza sapere perché, che è il modo peggiore
+  di dire di no — sembra un guasto. Adesso l’indirizzo è uno e la pagina è
+  quella giusta per chi la apre.
+
+## 1.32.0 — 8 settembre 2026
+
+### Aggiunto
+
+- **Dal merchandising si prende la merce che c’è già in inventario.** Accanto
+  ad «Aggiungi voce» c’è *Prendi dall’inventario*: un elenco con la ricerca,
+  dove si legge da che articolo arriva ogni cosa e quanti pezzi ce ne sono in
+  casa. Un clic e la merce è qui, con la sua giacenza, i suoi carichi e i suoi
+  riordini attaccati. Serviva perché la roba nasce quasi sempre dall’altra
+  parte — prima si compra e si conta, poi si decide di venderla — e finisce in
+  un articolo creato lì per lì, in bozza: senza questa strada, chi mette in
+  piedi l’articolo vero la ribatte a mano, e da quel momento la stessa patch
+  è due righe, una in vetrina con giacenza zero e una che conta pezzi che
+  nessuno vede.
+- **Si sposta, non si copia**: in magazzino una cosa sta in un posto solo, o le
+  giacenze diventano due elenchi da tenere allineati a mano. La merce sparisce
+  dall’articolo dov’era e la chiocciola con cui la si nomina si rifà, perché
+  dev’essere libera dove arriva. L’inventario del team resta roba del team: nel
+  mercatino dell’usato non ci si porta niente.
+
 ## 1.31.2 — 8 settembre 2026
 
 ### Cambiato

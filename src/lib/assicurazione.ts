@@ -1,5 +1,7 @@
 import type { StatoAssicurazione, StatoOperatore } from '@prisma/client';
-import type { Tono } from './domain';
+import { prisma } from './db';
+import { vedeAttivitaSquadra, type Tono } from './domain';
+import { iniziali, nomeCompleto } from './format';
 
 /**
  * Chi gioca da ospite va coperto con una giornaliera.
@@ -37,3 +39,128 @@ export const TONO_ASSICURAZIONE: Record<StatoAssicurazione, Tono> = {
   ASSICURATO: 'ok',
   ERRORE: 'danger',
 };
+
+/**
+ * La quota di un'attività è saldata?
+ *
+ * Nessuna quota vuol dire niente da pagare — un'attività gratuita, o una
+ * riserva che il posto non ce l'ha — e non "non ha pagato": trattarli allo
+ * stesso modo bloccherebbe la copertura di chi non deve un euro a nessuno.
+ */
+export const quotaSaldata = (quota: { status: string } | null | undefined) =>
+  !quota || quota.status === 'PAGATO';
+
+export type NuovoDaCoprire = {
+  id: string;
+  /** Per esteso, callsign compreso: chi apre questa pagina segue le persone. */
+  nome: string;
+  iniziali: string;
+  stato: StatoOperatore;
+  /** Ha risposto "forse": conta comunque, ma non è ancora detto che venga. */
+  forse: boolean;
+  /** Gli serve la giornaliera, o ha già un'annuale valida quel giorno. */
+  serve: boolean;
+  copertura: StatoAssicurazione;
+  codice: string | null;
+  /** La quota di quella giornata è saldata. Quanto sia, qui, non si dice. */
+  pagato: boolean;
+  /** Ha una quota aperta: senza, "non pagato" non vorrebbe dire niente. */
+  haQuota: boolean;
+  /** Senza data e luogo di nascita il portale non emette niente. */
+  datiCompleti: boolean;
+};
+
+export type AttivitaDaCoprire = {
+  id: string;
+  titolo: string;
+  quando: Date;
+  tipo: string | null;
+  dove: string | null;
+  nuovi: NuovoDaCoprire[];
+  /** Quanti aspettano davvero una polizza: pagati, scoperti, con i dati a posto. */
+  daFare: number;
+};
+
+/**
+ * Le attività in programma con gli ospiti che ci vengono.
+ *
+ * Sta qui e non nella pagina perché la stessa risposta serve al pallino del
+ * menu: contare le cose da fare con una query diversa da quella che le mostra
+ * è il modo sicuro per avere un pallino che dice tre e una pagina che ne
+ * elenca due.
+ *
+ * Solo le attività **rilasciate e non ancora passate**: su una giocata di
+ * marzo non c'è più niente da assicurare, e su una bozza non si è ancora
+ * segnato nessuno.
+ */
+export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
+  const eventi = await prisma.event.findMany({
+    where: { status: 'RILASCIATA', inizio: { gte: oggi } },
+    orderBy: { inizio: 'asc' },
+    include: {
+      tipo: { select: { nome: true } },
+      field: { select: { nome: true } },
+      giornaliere: { select: { userId: true, stato: true, codice: true } },
+      // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
+      payments: { where: { tipo: { not: 'RIMBORSO' } }, select: { userId: true, status: true } },
+      rsvps: {
+        where: { status: { not: 'ASSENTE' } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              nome: true,
+              cognome: true,
+              callsign: true,
+              stato: true,
+              dataNascita: true,
+              luogoNascita: true,
+              figtCards: { select: { status: true, scadeIl: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return eventi.map((e) => {
+    const coperture = new Map(e.giornaliere.map((g) => [g.userId, g]));
+    const quote = new Map(e.payments.map((p) => [p.userId, p]));
+
+    const nuovi = e.rsvps
+      .filter((r) => !vedeAttivitaSquadra(r.user.stato))
+      .map((r) => {
+        const g = coperture.get(r.userId);
+        const quota = quote.get(r.userId) ?? null;
+        return {
+          id: r.userId,
+          nome: nomeCompleto(r.user),
+          iniziali: iniziali(r.user.nome, r.user.cognome),
+          stato: r.user.stato,
+          forse: r.status === 'FORSE',
+          serve: serveGiornaliera(false, r.user.stato, r.user.figtCards, e.inizio),
+          copertura: g?.stato ?? 'NON_ASSICURATO',
+          codice: g?.codice ?? null,
+          pagato: quotaSaldata(quota),
+          haQuota: quota !== null,
+          datiCompleti: r.user.dataNascita !== null && r.user.luogoNascita !== null,
+        } satisfies NuovoDaCoprire;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+
+    return {
+      id: e.id,
+      titolo: e.titolo,
+      quando: e.inizio,
+      tipo: e.tipo?.nome ?? null,
+      dove: e.field?.nome ?? e.luogo ?? null,
+      nuovi,
+      daFare: nuovi.filter(
+        (n) => n.serve && n.copertura !== 'ASSICURATO' && n.pagato && n.datiCompleti,
+      ).length,
+    };
+  });
+}
