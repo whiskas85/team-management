@@ -52,9 +52,15 @@ export async function listinoAttivo() {
  * dettaglio di cosa la compone.
  *
  * Gli importi si rileggono sempre dal database, mai dal modulo, così nessuno
- * può farsi lo sconto ritoccando la pagina. Un importo scritto a mano ha la
- * precedenza sulla somma: è lì che si regala una giocata (0) o si chiede una
- * cifra tonda diversa dal listino.
+ * può farsi lo sconto ritoccando la pagina.
+ *
+ * Sulle attività l'importo scritto a mano **si somma** alle voci: 40 € di corso
+ * più la voce «Costo Partita» da 10 fanno 50, che è come lo legge chi lo
+ * scrive. Prima vinceva sulla somma, e il dettaglio diceva «importo fissato a
+ * 40» mentre chi l'aveva composto si aspettava 50. Zero senza voci resta il modo
+ * di regalare una giocata. Le iscrizioni tengono la regola di prima — lì
+ * l'importo scritto a mano sostituisce lo spaccato — ed è per questo che è
+ * un'opzione e non il comportamento di tutti.
  */
 export async function componiQuota(
   fd: FormData,
@@ -63,12 +69,15 @@ export async function componiQuota(
     importo: campoImporto,
     stagioneId,
     giorni = 1,
+    sommaAMano = false,
   }: {
     voci: string;
     importo: string;
     stagioneId: string | null;
     /** Quanti giorni occupa l'attività: le voci «al giorno» contano per ognuno. */
     giorni?: number;
+    /** L'importo scritto a mano si aggiunge alle voci invece di sostituirle. */
+    sommaAMano?: boolean;
   },
 ): Promise<{ quota: number | null; dettaglio: string | null }> {
   const aMano = num(fd, campoImporto);
@@ -102,8 +111,15 @@ export async function componiQuota(
     )
     .join(' + ');
 
-  // se l'importo scritto a mano non è la somma delle voci il dettaglio da solo
-  // mentirebbe: si dice che è stato forzato, invece di far tornare i conti a chi legge
+  // sulle attività l'importo scritto a mano si aggiunge alle voci, e il
+  // dettaglio lo mette in testa: chi legge la quota rifà il conto da solo
+  if (sommaAMano) {
+    if (aMano === null || aMano === 0) return { quota: somma, dettaglio: spaccato };
+    return { quota: aMano + somma, dettaglio: `importo ${aMano.toFixed(2)} € + ${spaccato}` };
+  }
+
+  // altrove l'importo scritto a mano sostituisce la somma: se non coincide il
+  // dettaglio da solo mentirebbe, e si dice che è stato fissato
   const forzato = aMano !== null && aMano !== somma;
   const dettaglio = forzato ? `${spaccato} · importo fissato a ${aMano.toFixed(2)} €` : spaccato;
 

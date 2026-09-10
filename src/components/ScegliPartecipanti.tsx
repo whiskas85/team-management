@@ -265,7 +265,7 @@ function PrezzoPerEsterni({ listino, stagioneId, giorni, puoImpostare }: PrezzoE
         <Quota
           titolo="Quota esterni"
           icona="nuovi"
-          spiega="Quanto paga chi in squadra non è. Zero: offerta."
+          spiega="Quanto paga chi in squadra non è: importo e voci si sommano. Zero, senza voci: offerta."
           campoImporto="costoEsterni"
           campoVoci="tariffeEsterni"
           voci={voci}

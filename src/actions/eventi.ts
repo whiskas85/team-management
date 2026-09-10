@@ -89,12 +89,14 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     importo: 'costo',
     stagioneId,
     giorni,
+    sommaAMano: true,
   });
   const esterni = await componiQuota(fd, {
     voci: 'tariffeEsterni',
     importo: 'costoEsterni',
     stagioneId,
     giorni,
+    sommaAMano: true,
   });
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
@@ -764,6 +766,7 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
       importo: 'costoEsterni',
       stagioneId: evento.stagioneId,
       giorni: giorniDi(evento.inizio, evento.fine).length,
+      sommaAMano: true,
     });
     if (esterni.quota === null) {
       return {

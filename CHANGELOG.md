@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.14.3 — 10 settembre 2026
+
+### Corretto
+
+- **Nelle quote delle attività l'importo scritto a mano si somma alle voci.**
+  40 € di corso più la voce «Costo Partita» da 10 facevano 40, con il
+  dettaglio «importo fissato a 40 €»: l'importo a mano vinceva sulla somma.
+  Adesso fanno 50, come si legge, e il dettaglio lo scrive per intero —
+  «importo 40,00 € + Costo Partita 10,00 €». Sotto la card il totale si vede
+  mentre si compone. Zero senza voci resta il modo di regalare la giocata.
+- Vale per le due quote dell'attività e per il prezzo esterni chiesto quando
+  si aggiunge un nuovo. Le quote di iscrizione non cambiano: lì l'importo
+  scritto a mano sostituisce ancora lo spaccato.
+- Le quote già salvate restano quelle che erano: per rifarle si riapre
+  l'attività, si rispunta la voce e si salva.
+
 ## 2.14.2 — 10 settembre 2026
 
 ### Corretto

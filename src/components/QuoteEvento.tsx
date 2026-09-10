@@ -14,8 +14,9 @@ import type { VoceListino } from './CampiRichiesta';
  * e su una giocata la voce marcata "giocata esterni" arriva già selezionata,
  * così il caso normale non si configura ogni volta.
  *
- * L'importo scritto a mano vince sulla somma: è lì che si regala una giocata
- * (zero) o si chiede una cifra diversa dal listino.
+ * L'importo scritto a mano **si somma** alle voci spuntate: 40 € di corso più
+ * «Costo Partita» da 10 fanno 50, e il totale si legge sotto mentre si
+ * compone. Zero, senza voci, è una giocata regalata.
  */
 /**
  * Le voci del listino che riguardano le attività, per la stagione giusta.
@@ -92,7 +93,7 @@ export function QuoteEvento({
         <Quota
           titolo="Quota esterni"
           icona="nuovi"
-          spiega="Quanto paga chi in squadra non è. Vuoto: pagano come la squadra; zero: offerta."
+          spiega="Quanto paga chi in squadra non è: importo e voci si sommano. Vuoto e senza voci: pagano come la squadra; zero: offerta."
           campoImporto="costoEsterni"
           campoVoci="tariffeEsterni"
           giorni={giorni}
@@ -132,6 +133,8 @@ export function Quota({
   giorni?: number;
 }) {
   const [scelte, setScelte] = useState<Set<string>>(() => new Set(iniziali));
+  // l'importo si tiene in mano per poter scrivere il totale mentre si compone
+  const [aMano, setAMano] = useState(importo != null ? String(importo) : '');
 
   const commuta = (id: string) =>
     setScelte((s) => {
@@ -147,6 +150,9 @@ export function Quota({
     .filter((v) => scelte.has(v.id))
     .reduce((t, v) => t + v.importo * volte(v), 0);
   const conGiorni = voci.some((v) => scelte.has(v.id) && v.perGiorno);
+  // l'importo scritto a mano si aggiunge alle voci: 40 più 10 fa 50
+  const base = Number(aMano) || 0;
+  const complessivo = base + totale;
 
   return (
     <div className="rounded-lg border border-line bg-surface2/40 p-3">
@@ -164,9 +170,10 @@ export function Quota({
           type="number"
           step="0.01"
           min="0"
-          defaultValue={importo ?? ''}
+          value={aMano}
+          onChange={(e) => setAMano(e.target.value)}
           className="input"
-          placeholder={scelte.size > 0 ? `dal listino: ${totale.toFixed(2)}` : 'niente da pagare'}
+          placeholder={scelte.size > 0 ? 'si aggiunge alle voci' : 'niente da pagare'}
         />
       </Campo>
 
@@ -208,9 +215,18 @@ export function Quota({
 
           {scelte.size > 0 && (
             <p className="num mt-2 text-xs text-muted">
-              Dal listino: <strong className="text-nvg">{totale.toFixed(2)} €</strong>
+              {base > 0 ? (
+                <>
+                  {base.toFixed(2)} € + voci {totale.toFixed(2)} € ={' '}
+                  <strong className="text-nvg">{complessivo.toFixed(2)} €</strong>
+                </>
+              ) : (
+                <>
+                  Dal listino: <strong className="text-nvg">{totale.toFixed(2)} €</strong>
+                </>
+              )}
               {' · '}
-              lasciando vuoto l’importo si chiede questo
+              è quello che si chiede
             </p>
           )}
           {conGiorni && (
