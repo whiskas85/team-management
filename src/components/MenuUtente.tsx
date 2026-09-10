@@ -106,12 +106,16 @@ export function MenuUtente({
 
       <div
         // ancorato all'angolo in alto a destra: è il punto che non si muove, e
-        // per questo la crescita si legge come un'apertura e non come un salto
+        // per questo la crescita si legge come un'apertura e non come un salto.
+        // Il raggio degli angoli è lo stesso aperto e chiuso, e non si anima:
+        // sul chip, alto 38px, 20px vengono tagliati a metà altezza e fanno già
+        // la pillola da soli. Passare da «tondo al massimo» a 16px, invece,
+        // teneva il riquadro tagliato a cerchio per quasi tutta l'apertura
         style={{ width: aperto ? APERTO : chiuso }}
-        className={`absolute right-0 top-0 z-50 overflow-hidden transition-[width,border-radius,background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none ${
+        className={`absolute right-0 top-0 z-50 overflow-hidden rounded-[20px] transition-[width,background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none ${
           aperto
-            ? 'rounded-2xl border border-line bg-surface shadow-2xl'
-            : 'rounded-full border border-transparent hover:bg-surface2'
+            ? 'border border-line bg-surface shadow-2xl'
+            : 'border border-transparent hover:bg-surface2'
         }`}
       >
         <button

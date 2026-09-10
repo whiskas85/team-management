@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.13.1 — 10 settembre 2026
+
+### Corretto
+
+- **Il chip in alto a destra si apre senza passare per un cerchio.** Da chiuso
+  aveva gli angoli tondi al massimo, da aperto normali: animando dall'uno
+  all'altro, per quasi tutta l'apertura il riquadro che cresceva restava
+  tagliato a cerchio, e diventava un rettangolo solo alla fine. Adesso il
+  raggio è lo stesso nei due stati — sul chip, che è basso, fa già la pillola
+  da solo — e a crescere sono soltanto larghezza e altezza.
+
 ## 2.13.0 — 10 settembre 2026
 
 ### Aggiunto
