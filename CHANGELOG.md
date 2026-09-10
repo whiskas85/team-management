@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.14.0 — 10 settembre 2026
+
+### Cambiato
+
+- **La schermata di accesso ha la faccia da terminale.** Il titolo ZERO DARK in
+  lettere a pixel attraversate dalle righe dei fosfori, con l'alone verde e il
+  contorno doppio; sotto, la card «Accesso protetto» con i campi neri, il
+  pulsante «[ AUTENTICAZIONE ]» e l'errore in una fascia rossa proprio sotto il
+  pulsante, dove si guarda dopo averlo premuto.
+- In fondo alla card le righe da terminale si accendono una alla volta, e
+  **dicono cose vere**: che il gestionale risponde, che versione gira, se si è in
+  produzione o nel test — in giallo, perché confondere i due ambienti vuol dire
+  scrivere sui dati veri credendo di giocare — e se l'accesso rapido di prova è
+  attivo. Una scritta tipo «crittografia AES-512 attiva» farebbe scena, ma
+  AES-512 non esiste, e una bugia sulla sicurezza sulla porta d'ingresso è
+  l'ultima cosa da mettere davanti a chi ci lascia i suoi dati.
+- I caratteri da terminale valgono **solo qui**: il resto del gestionale resta
+  senza monospazio, com'era stato deciso, perché si legge per ore. Arrivano con
+  la build e li serve il nostro server: chi apre la pagina non manda niente a
+  Google.
+- Si entra come prima, con l'email o con il callsign, e «ricordami» c'è ancora.
+  Chi ha chiesto al sistema meno animazioni trova le righe già accese.
+
 ## 2.13.1 — 10 settembre 2026
 
 ### Corretto

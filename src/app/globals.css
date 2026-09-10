@@ -131,3 +131,159 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--nvg-dim);
 }
+
+/* ------------------------------------------------------------------ login
+   La sola schermata con la faccia da terminale. I tre caratteri arrivano da
+   next/font sulla pagina di accesso e fuori di lì non esistono: le variabili
+   --font-* le definisce il suo contenitore, quindi queste regole non possono
+   cambiare il resto del gestionale nemmeno per sbaglio. */
+
+.login-schermo {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 38%, rgba(76, 255, 0, 0.1), transparent 70%),
+    transparent;
+}
+
+.login-pixel {
+  font-family: var(--font-pixel), monospace;
+}
+
+.login-display {
+  font-family: var(--font-display), sans-serif;
+}
+
+.login-terminale {
+  font-family: var(--font-terminale), monospace;
+}
+
+/* Il titolo: lettere a pixel attraversate dalle righe dei fosfori, un alone
+   verde, e sotto una copia vuota spostata in basso a destra che fa il
+   contorno doppio. text-shadow con il testo "ritagliato" non funziona, per
+   questo l'alone è un filtro. */
+.login-titolo {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  font-family: var(--font-pixel), monospace;
+  font-weight: 700;
+  font-size: clamp(2.2rem, 8.5vw, 6rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  background: repeating-linear-gradient(to bottom, #7dff3a 0 3px, #2fbf00 3px 4px);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(76, 255, 0, 0.65)) drop-shadow(0 0 20px rgba(76, 255, 0, 0.3));
+}
+
+.login-titolo::after {
+  content: attr(data-testo);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translate(0.06em, 0.08em);
+  background: none;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1px rgba(76, 255, 0, 0.5);
+  pointer-events: none;
+}
+
+.login-card {
+  border: 1px solid rgba(76, 255, 0, 0.45);
+  background: rgba(3, 8, 3, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(76, 255, 0, 0.06),
+    0 0 44px -10px rgba(76, 255, 0, 0.35),
+    inset 0 0 60px rgba(76, 255, 0, 0.04);
+}
+
+.login-campo {
+  width: 100%;
+  border: 1px solid rgba(76, 255, 0, 0.35);
+  background: #000;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-terminale), monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  color: var(--nvg);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.login-campo::placeholder {
+  color: rgba(76, 255, 0, 0.3);
+}
+
+.login-campo:focus {
+  border-color: var(--nvg);
+  box-shadow:
+    0 0 0 1px rgba(76, 255, 0, 0.4),
+    0 0 18px -4px rgba(76, 255, 0, 0.6);
+}
+
+.login-pulsante {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--nvg);
+  background: transparent;
+  padding: 0.9rem 1rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(0.95rem, 3vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--nvg);
+  text-shadow: 0 0 8px rgba(76, 255, 0, 0.7);
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.login-pulsante:hover:not(:disabled) {
+  background: rgba(76, 255, 0, 0.08);
+  box-shadow: 0 0 26px -6px rgba(76, 255, 0, 0.8);
+}
+
+.login-pulsante:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/* le righe del terminale si accendono una dopo l'altra: il ritardo lo mette
+   il componente, qui c'è solo il gradino da spento ad acceso */
+.login-riga {
+  opacity: 0;
+  animation: login-accendi 0.01s steps(1) forwards;
+}
+
+@keyframes login-accendi {
+  to {
+    opacity: 1;
+  }
+}
+
+.login-cursore::after {
+  content: '▋';
+  margin-left: 0.25em;
+  color: var(--nvg);
+  animation: login-lampeggia 1s steps(1) infinite;
+}
+
+@keyframes login-lampeggia {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-riga {
+    animation: none;
+    opacity: 1;
+  }
+
+  .login-cursore::after {
+    animation: none;
+  }
+}
