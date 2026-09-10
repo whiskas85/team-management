@@ -201,9 +201,9 @@ body {
   width: 100%;
   border: 1px solid rgba(76, 255, 0, 0.35);
   background: #000;
-  padding: 0.75rem 1rem;
+  padding: 0.55rem 0.85rem;
   font-family: var(--font-terminale), monospace;
-  font-size: 1.05rem;
+  font-size: 1rem;
   letter-spacing: 0.06em;
   color: var(--nvg);
   outline: none;
@@ -229,7 +229,7 @@ body {
   justify-content: center;
   border: 1px solid var(--nvg);
   background: transparent;
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 1rem;
   font-family: var(--font-display), sans-serif;
   font-size: clamp(0.95rem, 3vw, 1.15rem);
   font-weight: 700;
@@ -258,11 +258,11 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(76, 255, 0, 0.6);
-  padding: 0.6rem 1.4rem;
+  padding: 0.45rem 0.9rem;
   font-family: var(--font-display), sans-serif;
   font-size: clamp(0.85rem, 2.6vw, 1rem);
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   color: var(--nvg);
   text-shadow: 0 0 8px rgba(76, 255, 0, 0.6);
   transition:
@@ -313,5 +313,48 @@ body {
 
   .login-cursore::after {
     animation: none;
+  }
+}
+
+/* Sul telefono la porta sta in uno schermo solo, senza scorrere: sotto il
+   bordo finivano proprio il pulsante per registrarsi e le righe del
+   terminale. Campi e pulsanti partono stretti, e da tablet in su tornano
+   com'erano. */
+@media (min-width: 640px) {
+  .login-campo {
+    padding: 0.75rem 1rem;
+    font-size: 1.05rem;
+  }
+
+  .login-pulsante {
+    padding: 0.9rem 1rem;
+  }
+
+  .login-pulsante-secondario {
+    padding: 0.6rem 1.4rem;
+    letter-spacing: 0.15em;
+  }
+}
+
+/* Telefoni bassi: dove stringere non basta, cede prima quello che si può
+   perdere. Sotto i 700px d'altezza se ne va il marchio con il logo; sotto i
+   600 anche i sottotitoli e le righe del terminale — tranne quella che dice in
+   che ambiente si è, che sulla porta del test è l'avviso che conta. Solo sul
+   telefono: una finestra bassa sul computer ha spazio in larghezza e scorre
+   senza fastidio. */
+@media (max-width: 639px) and (max-height: 700px) {
+  .login-marchio {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) and (max-height: 600px) {
+  .login-sottotitolo,
+  .login-riga-accessoria {
+    display: none;
+  }
+
+  .login-titolo {
+    font-size: 1.9rem;
   }
 }

@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.14.2 — 10 settembre 2026
+
+### Corretto
+
+- **Sul telefono la schermata di accesso sta tutta in uno schermo.** Il
+  pulsante per registrarsi e le righe del terminale finivano sotto il bordo, e
+  per vederli bisognava scorrere: chi arrivava per la prima volta non vedeva
+  proprio il pulsante che gli serviva. Adesso sugli schermi stretti margini,
+  campi e pulsanti si stringono, il logo è più piccolo, «Nuovo operatore?» e
+  «[ REGISTRATI ]» stanno sulla stessa riga, e gli spazi si misurano
+  sull'altezza dello schermo — su un telefono più basso si stringono di più.
+- Sui telefoni più bassi, dove stringere non basta, cede prima quello che si
+  può perdere: sotto i 700px d'altezza il marchio con il logo, sotto i 600
+  anche i sottotitoli e le righe del terminale. Resta sempre quella che dice
+  in che ambiente si è, perché sulla porta del test è l'avviso che conta. Da
+  tablet in su resta com'era.
+
 ## 2.14.1 — 10 settembre 2026
 
 ### Cambiato

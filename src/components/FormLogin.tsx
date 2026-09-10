@@ -6,7 +6,13 @@ import { useFormStatus } from 'react-dom';
 import { accedi, type StatoForm } from '@/actions/auth';
 
 /** Una riga da terminale sotto il modulo. Dice una cosa vera, non fa solo scena. */
-export type RigaTerminale = { testo: string; esito: string; tono?: 'ok' | 'warn' };
+export type RigaTerminale = {
+  testo: string;
+  esito: string;
+  tono?: 'ok' | 'warn';
+  /** Resta anche sui telefoni più bassi, quando le altre righe cedono il posto. */
+  essenziale?: boolean;
+};
 
 /**
  * Il modulo di accesso, con la faccia da terminale.
@@ -20,21 +26,21 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
   const [stato, azione] = useActionState(accedi, {} as StatoForm);
 
   return (
-    <div className="login-card px-6 py-8 sm:px-12 sm:py-10">
-      <div className="mb-8 text-center">
+    <div className="login-card px-5 py-[clamp(1rem,3dvh,2rem)] sm:px-12 sm:py-10">
+      <div className="mb-[clamp(0.75rem,2.5dvh,2rem)] text-center">
         <h2 className="login-display text-[clamp(1.15rem,4vw,1.9rem)] font-bold tracking-[0.12em] text-nvg [text-shadow:0_0_12px_rgba(76,255,0,.6)]">
           ACCESSO PROTETTO
         </h2>
-        <p className="login-terminale mt-2 text-[clamp(0.8rem,2.4vw,1.1rem)] tracking-[0.18em] text-nvg/45">
+        <p className="login-sottotitolo login-terminale mt-1 text-[clamp(0.75rem,2.4vw,1.1rem)] tracking-[0.18em] text-nvg/45 sm:mt-2">
           INSERIRE CREDENZIALI OPERATIVE
         </p>
       </div>
 
-      <form action={azione} className="space-y-6">
+      <form action={azione} className="space-y-[clamp(0.75rem,2dvh,1.5rem)]">
         <div>
           <label
             htmlFor="email"
-            className="login-terminale mb-2 block text-[1.05rem] tracking-[0.16em] text-nvg/80"
+            className="login-terminale mb-1.5 block text-[0.9rem] tracking-[0.12em] text-nvg/80 sm:mb-2 sm:text-[1.05rem] sm:tracking-[0.16em]"
           >
             » IDENTIFICATIVO OPERATIVO
           </label>
@@ -56,7 +62,7 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
         <div>
           <label
             htmlFor="password"
-            className="login-terminale mb-2 block text-[1.05rem] tracking-[0.16em] text-nvg/80"
+            className="login-terminale mb-1.5 block text-[0.9rem] tracking-[0.12em] text-nvg/80 sm:mb-2 sm:text-[1.05rem] sm:tracking-[0.16em]"
           >
             » CODICE DI ACCESSO
           </label>
@@ -71,7 +77,7 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
           />
         </div>
 
-        <label className="login-terminale flex cursor-pointer items-center gap-2.5 text-sm tracking-[0.12em] text-nvg/60">
+        <label className="login-terminale flex cursor-pointer items-center gap-2.5 text-xs tracking-[0.08em] text-nvg/60 sm:text-sm sm:tracking-[0.12em]">
           <input
             type="checkbox"
             name="ricordami"
@@ -98,8 +104,8 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
       {/* Chi non ha ancora un account deve trovare la porta subito: in fondo,
           scritta come le righe del terminale, sembrava una scritta di contorno.
           Adesso ha un pulsante suo, secondo solo ad «Autenticazione». */}
-      <div className="mt-8 flex flex-col items-center gap-3 border-t border-nvg/15 pt-6 sm:flex-row sm:justify-center sm:gap-4">
-        <span className="login-terminale text-[1.05rem] tracking-[0.14em] text-nvg/75">
+      <div className="mt-[clamp(0.75rem,2dvh,2rem)] flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-nvg/15 pt-[clamp(0.75rem,2dvh,1.5rem)] sm:gap-4">
+        <span className="login-terminale text-[0.85rem] tracking-[0.1em] text-nvg/75 sm:text-[1.05rem] sm:tracking-[0.14em]">
           &gt; NUOVO OPERATORE?
         </span>
         <Link href="/register" className="login-pulsante-secondario">
@@ -109,11 +115,13 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
 
       {/* si accendono una alla volta, come un terminale che si collega; chi ha
           chiesto meno animazioni le trova già accese */}
-      <div className="login-terminale mt-6 space-y-2 text-center text-[clamp(0.78rem,2.3vw,1.02rem)] tracking-[0.12em] text-nvg/45">
+      <div className="login-terminale mt-[clamp(0.5rem,1.5dvh,1.5rem)] space-y-0.5 text-center text-[clamp(0.7rem,2.3vw,1.02rem)] tracking-[0.08em] text-nvg/45 sm:space-y-2 sm:tracking-[0.12em]">
         {righe.map((r, i) => (
           <p
             key={r.testo}
-            className={`login-riga ${i === righe.length - 1 ? 'login-cursore' : ''}`}
+            className={`login-riga ${r.essenziale ? '' : 'login-riga-accessoria'} ${
+              i === righe.length - 1 ? 'login-cursore' : ''
+            }`}
             style={{ animationDelay: `${300 + i * 350}ms` }}
           >
             &gt; {r.testo} ...{' '}

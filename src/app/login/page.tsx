@@ -72,6 +72,14 @@ export const dynamic = 'force-dynamic';
  * «crittografia AES-512 attiva» farebbe atmosfera, ma AES-512 non esiste, e una
  * bugia sulla sicurezza proprio sulla porta d'ingresso è l'ultima cosa da
  * mettere davanti a chi deve fidarsi a lasciarci i suoi dati.
+ *
+ * **Sul telefono sta tutta in uno schermo**, senza scorrere: sotto il bordo
+ * finivano proprio il pulsante per registrarsi e le righe del terminale. Gli
+ * spazi verticali si misurano sull'altezza dello schermo (dvh), così su un
+ * telefono più basso si stringono di più; da tablet in su resta ariosa.
+ * Dove stringere non basta cede prima quello che si può perdere — il marchio,
+ * poi i sottotitoli e le righe del terminale — e resta sempre quella che dice
+ * in che ambiente si è.
  */
 export default function LoginPage() {
   const debug = process.env.DEBUG_LOGIN === '1';
@@ -80,26 +88,36 @@ export default function LoginPage() {
     { testo: 'CONNESSIONE AL GESTIONALE', esito: 'OK' },
     { testo: 'VERSIONE', esito: `v${VERSIONE}` },
     // il test si deve riconoscere a colpo d'occhio anche qui: confondere i due
-    // ambienti vuol dire scrivere sui dati veri credendo di giocare
-    { testo: 'AMBIENTE', esito: inTest ? 'TEST' : 'PRODUZIONE', tono: inTest ? 'warn' : 'ok' },
+    // ambienti vuol dire scrivere sui dati veri credendo di giocare. Per
+    // questo è l'unica riga che resta anche sui telefoni più bassi
+    {
+      testo: 'AMBIENTE',
+      esito: inTest ? 'TEST' : 'PRODUZIONE',
+      tono: inTest ? 'warn' : 'ok',
+      essenziale: true,
+    },
     ...(debug ? [{ testo: 'ACCESSO RAPIDO DI PROVA', esito: 'ATTIVO', tono: 'warn' as const }] : []),
   ];
 
   return (
     <main
-      className={`${pixel.variable} ${titoli.variable} ${terminale.variable} login-schermo flex min-h-screen items-center justify-center px-4 py-10`}
+      className={`${pixel.variable} ${titoli.variable} ${terminale.variable} login-schermo flex min-h-[100dvh] items-center justify-center px-4 py-[clamp(0.75rem,3dvh,2.5rem)]`}
     >
       <div className="w-full max-w-5xl">
-        <header className="mb-10 flex flex-col items-center text-center">
+        <header className="mb-[clamp(0.75rem,2.5dvh,2.5rem)] flex flex-col items-center text-center">
           <h1 className="login-titolo" data-testo="ZERO DARK">
             ZERO DARK
           </h1>
-          <p className="login-display mt-5 text-[clamp(0.7rem,2.2vw,1rem)] font-medium tracking-[0.32em] text-nvg/75">
+          <p className="login-sottotitolo login-display mt-[clamp(0.25rem,1dvh,1.25rem)] text-[clamp(0.7rem,2.2vw,1rem)] font-medium tracking-[0.32em] text-nvg/75">
             OPS // GESTIONALE OPERATIVO
           </p>
 
-          <div className="mt-6 flex items-center gap-3">
-            <span className="rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40">
+          <div className="login-marchio mt-[clamp(0.5rem,1.5dvh,1.5rem)] flex items-center gap-3">
+            {/* più piccolo sul telefono: la porta deve stare in uno schermo */}
+            <span className="rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40 sm:hidden">
+              <Logo size={36} />
+            </span>
+            <span className="hidden rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40 sm:inline-flex">
               <Logo size={52} />
             </span>
             <span className="text-left leading-tight">
