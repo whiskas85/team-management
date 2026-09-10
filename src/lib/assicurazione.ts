@@ -40,6 +40,60 @@ export const TONO_ASSICURAZIONE: Record<StatoAssicurazione, Tono> = {
   ERRORE: 'danger',
 };
 
+/** Oltre questo, un'attività non è di più giorni: è una data di fine sbagliata. */
+const MAX_GIORNI = 7;
+
+/** «2026-09-12»: il giorno letto sull'ora di qui, come lo vuole il portale nel modulo. */
+export const chiaveGiorno = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Da una colonna DATE, che arriva a mezzanotte UTC: qui si leggono i campi UTC. */
+export const chiaveDaColonna = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Il giorno come lo vuole una colonna DATE: mezzanotte UTC, nessuna ora che lo faccia scivolare. */
+export const giornoDaChiave = (chiave: string): Date | null => {
+  const m = chiave.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : null;
+};
+
+/** La mezzanotte di qui di quel giorno: per il portale, per le tessere, per l'età. */
+export const dataLocale = (chiave: string) => {
+  const [a, m, g] = chiave.split('-').map(Number);
+  return new Date(a, m - 1, g);
+};
+
+const giornoCorto = new Intl.DateTimeFormat('it-IT', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
+
+/** «sab 12 set»: abbastanza per distinguere due giorni della stessa attività. */
+export const etichettaGiorno = (chiave: string) => giornoCorto.format(dataLocale(chiave));
+
+/**
+ * I giorni che un'attività occupa, uno per polizza.
+ *
+ * La giornaliera vale fino alle 24:00 del giorno della prova: una 24 ore che
+ * parte sabato pomeriggio e finisce domenica ne vuole due. Una fine a
+ * mezzanotte esatta non apre un giorno nuovo — chi smette alle 00:00 ha giocato
+ * il giorno prima.
+ */
+export function giorniDi(inizio: Date, fine: Date | null): string[] {
+  let ultimo = fine && fine > inizio ? fine : inizio;
+  if (ultimo > inizio && ultimo.getHours() === 0 && ultimo.getMinutes() === 0) {
+    ultimo = new Date(ultimo.getTime() - 1);
+  }
+  const giorni: string[] = [];
+  const d = new Date(inizio.getFullYear(), inizio.getMonth(), inizio.getDate());
+  const fino = new Date(ultimo.getFullYear(), ultimo.getMonth(), ultimo.getDate());
+  while (d <= fino && giorni.length < MAX_GIORNI) {
+    giorni.push(chiaveGiorno(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return giorni;
+}
+
 /**
  * La quota di un'attività è saldata?
  *
@@ -66,6 +120,16 @@ export const quotaOnorata = (
   quota: { status: string; dichiaratoIl: Date | null } | null | undefined,
 ) => quotaSaldata(quota) || quota?.dichiaratoIl != null;
 
+/** La copertura di un ospite in un giorno dell'attività. */
+export type GiornoDaCoprire = {
+  /** «2026-09-12». */
+  giorno: string;
+  /** Gli serve la giornaliera, o ha già un'annuale valida quel giorno. */
+  serve: boolean;
+  copertura: StatoAssicurazione;
+  codice: string | null;
+};
+
 export type NuovoDaCoprire = {
   id: string;
   /** Per esteso, callsign compreso: chi apre questa pagina segue le persone. */
@@ -74,10 +138,11 @@ export type NuovoDaCoprire = {
   stato: StatoOperatore;
   /** Ha risposto "forse": conta comunque, ma non è ancora detto che venga. */
   forse: boolean;
-  /** Gli serve la giornaliera, o ha già un'annuale valida quel giorno. */
-  serve: boolean;
-  copertura: StatoAssicurazione;
-  codice: string | null;
+  /**
+   * Un'attività di due giorni vuole due polizze: una voce per giorno, e
+   * ognuna si fa per conto suo.
+   */
+  giorni: GiornoDaCoprire[];
   /** Ha detto lui di aver pagato: la segreteria deve ancora confermare. */
   dichiarata: boolean;
   /** Saldata o dichiarata: è la condizione per poterlo assicurare. */
@@ -96,8 +161,13 @@ export type AttivitaDaCoprire = {
   quando: Date;
   tipo: string | null;
   dove: string | null;
+  /** I giorni ancora da giocare: quelli passati non si coprono più. */
+  giorni: string[];
   nuovi: NuovoDaCoprire[];
-  /** Quanti aspettano davvero una polizza: pagati, scoperti, con i dati a posto. */
+  /**
+   * Quante polizze aspettano davvero: una per ospite e per giorno, con la
+   * quota saldata o dichiarata e i dati a posto.
+   */
   daFare: number;
 };
 
@@ -118,12 +188,17 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
   oggi.setHours(0, 0, 0, 0);
 
   const eventi = await prisma.event.findMany({
-    where: { status: 'RILASCIATA', inizio: { gte: oggi } },
+    // anche quelle cominciate ieri e non ancora finite: una 24 ore partita
+    // sabato ha ancora la domenica da coprire
+    where: {
+      status: 'RILASCIATA',
+      OR: [{ inizio: { gte: oggi } }, { fine: { gte: oggi } }],
+    },
     orderBy: { inizio: 'asc' },
     include: {
       tipo: { select: { nome: true } },
       field: { select: { nome: true } },
-      giornaliere: { select: { userId: true, stato: true, codice: true } },
+      giornaliere: { select: { userId: true, giorno: true, stato: true, codice: true } },
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
       payments: {
         where: { tipo: { not: 'RIMBORSO' } },
@@ -150,13 +225,17 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
   });
 
   return eventi.map((e) => {
-    const coperture = new Map(e.giornaliere.map((g) => [g.userId, g]));
+    // una copertura per persona e per giorno
+    const coperture = new Map(
+      e.giornaliere.map((g) => [`${g.userId}|${chiaveDaColonna(g.giorno)}`, g]),
+    );
+    // i giorni già passati non si coprono più: il portale non torna indietro
+    const giorni = giorniDi(e.inizio, e.fine).filter((g) => g >= chiaveGiorno(oggi));
     const quote = new Map(e.payments.map((p) => [p.userId, p]));
 
     const nuovi = e.rsvps
       .filter((r) => !vedeAttivitaSquadra(r.user.stato))
       .map((r) => {
-        const g = coperture.get(r.userId);
         const quota = quote.get(r.userId) ?? null;
         return {
           id: r.userId,
@@ -164,9 +243,15 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
           iniziali: iniziali(r.user.nome, r.user.cognome),
           stato: r.user.stato,
           forse: r.status === 'FORSE',
-          serve: serveGiornaliera(false, r.user.stato, r.user.figtCards, e.inizio),
-          copertura: g?.stato ?? 'NON_ASSICURATO',
-          codice: g?.codice ?? null,
+          giorni: giorni.map((giorno) => {
+            const g = coperture.get(`${r.userId}|${giorno}`);
+            return {
+              giorno,
+              serve: serveGiornaliera(false, r.user.stato, r.user.figtCards, dataLocale(giorno)),
+              copertura: g?.stato ?? 'NON_ASSICURATO',
+              codice: g?.codice ?? null,
+            };
+          }),
           pagato: quotaSaldata(quota),
           // dichiarata ma non ancora confermata: basta per coprire, non per
           // dire che i soldi sono entrati — sono due cose diverse e si leggono
@@ -185,10 +270,19 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       quando: e.inizio,
       tipo: e.tipo?.nome ?? null,
       dove: e.field?.nome ?? e.luogo ?? null,
+      giorni,
       nuovi,
-      daFare: nuovi.filter(
-        (n) => n.serve && n.copertura !== 'ASSICURATO' && n.pagato && n.datiCompleti,
-      ).length,
+      // per giorno, e con la stessa condizione del pulsante: saldata o
+      // dichiarata. Contare solo le saldate faceva dire al pallino meno di
+      // quanto la pagina lasciasse fare
+      daFare: nuovi.reduce(
+        (t, n) =>
+          t +
+          (n.copribile && n.datiCompleti
+            ? n.giorni.filter((g) => g.serve && g.copertura !== 'ASSICURATO').length
+            : 0),
+        0,
+      ),
     };
   });
 }

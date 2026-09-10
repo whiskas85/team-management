@@ -6,6 +6,7 @@ import {
   ETICHETTA_ASSICURAZIONE,
   TONO_ASSICURAZIONE,
   attivitaDaCoprire,
+  etichettaGiorno,
 } from '@/lib/assicurazione';
 import { Avatar, Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { BottoneModale } from '@/components/Modale';
@@ -37,8 +38,15 @@ export default async function PolizzePage() {
   // vorrebbe dire far scorrere dieci card vuote per trovarne una che serve
   const conOspiti = attivita.filter((a) => a.nuovi.length > 0);
   const daFare = conOspiti.reduce((t, a) => t + a.daFare, 0);
+  // si contano i giorni, non le persone: uno che viene sabato e domenica ha
+  // due polizze da fare, e contarlo una volta sola nasconderebbe la seconda
   const scoperti = conOspiti.reduce(
-    (t, a) => t + a.nuovi.filter((n) => n.serve && n.copertura !== 'ASSICURATO').length,
+    (t, a) =>
+      t +
+      a.nuovi.reduce(
+        (s, n) => s + n.giorni.filter((g) => g.serve && g.copertura !== 'ASSICURATO').length,
+        0,
+      ),
     0,
   );
 
@@ -59,7 +67,7 @@ export default async function PolizzePage() {
         <Statistica
           etichetta="Pronti da assicurare"
           valore={daFare}
-          dettaglio="quota saldata e dati a posto"
+          dettaglio="quota saldata o dichiarata, dati a posto"
           tono={daFare > 0 ? 'warn' : 'neutro'}
         />
         <GiacenzaPolizze />
@@ -116,40 +124,70 @@ export default async function PolizzePage() {
                       <Badge tono="warn">quota da saldare</Badge>
                     )}
 
-                    {n.serve ? (
-                      <Badge tono={TONO_ASSICURAZIONE[n.copertura]}>
-                        {ETICHETTA_ASSICURAZIONE[n.copertura]}
-                        {n.codice ? ` · ${n.codice}` : ''}
-                      </Badge>
-                    ) : (
-                      <Badge tono="ok">tessera annuale</Badge>
-                    )}
-
-                    {n.serve &&
-                      n.copertura !== 'ASSICURATO' &&
-                      (!n.copribile ? (
-                        // niente pulsante e il motivo scritto: un pulsante che
-                        // rifiuta sempre insegna solo a premerlo di nuovo
-                        <span className="text-[11px] text-muted">
-                          si assicura dopo l’incasso
-                        </span>
-                      ) : !n.datiCompleti ? (
-                        <Link
-                          href={`/admin/operatori/${n.id}`}
-                          className="text-[11px] text-muted hover:text-nvg"
-                        >
-                          mancano data e luogo di nascita →
-                        </Link>
-                      ) : (
-                        <BottoneModale
-                          etichetta="Assicura"
-                          icona="tessera"
-                          titolo={`Giornaliera per ${n.nome}`}
-                          className="btn-ghost btn-sm"
-                        >
-                          <FormGiornaliera userId={n.id} eventId={a.id} nome={n.nome} />
-                        </BottoneModale>
-                      ))}
+                    {/* Una riga per giorno: la giornaliera vale fino alle 24
+                        del suo giorno, e un'attività di due giorni ne vuole
+                        due. Il motivo per cui non si può si scrive una volta
+                        sola, non uguale sotto ogni data. */}
+                    {(() => {
+                      const blocco = !n.copribile ? 'incasso' : !n.datiCompleti ? 'dati' : null;
+                      const scoperto = n.giorni.some(
+                        (g) => g.serve && g.copertura !== 'ASSICURATO',
+                      );
+                      return (
+                        <div className="flex flex-col items-end gap-1.5">
+                          {n.giorni.map((g) => (
+                            <div
+                              key={g.giorno}
+                              className="flex flex-wrap items-center justify-end gap-2"
+                            >
+                              {a.giorni.length > 1 && (
+                                <span className="num text-[11px] text-muted">
+                                  {etichettaGiorno(g.giorno)}
+                                </span>
+                              )}
+                              {g.serve ? (
+                                <Badge tono={TONO_ASSICURAZIONE[g.copertura]}>
+                                  {ETICHETTA_ASSICURAZIONE[g.copertura]}
+                                  {g.codice ? ` · ${g.codice}` : ''}
+                                </Badge>
+                              ) : (
+                                <Badge tono="ok">tessera annuale</Badge>
+                              )}
+                              {!blocco && g.serve && g.copertura !== 'ASSICURATO' && (
+                                <BottoneModale
+                                  etichetta="Assicura"
+                                  icona="tessera"
+                                  titolo={`Giornaliera per ${n.nome} · ${etichettaGiorno(g.giorno)}`}
+                                  className="btn-ghost btn-sm"
+                                >
+                                  <FormGiornaliera
+                                    userId={n.id}
+                                    eventId={a.id}
+                                    nome={n.nome}
+                                    giorno={g.giorno}
+                                  />
+                                </BottoneModale>
+                              )}
+                            </div>
+                          ))}
+                          {scoperto &&
+                            (blocco === 'incasso' ? (
+                              // niente pulsante e il motivo scritto: un pulsante che
+                              // rifiuta sempre insegna solo a premerlo di nuovo
+                              <span className="text-[11px] text-muted">
+                                si assicura dopo l’incasso
+                              </span>
+                            ) : blocco === 'dati' ? (
+                              <Link
+                                href={`/admin/operatori/${n.id}`}
+                                className="text-[11px] text-muted hover:text-nvg"
+                              >
+                                mancano data e luogo di nascita →
+                              </Link>
+                            ) : null)}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

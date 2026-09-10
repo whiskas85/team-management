@@ -5,6 +5,45 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.12.0 — 10 settembre 2026
+
+### Cambiato
+
+- **«Aggiungi partecipanti» divide la squadra dai nuovi, con una ricerca sola.**
+  Mescolati, chi cercava un compagno scorreva i nomi di gente vista una volta a
+  un'open; con due elenchi e due ricerche, chi non ricorda da che parte sta uno
+  lo cercherebbe due volte. Si scrive una volta e lo si trova ovunque sia, e
+  «seleziona tutti» vale dentro il gruppo: «tutta la squadra» è una scelta
+  frequente, «tutta la squadra e tutti i nuovi» quasi mai.
+- **Sull'attività di sola squadra i nuovi partono nascosti, ma se ne può
+  forzare uno.** Sotto l'elenco c'è il pulsante per mostrarli, e se la ricerca
+  trova un nuovo lo dice invece di rispondere «nessuno» mentre la persona c'è.
+  Scegliendone uno compare un avviso giallo: forzare si può, ma dev'essere una
+  scelta che si vede.
+- **La giornaliera si fa per giorno.** La polizza prova vale fino alle 24:00
+  del giorno della prova, quindi una 24 ore che parte sabato e finisce domenica
+  ne vuole due. Prima c'era posto per una sola: si assicurava il sabato e la
+  domenica si giocava scoperti, senza che niente lo dicesse. Adesso accanto al
+  nuovo c'è un pulsante per ogni giorno — «Assicura sab 12 set», «Assicura dom
+  13 set» — e **nessuno parte da solo**: chi viene solo il sabato, la domenica
+  non va coperto.
+- La quota resta **una sola** per tutti i giorni, ed è quella per gli esterni
+  che si imposta sull'attività: la cifra la decide chi la crea, non la
+  moltiplica il gestionale per il numero di giorni.
+- In Polizze ogni ospite ha una riga per giorno, e i conteggi contano i giorni
+  e non le persone: uno che viene sabato e domenica ha due polizze da fare.
+- Le coperture che c'erano valgono per il primo giorno della loro attività,
+  che è quello che il gestionale ha sempre mandato al portale.
+
+### Corretto
+
+- **Il pallino e «Pronti da assicurare» contavano solo le quote saldate**,
+  mentre dalla 2.11.0 il pulsante lascia assicurare anche chi ha dichiarato il
+  pagamento. Il numero diceva meno di quanto la pagina lasciasse fare; adesso
+  contano la stessa cosa.
+- Un'attività di più giorni cominciata ieri spariva da Polizze pur avendo
+  ancora oggi da coprire.
+
 ## 2.11.0 — 9 settembre 2026
 
 ### Corretto

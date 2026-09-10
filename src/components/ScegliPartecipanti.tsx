@@ -17,34 +17,58 @@ export type Candidato = {
   /** Stato del certificato: chi non è in regola non può essere schierato. */
   certificatoOk: boolean;
   motivo: string | null;
+  /** Da che parte sta: si mostrano in due gruppi, ma si cercano insieme. */
+  gruppo: 'squadra' | 'nuovi';
 };
 
 /**
  * Selezione dei partecipanti da aggiungere. Niente tendina: un elenco con la
  * ricerca, dove si vede subito chi non può essere aggiunto e perché, e si
  * possono spuntare più operatori in una volta.
+ *
+ * **Squadra e nuovi in due gruppi, con una ricerca sola.** Mescolati, chi
+ * cercava un compagno scorreva i nomi di gente vista una volta a un'open;
+ * divisi in due elenchi con due ricerche, chi non ricorda da che parte sta
+ * uno lo cercherebbe due volte. Così si scrive una volta e lo si trova
+ * ovunque sia.
+ *
+ * **Sull'attività di sola squadra i nuovi partono nascosti**, che è la cosa
+ * giusta quasi sempre. Il quasi è un pulsante sotto l'elenco: se ne può
+ * forzare uno, sapendo che lo si sta facendo. E se la ricerca ne trova
+ * qualcuno lo dice, invece di rispondere «nessuno» mentre la persona c'è.
  */
 export function ScegliPartecipanti({
   eventId,
   candidati,
+  soloSquadra,
 }: {
   eventId: string;
   candidati: Candidato[];
+  /** Attività riservata alla squadra: i nuovi partono nascosti. */
+  soloSquadra: boolean;
 }) {
   const [stato, azione] = useActionState(iscriviOperatori, {} as StatoForm);
   const [scelti, setScelti] = useState<Set<string>>(new Set());
   const [q, setQ] = useState('');
+  const [conNuovi, setConNuovi] = useState(!soloSquadra);
 
-  const visibili = useMemo(() => {
+  const { squadra, nuovi } = useMemo(() => {
     const testo = q.trim().toLowerCase();
-    if (!testo) return candidati;
-    return candidati.filter((c) =>
-      `${c.etichetta} ${c.callsign ?? ''}`.toLowerCase().includes(testo),
-    );
+    const trovati = testo
+      ? candidati.filter((c) =>
+          `${c.etichetta} ${c.callsign ?? ''}`.toLowerCase().includes(testo),
+        )
+      : candidati;
+    return {
+      squadra: trovati.filter((c) => c.gruppo === 'squadra'),
+      nuovi: trovati.filter((c) => c.gruppo === 'nuovi'),
+    };
   }, [candidati, q]);
 
-  const selezionabili = visibili.filter((c) => c.certificatoOk);
-  const tutti = selezionabili.length > 0 && selezionabili.every((c) => scelti.has(c.id));
+  const nuoviInTutto = candidati.filter((c) => c.gruppo === 'nuovi').length;
+  const nuoviScelti = candidati.filter((c) => c.gruppo === 'nuovi' && scelti.has(c.id)).length;
+  const senzaCertificato = candidati.filter((c) => !c.certificatoOk).length;
+  const nessuno = squadra.length === 0 && nuovi.length === 0;
 
   const commuta = (id: string) =>
     setScelti((s) => {
@@ -54,7 +78,20 @@ export function ScegliPartecipanti({
       return n;
     });
 
-  const senzaCertificato = candidati.filter((c) => !c.certificatoOk).length;
+  // in blocco, ma dentro un gruppo: «tutta la squadra» è una scelta che si fa
+  // spesso, «tutta la squadra e tutti i nuovi» quasi mai
+  const commutaGruppo = (elenco: Candidato[]) => {
+    const ids = elenco.filter((c) => c.certificatoOk).map((c) => c.id);
+    const pieno = ids.length > 0 && ids.every((id) => scelti.has(id));
+    setScelti((s) => {
+      const n = new Set(s);
+      for (const id of ids) {
+        if (pieno) n.delete(id);
+        else n.add(id);
+      }
+      return n;
+    });
+  };
 
   return (
     <form action={azione} className="space-y-4">
@@ -86,72 +123,143 @@ export function ScegliPartecipanti({
             autoComplete="off"
           />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                setScelti(tutti ? new Set() : new Set(selezionabili.map((c) => c.id)))
-              }
-              className="btn-ghost btn-sm"
-              disabled={selezionabili.length === 0}
-            >
-              {tutti ? 'Deseleziona tutti' : 'Seleziona tutti i disponibili'}
-            </button>
-            {scelti.size > 0 && (
-              <span className="num text-xs text-nvg">{scelti.size} selezionati</span>
+          {(scelti.size > 0 || senzaCertificato > 0) && (
+            <div className="flex flex-wrap items-center gap-3">
+              {scelti.size > 0 && (
+                <span className="num text-xs text-nvg">{scelti.size} selezionati</span>
+              )}
+              {senzaCertificato > 0 && (
+                <span className="text-xs text-danger">
+                  {senzaCertificato} non selezionabili per il certificato
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="max-h-80 space-y-4 overflow-y-auto">
+            <Gruppo
+              titolo="Squadra"
+              elenco={squadra}
+              scelti={scelti}
+              commuta={commuta}
+              commutaTutti={() => commutaGruppo(squadra)}
+            />
+
+            {conNuovi ? (
+              <Gruppo
+                titolo="Nuovi"
+                elenco={nuovi}
+                scelti={scelti}
+                commuta={commuta}
+                commutaTutti={() => commutaGruppo(nuovi)}
+              />
+            ) : (
+              nuoviInTutto > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setConNuovi(true)}
+                  className="w-full rounded-lg border border-dashed border-line px-3 py-2 text-left text-xs text-muted transition-colors hover:border-nvgdim hover:text-ink"
+                >
+                  {q.trim() && nuovi.length > 0
+                    ? `${nuovi.length === 1 ? 'Un nuovo corrisponde' : `${nuovi.length} nuovi corrispondono`} alla ricerca: mostra`
+                    : `Attività di sola squadra · aggiungi comunque un nuovo (${nuoviInTutto})`}
+                </button>
+              )
             )}
-            {senzaCertificato > 0 && (
-              <span className="text-xs text-danger">
-                {senzaCertificato} non selezionabili per il certificato
-              </span>
-            )}
+
+            {nessuno && <p className="py-4 text-center text-sm text-muted">Nessuno corrisponde.</p>}
           </div>
 
-          <div className="max-h-72 space-y-1.5 overflow-y-auto">
-            {visibili.map((c) => {
-              const scelto = scelti.has(c.id);
-              return (
-                <label
-                  key={c.id}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
-                    !c.certificatoOk
-                      ? 'cursor-not-allowed border-danger/30 bg-danger/5 opacity-70'
-                      : scelto
-                        ? 'cursor-pointer border-nvg/50 bg-nvg/10'
-                        : 'cursor-pointer border-line bg-surface2 hover:border-nvgdim'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={scelto}
-                    disabled={!c.certificatoOk}
-                    onChange={() => commuta(c.id)}
-                    className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
-                  />
-                  <Avatar iniziali={c.iniziali} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm">{c.etichetta}</span>
-                    {c.motivo && (
-                      <span className="block text-[11px] text-danger">{c.motivo}</span>
-                    )}
-                  </span>
-                  {c.certificatoOk ? (
-                    <Badge tono="ok">idoneo</Badge>
-                  ) : (
-                    <Badge tono="danger">non idoneo</Badge>
-                  )}
-                </label>
-              );
-            })}
-            {visibili.length === 0 && (
-              <p className="py-4 text-center text-sm text-muted">Nessuno corrisponde.</p>
-            )}
-          </div>
+          {/* forzare si può, ma deve essere una scelta che si vede: chi rilegge
+              l'elenco dei partecipanti non deve chiedersi come ci sia finito */}
+          {soloSquadra && nuoviScelti > 0 && (
+            <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+              {nuoviScelti === 1 ? 'Stai aggiungendo un nuovo' : `Stai aggiungendo ${nuoviScelti} nuovi`}{' '}
+              a un’attività riservata alla squadra. Si può, perché lo decidi tu: paga la quota degli
+              esterni, se l’attività ne ha una.
+            </p>
+          )}
 
           <Aggiungi quanti={scelti.size} />
         </>
       )}
     </form>
+  );
+}
+
+function Gruppo({
+  titolo,
+  elenco,
+  scelti,
+  commuta,
+  commutaTutti,
+}: {
+  titolo: string;
+  elenco: Candidato[];
+  scelti: Set<string>;
+  commuta: (id: string) => void;
+  commutaTutti: () => void;
+}) {
+  // un gruppo che la ricerca ha svuotato non ha niente da dire: la sua
+  // intestazione con «· 0» sarebbe solo una riga da scavalcare
+  if (elenco.length === 0) return null;
+
+  const selezionabili = elenco.filter((c) => c.certificatoOk);
+  const pieno = selezionabili.length > 0 && selezionabili.every((c) => scelti.has(c.id));
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
+          {titolo} · {elenco.length}
+        </p>
+        {selezionabili.length > 0 && (
+          <button
+            type="button"
+            onClick={commutaTutti}
+            className="text-[11px] text-muted transition-colors hover:text-nvg"
+          >
+            {pieno ? 'Togli tutti' : 'Seleziona tutti'}
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        {elenco.map((c) => {
+          const scelto = scelti.has(c.id);
+          return (
+            <label
+              key={c.id}
+              className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
+                !c.certificatoOk
+                  ? 'cursor-not-allowed border-danger/30 bg-danger/5 opacity-70'
+                  : scelto
+                    ? 'cursor-pointer border-nvg/50 bg-nvg/10'
+                    : 'cursor-pointer border-line bg-surface2 hover:border-nvgdim'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={scelto}
+                disabled={!c.certificatoOk}
+                onChange={() => commuta(c.id)}
+                className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+              />
+              <Avatar iniziali={c.iniziali} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm">{c.etichetta}</span>
+                {c.motivo && <span className="block text-[11px] text-danger">{c.motivo}</span>}
+              </span>
+              {c.certificatoOk ? (
+                <Badge tono="ok">idoneo</Badge>
+              ) : (
+                <Badge tono="danger">non idoneo</Badge>
+              )}
+            </label>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

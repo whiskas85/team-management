@@ -7,7 +7,13 @@ import { puoAmministrare, puoGestirePagamenti, puoSchierare } from '@/lib/domain
 import { str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, contaPolizzeProva, eta } from '@/lib/figt';
-import { quotaOnorata } from '@/lib/assicurazione';
+import {
+  dataLocale,
+  etichettaGiorno,
+  giornoDaChiave,
+  giorniDi,
+  quotaOnorata,
+} from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
 
 function aggiorna(eventId: string) {
@@ -40,6 +46,23 @@ async function quotaDaSaldare(userId: string, eventId: string) {
     select: { status: true, dichiaratoIl: true },
   });
   return quotaOnorata(quota) ? null : quota;
+}
+
+/**
+ * Il giorno da coprire, se è davvero uno di quelli dell'attività.
+ *
+ * Arriva dal modulo, quindi si controlla: una polizza registrata su una data
+ * in cui non si gioca è una polizza spesa per niente. Un modulo senza giorno —
+ * aperto prima dell'aggiornamento — copre il primo, che è quello che si è
+ * sempre assicurato.
+ */
+function giornoDellAttivita(chiave: string, evento: { inizio: Date; fine: Date | null }) {
+  const giorni = giorniDi(evento.inizio, evento.fine);
+  const scelto = chiave || giorni[0];
+  if (!scelto || !giorni.includes(scelto)) return null;
+  const colonna = giornoDaChiave(scelto);
+  if (!colonna) return null;
+  return { chiave: scelto, colonna, locale: dataLocale(scelto) };
 }
 
 /**
@@ -152,9 +175,15 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
 
   const [utente, evento] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { nome: true, cognome: true } }),
-    prisma.event.findUnique({ where: { id: eventId }, select: { id: true } }),
+    prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, inizio: true, fine: true },
+    }),
   ]);
   if (!utente || !evento) return { errore: 'Partecipante o attività non trovati.' };
+
+  const giorno = giornoDellAttivita(str(fd, 'giorno'), evento);
+  if (!giorno) return { errore: 'Quel giorno non fa parte dell’attività.' };
 
   // vale anche quando la pratica è già stata fatta sul portale: la regola è
   // che prima si incassa, e scriverla qui solo per metà la renderebbe un
@@ -176,8 +205,8 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
   };
 
   await prisma.tesseraGiornaliera.upsert({
-    where: { userId_eventId: { userId, eventId } },
-    create: { userId, eventId, ...dati },
+    where: { userId_eventId_giorno: { userId, eventId, giorno: giorno.colonna } },
+    create: { userId, eventId, giorno: giorno.colonna, ...dati },
     update: dati,
   });
 
@@ -187,7 +216,9 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
   if (cred) await sincronizzaGiacenza(cred, 1).catch(() => null);
 
   aggiorna(eventId);
-  return { ok: `${utente.nome} ${utente.cognome} è coperto: giornaliera ${codice}.` };
+  return {
+    ok: `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: giornaliera ${codice}.`,
+  };
 }
 
 // Non c'è nessuna azione per togliere una copertura, ed è voluto: un'attivazione
@@ -223,19 +254,27 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
   const userId = str(fd, 'userId');
   const eventId = str(fd, 'eventId');
 
-  const [utente, evento, gia, cred] = await Promise.all([
+  const [utente, evento, cred] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { nome: true, cognome: true, dataNascita: true, luogoNascita: true },
     }),
-    prisma.event.findUnique({ where: { id: eventId }, select: { inizio: true, titolo: true } }),
-    prisma.tesseraGiornaliera.findUnique({ where: { userId_eventId: { userId, eventId } } }),
+    prisma.event.findUnique({
+      where: { id: eventId },
+      select: { inizio: true, fine: true, titolo: true },
+    }),
     prisma.credenzialeFigt.findUnique({ where: { id: 'figt' } }),
   ]);
 
   if (!utente || !evento) return { errore: 'Partecipante o attività non trovati.' };
 
-  // gia' assicurato: rifarlo brucerebbe una polizza per niente
+  const giorno = giornoDellAttivita(str(fd, 'giorno'), evento);
+  if (!giorno) return { errore: 'Quel giorno non fa parte dell’attività.' };
+
+  // gia' assicurato quel giorno: rifarlo brucerebbe una polizza per niente
+  const gia = await prisma.tesseraGiornaliera.findUnique({
+    where: { userId_eventId_giorno: { userId, eventId, giorno: giorno.colonna } },
+  });
   if (gia?.stato === 'ASSICURATO') {
     return { errore: `Già coperto dalla polizza ${gia.codice ?? ''}. Non ne attivo un’altra.` };
   }
@@ -261,7 +300,7 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
     };
   }
 
-  if (eta(utente.dataNascita, evento.inizio) < 12) {
+  if (eta(utente.dataNascita, giorno.locale) < 12) {
     return {
       errore:
         'Il portale non rilascia polizze prova sotto i 12 anni: va chiesta alla segreteria FIGT.',
@@ -271,10 +310,11 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
   // segno che la richiesta è partita: se il portale rispondesse a metà resta
   // traccia che qualcosa è stato tentato, invece di sembrare che non sia successo nulla
   await prisma.tesseraGiornaliera.upsert({
-    where: { userId_eventId: { userId, eventId } },
+    where: { userId_eventId_giorno: { userId, eventId, giorno: giorno.colonna } },
     create: {
       userId,
       eventId,
+      giorno: giorno.colonna,
       stato: 'RICHIESTA',
       richiestaIl: new Date(),
       richiestaDaId: me.id,
@@ -296,18 +336,18 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
         cognome: utente.cognome,
         nascita: utente.dataNascita,
         luogoNascita: utente.luogoNascita,
-        giorno: evento.inizio,
+        giorno: giorno.locale,
       },
     );
 
     await prisma.tesseraGiornaliera.update({
-      where: { userId_eventId: { userId, eventId } },
+      where: { userId_eventId_giorno: { userId, eventId, giorno: giorno.colonna } },
       data: {
         stato: 'ASSICURATO',
         codice: polizza.numero,
         idPortale: polizza.idPolizza,
         polizzaInfortuni: polizza.polizzaInfortuni,
-        valeIl: evento.inizio,
+        valeIl: giorno.locale,
         emessaIl: new Date(),
         esito: `polizza prova ${polizza.numero}${polizza.valida ? `, valida fino al ${polizza.valida}` : ''}`,
       },
@@ -320,13 +360,13 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
     aggiorna(eventId);
     return {
       ok:
-        `${utente.nome} ${utente.cognome} è coperto: polizza prova n. ${polizza.numero}.` +
+        `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: polizza prova n. ${polizza.numero}.` +
         (residue === null ? '' : ` Ne restano ${residue}.`),
     };
   } catch (e) {
     const messaggio = (e as Error).message;
     await prisma.tesseraGiornaliera.update({
-      where: { userId_eventId: { userId, eventId } },
+      where: { userId_eventId_giorno: { userId, eventId, giorno: giorno.colonna } },
       data: { stato: 'ERRORE', esito: messaggio },
     });
     aggiorna(eventId);

@@ -383,6 +383,10 @@ model TesseraGiornaliera {
   user             User               @relation("GiornaliereUtente", fields: [userId], references: [id], onDelete: Cascade)
   eventId          String
   event            Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// Il giorno coperto. La polizza prova vale fino alle 24:00 del giorno della
+  /// prova, quindi un'attività di due giorni ne vuole due — e ognuna si fa per
+  /// conto suo, perché chi viene solo il sabato la domenica non va coperto.
+  giorno           DateTime           @db.Date
   stato            StatoAssicurazione @default(NON_ASSICURATO)
   /// Numero della polizza prova restituito dal portale.
   codice           String?
@@ -400,7 +404,7 @@ model TesseraGiornaliera {
   richiestaDaId    String?
   createdAt        DateTime           @default(now())
 
-  @@unique([userId, eventId])
+  @@unique([userId, eventId, giorno])
   @@index([eventId])
 }
 

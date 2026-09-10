@@ -56,6 +56,10 @@ import { chiediRimborso } from '@/actions/pagamenti';
 import {
   ETICHETTA_ASSICURAZIONE,
   TONO_ASSICURAZIONE,
+  chiaveDaColonna,
+  dataLocale,
+  etichettaGiorno,
+  giorniDi,
   quotaOnorata,
   serveGiornaliera,
 } from '@/lib/assicurazione';
@@ -302,11 +306,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               select: { id: true, nome: true, attivo: true },
             })
           : Promise.resolve([]),
+        // Nuovi compresi, anche sull'attività di sola squadra: lì restano
+        // nascosti finché chi schiera non decide di forzarne uno, ma per
+        // poterlo fare devono esserci. Chi non è in squadra vede la squadra.
         prisma.user.findMany({
           where: inSquadra(me.stato)
-            ? evento.visibilita === 'TEAM'
-              ? { stato: { in: ['SQUADRA', 'SOSPESO'] } }
-              : { stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] } }
+            ? { stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] } }
             : { stato: { in: ['SQUADRA', 'SOSPESO'] } },
           orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
           select: {
@@ -342,6 +347,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         callsign: o.callsign,
         certificatoOk: ok,
         motivo: ok ? null : 'Certificato medico mancante o scaduto',
+        // chi è da riconfermare è della squadra: aspetta solo il reinvito
+        gruppo: (vedeAttivitaSquadra(o.stato) ? 'squadra' : 'nuovi') as Candidato['gruppo'],
       };
     })
     // prima chi è schierabile, poi chi ha il certificato scaduto o mancante:
@@ -456,8 +463,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         ...dividi('assenti', 'Non ci sono', 'text-danger', assenti),
       ];
 
-  // copertura assicurativa: chi non ha l'annuale valida nel giorno dell'attività
-  const giornaliere = new Map(evento.giornaliere.map((g) => [g.userId, g]));
+  // copertura assicurativa: una per persona e per giorno, perché la
+  // giornaliera vale fino alle 24 del giorno della prova
+  const giornaliere = new Map(
+    evento.giornaliere.map((g) => [`${g.userId}|${chiaveDaColonna(g.giorno)}`, g]),
+  );
+  const giorniEvento = giorniDi(evento.inizio, evento.fine);
+  const piuGiorni = giorniEvento.length > 1;
 
   return (
     <>
@@ -836,7 +848,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   className="btn-ghost btn-sm"
                   larga
                 >
-                  <ScegliPartecipanti eventId={evento.id} candidati={candidati} />
+                  <ScegliPartecipanti
+                    eventId={evento.id}
+                    candidati={candidati}
+                    soloSquadra={evento.visibilita === 'TEAM'}
+                  />
                 </BottoneModale>
               )}
             </div>
@@ -959,48 +975,70 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 return <Badge tono="warn">quota da saldare</Badge>;
                               })()}
 
-                            {/* copertura assicurativa: chi non ha l'annuale valida
-                                gioca solo con la giornaliera del portale */}
+                            {/* Copertura: chi non ha l'annuale valida gioca con la
+                                giornaliera, e la giornaliera vale fino alle 24
+                                del suo giorno. Un'attività di due giorni ne
+                                vuole due, e ognuna si fa quando serve — non
+                                tutte insieme e non da sola: chi viene solo il
+                                sabato, la domenica non va coperto. */}
                             {r.status !== 'ASSENTE' &&
-                              serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, evento.inizio) &&
                               (() => {
-                                const g = giornaliere.get(r.userId);
-                                const stato = g?.stato ?? 'NON_ASSICURATO';
+                                const giorniScoperti = giorniEvento.filter((giorno) =>
+                                  serveGiornaliera(
+                                    diSquadra(r),
+                                    r.user.stato,
+                                    r.user.figtCards,
+                                    dataLocale(giorno),
+                                  ),
+                                );
+                                if (giorniScoperti.length === 0) return null;
+
+                                // La polizza la paga il club e non torna indietro:
+                                // prima si incassa. Chi ha dichiarato il pagamento
+                                // passa, ci ha messo la faccia. Il motivo si scrive
+                                // una volta sola, non uguale sotto ogni giorno.
+                                const copribile = quotaOnorata(quotePerUtente.get(r.userId));
+                                const daFare = giorniScoperti.some(
+                                  (giorno) =>
+                                    giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',
+                                );
+
                                 return (
-                                  <span className="flex items-center gap-1.5">
-                                    <Badge tono={TONO_ASSICURAZIONE[stato]}>
-                                      {ETICHETTA_ASSICURAZIONE[stato]}
-                                      {g?.codice ? ` · ${g.codice}` : ''}
-                                    </Badge>
-                                    {/* La polizza la paga il club e non torna
-                                        indietro: prima si incassa. Il divieto
-                                        c'era già nell'azione, ma il pulsante
-                                        restava lì e rifiutava a modulo
-                                        compilato — un pulsante che dice sempre
-                                        di no insegna solo a premerlo di nuovo.
-                                        Chi ha dichiarato il pagamento passa:
-                                        ci ha messo la faccia, e manca solo la
-                                        spunta della segreteria. */}
-                                    {tl &&
-                                      stato !== 'ASSICURATO' &&
-                                      (!quotaOnorata(quotePerUtente.get(r.userId)) ? (
-                                        <span className="text-[11px] text-muted">
-                                          si assicura dopo l’incasso
+                                  <span className="flex flex-wrap items-center gap-1.5">
+                                    {giorniScoperti.map((giorno) => {
+                                      const g = giornaliere.get(`${r.userId}|${giorno}`);
+                                      const stato = g?.stato ?? 'NON_ASSICURATO';
+                                      const quando = etichettaGiorno(giorno);
+                                      return (
+                                        <span key={giorno} className="flex items-center gap-1.5">
+                                          <Badge tono={TONO_ASSICURAZIONE[stato]}>
+                                            {piuGiorni ? `${quando} · ` : ''}
+                                            {ETICHETTA_ASSICURAZIONE[stato]}
+                                            {g?.codice ? ` · ${g.codice}` : ''}
+                                          </Badge>
+                                          {tl && copribile && stato !== 'ASSICURATO' && (
+                                            <BottoneModale
+                                              etichetta={piuGiorni ? `Assicura ${quando}` : 'Assicura'}
+                                              icona="tessera"
+                                              titolo={`Giornaliera per ${nomeDi(r.user)} · ${quando}`}
+                                              className="btn-ghost btn-sm"
+                                            >
+                                              <FormGiornaliera
+                                                userId={r.userId}
+                                                eventId={evento.id}
+                                                nome={nomeDi(r.user)}
+                                                giorno={giorno}
+                                              />
+                                            </BottoneModale>
+                                          )}
                                         </span>
-                                      ) : (
-                                        <BottoneModale
-                                          etichetta="Assicura"
-                                          icona="tessera"
-                                          titolo={`Giornaliera per ${nomeDi(r.user)}`}
-                                          className="btn-ghost btn-sm"
-                                        >
-                                          <FormGiornaliera
-                                            userId={r.userId}
-                                            eventId={evento.id}
-                                            nome={nomeDi(r.user)}
-                                          />
-                                        </BottoneModale>
-                                      ))}
+                                      );
+                                    })}
+                                    {tl && !copribile && daFare && (
+                                      <span className="text-[11px] text-muted">
+                                        si assicura dopo l’incasso
+                                      </span>
+                                    )}
                                   </span>
                                 );
                               })()}
