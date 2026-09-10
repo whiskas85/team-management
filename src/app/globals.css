@@ -251,6 +251,34 @@ body {
   opacity: 0.6;
 }
 
+/* Il secondo pulsante, per registrarsi. Stesso linguaggio del primo ma più
+   leggero: si vede subito, senza contendere il posto ad «Autenticazione». */
+.login-pulsante-secondario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(76, 255, 0, 0.6);
+  padding: 0.6rem 1.4rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(0.85rem, 2.6vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--nvg);
+  text-shadow: 0 0 8px rgba(76, 255, 0, 0.6);
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+
+.login-pulsante-secondario:hover,
+.login-pulsante-secondario:focus-visible {
+  border-color: var(--nvg);
+  background: rgba(76, 255, 0, 0.08);
+  box-shadow: 0 0 22px -6px rgba(76, 255, 0, 0.8);
+  outline: none;
+}
+
 /* le righe del terminale si accendono una dopo l'altra: il ritardo lo mette
    il componente, qui c'è solo il gradino da spento ad acceso */
 .login-riga {

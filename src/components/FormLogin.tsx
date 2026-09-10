@@ -95,11 +95,27 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
         )}
       </form>
 
+      {/* Chi non ha ancora un account deve trovare la porta subito: in fondo,
+          scritta come le righe del terminale, sembrava una scritta di contorno.
+          Adesso ha un pulsante suo, secondo solo ad «Autenticazione». */}
+      <div className="mt-8 flex flex-col items-center gap-3 border-t border-nvg/15 pt-6 sm:flex-row sm:justify-center sm:gap-4">
+        <span className="login-terminale text-[1.05rem] tracking-[0.14em] text-nvg/75">
+          &gt; NUOVO OPERATORE?
+        </span>
+        <Link href="/register" className="login-pulsante-secondario">
+          [ REGISTRATI ]
+        </Link>
+      </div>
+
       {/* si accendono una alla volta, come un terminale che si collega; chi ha
           chiesto meno animazioni le trova già accese */}
-      <div className="login-terminale mt-8 space-y-2 text-center text-[clamp(0.78rem,2.3vw,1.02rem)] tracking-[0.12em] text-nvg/45">
+      <div className="login-terminale mt-6 space-y-2 text-center text-[clamp(0.78rem,2.3vw,1.02rem)] tracking-[0.12em] text-nvg/45">
         {righe.map((r, i) => (
-          <p key={r.testo} className="login-riga" style={{ animationDelay: `${300 + i * 350}ms` }}>
+          <p
+            key={r.testo}
+            className={`login-riga ${i === righe.length - 1 ? 'login-cursore' : ''}`}
+            style={{ animationDelay: `${300 + i * 350}ms` }}
+          >
             &gt; {r.testo} ...{' '}
             <span
               className={
@@ -112,15 +128,6 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
             </span>
           </p>
         ))}
-        <p
-          className="login-riga login-cursore"
-          style={{ animationDelay: `${300 + righe.length * 350}ms` }}
-        >
-          &gt; NUOVO OPERATORE?{' '}
-          <Link href="/register" className="text-nvg underline-offset-4 hover:underline">
-            REGISTRATI
-          </Link>
-        </p>
       </div>
     </div>
   );

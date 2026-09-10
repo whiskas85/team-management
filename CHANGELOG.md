@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.14.1 — 10 settembre 2026
+
+### Cambiato
+
+- **«Nuovo operatore? Registrati» adesso si vede.** Stava in fondo alla card,
+  scritto come le righe del terminale, e sembrava una scritta di contorno: chi
+  arriva per la prima volta la porta non la trovava. Adesso ha una fascia sua
+  subito sotto il modulo, con il pulsante «[ REGISTRATI ]» — secondo solo ad
+  «Autenticazione», che resta il gesto principale. Il testo è rimasto quello.
+
 ## 2.14.0 — 10 settembre 2026
 
 ### Cambiato
