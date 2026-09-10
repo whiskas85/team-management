@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { componiQuota, quotaPer } from '@/lib/quote';
+import { giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import {
   MOTIVO_NON_IDONEO,
@@ -16,10 +17,11 @@ import {
   puoSchierare,
   schierato,
   serveCertificato,
+  vedeAttivitaSquadra,
 } from '@/lib/domain';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 
-const VISIBILITA = ['TEAM', 'TUTTI'] as const;
+const VISIBILITA = ['TEAM', 'TUTTI', 'INVITO'] as const;
 const STATI = ['CREATA', 'RILASCIATA', 'ANNULLATA', 'CONCLUSA'] as const;
 const RSVP = ['PRESENTE', 'ASSENTE', 'FORSE'] as const;
 const ASSEGNAZIONI = ['NON_ASSEGNATO', 'CONVOCATO', 'TITOLARE', 'TOC', 'RISERVA'] as const;
@@ -78,16 +80,21 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       )?.id ?? esistente?.stagioneId ?? (await stagioneAttiva()).id)
     : (esistente?.stagioneId ?? (await stagioneAttiva()).id);
 
-  // due quote: chi è in squadra e chi viene da fuori non pagano la stessa cosa
+  // due quote: chi è in squadra e chi viene da fuori non pagano la stessa cosa.
+  // Le voci «al giorno» contano i giorni che l'attività occupa, con le date di
+  // questo salvataggio: se le si sposta, il conto si rifà da solo
+  const giorni = inizio ? giorniDi(inizio, fine).length : 1;
   const squadra = await componiQuota(fd, {
     voci: 'tariffeSquadra',
     importo: 'costo',
     stagioneId,
+    giorni,
   });
   const esterni = await componiQuota(fd, {
     voci: 'tariffeEsterni',
     importo: 'costoEsterni',
     stagioneId,
+    giorni,
   });
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
@@ -191,7 +198,9 @@ export async function rilasciaEvento(_prev: StatoForm, fd: FormData): Promise<St
     ok:
       visibilita === 'TUTTI'
         ? `"${evento.titolo}" è ora visibile a tutti, nuovi compresi.`
-        : `"${evento.titolo}" è ora visibile alla squadra.`,
+        : visibilita === 'INVITO'
+          ? `"${evento.titolo}" è ora su invito: la vede solo chi aggiungi fra i partecipanti.`
+          : `"${evento.titolo}" è ora visibile alla squadra.`,
   };
 }
 
@@ -248,8 +257,21 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   if (!evento) return { errore: 'Evento non trovato.' };
 
   if (evento.status === 'CREATA') return { errore: 'L’attività non è ancora stata rilasciata.' };
-  if (evento.visibilita === 'TEAM' && !inSquadra(me.stato)) {
-    return { errore: 'Questa attività è riservata alla squadra.' };
+
+  // Chi è già fra i partecipanti risponde sempre: è stato aggiunto a mano — un
+  // nuovo forzato, un invitato — e deve poter dire se viene o no. Gli altri
+  // passano dalla regola di chi vede cosa.
+  const giaDentro = await prisma.eventRsvp.findUnique({
+    where: { eventId_userId: { eventId, userId: me.id } },
+    select: { id: true },
+  });
+  if (!giaDentro) {
+    if (evento.visibilita === 'INVITO') {
+      return { errore: 'A questa attività si partecipa solo su invito.' };
+    }
+    if (evento.visibilita === 'TEAM' && !inSquadra(me.stato)) {
+      return { errore: 'Questa attività è riservata alla squadra.' };
+    }
   }
   if (evento.status === 'ANNULLATA') return { errore: 'L’attività è stata annullata.' };
   if (evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date()) {
@@ -722,6 +744,40 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   );
   const scartati = utenti.filter((u) => !ammessi.includes(u));
 
+  // Un nuovo paga il prezzo per gli esterni, o quello della squadra se il primo
+  // non c'è. Se l'attività non ha né l'uno né l'altro, aggiungerlo vorrebbe dire
+  // farlo giocare gratis senza averlo deciso — e poterlo assicurare senza che
+  // abbia pagato. Il prezzo arriva allora insieme ai nomi, dal selettore, e lo
+  // decide l'admin come ogni altra quota dell'attività.
+  const nuovi = ammessi.filter((u) => !vedeAttivitaSquadra(u.stato));
+  const daDecidere = evento.costoEsterni === null && !(Number(evento.costo ?? 0) > 0);
+  let prezzoFissato: number | null = null;
+  if (nuovi.length > 0 && daDecidere) {
+    if (!isAdmin(me.roles)) {
+      return {
+        errore:
+          'L’attività non ha un prezzo per chi viene da fuori, e lo decide l’admin: chiediglielo, poi aggiungi i nuovi.',
+      };
+    }
+    const esterni = await componiQuota(fd, {
+      voci: 'tariffeEsterni',
+      importo: 'costoEsterni',
+      stagioneId: evento.stagioneId,
+      giorni: giorniDi(evento.inizio, evento.fine).length,
+    });
+    if (esterni.quota === null) {
+      return {
+        errore:
+          'Scegli quanto paga chi viene da fuori — dal listino o a mano, zero se è offerta — poi aggiungi.',
+      };
+    }
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { costoEsterni: esterni.quota, dettaglioCostoEsterni: esterni.dettaglio },
+    });
+    prezzoFissato = esterni.quota;
+  }
+
   for (const u of ammessi) {
     await prisma.eventRsvp.upsert({
       where: { eventId_userId: { eventId, userId: u.id } },
@@ -747,6 +803,9 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
       (quota > 0 ? `, con quota di ${quota} € a testa` : '') +
       (scartati.length > 0
         ? `. Esclusi per il certificato: ${scartati.map((u) => u.nome).join(', ')}`
+        : '') +
+      (prezzoFissato !== null
+        ? `. Chi viene da fuori paga ${prezzoFissato.toFixed(2)} €`
         : '') +
       '.',
   };

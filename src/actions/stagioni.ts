@@ -220,7 +220,16 @@ export async function salvaTariffa(_prev: StatoForm, fd: FormData): Promise<Stat
     };
   }
 
-  const valori = { nome, usi, importo, stagioneId, note: strOpt(fd, 'note'), attiva: true };
+  const valori = {
+    nome,
+    usi,
+    importo,
+    stagioneId,
+    // solo se spuntata: le voci che c'erano valgono una volta, come sempre
+    perGiorno: fd.get('perGiorno') !== null,
+    note: strOpt(fd, 'note'),
+    attiva: true,
+  };
 
   if (id) {
     await prisma.tariffa.update({ where: { id }, data: valori });

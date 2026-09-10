@@ -136,8 +136,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const admin = isAdmin(me.roles);
   if (evento.status === 'CREATA' && !admin) notFound();
   // chi amministra apre tutto: nell'elenco vede gia' ogni attivita', e trovare
-  // un 404 aprendo una riga che il calendario gli mostra sarebbe assurdo
-  if (evento.visibilita === 'TEAM' && !vedeAttivitaSquadra(me.stato) && !admin) notFound();
+  // un 404 aprendo una riga che il calendario gli mostra sarebbe assurdo.
+  // Chi è fra i partecipanti la apre sempre: se lo si è aggiunto a mano — un
+  // nuovo forzato su un'attività di squadra, un invitato — deve poter vedere
+  // dove andare. Su invito, invece, chi non c'è non la apre nemmeno se è in
+  // squadra: è la stessa regola del calendario, scritta per la pagina.
+  const partecipo = evento.rsvps.some((r) => r.userId === me.id);
+  const aperta =
+    evento.visibilita === 'TUTTI' ||
+    (evento.visibilita === 'TEAM' && vedeAttivitaSquadra(me.stato));
+  if (!admin && !partecipo && !aperta) notFound();
   const tl = puoSchierare(me.roles);
 
   // Commenti e "mi piace" li vede chiunque veda l'attività; le note sotto sono
@@ -471,6 +479,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const giorniEvento = giorniDi(evento.inizio, evento.fine);
   const piuGiorni = giorniEvento.length > 1;
 
+  // Un nuovo paga il prezzo per gli esterni, o quello della squadra se il primo
+  // non c'è. Se non c'è nessuno dei due, aggiungerlo vorrebbe dire farlo giocare
+  // gratis senza averlo deciso — e poterlo assicurare senza che abbia pagato:
+  // il selettore allora chiede il prezzo prima di aggiungerlo.
+  const prezzoEsterniDaDecidere =
+    evento.costoEsterni === null && !(Number(evento.costo ?? 0) > 0);
+
   return (
     <>
       {/* aperta: smette di contare fra le novità, per chi la sta guardando */}
@@ -512,7 +527,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 larga
               >
                 <FormAzione azione={salvaEvento}>
-                  <FormEvento
+                  <FormEvento giorni={giorniEvento.length}
                     campi={campi}
                     tipologie={tipologie}
                     tipiGara={tipiGara}
@@ -567,7 +582,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   {etichettaEvento[evento.status]}
                 </span>
                 {evento.visibilita ? (
-                  <Badge tono={evento.visibilita === 'TUTTI' ? 'warn' : 'neutro'}>
+                  <Badge
+                    tono={
+                      evento.visibilita === 'TUTTI'
+                        ? 'warn'
+                        : evento.visibilita === 'INVITO'
+                          ? 'info'
+                          : 'neutro'
+                    }
+                  >
                     {etichettaVisibilita[evento.visibilita]}
                   </Badge>
                 ) : (
@@ -852,6 +875,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     eventId={evento.id}
                     candidati={candidati}
                     soloSquadra={evento.visibilita === 'TEAM'}
+                    prezzoEsterni={
+                      prezzoEsterniDaDecidere
+                        ? {
+                            listino,
+                            stagioneId: evento.stagioneId,
+                            giorni: giorniEvento.length,
+                            puoImpostare: admin,
+                          }
+                        : null
+                    }
                   />
                 </BottoneModale>
               )}
@@ -914,6 +947,103 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   </p>
                                 )
                               )}
+
+                              {/* Soldi e polizze sotto il nome, non in fila con i
+                                  pulsanti: sono cose da leggere e non da premere,
+                                  e messe in riga con «Nota» e «Presente» erano una
+                                  fila di etichette da decifrare. Se non c'è niente
+                                  da dire, la riga non occupa spazio. */}
+                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+                                {/* la quota può esserci anche su un'attività gratis:
+                                    i nuovi pagano la loro tariffa fissa */}
+                                {/* Il badge guarda la quota **di quella persona**, non
+                                    il costo dell'attività: dove c'è la formazione una
+                                    riserva non deve niente, e vedersi scritto "quota da
+                                    saldare" senza avere nessun pagamento era falso. */}
+                {/* Tre situazioni, non due: «dichiarata» sta in mezzo, ed è
+                                    quella che spiega perché uno si può assicurare pur non
+                                    risultando ancora incassato. */}
+                                {vedeQuoteAltrui &&
+                                  quotePerUtente.has(r.userId) &&
+                                  (() => {
+                                    const q = quotePerUtente.get(r.userId)!;
+                                    if (q.status === 'PAGATO') {
+                                      return <Badge tono="ok">quota saldata</Badge>;
+                                    }
+                                    if (q.dichiaratoIl) {
+                                      return <Badge tono="info">pagamento dichiarato</Badge>;
+                                    }
+                                    return <Badge tono="warn">quota da saldare</Badge>;
+                                  })()}
+
+                                {/* Copertura: chi non ha l'annuale valida gioca con la
+                                    giornaliera, e la giornaliera vale fino alle 24
+                                    del suo giorno. Un'attività di due giorni ne
+                                    vuole due, e ognuna si fa quando serve — non
+                                    tutte insieme e non da sola: chi viene solo il
+                                    sabato, la domenica non va coperto. */}
+                                {r.status !== 'ASSENTE' &&
+                                  (() => {
+                                    const giorniScoperti = giorniEvento.filter((giorno) =>
+                                      serveGiornaliera(
+                                        diSquadra(r),
+                                        r.user.stato,
+                                        r.user.figtCards,
+                                        dataLocale(giorno),
+                                      ),
+                                    );
+                                    if (giorniScoperti.length === 0) return null;
+
+                                    // La polizza la paga il club e non torna indietro:
+                                    // prima si incassa. Chi ha dichiarato il pagamento
+                                    // passa, ci ha messo la faccia. Il motivo si scrive
+                                    // una volta sola, non uguale sotto ogni giorno.
+                                    const copribile = quotaOnorata(quotePerUtente.get(r.userId));
+                                    const daFare = giorniScoperti.some(
+                                      (giorno) =>
+                                        giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',
+                                    );
+
+                                    return (
+                                      <span className="flex flex-wrap items-center gap-1.5">
+                                        {giorniScoperti.map((giorno) => {
+                                          const g = giornaliere.get(`${r.userId}|${giorno}`);
+                                          const stato = g?.stato ?? 'NON_ASSICURATO';
+                                          const quando = etichettaGiorno(giorno);
+                                          return (
+                                            <span key={giorno} className="flex items-center gap-1.5">
+                                              <Badge tono={TONO_ASSICURAZIONE[stato]}>
+                                                {piuGiorni ? `${quando} · ` : ''}
+                                                {ETICHETTA_ASSICURAZIONE[stato]}
+                                                {g?.codice ? ` · ${g.codice}` : ''}
+                                              </Badge>
+                                              {tl && copribile && stato !== 'ASSICURATO' && (
+                                                <BottoneModale
+                                                  etichetta={piuGiorni ? `Assicura ${quando}` : 'Assicura'}
+                                                  icona="tessera"
+                                                  titolo={`Giornaliera per ${nomeDi(r.user)} · ${quando}`}
+                                                  className="btn-ghost btn-sm"
+                                                >
+                                                  <FormGiornaliera
+                                                    userId={r.userId}
+                                                    eventId={evento.id}
+                                                    nome={nomeDi(r.user)}
+                                                    giorno={giorno}
+                                                  />
+                                                </BottoneModale>
+                                              )}
+                                            </span>
+                                          );
+                                        })}
+                                        {tl && !copribile && daFare && (
+                                          <span className="text-[11px] text-muted">
+                                            si assicura dopo l’incasso
+                                          </span>
+                                        )}
+                                      </span>
+                                    );
+                                  })()}
+                              </div>
                             </div>
                             </div>
 
@@ -950,96 +1080,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       precedenti={sue}
                                     />
                                   </BottoneModale>
-                                );
-                              })()}
-
-                            {/* la quota può esserci anche su un'attività gratis:
-                                i nuovi pagano la loro tariffa fissa */}
-                            {/* Il badge guarda la quota **di quella persona**, non
-                                il costo dell'attività: dove c'è la formazione una
-                                riserva non deve niente, e vedersi scritto "quota da
-                                saldare" senza avere nessun pagamento era falso. */}
-            {/* Tre situazioni, non due: «dichiarata» sta in mezzo, ed è
-                                quella che spiega perché uno si può assicurare pur non
-                                risultando ancora incassato. */}
-                            {vedeQuoteAltrui &&
-                              quotePerUtente.has(r.userId) &&
-                              (() => {
-                                const q = quotePerUtente.get(r.userId)!;
-                                if (q.status === 'PAGATO') {
-                                  return <Badge tono="ok">quota saldata</Badge>;
-                                }
-                                if (q.dichiaratoIl) {
-                                  return <Badge tono="info">pagamento dichiarato</Badge>;
-                                }
-                                return <Badge tono="warn">quota da saldare</Badge>;
-                              })()}
-
-                            {/* Copertura: chi non ha l'annuale valida gioca con la
-                                giornaliera, e la giornaliera vale fino alle 24
-                                del suo giorno. Un'attività di due giorni ne
-                                vuole due, e ognuna si fa quando serve — non
-                                tutte insieme e non da sola: chi viene solo il
-                                sabato, la domenica non va coperto. */}
-                            {r.status !== 'ASSENTE' &&
-                              (() => {
-                                const giorniScoperti = giorniEvento.filter((giorno) =>
-                                  serveGiornaliera(
-                                    diSquadra(r),
-                                    r.user.stato,
-                                    r.user.figtCards,
-                                    dataLocale(giorno),
-                                  ),
-                                );
-                                if (giorniScoperti.length === 0) return null;
-
-                                // La polizza la paga il club e non torna indietro:
-                                // prima si incassa. Chi ha dichiarato il pagamento
-                                // passa, ci ha messo la faccia. Il motivo si scrive
-                                // una volta sola, non uguale sotto ogni giorno.
-                                const copribile = quotaOnorata(quotePerUtente.get(r.userId));
-                                const daFare = giorniScoperti.some(
-                                  (giorno) =>
-                                    giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',
-                                );
-
-                                return (
-                                  <span className="flex flex-wrap items-center gap-1.5">
-                                    {giorniScoperti.map((giorno) => {
-                                      const g = giornaliere.get(`${r.userId}|${giorno}`);
-                                      const stato = g?.stato ?? 'NON_ASSICURATO';
-                                      const quando = etichettaGiorno(giorno);
-                                      return (
-                                        <span key={giorno} className="flex items-center gap-1.5">
-                                          <Badge tono={TONO_ASSICURAZIONE[stato]}>
-                                            {piuGiorni ? `${quando} · ` : ''}
-                                            {ETICHETTA_ASSICURAZIONE[stato]}
-                                            {g?.codice ? ` · ${g.codice}` : ''}
-                                          </Badge>
-                                          {tl && copribile && stato !== 'ASSICURATO' && (
-                                            <BottoneModale
-                                              etichetta={piuGiorni ? `Assicura ${quando}` : 'Assicura'}
-                                              icona="tessera"
-                                              titolo={`Giornaliera per ${nomeDi(r.user)} · ${quando}`}
-                                              className="btn-ghost btn-sm"
-                                            >
-                                              <FormGiornaliera
-                                                userId={r.userId}
-                                                eventId={evento.id}
-                                                nome={nomeDi(r.user)}
-                                                giorno={giorno}
-                                              />
-                                            </BottoneModale>
-                                          )}
-                                        </span>
-                                      );
-                                    })}
-                                    {tl && !copribile && daFare && (
-                                      <span className="text-[11px] text-muted">
-                                        si assicura dopo l’incasso
-                                      </span>
-                                    )}
-                                  </span>
                                 );
                               })()}
 

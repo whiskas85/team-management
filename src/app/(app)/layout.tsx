@@ -116,7 +116,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const attivitaNuove = await prisma.event.count({
     where: {
       AND: [
-        filtroVisibilita(utente.stato),
+        filtroVisibilita(utente.stato, false, utente.id),
         { status: 'RILASCIATA' },
         { inizio: { gte: inizioDiOggi } },
         { letture: { none: { userId: utente.id } } },
@@ -168,7 +168,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         where: {
           pubblicato: true,
           letture: { none: { userId: utente.id } },
-          evento: filtroVisibilita(utente.stato, isAdmin(utente.roles)),
+          evento: filtroVisibilita(utente.stato, isAdmin(utente.roles), utente.id),
         },
       })
     : 0;

@@ -44,6 +44,16 @@ export function AzioniEvento({
           >
             Rilascia alla squadra
           </AzioneBottone>
+          {/* su invito: non la vede nessuno, nemmeno la squadra, finché non
+              lo si aggiunge fra i partecipanti */}
+          <AzioneBottone
+            azione={rilasciaEvento}
+            valori={{ id, visibilita: 'INVITO' }}
+            icona="invita"
+            className={`btn-ghost ${dim}`}
+          >
+            Rilascia su invito
+          </AzioneBottone>
           {!soloInterno && (
             <AzioneBottone
               azione={rilasciaEvento}
@@ -80,6 +90,15 @@ export function AzioniEvento({
               Tutti
             </AzioneBottone>
           )}
+          <AzioneBottone
+            azione={rilasciaEvento}
+            valori={{ id, visibilita: 'INVITO' }}
+            disabilitato={visibilita === 'INVITO'}
+            icona="invita"
+            className={`btn-ghost ${dim} ${visibilita === 'INVITO' ? 'border-nvg/40 text-nvg' : ''}`}
+          >
+            Su invito
+          </AzioneBottone>
 
           {!compatto && <span className="w-full" />}
 

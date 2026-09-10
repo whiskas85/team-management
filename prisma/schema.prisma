@@ -47,6 +47,7 @@ enum CertType {
 enum EventVisibility {
   TEAM // solo la squadra
   TUTTI // aperta anche ai nuovi
+  INVITO // solo chi è fra i partecipanti: nemmeno la squadra la vede
 }
 
 enum EventStatus {
@@ -481,6 +482,9 @@ model Tariffa {
   stagioneId String?
   stagione   Stagione?     @relation(fields: [stagioneId], references: [id], onDelete: Cascade)
   importo    Decimal       @db.Decimal(10, 2)
+  /// Si paga per ogni giorno dell'attività: su una 24 ore da sabato a domenica
+  /// conta due volte. Spenta, la voce vale una volta sola, come sempre.
+  perGiorno  Boolean       @default(false)
   note       String?
   attiva     Boolean       @default(true)
   createdAt  DateTime      @default(now())

@@ -41,7 +41,7 @@ export default async function DebriefingPage() {
       AND: [
         // in bozza li vede solo chi li scrive
         scrive ? {} : { pubblicato: true },
-        { evento: filtroVisibilita(me.stato, isAdmin(me.roles)) },
+        { evento: filtroVisibilita(me.stato, isAdmin(me.roles), me.id) },
       ],
     },
     orderBy: { evento: { inizio: 'desc' } },

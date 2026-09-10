@@ -279,7 +279,10 @@ export async function bozzeDiOggi(quando = new Date()): Promise<Bozza[]> {
 
       // nel gruppo basta un messaggio per tutti: sedici messaggi identici, uno
       // per iscritto, sono il modo migliore per farsi silenziare la chat
-      if (perGruppo.modello.destinazione === 'GRUPPO') {
+      // …tranne che su invito: il gruppo è di tutti, e un promemoria lì
+      // racconterebbe l'attività proprio a chi non è stato invitato. Allora
+      // si scrive a ciascuno, come per i messaggi in privato
+      if (perGruppo.modello.destinazione === 'GRUPPO' && e.visibilita !== 'INVITO') {
         const gruppo = gruppoDi(perGruppo.modello, predefinito);
         if (!gruppo) continue;
         usati.push(perGruppo.id);

@@ -43,6 +43,7 @@ export async function listinoAttivo() {
     importo: Number(t.importo),
     usi: t.usi as string[],
     stagioneId: t.stagioneId,
+    perGiorno: t.perGiorno,
   }));
 }
 
@@ -61,7 +62,14 @@ export async function componiQuota(
     voci: campoVoci,
     importo: campoImporto,
     stagioneId,
-  }: { voci: string; importo: string; stagioneId: string | null },
+    giorni = 1,
+  }: {
+    voci: string;
+    importo: string;
+    stagioneId: string | null;
+    /** Quanti giorni occupa l'attività: le voci «al giorno» contano per ognuno. */
+    giorni?: number;
+  },
 ): Promise<{ quota: number | null; dettaglio: string | null }> {
   const aMano = num(fd, campoImporto);
   const ids = fd
@@ -81,8 +89,18 @@ export async function componiQuota(
   });
   if (voci.length === 0) return { quota: aMano, dettaglio: null };
 
-  const somma = voci.reduce((t, v) => t + Number(v.importo), 0);
-  const spaccato = voci.map((v) => `${v.nome} ${Number(v.importo).toFixed(2)} €`).join(' + ');
+  // una voce «al giorno» conta una volta per ogni giorno: la giornaliera vale
+  // un giorno, e una 24 ore da sabato a domenica ne consuma due. Nel dettaglio
+  // la moltiplicazione si scrive, così chi legge la quota sa da dove viene
+  const volte = (v: { perGiorno: boolean }) => (v.perGiorno ? giorni : 1);
+  const somma = voci.reduce((t, v) => t + Number(v.importo) * volte(v), 0);
+  const spaccato = voci
+    .map(
+      (v) =>
+        `${v.nome} ${Number(v.importo).toFixed(2)} €` +
+        (volte(v) > 1 ? ` × ${volte(v)} giorni` : ''),
+    )
+    .join(' + ');
 
   // se l'importo scritto a mano non è la somma delle voci il dettaglio da solo
   // mentirebbe: si dice che è stato forzato, invece di far tornare i conti a chi legge

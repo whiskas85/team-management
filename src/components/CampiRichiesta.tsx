@@ -10,6 +10,8 @@ export type VoceListino = {
   usi: string[];
   /** null = vale per tutte le stagioni. */
   stagioneId: string | null;
+  /** Si conta una volta per ogni giorno dell'attività. */
+  perGiorno?: boolean;
 };
 
 /**

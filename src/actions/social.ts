@@ -24,7 +24,7 @@ const aggiorna = (eventId: string) => {
 async function attivitaVisibile(eventId: string, me: SessionUser) {
   return prisma.event.findFirst({
     where: {
-      AND: [filtroVisibilita(me.stato, puoGestireEventi(me.roles)), { id: eventId }],
+      AND: [filtroVisibilita(me.stato, puoGestireEventi(me.roles), me.id), { id: eventId }],
     },
     select: { id: true },
   });

@@ -23,6 +23,7 @@ type RigaTariffa = {
   importo: unknown;
   stagioneId: string | null;
   note: string | null;
+  perGiorno: boolean;
 };
 
 export default async function TariffePage() {
@@ -121,6 +122,9 @@ export default async function TariffePage() {
                 </div>
                 <span className="num shrink-0 font-semibold text-nvg">
                   {fmtEuro(Number(t.importo))}
+                  {t.perGiorno && (
+                    <span className="text-[11px] font-normal text-muted"> /giorno</span>
+                  )}
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
@@ -169,6 +173,9 @@ export default async function TariffePage() {
                     </td>
                     <td className="num whitespace-nowrap text-right font-semibold text-nvg">
                       {fmtEuro(Number(t.importo))}
+                      {t.perGiorno && (
+                        <span className="text-[11px] font-normal text-muted"> /giorno</span>
+                      )}
                     </td>
                     <td className="text-xs text-muted">{t.note ?? '-'}</td>
                     <td className="whitespace-nowrap">
@@ -278,6 +285,23 @@ function CampiTariffa({
           ))}
         </select>
       </Campo>
+
+      <label className="flex items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="perGiorno"
+          defaultChecked={tariffa?.perGiorno ?? false}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span>
+          Al giorno
+          <span className="block text-[11px] text-muted">
+            Su un&rsquo;attivit&agrave; di pi&ugrave; giorni si conta una volta per ogni giorno: una
+            24 ore da sabato a domenica la chiede due volte. &Egrave; per le voci che valgono un
+            giorno solo, come la giornaliera. Spenta, vale una volta sola.
+          </span>
+        </span>
+      </label>
 
       <Campo label="Usala in automatico per" span>
         <div className="space-y-1.5">

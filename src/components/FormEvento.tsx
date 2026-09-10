@@ -93,6 +93,7 @@ export function FormEvento({
   inizioPredefinito,
   compatto = false,
   soloLogistica = false,
+  giorni = 1,
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
@@ -108,6 +109,8 @@ export function FormEvento({
   inizioPredefinito?: string;
   compatto?: boolean;
   soloLogistica?: boolean;
+  /** Giorni che l'attività occupa: le voci «al giorno» della quota contano per ognuno. */
+  giorni?: number;
 }) {
   const conQuota =
     numero(evento?.costo) !== null || numero(evento?.costoEsterni) !== null;
@@ -385,6 +388,7 @@ export function FormEvento({
                   // mai a nessuno, e tenerla lì si presta solo a sbagliare
                   // casella
                   mostraEsterni={evento?.visibilita !== 'TEAM'}
+                  giorni={giorni}
                 />
               </div>
             </Sezione>

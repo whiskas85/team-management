@@ -5,18 +5,34 @@ import { quotaPer } from './quote';
 import type { EventoLista } from '@/components/CardEvento';
 
 /**
- * Le bozze le vede solo chi gestisce il calendario; chi non è ancora in squadra
- * vede solo le attività rilasciate a tutti.
+ * Chi vede quali attività.
+ *
+ * Le bozze le vede solo chi gestisce il calendario. Delle rilasciate, quelle
+ * aperte a tutti le vede chiunque, quelle di squadra chi è in squadra, e
+ * quelle **su invito** nessuno per il solo fatto di esserci — nemmeno la
+ * squadra.
+ *
+ * Sopra tutte le regole ne vale una: **chi è fra i partecipanti la vede
+ * sempre.** È l'unico modo in cui un invito ha senso, ed è quello che serve a
+ * un nuovo aggiunto a mano su un'attività di squadra: lo si è messo lì
+ * apposta, e deve poter sapere dove andare. Chi invece non c'è non la vede —
+ * forzare uno non apre l'attività a tutti gli altri nuovi.
  */
 export const filtroVisibilita = (
   stato: StatoOperatore,
   vedeBozze = false,
+  userId?: string,
 ): Prisma.EventWhereInput => {
-  const pubbliche: Prisma.EventWhereInput = vedeAttivitaSquadra(stato)
-    ? { status: { not: 'CREATA' } }
-    : { status: { not: 'CREATA' }, visibilita: 'TUTTI' };
+  if (vedeBozze) return {};
 
-  return vedeBozze ? {} : pubbliche;
+  const aperte: Prisma.EventWhereInput = vedeAttivitaSquadra(stato)
+    ? { visibilita: { in: ['TEAM', 'TUTTI'] } }
+    : { visibilita: 'TUTTI' };
+
+  return {
+    status: { not: 'CREATA' },
+    OR: [aperte, ...(userId ? [{ rsvps: { some: { userId } } }] : [])],
+  };
 };
 
 type Opzioni = {
@@ -40,7 +56,7 @@ export async function eventiPerLista({
   const eventi = await prisma.event.findMany({
     // AND e non spread: un filtro sullo stato passato dal chiamante non deve
     // poter sovrascrivere quello di visibilità e far trapelare le bozze
-    where: { AND: [filtroVisibilita(stato, vedeBozze), dove] },
+    where: { AND: [filtroVisibilita(stato, vedeBozze, userId), dove] },
     orderBy: { inizio: ordine },
     take: limite,
     include: {

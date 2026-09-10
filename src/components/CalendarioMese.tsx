@@ -240,6 +240,7 @@ export function CalendarioMese({
                       <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
                         {e.tipo}
                         {e.visibilita === 'TUTTI' && <span className="text-warn"> · tutti</span>}
+                        {e.visibilita === 'INVITO' && <span className="text-muted"> · su invito</span>}
                       </p>
                       <p className="font-medium">{e.titolo}</p>
                       <p className="num text-xs text-muted">

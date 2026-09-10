@@ -103,6 +103,7 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
               {e.tipo}
               {e.visibilita === 'TUTTI' && <span className="text-warn"> · tutti</span>}
               {e.visibilita === 'TEAM' && <span className="text-muted"> · squadra</span>}
+              {e.visibilita === 'INVITO' && <span className="text-muted"> · su invito</span>}
             </p>
             {/* Il pallino sta attaccato al titolo e non in un angolo: si
                 legge insieme al nome dell'attività, che è quello che si guarda

@@ -5,6 +5,40 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.13.0 — 10 settembre 2026
+
+### Aggiunto
+
+- **Visibilità «su invito»**, accanto a «solo squadra» e «tutti». L'attività
+  non la vede nessuno a calendario, nemmeno la squadra: solo chi viene
+  aggiunto fra i partecipanti. Serve per le cose che si organizzano con poche
+  persone scelte, che finora andavano rilasciate alla squadra intera o tenute
+  in bozza. I promemoria di un'attività su invito arrivano in privato a
+  ciascuno e non nel gruppo, che è di tutti e la racconterebbe proprio a chi
+  non è stato invitato.
+- **Voci di listino «al giorno».** Nel tariffario una voce si può marcare così:
+  su un'attività di più giorni conta una volta per ogni giorno, e nel
+  dettaglio della quota la moltiplicazione si legge («× 2 giorni»). Serve per
+  quello che vale un giorno solo, come la giornaliera. Le voci che c'erano
+  restano come prima, una volta sola.
+- **Forzando un nuovo su un'attività senza prezzo per gli esterni, il
+  selettore lo chiede.** Di fianco all'elenco compare la card della quota
+  esterni, con la giocata già spuntata e un avviso che spiega perché: senza
+  prezzo il nuovo giocherebbe gratis senza che nessuno l'abbia deciso, e la
+  giornaliera — che la paga il club — si potrebbe fare lo stesso. Si sceglie
+  lì e parte insieme ai nomi. Il prezzo lo decide l'admin: a un team leader il
+  selettore dice a chi chiederlo.
+
+### Cambiato
+
+- **Chi è fra i partecipanti vede l'attività, sempre.** Un nuovo aggiunto a
+  mano su un'attività di squadra la trova nel suo calendario e può rispondere;
+  gli altri nuovi continuano a non vederla. È la stessa regola che fa
+  funzionare gli inviti.
+- **Nella scheda dell'attività quota e polizze vanno sotto il nome**, non più
+  in fila con «Nota» e «Presente»: sono cose da leggere e non da premere, e
+  messe in riga con i pulsanti erano una fila di etichette da decifrare.
+
 ## 2.12.0 — 10 settembre 2026
 
 ### Cambiato

@@ -5,6 +5,8 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Avatar, Badge } from './ui';
 import { Icona } from './Icona';
+import { Quota, vociAttivita } from './QuoteEvento';
+import type { VoceListino } from './CampiRichiesta';
 import type { StatoForm } from '@/lib/form';
 import { iscriviOperatori } from '@/actions/eventi';
 
@@ -19,6 +21,16 @@ export type Candidato = {
   motivo: string | null;
   /** Da che parte sta: si mostrano in due gruppi, ma si cercano insieme. */
   gruppo: 'squadra' | 'nuovi';
+};
+
+/** Quello che serve per chiedere il prezzo per gli esterni, quando l'attività non ce l'ha. */
+export type PrezzoEsterni = {
+  listino: VoceListino[];
+  stagioneId: string | null;
+  /** Giorni dell'attività: le voci «al giorno» contano per ognuno. */
+  giorni: number;
+  /** Il prezzo lo decide l'admin: agli altri si dice a chi chiederlo. */
+  puoImpostare: boolean;
 };
 
 /**
@@ -36,16 +48,26 @@ export type Candidato = {
  * giusta quasi sempre. Il quasi è un pulsante sotto l'elenco: se ne può
  * forzare uno, sapendo che lo si sta facendo. E se la ricerca ne trova
  * qualcuno lo dice, invece di rispondere «nessuno» mentre la persona c'è.
+ *
+ * **Se l'attività non ha un prezzo per chi viene da fuori**, scegliendo un
+ * nuovo compare di fianco la card della quota esterni. Senza, il nuovo
+ * giocherebbe gratis senza che nessuno l'abbia deciso — e la giornaliera, che
+ * la paga il club, si potrebbe fare lo stesso. Il prezzo si sceglie lì e parte
+ * insieme ai nomi: un gesto solo, invece di chiudere, andare a modificare
+ * l'attività e tornare.
  */
 export function ScegliPartecipanti({
   eventId,
   candidati,
   soloSquadra,
+  prezzoEsterni = null,
 }: {
   eventId: string;
   candidati: Candidato[];
   /** Attività riservata alla squadra: i nuovi partono nascosti. */
   soloSquadra: boolean;
+  /** Presente solo se l'attività non ha ancora un prezzo per gli esterni. */
+  prezzoEsterni?: PrezzoEsterni | null;
 }) {
   const [stato, azione] = useActionState(iscriviOperatori, {} as StatoForm);
   const [scelti, setScelti] = useState<Set<string>>(new Set());
@@ -69,6 +91,11 @@ export function ScegliPartecipanti({
   const nuoviScelti = candidati.filter((c) => c.gruppo === 'nuovi' && scelti.has(c.id)).length;
   const senzaCertificato = candidati.filter((c) => !c.certificatoOk).length;
   const nessuno = squadra.length === 0 && nuovi.length === 0;
+
+  // il prezzo serve solo se si sta davvero aggiungendo un nuovo: per la
+  // squadra la quota c'è già o è gratis per scelta
+  const serveIlPrezzo = prezzoEsterni !== null && nuoviScelti > 0;
+  const bloccato = serveIlPrezzo && !prezzoEsterni!.puoImpostare;
 
   const commuta = (id: string) =>
     setScelti((s) => {
@@ -115,75 +142,139 @@ export function ScegliPartecipanti({
         <p className="text-sm text-muted">Hanno già risposto tutti.</p>
       ) : (
         <>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="input"
-            placeholder="Cerca per nome o callsign…"
-            autoComplete="off"
-          />
+          {/* di fianco, non sotto: la card del prezzo compare mentre si
+              sceglie, e sotto un elenco lungo la si scoprirebbe solo arrivati
+              al pulsante */}
+          <div className={serveIlPrezzo ? 'grid grid-cols-1 gap-4 sm:grid-cols-2' : ''}>
+            <div className="min-w-0 space-y-4">
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="input"
+                placeholder="Cerca per nome o callsign…"
+                autoComplete="off"
+              />
 
-          {(scelti.size > 0 || senzaCertificato > 0) && (
-            <div className="flex flex-wrap items-center gap-3">
-              {scelti.size > 0 && (
-                <span className="num text-xs text-nvg">{scelti.size} selezionati</span>
+              {(scelti.size > 0 || senzaCertificato > 0) && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {scelti.size > 0 && (
+                    <span className="num text-xs text-nvg">{scelti.size} selezionati</span>
+                  )}
+                  {senzaCertificato > 0 && (
+                    <span className="text-xs text-danger">
+                      {senzaCertificato} non selezionabili per il certificato
+                    </span>
+                  )}
+                </div>
               )}
-              {senzaCertificato > 0 && (
-                <span className="text-xs text-danger">
-                  {senzaCertificato} non selezionabili per il certificato
-                </span>
+
+              <div className="max-h-80 space-y-4 overflow-y-auto">
+                <Gruppo
+                  titolo="Squadra"
+                  elenco={squadra}
+                  scelti={scelti}
+                  commuta={commuta}
+                  commutaTutti={() => commutaGruppo(squadra)}
+                />
+
+                {conNuovi ? (
+                  <Gruppo
+                    titolo="Nuovi"
+                    elenco={nuovi}
+                    scelti={scelti}
+                    commuta={commuta}
+                    commutaTutti={() => commutaGruppo(nuovi)}
+                  />
+                ) : (
+                  nuoviInTutto > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setConNuovi(true)}
+                      className="w-full rounded-lg border border-dashed border-line px-3 py-2 text-left text-xs text-muted transition-colors hover:border-nvgdim hover:text-ink"
+                    >
+                      {q.trim() && nuovi.length > 0
+                        ? `${nuovi.length === 1 ? 'Un nuovo corrisponde' : `${nuovi.length} nuovi corrispondono`} alla ricerca: mostra`
+                        : `Attività di sola squadra · aggiungi comunque un nuovo (${nuoviInTutto})`}
+                    </button>
+                  )
+                )}
+
+                {nessuno && (
+                  <p className="py-4 text-center text-sm text-muted">Nessuno corrisponde.</p>
+                )}
+              </div>
+
+              {/* forzare si può, ma deve essere una scelta che si vede: chi
+                  rilegge l'elenco dei partecipanti non deve chiedersi come ci
+                  sia finito */}
+              {soloSquadra && nuoviScelti > 0 && (
+                <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+                  {nuoviScelti === 1
+                    ? 'Stai aggiungendo un nuovo'
+                    : `Stai aggiungendo ${nuoviScelti} nuovi`}{' '}
+                  a un’attività riservata alla squadra. Si può, perché lo decidi tu: la vedrà
+                  solo chi aggiungi, non gli altri nuovi.
+                </p>
               )}
             </div>
-          )}
 
-          <div className="max-h-80 space-y-4 overflow-y-auto">
-            <Gruppo
-              titolo="Squadra"
-              elenco={squadra}
-              scelti={scelti}
-              commuta={commuta}
-              commutaTutti={() => commutaGruppo(squadra)}
-            />
-
-            {conNuovi ? (
-              <Gruppo
-                titolo="Nuovi"
-                elenco={nuovi}
-                scelti={scelti}
-                commuta={commuta}
-                commutaTutti={() => commutaGruppo(nuovi)}
-              />
-            ) : (
-              nuoviInTutto > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setConNuovi(true)}
-                  className="w-full rounded-lg border border-dashed border-line px-3 py-2 text-left text-xs text-muted transition-colors hover:border-nvgdim hover:text-ink"
-                >
-                  {q.trim() && nuovi.length > 0
-                    ? `${nuovi.length === 1 ? 'Un nuovo corrisponde' : `${nuovi.length} nuovi corrispondono`} alla ricerca: mostra`
-                    : `Attività di sola squadra · aggiungi comunque un nuovo (${nuoviInTutto})`}
-                </button>
-              )
-            )}
-
-            {nessuno && <p className="py-4 text-center text-sm text-muted">Nessuno corrisponde.</p>}
+            {serveIlPrezzo && <PrezzoPerEsterni {...prezzoEsterni!} />}
           </div>
 
-          {/* forzare si può, ma deve essere una scelta che si vede: chi rilegge
-              l'elenco dei partecipanti non deve chiedersi come ci sia finito */}
-          {soloSquadra && nuoviScelti > 0 && (
-            <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-              {nuoviScelti === 1 ? 'Stai aggiungendo un nuovo' : `Stai aggiungendo ${nuoviScelti} nuovi`}{' '}
-              a un’attività riservata alla squadra. Si può, perché lo decidi tu: paga la quota degli
-              esterni, se l’attività ne ha una.
-            </p>
-          )}
-
-          <Aggiungi quanti={scelti.size} />
+          <Aggiungi quanti={scelti.size} bloccato={bloccato} />
         </>
       )}
     </form>
+  );
+}
+
+/**
+ * La card della quota esterni, quando l'attività non ce l'ha.
+ *
+ * È la stessa del modulo dell'attività, con la giocata degli esterni già
+ * spuntata come su un'attività nuova: il caso normale non si configura ogni
+ * volta, e chi vuole regalarla scrive zero.
+ */
+function PrezzoPerEsterni({ listino, stagioneId, giorni, puoImpostare }: PrezzoEsterni) {
+  const voci = useMemo(() => vociAttivita(listino, stagioneId), [listino, stagioneId]);
+  const giocate = useMemo(
+    () => voci.filter((v) => v.usi.includes('GIOCATA_NUOVO')).map((v) => v.id),
+    [voci],
+  );
+
+  return (
+    <div className="min-w-0 space-y-3">
+      <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+        {puoImpostare ? (
+          <>
+            Questa attività non ha un prezzo per chi viene da fuori. Senza, il nuovo non avrebbe
+            nessuna quota, e la giornaliera — che la paga il club — si potrebbe fare lo stesso.
+            Scegli qui quanto paga: vale per l’attività e per tutti i nuovi che ci aggiungerai.
+            Zero è una scelta, vuol dire offerta.
+          </>
+        ) : (
+          <>
+            Questa attività non ha un prezzo per chi viene da fuori, e lo decide l’admin. Chiedigli
+            di impostarlo, poi potrai aggiungere il nuovo: senza, giocherebbe gratis senza che
+            nessuno l’abbia deciso.
+          </>
+        )}
+      </p>
+
+      {puoImpostare && (
+        <Quota
+          titolo="Quota esterni"
+          icona="nuovi"
+          spiega="Quanto paga chi in squadra non è. Zero: offerta."
+          campoImporto="costoEsterni"
+          campoVoci="tariffeEsterni"
+          voci={voci}
+          importo={null}
+          iniziali={giocate}
+          giorni={giorni}
+        />
+      )}
+    </div>
   );
 }
 
@@ -263,16 +354,22 @@ function Gruppo({
   );
 }
 
-function Aggiungi({ quanti }: { quanti: number }) {
+function Aggiungi({ quanti, bloccato }: { quanti: number; bloccato: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending || quanti === 0} className="btn-primary w-full">
+    <button
+      type="submit"
+      disabled={pending || quanti === 0 || bloccato}
+      className="btn-primary w-full"
+    >
       <Icona nome="aggiungi" size={15} />
       {pending
         ? 'Aggiungo…'
-        : quanti === 0
-          ? 'Seleziona chi aggiungere'
-          : `Aggiungi ${quanti} ${quanti === 1 ? 'operatore' : 'operatori'}`}
+        : bloccato
+          ? 'Serve il prezzo per chi viene da fuori'
+          : quanti === 0
+            ? 'Seleziona chi aggiungere'
+            : `Aggiungi ${quanti} ${quanti === 1 ? 'operatore' : 'operatori'}`}
     </button>
   );
 }

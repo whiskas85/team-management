@@ -130,7 +130,7 @@ const attivitaInProgramma: Strumento = {
     const eventi = await prisma.event.findMany({
       where: {
         AND: [
-          filtroVisibilita(me.stato, puoGestireEventi(me.roles)),
+          filtroVisibilita(me.stato, puoGestireEventi(me.roles), me.id),
           { inizio: { gte: new Date(), lte: fino } },
         ],
       },
@@ -170,7 +170,7 @@ const attivitaDettaglio: Strumento = {
     const evento = await prisma.event.findFirst({
       where: {
         AND: [
-          filtroVisibilita(me.stato, puoGestireEventi(me.roles)),
+          filtroVisibilita(me.stato, puoGestireEventi(me.roles), me.id),
           { id: testo(arg, 'attivitaId') },
         ],
       },

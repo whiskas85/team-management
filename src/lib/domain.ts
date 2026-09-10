@@ -229,6 +229,7 @@ export const etichettaEvento: Record<string, string> = {
 export const etichettaVisibilita: Record<string, string> = {
   TEAM: 'Solo squadra',
   TUTTI: 'Tutti',
+  INVITO: 'Su invito',
 };
 
 /**

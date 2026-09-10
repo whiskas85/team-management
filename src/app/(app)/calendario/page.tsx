@@ -61,7 +61,7 @@ export default async function CalendarioPage({
   const perMese =
     attuale === 'mese'
       ? await prisma.event.findMany({
-          where: filtroVisibilita(me.stato, admin),
+          where: filtroVisibilita(me.stato, admin, me.id),
           orderBy: { inizio: 'asc' },
           select: {
             id: true,

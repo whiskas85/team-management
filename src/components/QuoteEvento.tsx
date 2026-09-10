@@ -17,6 +17,26 @@ import type { VoceListino } from './CampiRichiesta';
  * L'importo scritto a mano vince sulla somma: è lì che si regala una giocata
  * (zero) o si chiede una cifra diversa dal listino.
  */
+/**
+ * Le voci del listino che riguardano le attività, per la stagione giusta.
+ *
+ * Iscrizioni, rinnovi e tessere federali stanno nello stesso tariffario ma con
+ * una giocata non c'entrano, e in mezzo alle altre si spuntano per sbaglio. Di
+ * due voci con lo stesso nome vince quella scritta per la stagione. Sta fuori
+ * dal componente perché la stessa scelta serve anche a chi aggiunge un nuovo e
+ * deve decidere al volo quanto paga.
+ */
+export function vociAttivita(listino: VoceListino[], stagioneId: string | null) {
+  const valide = listino.filter(
+    (v) =>
+      (v.stagioneId === null || v.stagioneId === stagioneId) &&
+      (v.usi.includes('ATTIVITA') || v.usi.includes('GIOCATA_NUOVO')),
+  );
+  return valide.filter(
+    (v) => v.stagioneId === stagioneId || !valide.some((a) => a.nome === v.nome && a.stagioneId),
+  );
+}
+
 export function QuoteEvento({
   listino,
   stagioneId,
@@ -24,6 +44,7 @@ export function QuoteEvento({
   costoEsterni,
   preselezionaEsterni = false,
   mostraEsterni = true,
+  giorni = 1,
 }: {
   listino: VoceListino[];
   /** Stagione dell'attività: filtra le voci valide. */
@@ -38,21 +59,14 @@ export function QuoteEvento({
    * facile per scrivere la cifra in quella sbagliata.
    */
   mostraEsterni?: boolean;
+  /** Quanti giorni occupa l'attività: le voci «al giorno» contano per ognuno. */
+  giorni?: number;
 }) {
   // Qui si vedono solo le voci che riguardano le attività: iscrizioni, rinnovi
   // e tessere federali stanno nello stesso tariffario ma non c'entrano niente
   // con una giocata, e in mezzo alle altre si spuntano per sbaglio.
   // Di due voci con lo stesso nome vince quella scritta per la stagione.
-  const applicabili = useMemo(() => {
-    const valide = listino.filter(
-      (v) =>
-        (v.stagioneId === null || v.stagioneId === stagioneId) &&
-        (v.usi.includes('ATTIVITA') || v.usi.includes('GIOCATA_NUOVO')),
-    );
-    return valide.filter(
-      (v) => v.stagioneId === stagioneId || !valide.some((a) => a.nome === v.nome && a.stagioneId),
-    );
-  }, [listino, stagioneId]);
+  const applicabili = useMemo(() => vociAttivita(listino, stagioneId), [listino, stagioneId]);
 
   const giocate = useMemo(
     () => applicabili.filter((v) => v.usi.includes('GIOCATA_NUOVO')).map((v) => v.id),
@@ -69,6 +83,7 @@ export function QuoteEvento({
         spiega="Quanto paga chi è in squadra. Vuoto: per loro l'attività è gratis."
         campoImporto="costo"
         campoVoci="tariffeSquadra"
+        giorni={giorni}
         voci={applicabili}
         importo={costo}
         iniziali={[]}
@@ -80,6 +95,7 @@ export function QuoteEvento({
           spiega="Quanto paga chi in squadra non è. Vuoto: pagano come la squadra; zero: offerta."
           campoImporto="costoEsterni"
           campoVoci="tariffeEsterni"
+          giorni={giorni}
           voci={applicabili}
           importo={costoEsterni}
           iniziali={preselezionaEsterni ? giocate : []}
@@ -94,7 +110,7 @@ export function QuoteEvento({
   );
 }
 
-function Quota({
+export function Quota({
   titolo,
   icona,
   spiega,
@@ -103,6 +119,7 @@ function Quota({
   voci,
   importo,
   iniziali,
+  giorni = 1,
 }: {
   titolo: string;
   icona: NomeIcona;
@@ -112,6 +129,7 @@ function Quota({
   voci: VoceListino[];
   importo?: number | null;
   iniziali: string[];
+  giorni?: number;
 }) {
   const [scelte, setScelte] = useState<Set<string>>(() => new Set(iniziali));
 
@@ -123,7 +141,12 @@ function Quota({
       return n;
     });
 
-  const totale = voci.filter((v) => scelte.has(v.id)).reduce((t, v) => t + v.importo, 0);
+  // le voci «al giorno» contano una volta per ogni giorno dell'attività
+  const volte = (v: VoceListino) => (v.perGiorno ? giorni : 1);
+  const totale = voci
+    .filter((v) => scelte.has(v.id))
+    .reduce((t, v) => t + v.importo * volte(v), 0);
+  const conGiorni = voci.some((v) => scelte.has(v.id) && v.perGiorno);
 
   return (
     <div className="rounded-lg border border-line bg-surface2/40 p-3">
@@ -171,7 +194,9 @@ function Quota({
                 >
                   {attiva ? '✓ ' : '+ '}
                   {v.nome}
-                  <span className="num ml-1 opacity-80">{v.importo.toFixed(2)} €</span>
+                  <span className="num ml-1 opacity-80">
+                    {v.importo.toFixed(2)} €{v.perGiorno ? ' /giorno' : ''}
+                  </span>
                 </button>
               );
             })}
@@ -186,6 +211,12 @@ function Quota({
               Dal listino: <strong className="text-nvg">{totale.toFixed(2)} €</strong>
               {' · '}
               lasciando vuoto l’importo si chiede questo
+            </p>
+          )}
+          {conGiorni && (
+            <p className="mt-1 text-[11px] text-muted">
+              Le voci al giorno contano {giorni === 1 ? 'un giorno' : `${giorni} giorni`}, quelli
+              dell’attività: se ne cambi le date, il conto si rifà quando salvi.
             </p>
           )}
         </>
