@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.22.0 — 11 settembre 2026
+
+### Cambiato
+
+- **Il pallino della cassa nel menu conta le righe aperte**: le quote ancora
+  da incassare, dichiarate o no, e i rimborsi da dare. Prima contava solo chi
+  aveva detto di aver pagato, e una cassa piena di quote da riscuotere restava
+  senza numero. Pagate, annullate e gestite fuori non contano: incassate
+  tutte, il pallino si spegne.
+
 ## 2.21.1 — 11 settembre 2026
 
 ### Corretto

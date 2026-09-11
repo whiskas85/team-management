@@ -238,12 +238,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     select: { id: true, nome: true },
   });
   if (mieCasse.length > 0) {
+    // Il pallino conta le righe ancora aperte della cassa: le quote da
+    // incassare — dichiarate o no — e i rimborsi da dare. Contare solo quelle
+    // dichiarate lasciava il pallino spento su una cassa piena di quote da
+    // riscuotere; quelle chiuse (pagate, annullate, gestite fuori) non contano,
+    // se no non si spegnerebbe mai.
     const inAttesa = await prisma.payment.count({
       where: {
         cassaId: { in: mieCasse.map((c) => c.id) },
         OR: [
-          { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
-          { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
+          { tipo: { not: 'RIMBORSO' }, status: { in: ['DA_PAGARE', 'PARZIALE'] } },
+          { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO', 'NON_GESTITO'] } },
         ],
       },
     });
