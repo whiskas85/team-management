@@ -816,6 +816,11 @@ model Cassa {
   nome      String   @unique
   /// Spenta non riceve quote nuove, ma chi la gestisce continua a vedere le sue.
   attiva    Boolean  @default(true)
+  /// La sua quota va pagata (o almeno dichiarata) prima di assicurare un nuovo
+  /// con la giornaliera: la polizza la paga il club e non torna indietro. Si
+  /// spegne per una cassa che con la giornata non c'entra — l'istruttore di un
+  /// corso — e allora la polizza non la aspetta.
+  perPolizza Boolean @default(true)
   createdAt DateTime @default(now())
 
   /// Chi la gestisce. Una lista e non una persona sola: oggi Mario, domani

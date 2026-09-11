@@ -1,4 +1,4 @@
-import type { StatoAssicurazione, StatoOperatore } from '@prisma/client';
+import type { Prisma, StatoAssicurazione, StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
 import { vedeAttivitaSquadra, type Tono } from './domain';
 import { iniziali, nomeCompleto } from './format';
@@ -77,6 +77,27 @@ export const quotaSaldata = (quota: { status: string } | null | undefined) =>
 export const quotaOnorata = (
   quota: { status: string; dichiaratoIl: Date | null } | null | undefined,
 ) => quotaSaldata(quota) || quota?.dichiaratoIl != null;
+
+/**
+ * Le quote che la polizza aspetta: quella del club e quelle delle casse che
+ * lo dicono.
+ *
+ * Un'attività può chiedere soldi a più casse — la giornata a chi tiene i
+ * nuovi, l'istruttore a SAT & Gaming. Prima contava solo il club, e sul Corso
+ * CQB, che al club non chiede niente, «Assicura» si accendeva senza che
+ * nessuno avesse pagato. Adesso ogni cassa dice se conta: di serie sì, e chi
+ * non c'entra con la giornata si spegne dalla sua scheda. I rimborsi sono
+ * movimenti a sé e non dicono niente su cosa è dovuto.
+ */
+export const QUOTE_PER_POLIZZA: Prisma.PaymentWhereInput = {
+  tipo: { not: 'RIMBORSO' },
+  OR: [{ cassaId: null }, { cassa: { perPolizza: true } }],
+};
+
+/** Tutte le quote che la polizza aspetta sono pagate o dichiarate. */
+export const quoteOnorate = (
+  quote: { status: string; dichiaratoIl: Date | null }[],
+) => quote.every((q) => quotaOnorata(q));
 
 /** La copertura di un ospite in un giorno dell'attività. */
 export type GiornoDaCoprire = {
@@ -160,8 +181,9 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       field: { select: { nome: true } },
       giornaliere: { select: { userId: true, giorno: true, stato: true, codice: true } },
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
+      // le quote che la polizza aspetta: il club e le casse che contano
       payments: {
-        where: { tipo: { not: 'RIMBORSO' }, cassaId: null },
+        where: QUOTE_PER_POLIZZA,
         select: { userId: true, status: true, dichiaratoIl: true },
       },
       rsvps: {
@@ -192,12 +214,14 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     );
     // i giorni già passati non si coprono più: il portale non torna indietro
     const giorni = giorniDi(e.inizio, e.fine).filter((g) => g >= chiaveGiorno(oggi));
-    const quote = new Map(e.payments.map((p) => [p.userId, p]));
+    // più quote per persona: il club e le casse che la polizza aspetta
+    const quote = new Map<string, (typeof e.payments)[number][]>();
+    for (const p of e.payments) quote.set(p.userId, [...(quote.get(p.userId) ?? []), p]);
 
     const nuovi = e.rsvps
       .filter((r) => !vedeAttivitaSquadra(r.user.stato))
       .map((r) => {
-        const quota = quote.get(r.userId) ?? null;
+        const sue = quote.get(r.userId) ?? [];
         return {
           id: r.userId,
           nome: nomeCompleto(r.user),
@@ -214,13 +238,13 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
               codice: g?.codice ?? null,
             };
           }),
-          pagato: quotaSaldata(quota),
+          pagato: sue.every((q) => quotaSaldata(q)),
           // dichiarata ma non ancora confermata: basta per coprire, non per
           // dire che i soldi sono entrati — sono due cose diverse e si leggono
           // diverse
-          dichiarata: quota?.dichiaratoIl != null,
-          copribile: quotaOnorata(quota),
-          haQuota: quota !== null,
+          dichiarata: sue.some((q) => q.dichiaratoIl != null && !quotaSaldata(q)),
+          copribile: quoteOnorate(sue),
+          haQuota: sue.length > 0,
           datiCompleti: r.user.dataNascita !== null && r.user.luogoNascita !== null,
         } satisfies NuovoDaCoprire;
       })

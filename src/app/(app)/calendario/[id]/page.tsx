@@ -127,7 +127,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           tipo: true,
           userId: true,
           cassaId: true,
-          cassa: { select: { nome: true } },
+          cassa: { select: { nome: true, perPolizza: true } },
           importo: true,
           pagato: true,
           status: true,
@@ -1170,7 +1170,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     // prima si incassa. Chi ha dichiarato il pagamento
                                     // passa, ci ha messo la faccia. Il motivo si scrive
                                     // una volta sola, non uguale sotto ogni giorno.
-                                    const copribile = quotaOnorata(quotePerUtente.get(r.userId));
+                                    // conta il club e ogni cassa che la polizza aspetta
+                                    const copribile = quoteDi(r.userId)
+                                      .filter((q) => !q.cassa || q.cassa.perPolizza)
+                                      .every((q) => quotaOnorata(q));
                                     const daFare = giorniScoperti.some(
                                       (giorno) =>
                                         giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',

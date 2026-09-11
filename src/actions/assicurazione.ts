@@ -13,6 +13,7 @@ import {
   giornoDaChiave,
   giorniDi,
   quotaOnorata,
+  QUOTE_PER_POLIZZA,
 } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
 
@@ -41,12 +42,13 @@ function aggiorna(eventId: string) {
  * severo col rischio sbagliato.
  */
 async function quotaDaSaldare(userId: string, eventId: string) {
-  const quota = await prisma.payment.findFirst({
-    // conta la quota del club: la polizza la paga il club
-    where: { eventId, userId, cassaId: null, tipo: { not: 'RIMBORSO' } },
+  // tutte le quote che la polizza aspetta: il club e le casse che contano —
+  // sul Corso CQB il club non chiede niente, e bastava quello per assicurare
+  const quote = await prisma.payment.findMany({
+    where: { eventId, userId, ...QUOTE_PER_POLIZZA },
     select: { status: true, dichiaratoIl: true },
   });
-  return quotaOnorata(quota) ? null : quota;
+  return quote.find((q) => !quotaOnorata(q)) ?? null;
 }
 
 /**

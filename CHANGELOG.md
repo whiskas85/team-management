@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.26.0 — 11 settembre 2026
+
+### Corretto
+
+- **«Assicura» aspetta di nuovo che la quota sia versata.** La polizza
+  giornaliera guardava solo la quota del club: sul Corso CQB, che al club non
+  chiede niente, il pulsante si accendeva senza che il nuovo avesse pagato la
+  giornata a nessuno. Adesso aspetta tutte le quote che contano — pagate, o
+  almeno segnalate da chi le deve — sia nella scheda dell'attività sia nelle
+  Polizze giornaliere, e anche lato server.
+
+### Aggiunto
+
+- **Ogni cassa dice se la sua quota serve per la polizza.** In «Altre casse»,
+  nella scheda di una cassa, c'è «Va pagata per la polizza giornaliera»: accesa
+  di serie per tutte, così la polizza aspetta tutto quello che l'attività
+  chiede. Si spegne per una cassa che con la giornata non c'entra — l'istruttore
+  di un corso — e allora la polizza non la aspetta. La quota del club conta
+  sempre. Nell'elenco delle casse si legge «serve per la polizza» o «non conta
+  per la polizza».
+
 ## 2.25.1 — 11 settembre 2026
 
 ### Corretto
