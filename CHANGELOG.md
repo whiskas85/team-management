@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.18.1 — 11 settembre 2026
+
+### Cambiato
+
+- **«Elimina attività» sta in fondo a «Modifica»**, non più fra i cambi di
+  stato: eliminare non è un passo indietro ma una cancellazione, e accanto a
+  Concludi e Riporta in bozza era troppo a portata di mano. Resta solo
+  all'admin e con conferma; nell'elenco del calendario non cambia niente.
+
 ## 2.18.0 — 11 settembre 2026
 
 ### Aggiunto

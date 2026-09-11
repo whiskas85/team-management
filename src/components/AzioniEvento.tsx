@@ -13,6 +13,7 @@ export function AzioniEvento({
   visibilita,
   soloInterno = false,
   compatto = false,
+  conElimina = true,
 }: {
   id: string;
   titolo: string;
@@ -22,6 +23,8 @@ export function AzioniEvento({
   soloInterno?: boolean;
   /** Versione ridotta per le card e le righe di elenco. */
   compatto?: boolean;
+  /** Nella scheda l'eliminazione sta in «Modifica»: fra i cambi di stato no. */
+  conElimina?: boolean;
 }) {
   const dim = compatto ? 'btn-sm' : '';
 
@@ -154,15 +157,17 @@ export function AzioniEvento({
         </>
       )}
 
-      <AzioneBottone
-        azione={eliminaEvento}
-        valori={{ id }}
-        conferma={`Eliminare definitivamente "${titolo}" e tutte le adesioni raccolte?`}
-        icona="elimina"
-        className={`btn-danger ${dim}`}
-      >
-        {compatto ? 'Elimina' : 'Elimina attività'}
-      </AzioneBottone>
+      {conElimina && (
+        <AzioneBottone
+          azione={eliminaEvento}
+          valori={{ id }}
+          conferma={`Eliminare definitivamente "${titolo}" e tutte le adesioni raccolte?`}
+          icona="elimina"
+          className={`btn-danger ${dim}`}
+        >
+          {compatto ? 'Elimina' : 'Elimina attività'}
+        </AzioneBottone>
+      )}
     </div>
   );
 }

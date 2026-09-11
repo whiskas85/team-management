@@ -46,6 +46,7 @@ import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
   creaRiunione,
+  eliminaEvento,
   registraPresenze,
   rimuoviPartecipante,
   salvaEvento,
@@ -565,6 +566,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   />
                   <Invia icona="salva">Salva modifiche</Invia>
                 </FormAzione>
+                {/* Eliminare è l'ultima cosa che si fa a un'attività, e sta in
+                    fondo alla sua modifica: fra i cambi di stato stava accanto
+                    a gesti di tutti i giorni, e non è un passo indietro ma una
+                    cancellazione. Solo l'admin, e con conferma. */}
+                {admin && (
+                  <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-4">
+                    <p className="text-xs text-muted">
+                      Cancella l’attività con tutte le adesioni raccolte. Non si torna indietro.
+                    </p>
+                    <AzioneBottone
+                      azione={eliminaEvento}
+                      valori={{ id: evento.id }}
+                      conferma={`Eliminare definitivamente "${evento.titolo}" e tutte le adesioni raccolte?`}
+                      icona="elimina"
+                      className="btn-danger btn-sm shrink-0"
+                    >
+                      Elimina attività
+                    </AzioneBottone>
+                  </div>
+                )}
               </BottoneModale>
             )}
             {/* Da una gara si decide di vedersi per prepararla: è così che
@@ -611,6 +632,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       status={evento.status}
                       visibilita={evento.visibilita}
                       soloInterno={evento.tipo?.soloInterno ?? false}
+                      conElimina={false}
                     />
                   </BottoneModale>
                 ) : (
