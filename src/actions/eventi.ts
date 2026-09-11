@@ -934,7 +934,17 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   // abbia pagato. Il prezzo arriva allora insieme ai nomi, dal selettore, e lo
   // decide l'admin come ogni altra quota dell'attività.
   const nuovi = ammessi.filter((u) => !vedeAttivitaSquadra(u.stato));
-  const daDecidere = evento.costoEsterni === null && !(Number(evento.costo ?? 0) > 0);
+  // Il prezzo c'è se c'è una quota qualsiasi, del club o di un'altra cassa: il
+  // Corso CQB non chiede niente al club ma 40 € a SAT & Gaming, e chiedere di
+  // decidere un prezzo che esiste già era un errore.
+  const altreCasse = await prisma.quotaCassa.findMany({
+    where: { eventId },
+    select: { importo: true, importoEsterni: true },
+  });
+  const daDecidere =
+    evento.costoEsterni === null &&
+    !(Number(evento.costo ?? 0) > 0) &&
+    !altreCasse.some((q) => Number(q.importo) > 0 || q.importoEsterni !== null);
   let prezzoFissato: number | null = null;
   if (nuovi.length > 0 && daDecidere) {
     if (!isAdmin(me.roles)) {

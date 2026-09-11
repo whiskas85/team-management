@@ -555,8 +555,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // non c'è. Se non c'è nessuno dei due, aggiungerlo vorrebbe dire farlo giocare
   // gratis senza averlo deciso — e poterlo assicurare senza che abbia pagato:
   // il selettore allora chiede il prezzo prima di aggiungerlo.
+  // Conta anche una quota di un'altra cassa: il Corso CQB non chiede niente al
+  // club, ma i suoi prezzi li ha — a SAT & Gaming e a chi tiene i nuovi.
   const prezzoEsterniDaDecidere =
-    evento.costoEsterni === null && !(Number(evento.costo ?? 0) > 0);
+    evento.costoEsterni === null &&
+    !(Number(evento.costo ?? 0) > 0) &&
+    !evento.quoteCasse.some((q) => Number(q.importo) > 0 || q.importoEsterni !== null);
 
   return (
     <>

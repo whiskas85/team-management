@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.25.1 — 11 settembre 2026
+
+### Corretto
+
+- **Aggiungere un nuovo non chiede più un prezzo che c'è già.** Il selettore
+  dei partecipanti guardava solo la quota del club: su un'attività che non
+  chiede niente al club ma ha le quote di altre casse — il Corso CQB, 40 € a
+  SAT & Gaming e 10 € a chi tiene i nuovi — diceva «questa attività non ha un
+  prezzo per chi viene da fuori» e non lasciava aggiungere senza sceglierne
+  uno. Adesso conta anche le quote delle altre casse: il prezzo si chiede solo
+  quando davvero non ce n'è nessuno.
+
 ## 2.25.0 — 11 settembre 2026
 
 ### Cambiato
