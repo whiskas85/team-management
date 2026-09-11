@@ -640,6 +640,14 @@ model Event {
   /// Nulla = pagano come la squadra; zero = la giocata è offerta.
   costoEsterni          Decimal?         @db.Decimal(10, 2)
   dettaglioCostoEsterni String?
+  /// Come sono state composte le due quote del club: l'importo scritto a mano
+  /// e le voci del tariffario spuntate. Il totale resta in `costo` e
+  /// `costoEsterni`; questi servono a riaprire il modulo com'era, senza perdere
+  /// le voci ogni volta che lo si modifica.
+  costoAMano            Decimal?         @db.Decimal(10, 2)
+  vociSquadra           String[]         @default([])
+  costoEsterniAMano     Decimal?         @db.Decimal(10, 2)
+  vociEsterni           String[]         @default([])
   maxPartecipanti       Int?
   chiusuraIscrizioni    DateTime?
   note                  String?
@@ -839,6 +847,12 @@ model QuotaCassa {
   importo        Decimal  @db.Decimal(10, 2)
   /// Per chi non è in squadra. Nulla = come la squadra, come per il club.
   importoEsterni Decimal? @db.Decimal(10, 2)
+  /// Come sono state composte, per riaprire il modulo com'era: l'importo
+  /// scritto a mano e le voci del tariffario di questa cassa.
+  importoAMano        Decimal? @db.Decimal(10, 2)
+  voci                String[] @default([])
+  importoEsterniAMano Decimal? @db.Decimal(10, 2)
+  vociEsterni         String[] @default([])
   createdAt      DateTime @default(now())
 
   @@unique([eventId, cassaId])

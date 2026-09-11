@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
-import { componiQuota, quotaPer, vociDiAltreCasse } from '@/lib/quote';
+import { componiQuota, quotaPer, vociSpuntate } from '@/lib/quote';
 import { giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
@@ -111,16 +111,20 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
         sommaAMano: true,
       })
     : tieni(esistente?.costoEsterni, esistente?.dettaglioCostoEsterni);
-  // le voci di altre casse spuntate qui non entrano in queste due quote:
-  // diventano la quota di quella cassa, dopo il salvataggio
-  const altreSquadra =
-    !soloLogistica && fd.has('costo')
-      ? await vociDiAltreCasse(fd, { voci: 'tariffeSquadra', stagioneId, giorni })
-      : new Map<string, { importo: number; descrizione: string }>();
-  const altreEsterni =
-    !soloLogistica && fd.has('costoEsterni')
-      ? await vociDiAltreCasse(fd, { voci: 'tariffeEsterni', stagioneId, giorni })
-      : new Map<string, { importo: number; descrizione: string }>();
+  // Come sono state composte, per riaprire il modulo com'era: l'importo
+  // scritto a mano e le voci spuntate. Prima si salvava solo il totale, e a
+  // ogni modifica le voci sparivano. Solo se il modulo le ha mostrate.
+  const composizione = {
+    ...(fd.has('costo')
+      ? { costoAMano: num(fd, 'costo'), vociSquadra: vociSpuntate(fd, 'tariffeSquadra') }
+      : {}),
+    ...(fd.has('costoEsterni')
+      ? {
+          costoEsterniAMano: num(fd, 'costoEsterni'),
+          vociEsterni: vociSpuntate(fd, 'tariffeEsterni'),
+        }
+      : {}),
+  };
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
   // scheda, così non si rilascia un'attività per sbaglio da una tendina
@@ -157,6 +161,7 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     dettaglioCosto: squadra.dettaglio,
     costoEsterni: esterni.quota,
     dettaglioCostoEsterni: esterni.dettaglio,
+    ...composizione,
     maxPartecipanti: intOpt(fd, 'maxPartecipanti'),
     chiusuraIscrizioni: data(fd, 'chiusuraIscrizioni'),
     note: strOpt(fd, 'note'),
@@ -168,7 +173,7 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       data: soloLogistica ? logistica : valori,
     });
 
-    await quoteDaListino(id, altreSquadra, altreEsterni);
+    if (!soloLogistica) await salvaQuoteCasse(id, fd, stagioneId, giorni);
 
     // Il costo può arrivare dopo che la gente si è già segnata: senza questo
     // giro le quote non nascevano più, e chi era titolare non vedeva niente
@@ -178,6 +183,7 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     aggiorna(id);
     revalidatePath('/pagamenti');
     revalidatePath('/admin/pagamenti');
+    revalidatePath('/cassa');
     return { ok: 'Evento aggiornato.' };
   }
 
@@ -191,40 +197,112 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       stagioneId,
     },
   });
-  await quoteDaListino(creato.id, altreSquadra, altreEsterni);
+  await salvaQuoteCasse(creato.id, fd, stagioneId, giorni);
   aggiorna(creato.id);
   return { ok: 'Attività creata in bozza. Rilasciala quando è pronta.' };
 }
 
 /**
- * Le voci di altre casse spuntate nel modulo diventano la quota di quella
- * cassa sull'attività.
+ * Le quote delle altre casse, come le ha lasciate il modulo.
  *
- * La squadra paga le voci spuntate nella sua card, gli esterni quelle della
- * loro; se nella card degli esterni non ce n'è nessuna di quella cassa, pagano
- * come la squadra, con la stessa regola del club. Una cassa che l'attività ha
- * già si aggiorna; quelle non toccate in questo salvataggio restano come sono
- * — le voci non si ricordano spuntate, e riaprendo il modulo non si deve
- * perdere niente.
+ * Nel modulo dell'attività ogni cassa ha il suo blocco — il club, Marco, SAT &
+ * Gaming — con le due quote e le voci del suo tariffario. Qui ogni blocco
+ * diventa la quota di quella cassa, e insieme al totale si salva com'è stata
+ * composta, così riaprendo il modulo la si ritrova uguale. Un blocco tolto
+ * toglie la quota; un blocco lasciato vuoto non chiede niente, ed è come
+ * toglierlo. Se il modulo non ha mostrato le quote — il team leader corregge
+ * solo i luoghi — non si tocca niente.
  */
-async function quoteDaListino(
-  eventId: string,
-  squadra: Map<string, { importo: number; descrizione: string }>,
-  esterni: Map<string, { importo: number; descrizione: string }>,
-) {
-  for (const cassaId of new Set([...squadra.keys(), ...esterni.keys()])) {
-    const s = squadra.get(cassaId);
-    const e = esterni.get(cassaId);
+async function salvaQuoteCasse(eventId: string, fd: FormData, stagioneId: string, giorni: number) {
+  if (!fd.has('quoteCasse')) return;
+
+  const ids = [...new Set(vociSpuntate(fd, 'cassaQuota'))];
+  const esistenti = await prisma.quotaCassa.findMany({ where: { eventId } });
+
+  for (const cassaId of ids) {
+    const cassa = await prisma.cassa.findUnique({ where: { id: cassaId }, select: { nome: true } });
+    if (!cassa) continue;
+    const campo = (n: string) => `cassa_${cassaId}_${n}`;
+    const gia = esistenti.find((q) => q.cassaId === cassaId) ?? null;
+
+    const squadra = await componiQuota(fd, {
+      voci: campo('vociSquadra'),
+      importo: campo('squadra'),
+      stagioneId,
+      giorni,
+      sommaAMano: true,
+      cassaId,
+    });
+    // la card esterni nascosta (attività di squadra) non cancella quello che c'era
+    const conEsterni = fd.has(campo('esterni'));
+    const esterni = conEsterni
+      ? await componiQuota(fd, {
+          voci: campo('vociEsterni'),
+          importo: campo('esterni'),
+          stagioneId,
+          giorni,
+          sommaAMano: true,
+          cassaId,
+        })
+      : { quota: gia?.importoEsterni == null ? null : Number(gia.importoEsterni), dettaglio: null };
+
+    if (!squadra.quota && esterni.quota === null) {
+      if (gia) await togliQuotaCassa(gia);
+      continue;
+    }
+
     const valori = {
-      descrizione: s?.descrizione ?? e!.descrizione,
-      importo: s?.importo ?? 0,
-      importoEsterni: e ? e.importo : null,
+      descrizione: str(fd, campo('descrizione')) || cassa.nome,
+      importo: squadra.quota ?? 0,
+      importoEsterni: esterni.quota,
+      importoAMano: num(fd, campo('squadra')),
+      voci: vociSpuntate(fd, campo('vociSquadra')),
+      ...(conEsterni
+        ? {
+            importoEsterniAMano: num(fd, campo('esterni')),
+            vociEsterni: vociSpuntate(fd, campo('vociEsterni')),
+          }
+        : {}),
     };
     await prisma.quotaCassa.upsert({
       where: { eventId_cassaId: { eventId, cassaId } },
       create: { eventId, cassaId, ...valori },
       update: valori,
     });
+  }
+
+  // i blocchi tolti dal modulo
+  for (const q of esistenti) {
+    if (!ids.includes(q.cassaId)) await togliQuotaCassa(q);
+  }
+}
+
+/**
+ * Toglie la quota di un'altra cassa da un'attività.
+ *
+ * Chi non l'aveva ancora pagata non la deve più; quello che è già entrato
+ * resta dov'è — se e come restituirlo lo decide chi tiene quella cassa. Chi
+ * era convocato solo perché mancava questa quota diventa titolare.
+ */
+async function togliQuotaCassa(quota: { id: string; eventId: string; cassaId: string }) {
+  await prisma.quotaCassa.delete({ where: { id: quota.id } });
+  await prisma.payment.deleteMany({
+    where: {
+      eventId: quota.eventId,
+      cassaId: quota.cassaId,
+      tipo: { not: 'RIMBORSO' },
+      pagato: 0,
+    },
+  });
+
+  const convocati = await prisma.eventRsvp.findMany({
+    where: { eventId: quota.eventId, assegnazione: 'CONVOCATO' },
+    select: { id: true, userId: true },
+  });
+  for (const c of convocati) {
+    if (await quoteTutteSaldate(quota.eventId, c.userId)) {
+      await prisma.eventRsvp.update({ where: { id: c.id }, data: { assegnazione: 'TITOLARE' } });
+    }
   }
 }
 
@@ -532,96 +610,6 @@ async function allineaQuoteEvento(eventId: string) {
   for (const r of rsvps) await allineaQuota(eventId, r.userId);
 }
 
-function aggiornaQuote(eventId: string) {
-  aggiorna(eventId);
-  revalidatePath('/pagamenti');
-  revalidatePath('/admin/pagamenti');
-  revalidatePath('/cassa');
-}
-
-/**
- * Aggiunge (o corregge) la quota che un'attività chiede per un'altra cassa.
- *
- * Il corso di Mario: il campo si paga al club con la quota di sempre,
- * l'istruttore a Mario con questa. Chi deve la quota del club la trova fra i
- * suoi pagamenti come un pagamento a parte, «da pagare a» quella cassa. Una
- * cassa per attività ha una quota sola: salvarne un'altra la corregge.
- */
-export async function salvaQuotaCassa(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
-  const me = await requireUser();
-  if (!isAdmin(me.roles)) return { errore: 'Le quote di un’attività le decide l’admin.' };
-
-  const eventId = str(fd, 'eventId');
-  const cassaId = str(fd, 'cassaId');
-  const descrizione = str(fd, 'descrizione');
-  const importo = num(fd, 'importo');
-  const importoEsterni = num(fd, 'importoEsterni');
-
-  if (!cassaId) return { errore: 'Scegli la cassa a cui va questa quota.' };
-  if (!descrizione) return { errore: 'Scrivi a cosa serve, es. «Istruttore».' };
-  if (importo === null || importo <= 0) return { errore: 'Importo non valido.' };
-  if (importoEsterni !== null && importoEsterni < 0) {
-    return { errore: 'L’importo degli esterni non può essere negativo.' };
-  }
-
-  const cassa = await prisma.cassa.findUnique({
-    where: { id: cassaId },
-    select: { nome: true, attiva: true },
-  });
-  if (!cassa?.attiva) return { errore: 'Quella cassa non c’è più o è spenta.' };
-
-  const valori = { descrizione, importo, importoEsterni };
-  await prisma.quotaCassa.upsert({
-    where: { eventId_cassaId: { eventId, cassaId } },
-    create: { eventId, cassaId, ...valori },
-    update: valori,
-  });
-  await allineaQuoteEvento(eventId);
-
-  aggiornaQuote(eventId);
-  return { ok: `Quota per ${cassa.nome} salvata: chi la deve la trova fra i suoi pagamenti.` };
-}
-
-/**
- * Toglie la quota di un'altra cassa da un'attività.
- *
- * Chi non l'aveva ancora pagata non la deve più; quello che è già entrato
- * resta dov'è — se e come restituirlo lo decide chi tiene quella cassa. Chi
- * era convocato solo perché mancava questa quota diventa titolare.
- */
-export async function eliminaQuotaCassa(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
-  const me = await requireUser();
-  if (!isAdmin(me.roles)) return { errore: 'Le quote di un’attività le decide l’admin.' };
-
-  const quota = await prisma.quotaCassa.findUnique({
-    where: { id: str(fd, 'id') },
-    include: { cassa: { select: { nome: true } } },
-  });
-  if (!quota) return { errore: 'Quota non trovata.' };
-
-  await prisma.quotaCassa.delete({ where: { id: quota.id } });
-  await prisma.payment.deleteMany({
-    where: {
-      eventId: quota.eventId,
-      cassaId: quota.cassaId,
-      tipo: { not: 'RIMBORSO' },
-      pagato: 0,
-    },
-  });
-
-  const convocati = await prisma.eventRsvp.findMany({
-    where: { eventId: quota.eventId, assegnazione: 'CONVOCATO' },
-    select: { id: true, userId: true },
-  });
-  for (const c of convocati) {
-    if (await quoteTutteSaldate(quota.eventId, c.userId)) {
-      await prisma.eventRsvp.update({ where: { id: c.id }, data: { assegnazione: 'TITOLARE' } });
-    }
-  }
-
-  aggiornaQuote(quota.eventId);
-  return { ok: `Quota per ${quota.cassa.nome} tolta.` };
-}
 /** Schieramento: il TL decide chi è titolare e chi riserva. */
 export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
@@ -967,7 +955,13 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
     }
     await prisma.event.update({
       where: { id: eventId },
-      data: { costoEsterni: esterni.quota, dettaglioCostoEsterni: esterni.dettaglio },
+      data: {
+        costoEsterni: esterni.quota,
+        dettaglioCostoEsterni: esterni.dettaglio,
+        // com'è stata composta, per ritrovarla uguale nel modulo dell'attività
+        costoEsterniAMano: num(fd, 'costoEsterni'),
+        vociEsterni: vociSpuntate(fd, 'tariffeEsterni'),
+      },
     });
     prezzoFissato = esterni.quota;
   }

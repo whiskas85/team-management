@@ -47,11 +47,9 @@ import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
   creaRiunione,
   eliminaEvento,
-  eliminaQuotaCassa,
   registraPresenze,
   rimuoviPartecipante,
   salvaEvento,
-  salvaQuotaCassa,
   scambiaTitolare,
   schiera,
 } from '@/actions/eventi';
@@ -604,6 +602,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     stagioneId={evento.stagioneId}
                     stagioni={stagioni}
                     evento={evento}
+                    casse={casseAttive}
                     soloLogistica={!admin}
                     // un nuovo forzato su un'attività di squadra ha bisogno del
                     // suo prezzo: senza, la card esterni resterebbe nascosta
@@ -1499,88 +1498,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 ))}
               </div>
             </details>
-          )}
-
-          {/* Le quote che non sono del club: il corso di Mario si paga in due,
-              il campo al club e l'istruttore a Mario. Ognuna diventa un
-              pagamento nella sua cassa, lo conferma chi la gestisce, e il
-              posto in formazione si conferma quando sono saldate tutte. */}
-          {admin && (casseAttive.length > 0 || evento.quoteCasse.length > 0) && (
-            <div className="card">
-              <p className="titolo-sezione mb-1">Quote di altre casse</p>
-              <p className="mb-3 text-[11px] text-muted">
-                Oltre a quella del club. Le deve chi deve la quota del club, si pagano a chi tiene
-                la cassa e non passano dalla segreteria.
-              </p>
-              {evento.quoteCasse.map((q) => (
-                <div
-                  key={q.id}
-                  className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-line px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{q.cassa.nome}</p>
-                    <p className="text-[11px] text-muted">
-                      {q.descrizione} · squadra {fmtEuro(Number(q.importo))} · esterni{' '}
-                      {q.importoEsterni === null
-                        ? 'come la squadra'
-                        : fmtEuro(Number(q.importoEsterni))}
-                    </p>
-                  </div>
-                  <AzioneBottone
-                    azione={eliminaQuotaCassa}
-                    valori={{ id: q.id }}
-                    conferma={`Togliere la quota per ${q.cassa.nome}? Chi non l'ha ancora pagata non la dovrà più.`}
-                    className="shrink-0 text-xs text-danger"
-                  >
-                    togli
-                  </AzioneBottone>
-                </div>
-              ))}
-              {casseAttive.length > 0 && (
-                <FormAzione azione={salvaQuotaCassa} className="mt-3 space-y-2">
-                  <input type="hidden" name="eventId" value={evento.id} />
-                  <Campo label="Cassa">
-                    <select name="cassaId" className="input" defaultValue="" required>
-                      <option value="">— scegli la cassa —</option>
-                      {casseAttive.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </Campo>
-                  <Campo label="A cosa serve">
-                    <input name="descrizione" className="input" placeholder="Istruttore" required />
-                  </Campo>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Campo label="Squadra €">
-                      <input
-                        name="importo"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="input"
-                        required
-                      />
-                    </Campo>
-                    <Campo label="Esterni €">
-                      <input
-                        name="importoEsterni"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="input"
-                        placeholder="come squadra"
-                      />
-                    </Campo>
-                  </div>
-                  <p className="text-[11px] text-muted">
-                    Una cassa ha una quota sola per attività: salvarla di nuovo la corregge.
-                  </p>
-                  <Invia className="btn-ghost btn-sm w-full">Salva la quota</Invia>
-                </FormAzione>
-              )}
-            </div>
           )}
 
           {/* A giornata conclusa la propria adesione non c'è più: non si risponde

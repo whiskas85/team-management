@@ -32,7 +32,7 @@ export default async function CalendarioPage({
   const admin = isAdmin(me.roles);
 
   // il listino serve al modulo di creazione: le quote si compongono da lì
-  const [campi, tipologie, tipiGara, listino, stagione, stagioni] = admin
+  const [campi, tipologie, tipiGara, listino, stagione, stagioni, casse] = admin
     ? await Promise.all([
         prisma.field.findMany({ where: { attivo: true }, orderBy: { nome: 'asc' } }),
         prisma.tipoAttivita.findMany({
@@ -48,8 +48,14 @@ export default async function CalendarioPage({
         listinoAttivo(),
         stagioneAttiva(),
         stagioniAperte(),
+        // le casse a cui un'attività nuova può chiedere una quota
+        prisma.cassa.findMany({
+          where: { attiva: true },
+          orderBy: { nome: 'asc' },
+          select: { id: true, nome: true },
+        }),
       ])
-    : [[], [], [], [], null, []];
+    : [[], [], [], [], null, [], []];
 
   // legenda dei colori: sempre visibile, anche a chi non gestisce il calendario
   const legenda = await prisma.tipoAttivita.findMany({
@@ -207,6 +213,7 @@ export default async function CalendarioPage({
                       listino={listino}
                       stagioneId={stagione?.id ?? null}
                     stagioni={stagioni}
+                      casse={casse}
                       compatto
                     />
                     <Invia icona="aggiungi">Crea attività</Invia>
@@ -230,6 +237,7 @@ export default async function CalendarioPage({
                       listino={listino}
                       stagioneId={stagione?.id ?? null}
                     stagioni={stagioni}
+                      casse={casse}
                     />
                     <Invia icona="aggiungi">Crea attività</Invia>
                     <p className="text-xs text-muted">

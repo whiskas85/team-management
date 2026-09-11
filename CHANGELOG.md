@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.23.0 — 11 settembre 2026
+
+### Cambiato
+
+- **Le quote di tutte le casse si decidono in «Modifica», in una schermata
+  sola.** Nella sezione Pagamenti c'è un blocco per ogni cassa: il club, e
+  sotto quelle che l'attività usa — il Corso CQB chiede la giornata a Marco e
+  l'istruttore a SAT & Gaming. Ogni blocco ha la quota squadra e la quota
+  esterni, con l'importo a mano e le voci del **suo** tariffario, e «A cosa
+  serve». Una cassa si aggiunge dalla tendina in fondo e si toglie dal suo
+  blocco; più voci della stessa cassa si sommano in un pagamento solo verso di
+  lei. La card laterale «Quote di altre casse», che costringeva a entrare e
+  uscire dal modulo, non c'è più.
+- **Le voci spuntate si ricordano.** Riaprendo «Modifica» si ritrovano spuntate
+  com'erano, con l'importo scritto a mano a parte: prima si salvava solo il
+  totale, e il «Costo giornata softair» spariva a ogni modifica. Le quote
+  salvate prima di questa versione si riaprono con il totale nella casella a
+  mano: basta rispuntare le voci una volta.
+- **Su un'attività nuova la giocata degli esterni arriva già nel blocco della
+  sua cassa**: se la voce è di Marco, il blocco di Marco compare da solo.
+
 ## 2.22.0 — 11 settembre 2026
 
 ### Cambiato

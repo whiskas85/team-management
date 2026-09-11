@@ -54,48 +54,12 @@ export async function listinoAttivo() {
   }));
 }
 
-/**
- * Le voci spuntate che vanno ad altre casse, cassa per cassa.
- *
- * Su un'attività una voce del corso di Mario non si somma alla quota del
- * club: diventa la quota della sua cassa, con il nome delle voci come
- * descrizione. Come per il club, gli importi si rileggono dal database.
- */
-export async function vociDiAltreCasse(
-  fd: FormData,
-  {
-    voci: campoVoci,
-    stagioneId,
-    giorni = 1,
-  }: { voci: string; stagioneId: string | null; giorni?: number },
-): Promise<Map<string, { importo: number; descrizione: string }>> {
-  const perCassa = new Map<string, { importo: number; descrizione: string }>();
-  const ids = fd
-    .getAll(campoVoci)
+/** Le voci spuntate in un campo del modulo, come vanno salvate. */
+export const vociSpuntate = (fd: FormData, campo: string) =>
+  fd
+    .getAll(campo)
     .map((v) => v.toString())
     .filter(Boolean);
-  if (ids.length === 0) return perCassa;
-
-  const voci = await prisma.tariffa.findMany({
-    where: {
-      id: { in: ids },
-      attiva: true,
-      cassaId: { not: null },
-      OR: [{ stagioneId: null }, ...(stagioneId ? [{ stagioneId }] : [])],
-    },
-    orderBy: { nome: 'asc' },
-  });
-  for (const v of voci) {
-    const volte = v.perGiorno ? giorni : 1;
-    const nome = v.nome + (volte > 1 ? ` × ${volte} giorni` : '');
-    const gia = perCassa.get(v.cassaId!);
-    perCassa.set(v.cassaId!, {
-      importo: (gia?.importo ?? 0) + Number(v.importo) * volte,
-      descrizione: gia ? `${gia.descrizione} + ${nome}` : nome,
-    });
-  }
-  return perCassa;
-}
 
 /**
  * Una quota composta dal listino: la somma delle voci spuntate, con il

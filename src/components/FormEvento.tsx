@@ -28,6 +28,23 @@ type Evento = {
   luogoLng: number | null;
   costo: unknown;
   costoEsterni: unknown;
+  /** Com'è stata composta la quota del club: importo a mano e voci spuntate. */
+  costoAMano?: unknown;
+  costoEsterniAMano?: unknown;
+  vociSquadra?: string[];
+  vociEsterni?: string[];
+  /** Le quote delle altre casse, con com'erano composte. */
+  quoteCasse?: {
+    cassaId: string;
+    descrizione: string;
+    importo: unknown;
+    importoEsterni: unknown;
+    importoAMano: unknown;
+    importoEsterniAMano: unknown;
+    voci: string[];
+    vociEsterni: string[];
+    cassa: { nome: string };
+  }[];
   stagioneId: string | null;
   maxPartecipanti: number | null;
   chiusuraIscrizioni: Date | null;
@@ -39,6 +56,14 @@ type Evento = {
 };
 
 const numero = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+/**
+ * L'importo da rimettere nella casella «a mano». Se la quota è stata salvata
+ * con le voci, è quello scritto allora; se viene da prima che le voci si
+ * ricordassero, è il totale — che è quello che la casella ha sempre mostrato.
+ */
+const aManoIniziale = (aMano: unknown, voci: string[] | undefined, totale: unknown) =>
+  numero(aMano) ?? ((voci?.length ?? 0) > 0 ? null : numero(totale));
 
 /**
  * Un gruppo di campi, con il suo titolo.
@@ -95,6 +120,7 @@ export function FormEvento({
   soloLogistica = false,
   giorni = 1,
   conNuovi = false,
+  casse = [],
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
@@ -114,9 +140,13 @@ export function FormEvento({
   giorni?: number;
   /** Fra i partecipanti c'è un nuovo: la quota esterni serve anche sull'attività di squadra. */
   conNuovi?: boolean;
+  /** Le casse a cui l'attività può chiedere una quota, oltre al club. */
+  casse?: { id: string; nome: string }[];
 }) {
   const conQuota =
-    numero(evento?.costo) !== null || numero(evento?.costoEsterni) !== null;
+    numero(evento?.costo) !== null ||
+    numero(evento?.costoEsterni) !== null ||
+    (evento?.quoteCasse?.length ?? 0) > 0;
 
   // Su una riunione metà del modulo non c'entra: non c'è un punto di ritrovo da
   // raggiungere in macchina, non ci sono posti contati, non si paga. Nasconderli
@@ -381,8 +411,30 @@ export function FormEvento({
                 <QuoteEvento
                   listino={listino}
                   stagioneId={evento?.stagioneId ?? stagioneId}
-                  costo={numero(evento?.costo)}
-                  costoEsterni={numero(evento?.costoEsterni)}
+                  // riaprendo il modulo lo si ritrova com'era: l'importo
+                  // scritto a mano e le voci spuntate, cassa per cassa
+                  costo={aManoIniziale(evento?.costoAMano, evento?.vociSquadra, evento?.costo)}
+                  costoEsterni={aManoIniziale(
+                    evento?.costoEsterniAMano,
+                    evento?.vociEsterni,
+                    evento?.costoEsterni,
+                  )}
+                  vociSquadra={evento?.vociSquadra}
+                  vociEsterni={evento?.vociEsterni}
+                  quoteCasse={evento?.quoteCasse?.map((q) => ({
+                    cassaId: q.cassaId,
+                    cassa: q.cassa.nome,
+                    descrizione: q.descrizione,
+                    importo: aManoIniziale(q.importoAMano, q.voci, q.importo),
+                    voci: q.voci,
+                    importoEsterni: aManoIniziale(
+                      q.importoEsterniAMano,
+                      q.vociEsterni,
+                      q.importoEsterni,
+                    ),
+                    vociEsterni: q.vociEsterni,
+                  }))}
+                  casse={casse}
                   // su un'attività nuova la giocata degli esterni parte
                   // spuntata: è il caso normale, e chi vuole regalarla scrive
                   // zero
