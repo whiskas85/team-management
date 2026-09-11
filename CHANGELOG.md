@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.15.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Nel calendario, sopra le attività in programma, c'è una barra di
+  ricerca.** Filtra mentre si scrive, senza ricaricare la pagina, e cerca nel
+  titolo, nella tipologia, nel campo e nella data — «ottobre» trova quelle di
+  ottobre, «k9» il corso. Maiuscole e accenti non contano. Se non trova niente
+  lo dice, invece di lasciare la pagina vuota come se non ci fosse nulla in
+  programma.
+
+### Cambiato
+
+- **Le attività in programma sono divise per anno**: prima quelle dell'anno in
+  corso, poi quelle degli anni successivi, ognuno con la sua intestazione e il
+  conto delle attività. Una gara di marzo del prossimo anno non si confonde più
+  con quella di questo ottobre, e chi scorre sa quando ha finito l'anno.
+
 ## 2.14.3 — 10 settembre 2026
 
 ### Corretto

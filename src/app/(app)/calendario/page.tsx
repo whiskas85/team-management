@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { eventiPerLista, filtroVisibilita } from '@/lib/query';
 import { etichettaEvento, isAdmin, tonoEvento } from '@/lib/domain';
-import { fmtDateTime, umanizza } from '@/lib/format';
+import { fmtDateLong, fmtDateTime, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Elenco, Vuoto } from '@/components/ui';
 import { CardEvento, CardStorico, ContoAdesioni, RigaStorico } from '@/components/CardEvento';
 import { Naviga } from '@/components/Naviga';
@@ -13,6 +13,7 @@ import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { CalendarioMese, type GiornoEvento } from '@/components/CalendarioMese';
+import { InProgramma } from '@/components/InProgramma';
 import { salvaEvento } from '@/actions/eventi';
 import { listinoAttivo } from '@/lib/quote';
 import { stagioneAttiva, stagioniAperte } from '@/lib/stagioni';
@@ -230,26 +231,47 @@ export default async function CalendarioPage({
                 /* Quello che deve ancora venire si guarda a card: c'è la quota
                    attaccata al pulsante con cui si risponde, e la tabella
                    quella riga non la può contenere. Lo storico invece resta
-                   una tabella, perché lì si cercano i numeri. */
-                <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                  {lista.map((e) => (
-                    <CardEvento
-                      key={e.id}
-                      e={e}
-                      azioni={
-                        admin ? (
-                          <AzioniEvento
-                            id={e.id}
-                            titolo={e.titolo}
-                            status={e.status}
-                            visibilita={e.visibilita}
-                            compatto
-                          />
-                        ) : undefined
-                      }
-                    />
-                  ))}
-                </div>
+                   una tabella, perché lì si cercano i numeri.
+                   Le card le disegna il server come sempre; la ricerca e la
+                   divisione per anno le fa il browser, così filtrare non
+                   ricarica la pagina a ogni lettera. */
+                <InProgramma
+                  annoCorrente={new Date().getFullYear()}
+                  voci={lista.map((e) => ({
+                    id: e.id,
+                    anno: e.inizio.getFullYear(),
+                    // dove si cerca: titolo, tipologia, campo e data, anche per
+                    // esteso — così «ottobre» trova quelle di ottobre. Lo stato
+                    // solo se non è rilasciata: l'admin cerca «bozza»
+                    cerca: [
+                      e.titolo,
+                      e.tipo,
+                      e.campo,
+                      e.indirizzo,
+                      fmtDateTime(e.inizio),
+                      fmtDateLong(e.inizio),
+                      e.status !== 'RILASCIATA' ? etichettaEvento[e.status] : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' '),
+                    card: (
+                      <CardEvento
+                        e={e}
+                        azioni={
+                          admin ? (
+                            <AzioniEvento
+                              id={e.id}
+                              titolo={e.titolo}
+                              status={e.status}
+                              visibilita={e.visibilita}
+                              compatto
+                            />
+                          ) : undefined
+                        }
+                      />
+                    ),
+                  }))}
+                />
               ) : (
                 /* Storico: non si risponde e non si schiera più nessuno. Quello
                    che serve è chi c'era davvero, quanto è costata e com'è
