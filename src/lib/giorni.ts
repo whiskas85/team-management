@@ -46,6 +46,26 @@ export const etichettaGiorno = (chiave: string) => giornoCorto.format(dataLocale
  * mezzanotte esatta non apre un giorno nuovo — chi smette alle 00:00 ha giocato
  * il giorno prima.
  */
+/**
+ * Quando un'attività è «in corso»: dal ritrovo, o dall'inizio se un ritrovo non
+ * c'è, fino alla fine. Senza una fine scritta vale fino alla mezzanotte del
+ * giorno in cui comincia: una domenica al campo non dura fino a lunedì.
+ *
+ * Un ritrovo più lontano di un giorno dall'inizio non conta: è una data
+ * sbagliata, e aprirebbe l'appello e i dati sanitari giorni prima.
+ */
+export function finestraAttivita(inizio: Date, fine: Date | null, oraRitrovo: Date | null) {
+  const da =
+    oraRitrovo && oraRitrovo < inizio && inizio.getTime() - oraRitrovo.getTime() < 24 * 3600_000
+      ? oraRitrovo
+      : inizio;
+  const a =
+    fine && fine > inizio
+      ? fine
+      : new Date(inizio.getFullYear(), inizio.getMonth(), inizio.getDate(), 23, 59, 59, 999);
+  return { da, a };
+}
+
 export function giorniDi(inizio: Date, fine: Date | null): string[] {
   let ultimo = fine && fine > inizio ? fine : inizio;
   if (ultimo > inizio && ultimo.getHours() === 0 && ultimo.getMinutes() === 0) {

@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.18.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Un'attività è «in corso» da sola**, dal ritrovo (o dall'inizio, se un
+  ritrovo non c'è) fino alla fine; senza una fine scritta, fino a fine
+  giornata. In cima alla scheda compare la fascia «IN CORSO», e l'etichetta di
+  stato dice «In corso».
+
+### Cambiato
+
+- **Gli ICE compaiono solo mentre l'attività è in corso**, e restano chiusi:
+  si aprono con la freccia quando servono. Prima si vedevano su ogni attività
+  non ancora conclusa, anche settimane prima.
+- **L'appello si apre dal ritrovo e resta finché non lo si chiude** con «Salva
+  presenze e chiudi», anche a giornata finita. Prima dell'attività non c'è.
+- **Lo stato dell'attività si cambia dall'etichetta in cima**: per l'admin
+  apre una finestra con rilascio, destinatari, Concludi, Annulla e Riporta in
+  bozza. La card «Stato dell'attività» nella colonna laterale non c'è più.
+  «Concludi» e «Riporta in bozza» adesso chiedono conferma, come già Annulla.
+
 ## 2.17.0 — 11 settembre 2026
 
 ### Aggiunto

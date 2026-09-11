@@ -105,6 +105,7 @@ export function AzioniEvento({
           <AzioneBottone
             azione={cambiaStatoEvento}
             valori={{ id, status: 'CONCLUSA' }}
+            conferma={`Concludere "${titolo}" senza fare l'appello? Le presenze non vengono registrate.`}
             icona="concludi"
             className={`btn-ghost ${dim}`}
           >
@@ -122,6 +123,7 @@ export function AzioniEvento({
           <AzioneBottone
             azione={cambiaStatoEvento}
             valori={{ id, status: 'CREATA' }}
+            conferma={`Riportare "${titolo}" in bozza? Sparisce agli operatori e non accetta più adesioni.`}
             icona="bozza"
             className={`btn-ghost ${dim}`}
           >
@@ -143,6 +145,7 @@ export function AzioniEvento({
           <AzioneBottone
             azione={cambiaStatoEvento}
             valori={{ id, status: 'CREATA' }}
+            conferma={`Riportare "${titolo}" in bozza? Sparisce agli operatori e non accetta più adesioni.`}
             icona="bozza"
             className={`btn-ghost ${dim}`}
           >

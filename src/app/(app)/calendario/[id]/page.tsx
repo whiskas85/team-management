@@ -71,6 +71,8 @@ import { SegnaDebriefingLetti } from '@/components/SegnaDebriefingLetti';
 import { BloccoNote, FormNota, type NotaLetta } from '@/components/Note';
 import { citabili } from '@/lib/note';
 import { haIncarichi } from '@/lib/domain';
+import { Icona } from '@/components/Icona';
+import { finestraAttivita } from '@/lib/giorni';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -288,6 +290,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // concludere l'attività: spuntarlo su una giornata annullata la farebbe
   // risorgere come conclusa, cioè come se si fosse giocata.
   const senzaAppello = conclusa || evento.status === 'ANNULLATA';
+
+  // In corso: dal ritrovo — o dall'inizio — alla fine. Non è uno stato da
+  // scegliere, lo dice l'orologio: nessuno si ricorderebbe di metterlo e
+  // tantomeno di toglierlo. Iniziata è la stessa cosa senza il limite della
+  // fine: l'appello resta aperto finché qualcuno non lo chiude, anche se la
+  // giornata è finita e lo si fa la sera a casa.
+  const adesso = new Date();
+  const finestra = finestraAttivita(evento.inizio, evento.fine, evento.oraRitrovo);
+  const iniziata = !senzaAppello && evento.status === 'RILASCIATA' && adesso >= finestra.da;
+  const inCorso = iniziata && adesso <= finestra.a;
+  const statoLetto = inCorso ? 'In corso' : etichettaEvento[evento.status];
+  const coloreStato = inCorso
+    ? 'border-nvg bg-nvg/25 text-nvg'
+    : evento.status === 'RILASCIATA'
+      ? 'border-nvg/50 bg-nvg/15 text-nvg'
+      : evento.status === 'CREATA'
+        ? 'border-warn/50 bg-warn/15 text-warn'
+        : evento.status === 'ANNULLATA'
+          ? 'border-danger/50 bg-danger/15 text-danger'
+          : 'border-line bg-surface2 text-muted';
 
   const [campi, tipologie, tipiGara, operatoriGrezzi, listino, stagioni] = tl
     ? await Promise.all([
@@ -572,19 +594,32 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 rilasciata glielo dice comunque la fascia qui sotto */}
             {gestisce && (
               <>
-                <span
-                  className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold ${
-                    evento.status === 'RILASCIATA'
-                      ? 'border-nvg/50 bg-nvg/15 text-nvg'
-                      : evento.status === 'CREATA'
-                        ? 'border-warn/50 bg-warn/15 text-warn'
-                        : evento.status === 'ANNULLATA'
-                          ? 'border-danger/50 bg-danger/15 text-danger'
-                          : 'border-line bg-surface2 text-muted'
-                  }`}
-                >
-                  {etichettaEvento[evento.status]}
-                </span>
+                {/* Per l'admin l'etichetta apre una finestra con i cambi di
+                    stato: stanno in cima, dove si guarda, ma dietro un tocco
+                    in più — e i passi indietro chiedono conferma — perché
+                    «Riporta in bozza» toccato per sbaglio fa sparire
+                    l'attività a tutta la squadra. */}
+                {admin ? (
+                  <BottoneModale
+                    etichetta={statoLetto}
+                    titolo={`Stato di "${evento.titolo}"`}
+                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold hover:brightness-125 ${coloreStato}`}
+                  >
+                    <AzioniEvento
+                      id={evento.id}
+                      titolo={evento.titolo}
+                      status={evento.status}
+                      visibilita={evento.visibilita}
+                      soloInterno={evento.tipo?.soloInterno ?? false}
+                    />
+                  </BottoneModale>
+                ) : (
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold ${coloreStato}`}
+                  >
+                    {statoLetto}
+                  </span>
+                )}
                 {evento.visibilita ? (
                   <Badge
                     tono={
@@ -605,6 +640,18 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           </div>
         }
       />
+
+      {inCorso && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-nvg/40 bg-nvg/10 px-4 py-3 text-nvg">
+          <span className="text-base font-semibold">IN CORSO</span>
+          <span className="text-sm">
+            {evento.fine
+              ? `Fino ${piuGiorni ? 'a ' + fmtDateTime(finestra.a) : 'alle ' + fmtTime(finestra.a)}.`
+              : 'Fino a fine giornata.'}
+            {tl && ' L’appello resta aperto finché non lo chiudi.'}
+          </span>
+        </div>
+      )}
 
       {evento.status !== 'RILASCIATA' && (
         <div
@@ -1300,14 +1347,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               un'altra pagina mentre qualcuno è per terra. Li vedono solo admin
               e team leader, e solo di chi si è segnato.
 
-              A giornata conclusa spariscono: sono dati sanitari, e servono
-              **mentre** si gioca. Tenerli affacciati su ogni attività passata
+              Ci sono solo mentre l'attività è in corso: sono dati sanitari, e
+              servono **mentre** si gioca. Tenerli affacciati prima e dopo
               vorrebbe dire lasciare in giro il gruppo sanguigno di venti
-              persone su schede che nessuno chiude più. */}
-          {tl && !conclusa && daAppello.length > 0 && (
-            <div className="card">
-              <p className="titolo-sezione mb-1">ICE · chi c’è</p>
-              <p className="mb-3 text-[11px] text-muted">
+              persone su schede che nessuno chiude più. E anche in corso
+              restano chiusi, da aprire con la freccia: si guardano quando
+              servono, non a chiunque passi sopra il telefono del TL. */}
+          {tl && inCorso && daAppello.length > 0 && (
+            <details className="card group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
+                <span className="titolo-sezione">ICE · chi c’è · {daAppello.length}</span>
+                <span className="inline-flex text-muted transition-transform group-open:rotate-90">
+                  <Icona nome="freccia" size={15} />
+                </span>
+              </summary>
+              <p className="mb-3 mt-2 text-[11px] text-muted">
                 Se succede qualcosa in campo. Dati sanitari: si guardano quando servono.
               </p>
               <div className="space-y-2">
@@ -1334,19 +1388,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-          {admin && (
-            <div className="card">
-              <p className="titolo-sezione mb-3">Stato dell’attività</p>
-              <AzioniEvento
-                id={evento.id}
-                titolo={evento.titolo}
-                status={evento.status}
-                visibilita={evento.visibilita}
-                soloInterno={evento.tipo?.soloInterno ?? false}
-              />
-            </div>
+            </details>
           )}
 
           {/* A giornata conclusa la propria adesione non c'è più: non si risponde
@@ -1448,7 +1490,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           </div>
           )}
 
-          {tl && !senzaAppello && (
+          {/* l'appello si fa dal ritrovo in poi, e resta finché non lo si
+              chiude: prima non c'è ancora nessuno da spuntare */}
+          {tl && iniziata && (
             <>
               <div className="card">
                 <p className="titolo-sezione mb-3">Appello</p>
