@@ -383,7 +383,8 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
     prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId } } }),
     prisma.user.findUnique({ where: { id: userId }, select: { stato: true } }),
     // i rimborsi sono movimenti a sé e non si toccano
-    prisma.payment.findFirst({ where: { eventId, userId, tipo: { not: 'RIMBORSO' } } }),
+    // la quota del club: quelle delle altre casse non le tocca questo giro
+    prisma.payment.findFirst({ where: { eventId, userId, cassaId: null, tipo: { not: 'RIMBORSO' } } }),
   ]);
 
   const { importo: costo, dettaglio } = quotaPer(evento, chi?.stato);

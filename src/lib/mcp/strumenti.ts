@@ -429,7 +429,7 @@ const quoteAperte: Strumento = {
   parametri: { type: 'object', properties: {} },
   async esegui() {
     const pagamenti = await prisma.payment.findMany({
-      where: { status: { in: ['DA_PAGARE', 'PARZIALE'] } },
+      where: { status: { in: ['DA_PAGARE', 'PARZIALE'] }, cassaId: null },
       orderBy: [{ scadenza: 'asc' }, { createdAt: 'asc' }],
       include: { user: { select: { nome: true, cognome: true, callsign: true } } },
     });
@@ -453,7 +453,10 @@ const cassaRiepilogo: Strumento = {
   parametri: { type: 'object', properties: {} },
   async esegui() {
     const [pagamenti, movimenti] = await Promise.all([
-      prisma.payment.findMany({ select: { tipo: true, importo: true, pagato: true, status: true } }),
+      prisma.payment.findMany({
+        where: { cassaId: null },
+        select: { tipo: true, importo: true, pagato: true, status: true },
+      }),
       prisma.movimentoCassa.findMany({ select: { tipo: true, importo: true } }),
     ]);
 

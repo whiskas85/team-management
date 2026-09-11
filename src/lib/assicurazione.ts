@@ -158,7 +158,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       giornaliere: { select: { userId: true, giorno: true, stato: true, codice: true } },
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
       payments: {
-        where: { tipo: { not: 'RIMBORSO' } },
+        where: { tipo: { not: 'RIMBORSO' }, cassaId: null },
         select: { userId: true, status: true, dichiaratoIl: true },
       },
       rsvps: {

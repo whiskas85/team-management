@@ -5,6 +5,47 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.16.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Le casse che non sono del club.** Un corso lo tiene Mario, e i soldi del
+  corso sono suoi: farli incassare alla segreteria per poi girarglieli era
+  lavoro doppio, e mescolava nella cassa del club conti che non sono della
+  squadra. Adesso esistono altre casse, ognuna con le sue persone abilitate e i
+  suoi metodi di pagamento. Si configurano in **Segreteria → Altre casse**, da
+  admin e segreteria, che di ognuna vedono quanto lavora ma non chi ha pagato.
+- **Chi gestisce una cassa la trova nel menu**, con il pallino quando qualcuno
+  segnala di averlo pagato. Dentro vede **solo i pagamenti della sua cassa** —
+  da confermare, da incassare, incassati — e li conferma lui. Della cassa del
+  club non vede niente; e i pagamenti della sua cassa non li conferma nessun
+  altro, nemmeno l'admin.
+- In **Pagamenti → Registra pagamento** si può scegliere in quale cassa va la
+  quota. Nelle altre casse nasce sempre da incassare: l'incasso lo conferma chi
+  le gestisce, con uno dei suoi metodi.
+- **Ogni quota si sollecita con il WhatsApp della sua cassa.** Nella sua cassa
+  Mario ha «Sollecita» accanto a ogni quota aperta: apre WhatsApp sul suo
+  telefono con il messaggio già scritto — importo, scadenza, come pagare — e
+  parte solo verso chi ha dato il consenso alle comunicazioni. I solleciti del
+  club, dal numero del club, riguardano solo le quote del club.
+
+### Cambiato
+
+- **Chi paga vede a chi deve pagare.** In «I miei pagamenti» una quota di
+  un'altra cassa dice «da pagare a …», e segnalando il pagamento compaiono solo
+  i metodi di quella cassa, con le sue istruzioni. L'IBAN del club sotto la
+  quota del corso di Mario avrebbe mandato i soldi nel posto sbagliato.
+- **La cassa del club resta del club.** Saldo e movimenti della Cassa,
+  Pagamenti della segreteria, statistiche, dashboard, pallini del menu,
+  solleciti WhatsApp e riepiloghi dell'assistente contano solo i soldi del
+  club: quelli delle altre casse non ci passano, nemmeno come riga informativa.
+- Per assicurare un nuovo conta la quota del club, perché la polizza la paga il
+  club.
+- Un rimborso resta nella cassa della quota da cui nasce: lo eroga chi l'aveva
+  incassata.
+- I metodi di pagamento possono avere lo stesso nome in casse diverse —
+  «Contanti» del club e quelli del corso — ma non due volte nella stessa.
+
 ## 2.15.0 — 11 settembre 2026
 
 ### Aggiunto

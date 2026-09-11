@@ -28,6 +28,8 @@ type Filtro = keyof typeof FILTRI;
  * dal badge nel menu, così cliccandolo si arriva esattamente su queste righe.
  */
 const DA_GESTIRE: Prisma.PaymentWhereInput = {
+  // solo il club: quelli delle altre casse li gestisce chi ne è responsabile
+  cassaId: null,
   OR: [
     { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
     { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
@@ -72,7 +74,7 @@ export default async function AdminPagamentiPage({
 
   const [pagamenti, tutti, operatori, eventi] = await Promise.all([
     prisma.payment.findMany({
-      where: { ...dove, ...(sp.tipo ? { tipo: sp.tipo as 'ALTRO' } : {}) },
+      where: { ...dove, cassaId: null, ...(sp.tipo ? { tipo: sp.tipo as 'ALTRO' } : {}) },
       orderBy: [{ scadenza: 'asc' }, { createdAt: 'desc' }],
       include: {
         user: { select: { id: true, nome: true, cognome: true, callsign: true } },
@@ -81,6 +83,7 @@ export default async function AdminPagamentiPage({
       },
     }),
     prisma.payment.findMany({
+      where: { cassaId: null },
       select: {
         importo: true,
         pagato: true,
@@ -98,8 +101,16 @@ export default async function AdminPagamentiPage({
   ]);
 
   const metodi = await prisma.metodoPagamento.findMany({
-    where: { attivo: true },
+    // solo quelli del club: questa è la sua segreteria
+    where: { attivo: true, cassaId: null },
     orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
+    select: { id: true, nome: true },
+  });
+
+  // le altre casse, per registrare una quota che non è del club
+  const casse = await prisma.cassa.findMany({
+    where: { attiva: true },
+    orderBy: { nome: 'asc' },
     select: { id: true, nome: true },
   });
 
@@ -179,6 +190,20 @@ export default async function AdminPagamentiPage({
                 ))}
               </select>
             </Campo>
+            {/* una quota può andare in un'altra cassa: nasce da incassare, e
+                la conferma chi la gestisce */}
+            {casse.length > 0 && (
+              <Campo label="Cassa">
+                <select name="cassaId" className="input" defaultValue="">
+                  <option value="">del club</option>
+                  {casse.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
             <Campo label="Descrizione *" span>
               <input name="descrizione" required className="input" />
             </Campo>

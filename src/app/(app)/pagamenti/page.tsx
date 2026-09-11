@@ -20,14 +20,16 @@ export default async function MieiPagamentiPage() {
       orderBy: [{ status: 'asc' }, { scadenza: 'asc' }],
       include: {
         metodo: { select: { nome: true } },
+        cassa: { select: { nome: true } },
         event: { select: { id: true, titolo: true, inizio: true } },
         rimborso: { select: { id: true, status: true } },
       },
     }),
     prisma.metodoPagamento.findMany({
+      // di tutte le casse: a ogni quota si mostrano solo quelli della sua
       where: { attivo: true, selfService: true },
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, istruzioni: true },
+      select: { id: true, nome: true, istruzioni: true, cassaId: true },
     }),
   ]);
 
@@ -71,6 +73,10 @@ export default async function MieiPagamentiPage() {
                     {umanizza(p.tipo)}
                   </p>
                   <h3 className="mt-1 truncate font-medium">{p.descrizione}</h3>
+                  {/* non tutto si paga al club: il corso si paga a chi lo tiene */}
+                  {p.cassa && (
+                    <p className="text-xs text-nvg/80">da pagare a {p.cassa.nome}</p>
+                  )}
                   {/* una quota sola, composta da più voci: qui c'è lo spaccato */}
                   {p.note && <p className="text-xs text-muted">{p.note}</p>}
                   {p.event && (
@@ -89,7 +95,11 @@ export default async function MieiPagamentiPage() {
               </div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
                 <span className="num text-sm">{fmtEuro(Number(p.importo))}</span>
-                <Dichiara pagamento={p} metodi={metodi} />
+                <Dichiara
+                  pagamento={p}
+                  metodi={metodi.filter((m) => m.cassaId === p.cassaId)}
+                  cassa={p.cassa?.nome ?? null}
+                />
               </div>
             </div>
           ))}
@@ -111,6 +121,11 @@ export default async function MieiPagamentiPage() {
                   <tr key={p.id}>
                     <td>
                       <span className="font-medium">{p.descrizione}</span>
+                      {p.cassa && (
+                        <span className="block text-[11px] text-nvg/80">
+                          da pagare a {p.cassa.nome}
+                        </span>
+                      )}
                       {p.note && <span className="block text-[11px] text-muted">{p.note}</span>}
                       {p.event && (
                         <Link
@@ -134,7 +149,11 @@ export default async function MieiPagamentiPage() {
                       <StatoQuota pagamento={p} />
                     </td>
                     <td className="whitespace-nowrap text-right">
-                      <Dichiara pagamento={p} metodi={metodi} />
+                      <Dichiara
+                  pagamento={p}
+                  metodi={metodi.filter((m) => m.cassaId === p.cassaId)}
+                  cassa={p.cassa?.nome ?? null}
+                />
                     </td>
                   </tr>
                 ))}
@@ -186,6 +205,7 @@ function StatoQuota({
 function Dichiara({
   pagamento,
   metodi,
+  cassa = null,
 }: {
   pagamento: {
     id: string;
@@ -199,6 +219,8 @@ function Dichiara({
     rimborso: { id: string; status: string } | null;
   };
   metodi: { id: string; nome: string; istruzioni: string | null }[];
+  /** A chi va pagata, se non al club: il nome della sua cassa. */
+  cassa?: string | null;
 }) {
   // quota già versata: se serve, da qui si chiede indietro
   if (
@@ -233,7 +255,7 @@ function Dichiara({
     return <span className="text-xs text-warn">in attesa di erogazione</span>;
   }
   if (metodi.length === 0) {
-    return <span className="text-xs text-muted">Salda con la segreteria</span>;
+    return <span className="text-xs text-muted">Salda con {cassa ?? 'la segreteria'}</span>;
   }
 
   return (
@@ -291,7 +313,8 @@ function Dichiara({
 
         <Invia icona="incassa">Segnala il pagamento</Invia>
         <p className="text-xs text-muted">
-          La quota risulterà saldata quando la segreteria avrà verificato l’incasso.
+          La quota risulterà saldata quando{' '}
+          {cassa ? `chi gestisce «${cassa}»` : 'la segreteria'} avrà verificato l’incasso.
         </p>
       </FormAzione>
     </BottoneModale>

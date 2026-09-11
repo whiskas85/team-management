@@ -21,7 +21,9 @@ type Metodo = {
 export default async function MetodiPage() {
   await requirePermesso(isAdmin);
 
+  // solo quelli del club: i metodi delle altre casse stanno con la loro cassa
   const metodi = await prisma.metodoPagamento.findMany({
+    where: { cassaId: null },
     orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }],
     include: { _count: { select: { payments: true } } },
   });
@@ -30,7 +32,7 @@ export default async function MetodiPage() {
     <>
       <Intestazione
         titolo="Metodi di pagamento"
-        sottotitolo="Dati di base: con cosa si incassano le quote, e cosa l'operatore può dichiarare da sé"
+        sottotitolo="Con cosa si incassano le quote del club, e cosa si può dichiarare da sé. Quelli delle altre casse stanno in Altre casse"
         azioni={
           <BottoneModale etichetta="Aggiungi metodo" icona="aggiungi" titolo="Nuovo metodo">
             <FormAzione azione={salvaMetodo}>

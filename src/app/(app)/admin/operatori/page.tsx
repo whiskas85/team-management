@@ -47,7 +47,8 @@ async function Gestione() {
     orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
     include: {
       certificates: { select: { status: true, scadeIl: true }, orderBy: { createdAt: 'desc' } },
-      payments: { select: { importo: true, pagato: true, status: true } },
+      // i debiti col club: una quota del corso di Mario non è un debito verso la squadra
+      payments: { where: { cassaId: null }, select: { importo: true, pagato: true, status: true } },
       rsvps: { select: { status: true, presente: true } },
     },
   });

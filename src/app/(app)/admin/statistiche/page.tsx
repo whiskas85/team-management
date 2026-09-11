@@ -20,7 +20,10 @@ export default async function StatistichePage() {
     prisma.eventRsvp.findMany({
       select: { userId: true, status: true, presente: true, eventId: true },
     }),
-    prisma.payment.findMany({ select: { importo: true, pagato: true, tipo: true, createdAt: true } }),
+    prisma.payment.findMany({
+      where: { cassaId: null },
+      select: { importo: true, pagato: true, tipo: true, createdAt: true },
+    }),
     prisma.medicalCertificate.findMany({ select: { status: true, scadeIl: true } }),
   ]);
 

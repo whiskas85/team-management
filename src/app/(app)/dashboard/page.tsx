@@ -109,19 +109,19 @@ export default async function DashboardPage({
       contatti ? prisma.user.count({ where: { stato: 'NUOVO' } }) : 0,
       cassa
         ? prisma.payment.findMany({
-            where: { status: { in: ['DA_PAGARE', 'PARZIALE'] } },
+            where: { status: { in: ['DA_PAGARE', 'PARZIALE'] }, cassaId: null },
             select: { importo: true, pagato: true },
           })
         : [],
       admin ? prisma.user.count({ where: { stato: 'SQUADRA' } }) : 0,
       cassa
         ? prisma.payment.count({
-            where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
+            where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
           })
         : 0,
       cassa
         ? prisma.payment.findMany({
-            where: { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
+            where: { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] }, cassaId: null },
             select: { importo: true, pagato: true },
           })
         : [],

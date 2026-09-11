@@ -57,7 +57,8 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
       certificates: { orderBy: { createdAt: 'desc' } },
       memberships: { orderBy: { invitataIl: 'desc' }, include: { stagione: { select: { nome: true } } } },
       figtCards: { orderBy: { createdAt: 'desc' }, include: { stagione: { select: { nome: true } } } },
-      payments: { orderBy: { createdAt: 'desc' } },
+      // i pagamenti del club: quelli delle altre casse li vede chi le gestisce
+      payments: { where: { cassaId: null }, orderBy: { createdAt: 'desc' } },
       rsvps: {
         include: {
           // l'id serve perché dalla riga si va sull'attività

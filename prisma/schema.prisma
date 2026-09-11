@@ -224,6 +224,7 @@ model User {
   segnalazioniGestite   Segnalazione[]          @relation("SegnalazioniGestite")
   preferiti             Preferito[]             @relation("PreferitiDi")
   erroriIncontrati      ErroreClient[]          @relation("ErroriIncontrati")
+  casseGestite          Cassa[]                 @relation("GestoriCassa")
 
   @@index([stato])
 }
@@ -551,7 +552,7 @@ model TipoGara {
 /// Modalità con cui si incassa una quota, gestite nei dati di base.
 model MetodoPagamento {
   id          String   @id @default(cuid())
-  nome        String   @unique
+  nome        String
   descrizione String?
   /// Indicazioni per chi paga: IBAN, numero Satispay, e simili.
   istruzioni  String?
@@ -561,9 +562,18 @@ model MetodoPagamento {
   attivo      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
+  /// La cassa a cui porta: vuota, quella del club. Chi paga una quota vede
+  /// solo i metodi della cassa di quella quota — l'IBAN del club sotto la
+  /// quota del corso di Mario manderebbe i soldi nel posto sbagliato.
+  cassaId     String?
+  cassa       Cassa?   @relation(fields: [cassaId], references: [id], onDelete: Cascade)
+
   payments  Payment[]
   movimenti MovimentoCassa[]
 
+  /// lo stesso nome in due casse sì — «Contanti» del club e quelli del
+  /// corso — due volte nella stessa no
+  @@unique([cassaId, nome])
   @@index([attivo, ordine])
 }
 
@@ -750,6 +760,11 @@ model Payment {
   figtCard     FigtCard?        @relation(fields: [figtCardId], references: [id], onDelete: SetNull)
   recordedById String?
   recordedBy   User?            @relation("PaymentRecorder", fields: [recordedById], references: [id])
+  /// La cassa in cui entrano questi soldi: vuota, quella del club. Una quota
+  /// del corso di Mario va nella cassa di Mario: non passa dalla segreteria,
+  /// non pesa sul saldo del club, e la conferma chi gestisce quella cassa.
+  cassaId      String?
+  cassa        Cassa?           @relation(fields: [cassaId], references: [id], onDelete: Restrict)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -763,9 +778,36 @@ model Payment {
 
   @@index([userId, status])
   @@index([status])
+  @@index([cassaId, status])
 }
 
 // ---------------------------------------------------------------- cassa
+
+/// Una cassa che non è quella del club.
+///
+/// Non tutti i soldi delle attività sono del club: un corso lo tiene Mario, e
+/// i soldi del corso sono suoi. Farli passare dalla segreteria per poi
+/// girarglieli è lavoro doppio, e mescola nel saldo del club conti che non sono
+/// della squadra. Una cassa sua, con i suoi metodi di pagamento e le persone
+/// abilitate a gestirla: vedono e confermano solo i pagamenti che finiscono lì,
+/// e del club non vedono niente.
+///
+/// La cassa del club non è una riga di questa tabella: è l'assenza di una
+/// cassa. Così tutto quello che c'era prima resta del club senza toccarlo, e
+/// ogni vista del club si scrive «dove la cassa è vuota».
+model Cassa {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  /// Spenta non riceve quote nuove, ma chi la gestisce continua a vedere le sue.
+  attiva    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  /// Chi la gestisce. Una lista e non una persona sola: oggi Mario, domani
+  /// anche chi gli dà una mano — o l'admin, se un giorno servirà.
+  gestori  User[]            @relation("GestoriCassa")
+  metodi   MetodoPagamento[]
+  payments Payment[]
+}
 
 enum TipoMovimento {
   ENTRATA

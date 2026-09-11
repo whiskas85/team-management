@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdmin } from '@/lib/domain';
+import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
 import { bool, data, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 
 function aggiorna() {
   revalidatePath('/admin/metodi');
+  revalidatePath('/admin/casse');
+  revalidatePath('/cassa');
   revalidatePath('/dashboard');
   revalidatePath('/admin/pagamenti');
   revalidatePath('/pagamenti');
@@ -15,15 +17,30 @@ function aggiorna() {
 
 export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i dati di base.' };
 
   const id = str(fd, 'id');
+  // I metodi del club sono dati di base dell'admin; quelli di un'altra cassa li
+  // configura la segreteria, insieme alla cassa. Un metodo non cambia cassa:
+  // quella di uno esistente si legge dal database, non dal modulo
+  const esistente = id ? await prisma.metodoPagamento.findUnique({ where: { id } }) : null;
+  if (id && !esistente) return { errore: 'Metodo non trovato.' };
+  const cassaId = esistente ? esistente.cassaId : strOpt(fd, 'cassaId');
+  if (cassaId ? !puoGestirePagamenti(me.roles) : !isAdmin(me.roles)) {
+    return {
+      errore: cassaId
+        ? 'I metodi delle altre casse li configurano admin e segreteria.'
+        : 'Solo l’admin gestisce i dati di base.',
+    };
+  }
+
   const nome = str(fd, 'nome');
   if (!nome) return { errore: 'Il nome del metodo è obbligatorio.' };
 
-  const doppione = await prisma.metodoPagamento.findUnique({ where: { nome } });
+  // lo stesso nome può stare in due casse — «Contanti» del club e quelli del
+  // corso — ma non due volte nella stessa
+  const doppione = await prisma.metodoPagamento.findFirst({ where: { nome, cassaId } });
   if (doppione && doppione.id !== id) {
-    return { errore: `Esiste già un metodo chiamato "${nome}".` };
+    return { errore: `Esiste già un metodo chiamato "${nome}" in questa cassa.` };
   }
 
   const valori = {
@@ -41,16 +58,24 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
     return { ok: 'Metodo aggiornato.' };
   }
 
-  await prisma.metodoPagamento.create({ data: valori });
+  await prisma.metodoPagamento.create({ data: { ...valori, cassaId } });
   aggiorna();
   return { ok: 'Metodo aggiunto.' };
 }
 
 export async function eliminaMetodo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i dati di base.' };
 
   const id = str(fd, 'id');
+  const metodo = await prisma.metodoPagamento.findUnique({
+    where: { id },
+    select: { cassaId: true },
+  });
+  if (!metodo) return { errore: 'Metodo non trovato.' };
+  if (metodo.cassaId ? !puoGestirePagamenti(me.roles) : !isAdmin(me.roles)) {
+    return { errore: 'Non puoi gestire questo metodo.' };
+  }
+
   const usato = await prisma.payment.count({ where: { metodoId: id } });
 
   if (usato > 0) {
@@ -79,7 +104,9 @@ export async function dichiaraPagamento(_prev: StatoForm, fd: FormData): Promise
   if (pagamento.status === 'PAGATO') return { errore: 'Questa quota risulta già saldata.' };
 
   const metodo = await prisma.metodoPagamento.findUnique({ where: { id: metodoId } });
-  if (!metodo || !metodo.selfService) {
+  // e dev'essere della cassa di questa quota: il bonifico al club non salda
+  // il corso di Mario
+  if (!metodo || !metodo.selfService || metodo.cassaId !== pagamento.cassaId) {
     return { errore: 'Scegli un metodo con cui puoi pagare da solo.' };
   }
 
@@ -97,6 +124,8 @@ export async function dichiaraPagamento(_prev: StatoForm, fd: FormData): Promise
 
   aggiorna();
   return {
-    ok: `Pagamento segnalato con ${metodo.nome}. Resta da confermare dalla segreteria.`,
+    ok: `Pagamento segnalato con ${metodo.nome}. Resta da confermare ${
+      pagamento.cassaId ? 'da chi incassa' : 'dalla segreteria'
+    }.`,
   };
 }

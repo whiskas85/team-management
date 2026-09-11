@@ -117,6 +117,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       },
       giornaliere: true,
       payments: {
+        where: { cassaId: null },
         select: {
           id: true,
           tipo: true,

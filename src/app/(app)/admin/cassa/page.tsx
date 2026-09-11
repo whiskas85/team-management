@@ -74,7 +74,10 @@ export default async function CassaPage({
         carico: { select: { articoloId: true, quantita: true } },
       },
     }),
+    // solo i soldi del club: quelli delle altre casse non ci passano, nemmeno
+    // come riga informativa
     prisma.payment.findMany({
+      where: { cassaId: null },
       orderBy: { pagatoIl: 'desc' },
       select: {
         id: true,
@@ -93,7 +96,7 @@ export default async function CassaPage({
       },
     }),
     prisma.metodoPagamento.findMany({
-      where: { attivo: true },
+      where: { attivo: true, cassaId: null },
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true },
     }),

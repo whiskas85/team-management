@@ -347,6 +347,8 @@ export async function bozzeSuRichiesta(scatenante: 'QUOTA_APERTA' | 'CERTIFICATO
       where: {
         status: { in: ['DA_PAGARE', 'PARZIALE'] },
         tipo: { not: 'RIMBORSO' },
+        // solo le quote del club: quelle delle altre casse le sollecita chi le gestisce
+        cassaId: null,
         user: { consensoComunicaz: true, telefono: { not: null } },
       },
       include: {

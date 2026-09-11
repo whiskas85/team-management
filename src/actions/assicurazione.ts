@@ -42,7 +42,8 @@ function aggiorna(eventId: string) {
  */
 async function quotaDaSaldare(userId: string, eventId: string) {
   const quota = await prisma.payment.findFirst({
-    where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
+    // conta la quota del club: la polizza la paga il club
+    where: { eventId, userId, cassaId: null, tipo: { not: 'RIMBORSO' } },
     select: { status: true, dichiaratoIl: true },
   });
   return quotaOnorata(quota) ? null : quota;

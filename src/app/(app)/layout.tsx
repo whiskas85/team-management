@@ -89,10 +89,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [pagamentiDaConfermare, rimborsiDaErogare] = puoGestirePagamenti(utente.roles)
     ? await Promise.all([
         prisma.payment.count({
-          where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
+          where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
         }),
         prisma.payment.count({
-          where: { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
+          where: { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] }, cassaId: null },
         }),
       ])
     : [0, 0];
@@ -222,6 +222,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // vale per tutti: una chiave non dà poteri, eredita quelli di chi la crea
     { href: '/assistente', label: 'Assistente', icona: 'chiave', gruppo: 'principale' },
   ];
+
+  // Le casse che questa persona gestisce, se ne gestisce: la cassa del corso di
+  // Mario è di Mario, e la voce nel menu la vede solo lui. Il pallino conta chi
+  // ha detto di averlo pagato e aspetta la sua conferma, e i rimborsi da dare
+  const mieCasse = await prisma.cassa.findMany({
+    where: { gestori: { some: { id: utente.id } } },
+    orderBy: { nome: 'asc' },
+    select: { id: true, nome: true },
+  });
+  if (mieCasse.length > 0) {
+    const inAttesa = await prisma.payment.count({
+      where: {
+        cassaId: { in: mieCasse.map((c) => c.id) },
+        OR: [
+          { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
+          { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
+        ],
+      },
+    });
+    voci.splice(voci.findIndex((v) => v.href === '/pagamenti') + 1, 0, {
+      href: '/cassa',
+      label: mieCasse.length === 1 ? mieCasse[0].nome : 'Le mie casse',
+      icona: 'incassa',
+      gruppo: 'principale',
+      badge: inAttesa,
+    });
+  }
 
   // Mercatino e merchandising sono due cose diverse, non un filtro dello stesso
   // elenco — e nemmeno le vede la stessa gente. L'usato passa di mano fra soci
@@ -382,6 +409,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         gruppo: 'segreteria',
         badge: riordiniDaPagare,
       },
+      // le casse che non sono del club: si configurano qui, si usano altrove
+      { href: '/admin/casse', label: 'Altre casse', icona: 'incassa', gruppo: 'segreteria' },
     );
   }
 

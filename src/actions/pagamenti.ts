@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
+import { puoGestireCassa } from '@/lib/casse';
 import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 const TIPI = [
@@ -19,6 +20,7 @@ const TIPI = [
 
 function aggiorna() {
   revalidatePath('/admin/pagamenti');
+  revalidatePath('/cassa');
   revalidatePath('/admin/cassa');
   revalidatePath('/pagamenti');
   revalidatePath('/dashboard');
@@ -69,6 +71,10 @@ export async function salvaPagamento(_prev: StatoForm, fd: FormData): Promise<St
   if (id) {
     const esistente = await prisma.payment.findUnique({ where: { id } });
     if (!esistente) return { errore: 'Movimento non trovato.' };
+    // i pagamenti di un'altra cassa li gestisce chi ne è responsabile
+    if (esistente.cassaId) {
+      return { errore: 'Questo pagamento è di un’altra cassa: lo gestisce chi ne è responsabile.' };
+    }
 
     // un incasso chiuso non si tocca più: la contabilità deve restare ferma
     if (esistente.status === 'PAGATO' && !isAdmin(me.roles)) {
@@ -86,6 +92,29 @@ export async function salvaPagamento(_prev: StatoForm, fd: FormData): Promise<St
   const userId = str(fd, 'userId');
   if (!userId) return { errore: 'Seleziona l’operatore.' };
 
+  // Una quota si può mettere nella cassa di un altro — il corso di Mario — ma
+  // nasce sempre da incassare: l'incasso lo conferma chi gestisce quella
+  // cassa, non la segreteria del club, e con uno dei suoi metodi
+  const cassaId = strOpt(fd, 'cassaId');
+  if (cassaId) {
+    const cassa = await prisma.cassa.findUnique({ where: { id: cassaId }, select: { attiva: true } });
+    if (!cassa?.attiva) return { errore: 'Quella cassa non c’è più o è spenta.' };
+    await prisma.payment.create({
+      data: {
+        ...valori,
+        pagato: 0,
+        status: 'DA_PAGARE',
+        pagatoIl: null,
+        metodoId: null,
+        cassaId,
+        userId,
+        recordedById: me.id,
+      },
+    });
+    aggiorna();
+    return { ok: 'Quota registrata nell’altra cassa: la incassa chi la gestisce.' };
+  }
+
   await prisma.payment.create({ data: { ...valori, userId, recordedById: me.id } });
   aggiorna();
   return { ok: 'Movimento registrato.' };
@@ -94,13 +123,19 @@ export async function salvaPagamento(_prev: StatoForm, fd: FormData): Promise<St
 /** Scorciatoia: segna l'intero importo come incassato. */
 export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoGestirePagamenti(me.roles)) {
-    return { errore: 'Solo admin e segreteria gestiscono i pagamenti.' };
-  }
 
   const id = str(fd, 'id');
   const pagamento = await prisma.payment.findUnique({ where: { id } });
   if (!pagamento) return { errore: 'Movimento non trovato.' };
+  // quelli del club li incassa la segreteria, quelli di un'altra cassa chi la
+  // gestisce: ognuno i suoi, e nessuno quelli degli altri
+  if (!(await puoGestireCassa(me, pagamento.cassaId))) {
+    return {
+      errore: pagamento.cassaId
+        ? 'Questo pagamento è di un’altra cassa: lo conferma chi la gestisce.'
+        : 'Solo admin e segreteria gestiscono i pagamenti del club.',
+    };
+  }
   if (pagamento.status === 'PAGATO') return { errore: 'Risulta già saldato.' };
 
   // importo, data e metodo si possono correggere qui: è il momento in cui la
@@ -115,6 +150,19 @@ export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<Stato
   const quando = data(fd, 'pagatoIl') ?? pagamento.dichiaratoIl ?? new Date();
   if (quando > new Date()) return { errore: 'La data non può essere nel futuro.' };
 
+  // il metodo dev'essere della stessa cassa: il bonifico al club non salda
+  // una quota del corso di Mario
+  const metodoScelto = strOpt(fd, 'metodoId');
+  if (metodoScelto) {
+    const metodo = await prisma.metodoPagamento.findUnique({
+      where: { id: metodoScelto },
+      select: { cassaId: true },
+    });
+    if (!metodo || metodo.cassaId !== pagamento.cassaId) {
+      return { errore: 'Quel metodo non è di questa cassa.' };
+    }
+  }
+
   const status = statoDaImporti(dovuto, incassato);
 
   await prisma.payment.update({
@@ -123,7 +171,7 @@ export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<Stato
       pagato: incassato,
       status,
       pagatoIl: status === 'PAGATO' ? quando : null,
-      metodoId: strOpt(fd, 'metodoId') ?? pagamento.metodoId,
+      metodoId: metodoScelto ?? pagamento.metodoId,
       note: strOpt(fd, 'note') ?? pagamento.note,
       recordedById: me.id,
     },
@@ -168,6 +216,10 @@ export async function eliminaPagamento(_prev: StatoForm, fd: FormData): Promise<
   const pagamento = await prisma.payment.findUnique({ where: { id } });
   if (!pagamento) return { errore: 'Movimento non trovato.' };
 
+  // la segreteria non tocca i pagamenti di un'altra cassa
+  if (pagamento.cassaId) {
+    return { errore: 'Questo pagamento è di un’altra cassa: non si elimina da qui.' };
+  }
   if (pagamento.status === 'PAGATO' && !isAdmin(me.roles)) {
     return { errore: 'Un movimento incassato non si elimina: serve l’admin.' };
   }
@@ -196,6 +248,9 @@ export async function correggiIncasso(_prev: StatoForm, fd: FormData): Promise<S
 
   const pagamento = await prisma.payment.findUnique({ where: { id } });
   if (!pagamento) return { errore: 'Movimento non trovato.' };
+  if (pagamento.cassaId) {
+    return { errore: 'Questo incasso è di un’altra cassa: lo corregge chi la gestisce.' };
+  }
 
   const importo = Number(pagamento.importo);
   if (nuovoPagato > importo + 0.001) {
@@ -259,6 +314,8 @@ export async function chiediRimborso(_prev: StatoForm, fd: FormData): Promise<St
       status: 'DA_PAGARE',
       eventId: pagamento.eventId,
       rimborsoDiId: pagamento.id,
+      // il rimborso esce dalla stessa cassa in cui erano entrati i soldi
+      cassaId: pagamento.cassaId,
       note: suo ? 'Richiesto dall’operatore' : `Aperto da ${me.nome} ${me.cognome}`,
       recordedById: me.id,
     },
@@ -266,6 +323,8 @@ export async function chiediRimborso(_prev: StatoForm, fd: FormData): Promise<St
 
   aggiorna();
   return {
-    ok: `Rimborso di ${Number(pagamento.pagato).toFixed(2)} € richiesto: la segreteria lo erogherà.`,
+    ok: `Rimborso di ${Number(pagamento.pagato).toFixed(2)} € richiesto: ${
+      pagamento.cassaId ? 'lo erogherà chi gestisce la cassa' : 'la segreteria lo erogherà'
+    }.`,
   };
 }

@@ -66,7 +66,10 @@ export async function eventiPerLista({
       rsvps: {
         select: { status: true, userId: true, note: true, assegnazione: true, presente: true },
       },
-      payments: { where: { userId }, select: { importo: true, pagato: true, status: true } },
+      payments: {
+        where: { userId, cassaId: null },
+        select: { importo: true, pagato: true, status: true },
+      },
       // se c'è la riga, quest'attività l'ho già aperta
       letture: { where: { userId }, select: { userId: true } },
     },
