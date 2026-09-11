@@ -6,6 +6,7 @@ import { Icona } from './Icona';
 import { AdesioneEvento } from './AdesioneEvento';
 import { fmtDateTime, fmtEuro, umanizza } from '@/lib/format';
 import { etichettaEvento, tonoEvento, tonoRsvp } from '@/lib/domain';
+import type { FaseAttivita } from '@/lib/giorni';
 
 export type EventoLista = {
   id: string;
@@ -13,6 +14,8 @@ export type EventoLista = {
   tipo: string;
   colore: string;
   status: string;
+  /** In corso, o finita e ancora da chiudere. Nulla prima e dopo. */
+  fase: FaseAttivita | null;
   visibilita: string | null;
   inizio: Date;
   costo: number | null;
@@ -120,9 +123,17 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
             {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
           </div>
-          <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
-            {etichettaEvento[e.status] ?? umanizza(e.status)}
-          </Badge>
+          {/* una rilasciata già cominciata dice a che punto è: in corso, o
+              finita e ancora da chiudere */}
+          {e.fase ? (
+            <Badge tono={e.fase === 'in corso' ? 'ok' : 'warn'}>
+              {e.fase === 'in corso' ? 'In corso' : 'Terminata'}
+            </Badge>
+          ) : (
+            <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
+              {etichettaEvento[e.status] ?? umanizza(e.status)}
+            </Badge>
+          )}
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3">

@@ -66,6 +66,27 @@ export function finestraAttivita(inizio: Date, fine: Date | null, oraRitrovo: Da
   return { da, a };
 }
 
+/**
+ * A che punto è un'attività rilasciata, secondo l'orologio.
+ *
+ * «In corso» dentro la sua finestra; «terminata» dopo, finché qualcuno non la
+ * chiude — con l'appello o con «Concludi». È lo stato in cui una giornata
+ * finita aspetta di essere chiusa: senza, sparirebbe dal programma e nessuno
+ * si ricorderebbe di farlo. Prima della finestra, e su bozze, annullate e
+ * concluse, una fase non c'è.
+ */
+export type FaseAttivita = 'in corso' | 'terminata';
+
+export function faseAttivita(
+  e: { status: string; inizio: Date; fine: Date | null; oraRitrovo: Date | null },
+  adesso: Date = new Date(),
+): FaseAttivita | null {
+  if (e.status !== 'RILASCIATA') return null;
+  const { da, a } = finestraAttivita(e.inizio, e.fine, e.oraRitrovo);
+  if (adesso < da) return null;
+  return adesso <= a ? 'in corso' : 'terminata';
+}
+
 export function giorniDi(inizio: Date, fine: Date | null): string[] {
   let ultimo = fine && fine > inizio ? fine : inizio;
   if (ultimo > inizio && ultimo.getHours() === 0 && ultimo.getMinutes() === 0) {

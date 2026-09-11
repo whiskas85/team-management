@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { eventiPerLista, filtroVisibilita } from '@/lib/query';
-import { etichettaEvento, isAdmin, tonoEvento } from '@/lib/domain';
+import { etichettaEvento, isAdmin, puoSchierare, tonoEvento } from '@/lib/domain';
 import { fmtDateLong, fmtDateTime, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Elenco, Vuoto } from '@/components/ui';
 import { CardEvento, CardStorico, ContoAdesioni, RigaStorico } from '@/components/CardEvento';
@@ -89,7 +89,11 @@ export default async function CalendarioPage({
     mioStato: e.rsvps[0]?.status ?? null,
   }));
 
-  const lista =
+  // In programma ci sono anche le attività cominciate e non ancora chiuse: in
+  // corso, o finite e da concludere. Stanno in cima, fra le correnti, finché
+  // qualcuno non fa l'appello — e lo storico le lascia fuori, per non
+  // mostrarle due volte.
+  const tutte =
     attuale === 'mese'
       ? []
       : await eventiPerLista({
@@ -99,9 +103,25 @@ export default async function CalendarioPage({
           dove:
             attuale === 'passati'
               ? { inizio: { lt: new Date() } }
-              : { inizio: { gte: new Date() } },
+              : {
+                  OR: [
+                    { inizio: { gte: new Date() } },
+                    { status: 'RILASCIATA', inizio: { lt: new Date() } },
+                  ],
+                },
           ordine: attuale === 'passati' ? 'desc' : 'asc',
         });
+
+  // Una giornata finita e non chiusa la ritrova chi la può chiudere, admin e
+  // team leader; agli altri non chiede niente, e per loro è già storico. Quelle
+  // in corso invece le vedono tutti in cima.
+  const chiude = admin || puoSchierare(me.roles);
+  const corrente = (e: (typeof tutte)[number]) =>
+    e.fase === 'in corso' || (e.fase === 'terminata' && chiude);
+  const adesso = new Date();
+  const lista = tutte.filter((e) =>
+    attuale === 'passati' ? !corrente(e) : e.inizio >= adesso || corrente(e),
+  );
 
   // La colonna laterale ha senso solo nella vista mese, dove la griglia non
   // dice cosa viene adesso. In programma sarebbe la copia dell'elenco che si
@@ -240,6 +260,8 @@ export default async function CalendarioPage({
                   voci={lista.map((e) => ({
                     id: e.id,
                     anno: e.inizio.getFullYear(),
+                    // fra le correnti solo quelle che questa persona deve vedere lì
+                    fase: corrente(e) ? e.fase : null,
                     // dove si cerca: titolo, tipologia, campo e data, anche per
                     // esteso — così «ottobre» trova quelle di ottobre. Lo stato
                     // solo se non è rilasciata: l'admin cerca «bozza»

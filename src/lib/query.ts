@@ -2,6 +2,7 @@ import type { Prisma, StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
 import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
+import { faseAttivita } from './giorni';
 import type { EventoLista } from '@/components/CardEvento';
 
 /**
@@ -102,6 +103,8 @@ export async function eventiPerLista({
     tipo: e.tipo?.nome ?? 'Senza tipologia',
     colore: e.tipo?.colore ?? 'grigio',
     status: e.status,
+    // in corso, o finita e ancora da chiudere: lo dice l'orologio
+    fase: faseAttivita(e, ora),
     visibilita: e.visibilita,
     inizio: e.inizio,
     costo: quotaDi(e),

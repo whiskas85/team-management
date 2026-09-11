@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.20.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Un'attività finita e non chiusa è «Terminata».** Passata la finestra in
+  cui è in corso, se nessuno ha fatto l'appello o l'ha conclusa, l'etichetta
+  dice «Terminata» e la scheda ha la fascia «TERMINATA»: è pronta per essere
+  chiusa.
+
+### Cambiato
+
+- **In programma, sopra a tutto, ci sono le correnti**: le attività in corso
+  e quelle terminate ma non ancora chiuse, in un gruppo a parte prima degli
+  anni. Non spariscono più dal programma appena cominciano, e una giornata
+  finita resta lì a ricordare che va chiusa. Le terminate le vede chi le può
+  chiudere, admin e team leader; per gli altri sono già storico. Nello
+  storico le correnti non compaiono, per non vederle due volte. Le card
+  dicono «In corso» o «Terminata».
+
 ## 2.19.0 — 11 settembre 2026
 
 ### Aggiunto

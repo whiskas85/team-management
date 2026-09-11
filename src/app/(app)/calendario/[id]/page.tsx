@@ -75,7 +75,7 @@ import { BloccoNote, FormNota, type NotaLetta } from '@/components/Note';
 import { citabili } from '@/lib/note';
 import { haIncarichi } from '@/lib/domain';
 import { Icona } from '@/components/Icona';
-import { finestraAttivita } from '@/lib/giorni';
+import { faseAttivita, finestraAttivita } from '@/lib/giorni';
 import { quotaChiusa } from '@/lib/casse';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -316,12 +316,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // giornata è finita e lo si fa la sera a casa.
   const adesso = new Date();
   const finestra = finestraAttivita(evento.inizio, evento.fine, evento.oraRitrovo);
-  const iniziata = !senzaAppello && evento.status === 'RILASCIATA' && adesso >= finestra.da;
-  const inCorso = iniziata && adesso <= finestra.a;
-  const statoLetto = inCorso ? 'In corso' : etichettaEvento[evento.status];
+  const fase = faseAttivita(evento, adesso);
+  const iniziata = !senzaAppello && fase !== null;
+  const inCorso = fase === 'in corso';
+  // finita la finestra e nessuno l'ha ancora chiusa: aspetta l'appello
+  const terminata = fase === 'terminata';
+  const statoLetto = inCorso
+    ? 'In corso'
+    : terminata
+      ? 'Terminata'
+      : etichettaEvento[evento.status];
   const coloreStato = inCorso
     ? 'border-nvg bg-nvg/25 text-nvg'
-    : evento.status === 'RILASCIATA'
+    : terminata
+      ? 'border-warn bg-warn/20 text-warn'
+      : evento.status === 'RILASCIATA'
       ? 'border-nvg/50 bg-nvg/15 text-nvg'
       : evento.status === 'CREATA'
         ? 'border-warn/50 bg-warn/15 text-warn'
@@ -707,6 +716,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               ? `Fino ${piuGiorni ? 'a ' + fmtDateTime(finestra.a) : 'alle ' + fmtTime(finestra.a)}.`
               : 'Fino a fine giornata.'}
             {tl && ' L’appello resta aperto finché non lo chiudi.'}
+          </span>
+        </div>
+      )}
+
+      {/* finita ma non chiusa: resta in cima al programma finché qualcuno non
+          fa l'appello, o non la conclude */}
+      {terminata && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-warn">
+          <span className="text-base font-semibold">TERMINATA</span>
+          <span className="text-sm">
+            {tl
+              ? 'La giornata è finita: fai l’appello per chiuderla.'
+              : 'La giornata è finita: manca solo che venga chiusa.'}
           </span>
         </div>
       )}

@@ -11,6 +11,8 @@ export type VoceInProgramma = {
   cerca: string;
   /** La card, disegnata dal server come sempre. */
   card: ReactNode;
+  /** Cominciata e non ancora chiusa: sta fra le correnti, sopra agli anni. */
+  fase?: 'in corso' | 'terminata' | null;
 };
 
 /** Minuscole e senza accenti: «Città» e «citta» sono la stessa ricerca. */
@@ -60,11 +62,19 @@ export function InProgramma({
     return preparate.filter((v) => parole.every((p) => v.testo.includes(p)));
   }, [preparate, q]);
 
+  // Le correnti — in corso, o finite e ancora da chiudere — stanno sopra a
+  // tutto e fuori dagli anni: sono quelle su cui c'è da fare qualcosa adesso,
+  // e una giornata finita resta lì a ricordare che va chiusa.
+  const [correnti, resto] = useMemo(
+    () => [trovate.filter((v) => v.fase), trovate.filter((v) => !v.fase)],
+    [trovate],
+  );
+
   const anni = useMemo(() => {
-    const perAnno = new Map<number, typeof trovate>();
-    for (const v of trovate) perAnno.set(v.anno, [...(perAnno.get(v.anno) ?? []), v]);
+    const perAnno = new Map<number, typeof resto>();
+    for (const v of resto) perAnno.set(v.anno, [...(perAnno.get(v.anno) ?? []), v]);
     return [...perAnno.entries()].sort(([a], [b]) => a - b);
-  }, [trovate]);
+  }, [resto]);
 
   const cercando = q.trim() !== '';
 
@@ -105,7 +115,24 @@ export function InProgramma({
         )}
       </div>
 
-      {anni.length === 0 ? (
+      {correnti.length > 0 && (
+        <section>
+          <h2 className="titolo-sezione mb-3 flex flex-wrap items-baseline gap-x-2">
+            <span className="text-warn">Correnti</span>
+            <span>· in corso o da chiudere</span>
+            <span className="num">
+              · {correnti.length === 1 ? '1 attività' : `${correnti.length} attività`}
+            </span>
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            {correnti.map((v) => (
+              <Fragment key={v.id}>{v.card}</Fragment>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {anni.length === 0 && correnti.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
           Nessuna attività in programma corrisponde a «{q.trim()}».{' '}
           <button type="button" onClick={() => setQ('')} className="text-nvg hover:underline">
