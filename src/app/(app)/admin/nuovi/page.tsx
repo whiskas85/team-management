@@ -22,7 +22,8 @@ export default async function NuoviPage() {
     prisma.stagione.findMany({ orderBy: { inizio: 'desc' }, select: { id: true, nome: true } }),
     // tutto il listino: quali voci valgono lo decide il modulo, che sa quale
     // stagione e' stata scelta nella tendina
-    prisma.tariffa.findMany({ where: { attiva: true }, orderBy: { nome: 'asc' } }),
+    // le iscrizioni sono soldi del club: le voci di altre casse non c'entrano
+    prisma.tariffa.findMany({ where: { attiva: true, cassaId: null }, orderBy: { nome: 'asc' } }),
   ]);
 
   const listino = tariffe.map((t) => ({

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
-import { componiQuota, quotaPer } from '@/lib/quote';
+import { componiQuota, quotaPer, vociDiAltreCasse } from '@/lib/quote';
 import { giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
@@ -111,6 +111,16 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
         sommaAMano: true,
       })
     : tieni(esistente?.costoEsterni, esistente?.dettaglioCostoEsterni);
+  // le voci di altre casse spuntate qui non entrano in queste due quote:
+  // diventano la quota di quella cassa, dopo il salvataggio
+  const altreSquadra =
+    !soloLogistica && fd.has('costo')
+      ? await vociDiAltreCasse(fd, { voci: 'tariffeSquadra', stagioneId, giorni })
+      : new Map<string, { importo: number; descrizione: string }>();
+  const altreEsterni =
+    !soloLogistica && fd.has('costoEsterni')
+      ? await vociDiAltreCasse(fd, { voci: 'tariffeEsterni', stagioneId, giorni })
+      : new Map<string, { importo: number; descrizione: string }>();
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
   // scheda, così non si rilascia un'attività per sbaglio da una tendina
@@ -158,6 +168,8 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       data: soloLogistica ? logistica : valori,
     });
 
+    await quoteDaListino(id, altreSquadra, altreEsterni);
+
     // Il costo può arrivare dopo che la gente si è già segnata: senza questo
     // giro le quote non nascevano più, e chi era titolare non vedeva niente
     // fra i suoi pagamenti.
@@ -179,8 +191,41 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       stagioneId,
     },
   });
+  await quoteDaListino(creato.id, altreSquadra, altreEsterni);
   aggiorna(creato.id);
   return { ok: 'Attività creata in bozza. Rilasciala quando è pronta.' };
+}
+
+/**
+ * Le voci di altre casse spuntate nel modulo diventano la quota di quella
+ * cassa sull'attività.
+ *
+ * La squadra paga le voci spuntate nella sua card, gli esterni quelle della
+ * loro; se nella card degli esterni non ce n'è nessuna di quella cassa, pagano
+ * come la squadra, con la stessa regola del club. Una cassa che l'attività ha
+ * già si aggiorna; quelle non toccate in questo salvataggio restano come sono
+ * — le voci non si ricordano spuntate, e riaprendo il modulo non si deve
+ * perdere niente.
+ */
+async function quoteDaListino(
+  eventId: string,
+  squadra: Map<string, { importo: number; descrizione: string }>,
+  esterni: Map<string, { importo: number; descrizione: string }>,
+) {
+  for (const cassaId of new Set([...squadra.keys(), ...esterni.keys()])) {
+    const s = squadra.get(cassaId);
+    const e = esterni.get(cassaId);
+    const valori = {
+      descrizione: s?.descrizione ?? e!.descrizione,
+      importo: s?.importo ?? 0,
+      importoEsterni: e ? e.importo : null,
+    };
+    await prisma.quotaCassa.upsert({
+      where: { eventId_cassaId: { eventId, cassaId } },
+      create: { eventId, cassaId, ...valori },
+      update: valori,
+    });
+  }
 }
 
 /**

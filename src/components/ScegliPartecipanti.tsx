@@ -236,7 +236,12 @@ export function ScegliPartecipanti({
  * volta, e chi vuole regalarla scrive zero.
  */
 function PrezzoPerEsterni({ listino, stagioneId, giorni, puoImpostare }: PrezzoEsterni) {
-  const voci = useMemo(() => vociAttivita(listino, stagioneId), [listino, stagioneId]);
+  // qui si decide il prezzo del club per gli esterni: le voci di altre casse
+  // hanno la loro quota, e si scelgono dal modulo dell'attività
+  const voci = useMemo(
+    () => vociAttivita(listino, stagioneId).filter((v) => !v.cassaId),
+    [listino, stagioneId],
+  );
   const giocate = useMemo(
     () => voci.filter((v) => v.usi.includes('GIOCATA_NUOVO')).map((v) => v.id),
     [voci],

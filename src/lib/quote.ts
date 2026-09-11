@@ -36,7 +36,11 @@ export function quotaPer(
  * si sta lavorando.
  */
 export async function listinoAttivo() {
-  const voci = await prisma.tariffa.findMany({ where: { attiva: true }, orderBy: { nome: 'asc' } });
+  const voci = await prisma.tariffa.findMany({
+    where: { attiva: true },
+    orderBy: { nome: 'asc' },
+    include: { cassa: { select: { nome: true } } },
+  });
   return voci.map((t) => ({
     id: t.id,
     nome: t.nome,
@@ -44,7 +48,53 @@ export async function listinoAttivo() {
     usi: t.usi as string[],
     stagioneId: t.stagioneId,
     perGiorno: t.perGiorno,
+    // di chi sono i soldi: vuota, del club
+    cassaId: t.cassaId,
+    cassa: t.cassa?.nome ?? null,
   }));
+}
+
+/**
+ * Le voci spuntate che vanno ad altre casse, cassa per cassa.
+ *
+ * Su un'attività una voce del corso di Mario non si somma alla quota del
+ * club: diventa la quota della sua cassa, con il nome delle voci come
+ * descrizione. Come per il club, gli importi si rileggono dal database.
+ */
+export async function vociDiAltreCasse(
+  fd: FormData,
+  {
+    voci: campoVoci,
+    stagioneId,
+    giorni = 1,
+  }: { voci: string; stagioneId: string | null; giorni?: number },
+): Promise<Map<string, { importo: number; descrizione: string }>> {
+  const perCassa = new Map<string, { importo: number; descrizione: string }>();
+  const ids = fd
+    .getAll(campoVoci)
+    .map((v) => v.toString())
+    .filter(Boolean);
+  if (ids.length === 0) return perCassa;
+
+  const voci = await prisma.tariffa.findMany({
+    where: {
+      id: { in: ids },
+      attiva: true,
+      cassaId: { not: null },
+      OR: [{ stagioneId: null }, ...(stagioneId ? [{ stagioneId }] : [])],
+    },
+    orderBy: { nome: 'asc' },
+  });
+  for (const v of voci) {
+    const volte = v.perGiorno ? giorni : 1;
+    const nome = v.nome + (volte > 1 ? ` × ${volte} giorni` : '');
+    const gia = perCassa.get(v.cassaId!);
+    perCassa.set(v.cassaId!, {
+      importo: (gia?.importo ?? 0) + Number(v.importo) * volte,
+      descrizione: gia ? `${gia.descrizione} + ${nome}` : nome,
+    });
+  }
+  return perCassa;
 }
 
 /**
@@ -70,6 +120,7 @@ export async function componiQuota(
     stagioneId,
     giorni = 1,
     sommaAMano = false,
+    cassaId = null,
   }: {
     voci: string;
     importo: string;
@@ -78,6 +129,11 @@ export async function componiQuota(
     giorni?: number;
     /** L'importo scritto a mano si aggiunge alle voci invece di sostituirle. */
     sommaAMano?: boolean;
+    /**
+     * Di quale cassa: vuota, il club. Le voci delle altre casse qui restano
+     * fuori — sulle attività diventano la loro quota, con `vociDiAltreCasse`.
+     */
+    cassaId?: string | null;
   },
 ): Promise<{ quota: number | null; dettaglio: string | null }> {
   const aMano = num(fd, campoImporto);
@@ -92,6 +148,7 @@ export async function componiQuota(
     where: {
       id: { in: ids },
       attiva: true,
+      cassaId,
       OR: [{ stagioneId: null }, ...(stagioneId ? [{ stagioneId }] : [])],
     },
     orderBy: { nome: 'asc' },

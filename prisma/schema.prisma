@@ -487,6 +487,12 @@ model Tariffa {
   /// Si paga per ogni giorno dell'attività: su una 24 ore da sabato a domenica
   /// conta due volte. Spenta, la voce vale una volta sola, come sempre.
   perGiorno  Boolean       @default(false)
+  /// La cassa in cui entrano i soldi di questa voce: vuota, quella del club.
+  /// Una voce di un'altra cassa — l'istruttore del corso di Mario — spuntata
+  /// su un'attività non si somma alla quota del club: diventa la quota di
+  /// quella cassa. Iscrizioni e tessere restano del club.
+  cassaId    String?
+  cassa      Cassa?        @relation(fields: [cassaId], references: [id], onDelete: Restrict)
   note       String?
   attiva     Boolean       @default(true)
   createdAt  DateTime      @default(now())
@@ -811,6 +817,7 @@ model Cassa {
   metodi        MetodoPagamento[]
   payments      Payment[]
   quoteAttivita QuotaCassa[]
+  tariffe       Tariffa[]
 }
 
 /// Una quota di un'attività che non va al club.

@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.21.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Nel tariffario una voce può avere la sua cassa.** Nel modulo della tariffa
+  c'è la tendina «Cassa»: senza scegliere niente i soldi vanno al club, come
+  sempre; scegliendo un'altra cassa — il corso di Mario — la voce va a lei.
+  Nell'elenco del tariffario si legge «va a …».
+- **Spuntata su un'attività, una voce di un'altra cassa diventa la quota di
+  quella cassa**, invece di sommarsi alla quota del club: nel modulo si vede
+  «→ Corso K9» accanto alla voce e il totale del club non la conta. Salvando,
+  l'attività ha la sua «quota di altra cassa», per la squadra con le voci della
+  card squadra e per gli esterni con quelle della card esterni (se non ce ne
+  sono, pagano come la squadra). Se l'attività ce l'aveva già, si aggiorna.
+
+### Cambiato
+
+- **Iscrizioni, rinnovi e tessere restano del club**: le voci di un'altra cassa
+  non compaiono nei loro moduli e non entrano negli automatismi. Anche il prezzo
+  per gli esterni deciso aggiungendo un nuovo usa solo le voci del club.
+- **Una cassa con delle voci nel tariffario non si elimina**: si spegne, come
+  quando ha dei pagamenti.
+
 ## 2.20.0 — 11 settembre 2026
 
 ### Aggiunto

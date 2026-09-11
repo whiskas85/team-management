@@ -146,9 +146,12 @@ export function Quota({
 
   // le voci «al giorno» contano una volta per ogni giorno dell'attività
   const volte = (v: VoceListino) => (v.perGiorno ? giorni : 1);
-  const totale = voci
-    .filter((v) => scelte.has(v.id))
-    .reduce((t, v) => t + v.importo * volte(v), 0);
+  const scelteVoci = voci.filter((v) => scelte.has(v.id));
+  // le voci di un'altra cassa non si sommano a questa quota: diventano la
+  // quota di quella cassa, e si pagano a chi la tiene
+  const delClub = scelteVoci.filter((v) => !v.cassaId);
+  const altreCasse = scelteVoci.filter((v) => v.cassaId);
+  const totale = delClub.reduce((t, v) => t + v.importo * volte(v), 0);
   const conGiorni = voci.some((v) => scelte.has(v.id) && v.perGiorno);
   // l'importo scritto a mano si aggiunge alle voci: 40 più 10 fa 50
   const base = Number(aMano) || 0;
@@ -204,6 +207,7 @@ export function Quota({
                   <span className="num ml-1 opacity-80">
                     {v.importo.toFixed(2)} €{v.perGiorno ? ' /giorno' : ''}
                   </span>
+                  {v.cassa && <span className="ml-1 text-warn">→ {v.cassa}</span>}
                 </button>
               );
             })}
@@ -213,7 +217,15 @@ export function Quota({
             <input key={id} type="hidden" name={campoVoci} value={id} />
           ))}
 
-          {scelte.size > 0 && (
+          {altreCasse.length > 0 && (
+            <p className="mt-2 text-[11px] text-warn">
+              {altreCasse
+                .map((v) => `${v.nome} ${(v.importo * volte(v)).toFixed(2)} € a ${v.cassa}`)
+                .join(' · ')}
+              : non si somma qui, diventa la quota di quella cassa.
+            </p>
+          )}
+          {delClub.length > 0 && (
             <p className="num mt-2 text-xs text-muted">
               {base > 0 ? (
                 <>

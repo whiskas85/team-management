@@ -209,8 +209,14 @@ export async function salvaTariffa(_prev: StatoForm, fd: FormData): Promise<Stat
     .map((v) => v.toString())
     .filter((v): v is (typeof USI)[number] => (USI as readonly string[]).includes(v));
 
+  // la cassa è facoltativa: senza, i soldi di questa voce vanno al club
+  const cassaId = strOpt(fd, 'cassaId');
+  if (cassaId && !(await prisma.cassa.findUnique({ where: { id: cassaId }, select: { id: true } }))) {
+    return { errore: 'Quella cassa non c’è più.' };
+  }
+
   const omonima = await prisma.tariffa.findFirst({
-    where: { nome, stagioneId, ...(id ? { NOT: { id } } : {}) },
+    where: { nome, stagioneId, cassaId, ...(id ? { NOT: { id } } : {}) },
   });
   if (omonima) {
     return {
@@ -227,6 +233,7 @@ export async function salvaTariffa(_prev: StatoForm, fd: FormData): Promise<Stat
     stagioneId,
     // solo se spuntata: le voci che c'erano valgono una volta, come sempre
     perGiorno: fd.get('perGiorno') !== null,
+    cassaId,
     note: strOpt(fd, 'note'),
     attiva: true,
   };
@@ -238,6 +245,7 @@ export async function salvaTariffa(_prev: StatoForm, fd: FormData): Promise<Stat
   }
 
   revalidatePath('/admin/stagioni');
+  revalidatePath('/admin/tariffe');
   revalidatePath('/admin/inviti');
   return { ok: 'Tariffa salvata.' };
 }

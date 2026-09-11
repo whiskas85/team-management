@@ -12,6 +12,9 @@ export type VoceListino = {
   stagioneId: string | null;
   /** Si conta una volta per ogni giorno dell'attività. */
   perGiorno?: boolean;
+  /** La cassa a cui vanno i soldi, e come si chiama: vuota, il club. */
+  cassaId?: string | null;
+  cassa?: string | null;
 };
 
 /**

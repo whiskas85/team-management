@@ -56,6 +56,9 @@ export async function tariffa(
     where: {
       usi: { has: uso },
       attiva: true,
+      // gli automatismi — iscrizione, rinnovo, tessera — sono soldi del club:
+      // una voce di un'altra cassa non ci entra
+      cassaId: null,
       OR: [{ stagioneId: null }, ...(stagioneId ? [{ stagioneId }] : [])],
     },
   });
