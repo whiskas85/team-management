@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.26.1 — 11 settembre 2026
+
+### Corretto
+
+- **Nelle Polizze giornaliere il nome si legge intero, anche sul telefono.**
+  Nome, quota e copertura stavano sulla stessa riga, e il nome era l'unica
+  cosa che si poteva stringere: diventava «Jacopo "jak" Pomar…» o spariva del
+  tutto. Adesso sta in alto accanto all'avatar, va a capo se serve, con sotto
+  lo stato della quota; i giorni da coprire seguono, uno per riga.
+
 ## 2.26.0 — 11 settembre 2026
 
 ### Corretto

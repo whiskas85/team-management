@@ -93,38 +93,44 @@ export default async function PolizzePage() {
                 {a.nuovi.map((n) => (
                   <div
                     key={n.id}
-                    className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-surface2 px-3 py-2"
+                    className="rounded-lg border border-line bg-surface2 px-3 py-2"
                   >
-                    {/* la foto solo a chi ce l'ha: agli altri l'immagine
-                        arrivava rotta al posto delle iniziali */}
-                    <Avatar iniziali={n.iniziali} fotoDi={n.foto ? n.id : null} size="sm" />
-                    <span className="min-w-0 flex-1">
-                      <Link
-                        href={`/admin/operatori/${n.id}`}
-                        className="block truncate text-sm hover:text-nvg"
-                      >
-                        {n.nome}
-                      </Link>
-                      {/* "forse" non è un no: la polizza vale per il giorno, e
-                          farla a chi poi non viene è una polizza buttata */}
-                      {n.forse && (
-                        <span className="block text-[11px] text-warn">ha risposto «forse»</span>
-                      )}
-                    </span>
-
-                    {/* dei soldi qui si dice una cosa sola: se sono entrati.
-                        Quanto siano è mestiere della segreteria */}
-                    {!n.haQuota ? (
-                      <Badge tono="neutro">niente da pagare</Badge>
-                    ) : n.pagato ? (
-                      <Badge tono="ok">quota saldata</Badge>
-                    ) : n.dichiarata ? (
-                      // l'ha detto lui e manca la spunta della segreteria:
-                      // basta per coprirlo, non per dire che i soldi sono entrati
-                      <Badge tono="info">pagamento dichiarato</Badge>
-                    ) : (
-                      <Badge tono="warn">quota da saldare</Badge>
-                    )}
+                    {/* Il nome sta in alto, intero, e va a capo se serve: è la
+                        cosa che si cerca in questa pagina. Messo in riga con i
+                        badge, sul telefono restava schiacciato fino a sparire. */}
+                    <div className="flex items-start gap-3">
+                      {/* la foto solo a chi ce l'ha: agli altri l'immagine
+                          arrivava rotta al posto delle iniziali */}
+                      <Avatar iniziali={n.iniziali} fotoDi={n.foto ? n.id : null} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/admin/operatori/${n.id}`}
+                          className="block break-words text-sm font-medium hover:text-nvg"
+                        >
+                          {n.nome}
+                        </Link>
+                        {/* "forse" non è un no: la polizza vale per il giorno, e
+                            farla a chi poi non viene è una polizza buttata */}
+                        {n.forse && (
+                          <span className="block text-[11px] text-warn">ha risposto «forse»</span>
+                        )}
+                        {/* dei soldi qui si dice una cosa sola: se sono entrati.
+                            Quanto siano è mestiere della segreteria */}
+                        <div className="mt-1">
+                          {!n.haQuota ? (
+                            <Badge tono="neutro">niente da pagare</Badge>
+                          ) : n.pagato ? (
+                            <Badge tono="ok">quota saldata</Badge>
+                          ) : n.dichiarata ? (
+                            // l'ha detto lui e manca la spunta della segreteria:
+                            // basta per coprirlo, non per dire che i soldi sono entrati
+                            <Badge tono="info">pagamento dichiarato</Badge>
+                          ) : (
+                            <Badge tono="warn">quota da saldare</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Una riga per giorno: la giornaliera vale fino alle 24
                         del suo giorno, e un'attività di due giorni ne vuole
@@ -136,11 +142,12 @@ export default async function PolizzePage() {
                         (g) => g.serve && g.copertura !== 'ASSICURATO',
                       );
                       return (
-                        <div className="flex flex-col items-end gap-1.5">
+                        // sotto il nome, allineati a lui: un giorno per riga
+                        <div className="mt-2 flex flex-col items-start gap-1.5 pl-11">
                           {n.giorni.map((g) => (
                             <div
                               key={g.giorno}
-                              className="flex flex-wrap items-center justify-end gap-2"
+                              className="flex flex-wrap items-center gap-2"
                             >
                               {a.giorni.length > 1 && (
                                 <span className="num text-[11px] text-muted">
