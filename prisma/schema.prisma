@@ -640,13 +640,10 @@ model Event {
   /// Nulla = pagano come la squadra; zero = la giocata è offerta.
   costoEsterni          Decimal?         @db.Decimal(10, 2)
   dettaglioCostoEsterni String?
-  /// Come sono state composte le due quote del club: l'importo scritto a mano
-  /// e le voci del tariffario spuntate. Il totale resta in `costo` e
-  /// `costoEsterni`; questi servono a riaprire il modulo com'era, senza perdere
-  /// le voci ogni volta che lo si modifica.
-  costoAMano            Decimal?         @db.Decimal(10, 2)
+  /// Le voci del tariffario spuntate nelle due card, di qualsiasi cassa: il
+  /// totale resta in `costo`/`costoEsterni` e nelle quote delle altre casse,
+  /// queste servono a riaprire il modulo com'era, con le voci ancora spuntate.
   vociSquadra           String[]         @default([])
-  costoEsterniAMano     Decimal?         @db.Decimal(10, 2)
   vociEsterni           String[]         @default([])
   maxPartecipanti       Int?
   chiusuraIscrizioni    DateTime?
@@ -667,6 +664,8 @@ model Event {
   debriefing  Debriefing?
   /// Le quote che vanno ad altre casse, oltre a quella del club.
   quoteCasse  QuotaCassa[]
+  /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.
+  vociAttivita VoceAttivita[]
 
   @@index([inizio])
 }
@@ -826,6 +825,7 @@ model Cassa {
   payments      Payment[]
   quoteAttivita QuotaCassa[]
   tariffe       Tariffa[]
+  vociAttivita  VoceAttivita[]
 }
 
 /// Una quota di un'attività che non va al club.
@@ -847,15 +847,33 @@ model QuotaCassa {
   importo        Decimal  @db.Decimal(10, 2)
   /// Per chi non è in squadra. Nulla = come la squadra, come per il club.
   importoEsterni Decimal? @db.Decimal(10, 2)
-  /// Come sono state composte, per riaprire il modulo com'era: l'importo
-  /// scritto a mano e le voci del tariffario di questa cassa.
-  importoAMano        Decimal? @db.Decimal(10, 2)
-  voci                String[] @default([])
-  importoEsterniAMano Decimal? @db.Decimal(10, 2)
-  vociEsterni         String[] @default([])
   createdAt      DateTime @default(now())
 
   @@unique([eventId, cassaId])
+}
+
+/// Una quota aggiunta con il + nel modulo di un'attività.
+///
+/// Quello che il tariffario non ha — l'istruttore di questo corso, il campo di
+/// questa domenica — si aggiunge qui: un nome, un importo e la cassa a cui va
+/// (vuota, il club). Compare accanto alle voci del tariffario, si spunta come
+/// loro e vale solo per questa attività: alla prossima non c'è. Con le voci
+/// spuntate della stessa cassa si somma nel pagamento a quella cassa.
+model VoceAttivita {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// Aggiunta nella card esterni: la paga chi in squadra non è.
+  perEsterni Boolean
+  nome       String
+  importo    Decimal  @db.Decimal(10, 2)
+  cassaId    String?
+  cassa      Cassa?   @relation(fields: [cassaId], references: [id], onDelete: Restrict)
+  /// Spuntata: fa parte della quota. Tolta la spunta resta lì, da riprendere.
+  scelta     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([eventId])
 }
 
 enum TipoMovimento {

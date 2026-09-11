@@ -139,6 +139,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         orderBy: { createdAt: 'asc' },
         include: { cassa: { select: { nome: true } } },
       },
+      // le quote aggiunte con il +: il modulo le rimette com'erano
+      vociAttivita: {
+        orderBy: { createdAt: 'asc' },
+        include: { cassa: { select: { nome: true } } },
+      },
     },
   });
 

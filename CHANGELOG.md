@@ -5,6 +5,28 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.24.0 — 11 settembre 2026
+
+### Cambiato
+
+- **Tornano le due card di prima, con il + al posto dell'importo.** Nel modulo
+  dell'attività ci sono di nuovo solo «Quota squadra» e «Quota esterni», con le
+  voci del tariffario da spuntare: quelle di un'altra cassa hanno la freccina
+  «→ Marco». I blocchi per cassa della 2.23.0 non ci sono più.
+- **Quello che il tariffario non ha si aggiunge con «+ aggiungi una quota»**:
+  a cosa serve, l'importo e la cassa (niente, il club). La quota aggiunta
+  compare accanto alle voci del tariffario, già spuntata, e si toglie con la
+  ×. Se ne aggiungono quante servono, anche più d'una per la stessa cassa, e
+  valgono solo per quell'attività: alla prossima non ci sono.
+- **Per ogni cassa le quote spuntate si sommano in un pagamento solo**, con
+  il nome di tutte: «Istruttore + Campo» da pagare a SAT & Gaming. Sotto la
+  card si legge quanto va a ciascuna cassa.
+- **Le voci spuntate e le quote aggiunte si ritrovano riaprendo il modulo.**
+  Gli importi che c'erano già — la quota del club scritta a mano, le quote
+  delle altre casse — sono diventati quote aggiunte, già spuntate: nel Corso
+  CQB si ritrovano «Quota istruttore + Campo» per SAT & Gaming e «Costo
+  giornata softair» per Marco.
+
 ## 2.23.0 — 11 settembre 2026
 
 ### Cambiato

@@ -28,23 +28,21 @@ type Evento = {
   luogoLng: number | null;
   costo: unknown;
   costoEsterni: unknown;
-  /** Com'è stata composta la quota del club: importo a mano e voci spuntate. */
-  costoAMano?: unknown;
-  costoEsterniAMano?: unknown;
+  /** Le voci del tariffario spuntate nelle due card. */
   vociSquadra?: string[];
   vociEsterni?: string[];
-  /** Le quote delle altre casse, con com'erano composte. */
-  quoteCasse?: {
-    cassaId: string;
-    descrizione: string;
+  /** Le quote aggiunte con il +, solo per questa attività. */
+  vociAttivita?: {
+    id: string;
+    perEsterni: boolean;
+    nome: string;
     importo: unknown;
-    importoEsterni: unknown;
-    importoAMano: unknown;
-    importoEsterniAMano: unknown;
-    voci: string[];
-    vociEsterni: string[];
-    cassa: { nome: string };
+    cassaId: string | null;
+    scelta: boolean;
+    cassa: { nome: string } | null;
   }[];
+  /** Le quote delle altre casse: servono solo a sapere se ce n'è. */
+  quoteCasse?: unknown[];
   stagioneId: string | null;
   maxPartecipanti: number | null;
   chiusuraIscrizioni: Date | null;
@@ -56,14 +54,6 @@ type Evento = {
 };
 
 const numero = (v: unknown) => (v === null || v === undefined ? null : Number(v));
-
-/**
- * L'importo da rimettere nella casella «a mano». Se la quota è stata salvata
- * con le voci, è quello scritto allora; se viene da prima che le voci si
- * ricordassero, è il totale — che è quello che la casella ha sempre mostrato.
- */
-const aManoIniziale = (aMano: unknown, voci: string[] | undefined, totale: unknown) =>
-  numero(aMano) ?? ((voci?.length ?? 0) > 0 ? null : numero(totale));
 
 /**
  * Un gruppo di campi, con il suo titolo.
@@ -147,6 +137,19 @@ export function FormEvento({
     numero(evento?.costo) !== null ||
     numero(evento?.costoEsterni) !== null ||
     (evento?.quoteCasse?.length ?? 0) > 0;
+  // le quote aggiunte con il +, divise per card
+  const aggiunte = (perEsterni: boolean) =>
+    (evento?.vociAttivita ?? [])
+      .filter((v) => v.perEsterni === perEsterni)
+      .map((v) => ({
+        id: v.id,
+        chiave: v.id,
+        nome: v.nome,
+        importo: Number(v.importo),
+        cassaId: v.cassaId,
+        cassa: v.cassa?.nome ?? null,
+        scelta: v.scelta,
+      }));
 
   // Su una riunione metà del modulo non c'entra: non c'è un punto di ritrovo da
   // raggiungere in macchina, non ci sono posti contati, non si paga. Nasconderli
@@ -411,29 +414,12 @@ export function FormEvento({
                 <QuoteEvento
                   listino={listino}
                   stagioneId={evento?.stagioneId ?? stagioneId}
-                  // riaprendo il modulo lo si ritrova com'era: l'importo
-                  // scritto a mano e le voci spuntate, cassa per cassa
-                  costo={aManoIniziale(evento?.costoAMano, evento?.vociSquadra, evento?.costo)}
-                  costoEsterni={aManoIniziale(
-                    evento?.costoEsterniAMano,
-                    evento?.vociEsterni,
-                    evento?.costoEsterni,
-                  )}
+                  // riaprendo il modulo lo si ritrova com'era: le voci
+                  // spuntate e le quote aggiunte con il +
                   vociSquadra={evento?.vociSquadra}
                   vociEsterni={evento?.vociEsterni}
-                  quoteCasse={evento?.quoteCasse?.map((q) => ({
-                    cassaId: q.cassaId,
-                    cassa: q.cassa.nome,
-                    descrizione: q.descrizione,
-                    importo: aManoIniziale(q.importoAMano, q.voci, q.importo),
-                    voci: q.voci,
-                    importoEsterni: aManoIniziale(
-                      q.importoEsterniAMano,
-                      q.vociEsterni,
-                      q.importoEsterni,
-                    ),
-                    vociEsterni: q.vociEsterni,
-                  }))}
+                  vociAttivitaSquadra={aggiunte(false)}
+                  vociAttivitaEsterni={aggiunte(true)}
                   casse={casse}
                   // su un'attività nuova la giocata degli esterni parte
                   // spuntata: è il caso normale, e chi vuole regalarla scrive

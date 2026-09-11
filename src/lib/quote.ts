@@ -61,6 +61,119 @@ export const vociSpuntate = (fd: FormData, campo: string) =>
     .map((v) => v.toString())
     .filter(Boolean);
 
+/** Una riga di quota: una voce spuntata, con quanto vale su questa attività. */
+export type RigaQuota = { nome: string; importo: number };
+
+/** Una quota aggiunta con il + nel modulo, com'è arrivata dal browser. */
+export type VoceAggiunta = {
+  id: string | null;
+  nome: string;
+  importo: number;
+  cassaId: string | null;
+  scelta: boolean;
+  perEsterni: boolean;
+};
+
+/** Le quote di un'attività come le ha lasciate il modulo, cassa per cassa. */
+export type QuoteAttivita = {
+  /** Quali card il modulo ha mostrato: quella nascosta non si tocca. */
+  lati: { squadra: boolean; esterni: boolean };
+  /** Le voci del tariffario spuntate, per riaprire il modulo com'era. */
+  tariffe: { squadra: string[]; esterni: string[] };
+  aggiunte: VoceAggiunta[];
+  /** Le righe di ogni cassa; `null` è il club. */
+  squadra: Map<string | null, RigaQuota[]>;
+  esterni: Map<string | null, RigaQuota[]>;
+};
+
+/** Quanto fanno le righe di una cassa; nulla se non ce n'è nessuna. */
+export const sommaRighe = (righe: RigaQuota[] | undefined) =>
+  righe && righe.length > 0 ? righe.reduce((t, r) => t + r.importo, 0) : null;
+
+/** «Costo Partita 10.00 € + Istruttore 30.00 €»: di cosa è fatta. */
+export const spaccatoRighe = (righe: RigaQuota[] | undefined) =>
+  righe && righe.length > 0
+    ? righe.map((r) => `${r.nome} ${r.importo.toFixed(2)} €`).join(' + ')
+    : null;
+
+/**
+ * Legge le quote dal modulo di un'attività.
+ *
+ * Nelle due card — squadra ed esterni — si spuntano le voci del tariffario,
+ * di qualsiasi cassa, e quelle aggiunte con il +. Qui ognuna finisce nella
+ * cassa a cui va: quelle del club fanno la quota di sempre, quelle di Marco la
+ * quota di Marco. Gli importi del tariffario si rileggono dal database, mai dal
+ * modulo; le voci «al giorno» contano per ogni giorno dell'attività.
+ */
+export async function leggiQuoteAttivita(
+  fd: FormData,
+  stagioneId: string | null,
+  giorni: number,
+): Promise<QuoteAttivita> {
+  const lati = { squadra: fd.has('quote_squadra'), esterni: fd.has('quote_esterni') };
+  const tariffe = {
+    squadra: lati.squadra ? vociSpuntate(fd, 'tariffeSquadra') : [],
+    esterni: lati.esterni ? vociSpuntate(fd, 'tariffeEsterni') : [],
+  };
+
+  const casseValide = new Set(
+    (await prisma.cassa.findMany({ select: { id: true } })).map((c) => c.id),
+  );
+  const aggiunte: VoceAggiunta[] = [];
+  for (const lato of ['squadra', 'esterni'] as const) {
+    if (!lati[lato]) continue;
+    for (const grezza of vociSpuntate(fd, `vociAttivita_${lato}`)) {
+      try {
+        const v = JSON.parse(grezza) as Record<string, unknown>;
+        const nome = String(v.nome ?? '').trim();
+        const importo = Number(v.importo);
+        if (!nome || !Number.isFinite(importo) || importo < 0) continue;
+        aggiunte.push({
+          id: typeof v.id === 'string' && v.id ? v.id : null,
+          nome,
+          importo,
+          cassaId: typeof v.cassaId === 'string' && casseValide.has(v.cassaId) ? v.cassaId : null,
+          scelta: v.scelta !== false,
+          perEsterni: lato === 'esterni',
+        });
+      } catch {
+        // una riga illeggibile si salta: non deve far perdere le altre
+      }
+    }
+  }
+
+  const listino = await prisma.tariffa.findMany({
+    where: {
+      id: { in: [...tariffe.squadra, ...tariffe.esterni] },
+      attiva: true,
+      OR: [{ stagioneId: null }, ...(stagioneId ? [{ stagioneId }] : [])],
+    },
+    orderBy: { nome: 'asc' },
+  });
+
+  const righe = (lato: 'squadra' | 'esterni') => {
+    const perCassa = new Map<string | null, RigaQuota[]>();
+    const metti = (cassaId: string | null, r: RigaQuota) =>
+      perCassa.set(cassaId, [...(perCassa.get(cassaId) ?? []), r]);
+    for (const t of listino) {
+      if (!tariffe[lato].includes(t.id)) continue;
+      const volte = t.perGiorno ? giorni : 1;
+      metti(t.cassaId, {
+        nome: t.nome + (volte > 1 ? ` × ${volte} giorni` : ''),
+        importo: Number(t.importo) * volte,
+      });
+    }
+    for (const a of aggiunte) {
+      if (a.scelta && a.perEsterni === (lato === 'esterni')) {
+        metti(a.cassaId, { nome: a.nome, importo: a.importo });
+      }
+    }
+    return perCassa;
+  };
+
+  return { lati, tariffe, aggiunte, squadra: righe('squadra'), esterni: righe('esterni') };
+}
+
 /**
  * Una quota composta dal listino: la somma delle voci spuntate, con il
  * dettaglio di cosa la compone.

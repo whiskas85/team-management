@@ -4,7 +4,16 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
-import { componiQuota, quotaPer, vociSpuntate } from '@/lib/quote';
+import {
+  componiQuota,
+  leggiQuoteAttivita,
+  quotaPer,
+  sommaRighe,
+  spaccatoRighe,
+  vociSpuntate,
+  type QuoteAttivita,
+  type RigaQuota,
+} from '@/lib/quote';
 import { giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
@@ -93,37 +102,24 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     quota: importo == null ? null : Number(importo),
     dettaglio: dettaglio ?? null,
   });
-  const squadra = fd.has('costo')
-    ? await componiQuota(fd, {
-        voci: 'tariffeSquadra',
-        importo: 'costo',
-        stagioneId,
-        giorni,
-        sommaAMano: true,
-      })
+  // Le quote come le ha lasciate il modulo: le voci del tariffario spuntate e
+  // quelle aggiunte con il +, cassa per cassa. Quelle del club fanno la quota
+  // di sempre; le altre casse hanno la loro, salvata dopo.
+  const quote = soloLogistica ? null : await leggiQuoteAttivita(fd, stagioneId, giorni);
+  const delClub = (righe: RigaQuota[] | undefined) => ({
+    quota: sommaRighe(righe),
+    dettaglio: spaccatoRighe(righe),
+  });
+  const squadra = quote?.lati.squadra
+    ? delClub(quote.squadra.get(null))
     : tieni(esistente?.costo, esistente?.dettaglioCosto);
-  const esterni = fd.has('costoEsterni')
-    ? await componiQuota(fd, {
-        voci: 'tariffeEsterni',
-        importo: 'costoEsterni',
-        stagioneId,
-        giorni,
-        sommaAMano: true,
-      })
+  const esterni = quote?.lati.esterni
+    ? delClub(quote.esterni.get(null))
     : tieni(esistente?.costoEsterni, esistente?.dettaglioCostoEsterni);
-  // Come sono state composte, per riaprire il modulo com'era: l'importo
-  // scritto a mano e le voci spuntate. Prima si salvava solo il totale, e a
-  // ogni modifica le voci sparivano. Solo se il modulo le ha mostrate.
+  // le voci spuntate, per riaprire il modulo com'era
   const composizione = {
-    ...(fd.has('costo')
-      ? { costoAMano: num(fd, 'costo'), vociSquadra: vociSpuntate(fd, 'tariffeSquadra') }
-      : {}),
-    ...(fd.has('costoEsterni')
-      ? {
-          costoEsterniAMano: num(fd, 'costoEsterni'),
-          vociEsterni: vociSpuntate(fd, 'tariffeEsterni'),
-        }
-      : {}),
+    ...(quote?.lati.squadra ? { vociSquadra: quote.tariffe.squadra } : {}),
+    ...(quote?.lati.esterni ? { vociEsterni: quote.tariffe.esterni } : {}),
   };
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
@@ -173,7 +169,7 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       data: soloLogistica ? logistica : valori,
     });
 
-    if (!soloLogistica) await salvaQuoteCasse(id, fd, stagioneId, giorni);
+    if (quote) await salvaQuoteCasse(id, quote);
 
     // Il costo può arrivare dopo che la gente si è già segnata: senza questo
     // giro le quote non nascevano più, e chi era titolare non vedeva niente
@@ -197,83 +193,90 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
       stagioneId,
     },
   });
-  await salvaQuoteCasse(creato.id, fd, stagioneId, giorni);
+  if (quote) await salvaQuoteCasse(creato.id, quote);
   aggiorna(creato.id);
   return { ok: 'Attività creata in bozza. Rilasciala quando è pronta.' };
 }
 
 /**
- * Le quote delle altre casse, come le ha lasciate il modulo.
+ * Salva le quote aggiunte con il + e quelle delle altre casse.
  *
- * Nel modulo dell'attività ogni cassa ha il suo blocco — il club, Marco, SAT &
- * Gaming — con le due quote e le voci del suo tariffario. Qui ogni blocco
- * diventa la quota di quella cassa, e insieme al totale si salva com'è stata
- * composta, così riaprendo il modulo la si ritrova uguale. Un blocco tolto
- * toglie la quota; un blocco lasciato vuoto non chiede niente, ed è come
- * toglierlo. Se il modulo non ha mostrato le quote — il team leader corregge
- * solo i luoghi — non si tocca niente.
+ * Le quote aggiunte valgono solo per questa attività: si tengono quelle
+ * rimaste nel modulo, con la loro spunta, e spariscono quelle tolte. Poi ogni
+ * cassa diversa dal club ha la sua quota: la squadra paga le righe spuntate
+ * nella sua card, gli esterni quelle della loro — se lì non ce n'è nessuna di
+ * quella cassa, pagano come la squadra, con la stessa regola del club. Più
+ * righe della stessa cassa fanno un pagamento solo, con i nomi di tutte. Una
+ * cassa senza più niente da chiedere perde la quota. La card che il modulo non
+ * ha mostrato non si tocca.
  */
-async function salvaQuoteCasse(eventId: string, fd: FormData, stagioneId: string, giorni: number) {
-  if (!fd.has('quoteCasse')) return;
+async function salvaQuoteCasse(eventId: string, quote: QuoteAttivita) {
+  const lati = [
+    ...(quote.lati.squadra ? [false] : []),
+    ...(quote.lati.esterni ? [true] : []),
+  ];
 
-  const ids = [...new Set(vociSpuntate(fd, 'cassaQuota'))];
-  const esistenti = await prisma.quotaCassa.findMany({ where: { eventId } });
+  // le quote aggiunte con il +
+  const esistenti = await prisma.voceAttivita.findMany({
+    where: { eventId, OR: lati.map((perEsterni) => ({ perEsterni })) },
+    select: { id: true },
+  });
+  const tenute = new Set(
+    quote.aggiunte
+      .map((a) => a.id)
+      .filter((id): id is string => !!id && esistenti.some((e) => e.id === id)),
+  );
+  await prisma.voceAttivita.deleteMany({
+    where: { eventId, OR: lati.map((perEsterni) => ({ perEsterni })), id: { notIn: [...tenute] } },
+  });
+  for (const a of quote.aggiunte) {
+    const dati = {
+      nome: a.nome,
+      importo: a.importo,
+      cassaId: a.cassaId,
+      scelta: a.scelta,
+      perEsterni: a.perEsterni,
+    };
+    if (a.id && tenute.has(a.id)) {
+      await prisma.voceAttivita.update({ where: { id: a.id }, data: dati });
+    } else {
+      await prisma.voceAttivita.create({ data: { eventId, ...dati } });
+    }
+  }
 
-  for (const cassaId of ids) {
-    const cassa = await prisma.cassa.findUnique({ where: { id: cassaId }, select: { nome: true } });
-    if (!cassa) continue;
-    const campo = (n: string) => `cassa_${cassaId}_${n}`;
-    const gia = esistenti.find((q) => q.cassaId === cassaId) ?? null;
+  // una quota per ogni altra cassa
+  const gia = await prisma.quotaCassa.findMany({ where: { eventId } });
+  const casse = new Set<string>([
+    ...gia.map((q) => q.cassaId),
+    ...[...quote.squadra.keys(), ...quote.esterni.keys()].filter((c): c is string => c !== null),
+  ]);
+  for (const cassaId of casse) {
+    const q = gia.find((x) => x.cassaId === cassaId) ?? null;
+    const rs = quote.squadra.get(cassaId);
+    const re = quote.esterni.get(cassaId);
+    const importo = quote.lati.squadra ? sommaRighe(rs) : q ? Number(q.importo) : null;
+    const importoEsterni = quote.lati.esterni
+      ? sommaRighe(re)
+      : q?.importoEsterni == null
+        ? null
+        : Number(q.importoEsterni);
 
-    const squadra = await componiQuota(fd, {
-      voci: campo('vociSquadra'),
-      importo: campo('squadra'),
-      stagioneId,
-      giorni,
-      sommaAMano: true,
-      cassaId,
-    });
-    // la card esterni nascosta (attività di squadra) non cancella quello che c'era
-    const conEsterni = fd.has(campo('esterni'));
-    const esterni = conEsterni
-      ? await componiQuota(fd, {
-          voci: campo('vociEsterni'),
-          importo: campo('esterni'),
-          stagioneId,
-          giorni,
-          sommaAMano: true,
-          cassaId,
-        })
-      : { quota: gia?.importoEsterni == null ? null : Number(gia.importoEsterni), dettaglio: null };
-
-    if (!squadra.quota && esterni.quota === null) {
-      if (gia) await togliQuotaCassa(gia);
+    if ((importo ?? 0) <= 0 && (importoEsterni ?? 0) <= 0) {
+      if (q) await togliQuotaCassa(q);
       continue;
     }
 
+    const nomi = [...new Set([...(rs ?? []), ...(re ?? [])].map((r) => r.nome))];
     const valori = {
-      descrizione: str(fd, campo('descrizione')) || cassa.nome,
-      importo: squadra.quota ?? 0,
-      importoEsterni: esterni.quota,
-      importoAMano: num(fd, campo('squadra')),
-      voci: vociSpuntate(fd, campo('vociSquadra')),
-      ...(conEsterni
-        ? {
-            importoEsterniAMano: num(fd, campo('esterni')),
-            vociEsterni: vociSpuntate(fd, campo('vociEsterni')),
-          }
-        : {}),
+      descrizione: nomi.join(' + ') || q?.descrizione || 'Quota',
+      importo: importo ?? 0,
+      importoEsterni,
     };
     await prisma.quotaCassa.upsert({
       where: { eventId_cassaId: { eventId, cassaId } },
       create: { eventId, cassaId, ...valori },
       update: valori,
     });
-  }
-
-  // i blocchi tolti dal modulo
-  for (const q of esistenti) {
-    if (!ids.includes(q.cassaId)) await togliQuotaCassa(q);
   }
 }
 
@@ -958,11 +961,23 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
       data: {
         costoEsterni: esterni.quota,
         dettaglioCostoEsterni: esterni.dettaglio,
-        // com'è stata composta, per ritrovarla uguale nel modulo dell'attività
-        costoEsterniAMano: num(fd, 'costoEsterni'),
+        // per ritrovarla uguale nel modulo dell'attività: le voci spuntate, e
+        // l'importo scritto a mano come una quota aggiunta
         vociEsterni: vociSpuntate(fd, 'tariffeEsterni'),
       },
     });
+    const aMano = num(fd, 'costoEsterni');
+    if (aMano !== null) {
+      await prisma.voceAttivita.create({
+        data: {
+          eventId,
+          perEsterni: true,
+          nome: aMano === 0 ? 'Offerta' : 'Quota esterni',
+          importo: aMano,
+          scelta: true,
+        },
+      });
+    }
     prezzoFissato = esterni.quota;
   }
 
