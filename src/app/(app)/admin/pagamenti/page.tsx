@@ -9,7 +9,14 @@ import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/compone
 import { Conferma, Fisarmonica, FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
-import { eliminaPagamento, salvaPagamento, segnaPagato } from '@/actions/pagamenti';
+import {
+  eliminaPagamento,
+  salvaPagamento,
+  segnaNonGestito,
+  segnaPagato,
+  tornaDaGestire,
+} from '@/actions/pagamenti';
+import { AzioneBottone } from '@/components/AzioneBottone';
 
 const FILTRI = {
   dagestire: 'Da gestire',
@@ -17,6 +24,7 @@ const FILTRI = {
   scaduti: 'Scaduti',
   rimborsi: 'Rimborsi',
   pagati: 'Incassati',
+  fuori: 'Gestiti fuori',
   tutti: 'Tutti',
 } as const;
 
@@ -70,7 +78,9 @@ export default async function AdminPagamentiPage({
           ? { tipo: 'RIMBORSO' }
           : filtro === 'pagati'
             ? { status: 'PAGATO' }
-            : {};
+            : filtro === 'fuori'
+              ? { status: 'NON_GESTITO' }
+              : {};
 
   const [pagamenti, tutti, operatori, eventi] = await Promise.all([
     prisma.payment.findMany({
@@ -423,7 +433,8 @@ function AzioniPagamento({
   pagamento: Riga;
   metodi: { id: string; nome: string }[];
 }) {
-  const saldato = pagamento.status === 'PAGATO';
+  // gestita fuori è chiusa come una pagata: niente «Incassa»
+  const saldato = pagamento.status === 'PAGATO' || pagamento.status === 'NON_GESTITO';
   const dovuto = Number(pagamento.importo);
   const rimborso = pagamento.tipo === 'RIMBORSO';
 
@@ -497,6 +508,8 @@ function AzioniPagamento({
         </BottoneModale>
       )}
 
+      <FuoriGestionale pagamento={pagamento} />
+
       <FormAzione azione={eliminaPagamento} className="">
         <input type="hidden" name="id" value={pagamento.id} />
         <Conferma
@@ -508,5 +521,44 @@ function AzioniPagamento({
         </Conferma>
       </FormAzione>
     </div>
+  );
+}
+
+/**
+ * «Non gestito» e il suo ripensamento. Solo su una quota ancora tutta da
+ * pagare: su un acconto già registrato non si mescolano le due cose.
+ */
+function FuoriGestionale({
+  pagamento,
+}: {
+  pagamento: { id: string; tipo: string; status: string; pagato: unknown };
+}) {
+  if (pagamento.status === 'NON_GESTITO') {
+    return (
+      <AzioneBottone
+        azione={tornaDaGestire}
+        valori={{ id: pagamento.id }}
+        className="text-xs text-muted hover:text-nvg"
+      >
+        torna da gestire
+      </AzioneBottone>
+    );
+  }
+  if (
+    pagamento.status !== 'DA_PAGARE' ||
+    pagamento.tipo === 'RIMBORSO' ||
+    Number(pagamento.pagato) > 0
+  ) {
+    return null;
+  }
+  return (
+    <AzioneBottone
+      azione={segnaNonGestito}
+      valori={{ id: pagamento.id }}
+      conferma="Segnarla come gestita fuori dal gestionale? Conterà come pagata, ma in cassa non entrerà niente."
+      className="text-xs text-muted hover:text-nvg"
+    >
+      non gestito
+    </AzioneBottone>
   );
 }

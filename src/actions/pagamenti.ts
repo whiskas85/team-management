@@ -84,7 +84,15 @@ export async function salvaPagamento(_prev: StatoForm, fd: FormData): Promise<St
       };
     }
 
-    await prisma.payment.update({ where: { id }, data: valori });
+    // Una quota gestita fuori resta tale anche se se ne corregge la
+    // descrizione o l'importo: lo stato ricalcolato dagli importi la
+    // riporterebbe «da pagare» senza che nessuno l'abbia chiesto. Se invece
+    // si scrive un incasso, vuol dire che è rientrata nel gestionale
+    const restaFuori = esistente.status === 'NON_GESTITO' && pagato === 0;
+    await prisma.payment.update({
+      where: { id },
+      data: restaFuori ? { ...valori, status: 'NON_GESTITO', pagatoIl: null } : valori,
+    });
     aggiorna();
     return { ok: 'Movimento aggiornato.' };
   }
@@ -137,6 +145,9 @@ export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<Stato
     };
   }
   if (pagamento.status === 'PAGATO') return { errore: 'Risulta già saldato.' };
+  if (pagamento.status === 'NON_GESTITO') {
+    return { errore: 'Questa quota è gestita fuori dal gestionale: rimettila da gestire, prima.' };
+  }
 
   // importo, data e metodo si possono correggere qui: è il momento in cui la
   // segreteria mette nero su bianco com'è andata davvero
@@ -327,4 +338,80 @@ export async function chiediRimborso(_prev: StatoForm, fd: FormData): Promise<St
       pagamento.cassaId ? 'lo erogherà chi gestisce la cassa' : 'la segreteria lo erogherà'
     }.`,
   };
+}
+
+/**
+ * Una quota che si paga fuori dal gestionale.
+ *
+ * Capita: l'istruttore incassa a mano, la cosa si regola a parte. Tenerla
+ * «da pagare» vorrebbe dire solleciti, pallini e un'assicurazione bloccata per
+ * un pagamento che c'è stato davvero, solo non di qui. Segnata così è chiusa —
+ * conta come pagata per l'assicurazione, per la formazione e per i conteggi —
+ * ma **l'incassato resta zero**: nella cassa non entra niente, perché i soldi
+ * non sono passati dal gestionale.
+ *
+ * La decide chi gestisce la cassa di quella quota, e solo su una quota ancora
+ * tutta da pagare: su un acconto già registrato non si mescolano le due cose.
+ */
+export async function segnaNonGestito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+
+  const pagamento = await prisma.payment.findUnique({ where: { id: str(fd, 'id') } });
+  if (!pagamento) return { errore: 'Movimento non trovato.' };
+  if (!(await puoGestireCassa(me, pagamento.cassaId))) {
+    return { errore: 'Questo pagamento lo gestisce chi ne tiene la cassa.' };
+  }
+  if (pagamento.tipo === 'RIMBORSO') {
+    return { errore: 'Un rimborso non si segna come gestito fuori.' };
+  }
+  if (pagamento.status !== 'DA_PAGARE' || Number(pagamento.pagato) > 0) {
+    return {
+      errore: 'Si può fare solo su una quota ancora tutta da pagare: qui c’è già un incasso.',
+    };
+  }
+
+  const traccia = `Gestita fuori dal gestionale (${me.nome} ${me.cognome}, ${new Date().toLocaleDateString('it-IT')})`;
+  await prisma.payment.update({
+    where: { id: pagamento.id },
+    data: {
+      status: 'NON_GESTITO',
+      // una segnalazione fatta prima non deve restare «da confermare»
+      dichiaratoIl: null,
+      recordedById: me.id,
+      note: [pagamento.note, traccia].filter(Boolean).join(' · '),
+    },
+  });
+
+  // come a quota pagata: chi era convocato diventa titolare
+  if (pagamento.eventId) {
+    await prisma.eventRsvp.updateMany({
+      where: { eventId: pagamento.eventId, userId: pagamento.userId, assegnazione: 'CONVOCATO' },
+      data: { assegnazione: 'TITOLARE' },
+    });
+    revalidatePath(`/calendario/${pagamento.eventId}`);
+  }
+
+  aggiorna();
+  return { ok: 'Gestita fuori: per il gestionale è chiusa, e in cassa non entra niente.' };
+}
+
+/** Il ripensamento: la quota torna da incassare nel gestionale. */
+export async function tornaDaGestire(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+
+  const pagamento = await prisma.payment.findUnique({ where: { id: str(fd, 'id') } });
+  if (!pagamento) return { errore: 'Movimento non trovato.' };
+  if (!(await puoGestireCassa(me, pagamento.cassaId))) {
+    return { errore: 'Questo pagamento lo gestisce chi ne tiene la cassa.' };
+  }
+  if (pagamento.status !== 'NON_GESTITO') return { errore: 'Questa quota è già nel gestionale.' };
+
+  await prisma.payment.update({
+    where: { id: pagamento.id },
+    data: { status: 'DA_PAGARE', recordedById: me.id },
+  });
+  if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
+
+  aggiorna();
+  return { ok: 'La quota torna da incassare nel gestionale.' };
 }

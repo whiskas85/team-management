@@ -12,7 +12,8 @@ import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/compone
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
-import { segnaPagato } from '@/actions/pagamenti';
+import { segnaNonGestito, segnaPagato, tornaDaGestire } from '@/actions/pagamenti';
+import { AzioneBottone } from '@/components/AzioneBottone';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ const FILTRI = {
   dagestire: 'Da confermare',
   aperti: 'Da incassare',
   pagati: 'Incassati',
+  fuori: 'Gestiti fuori',
   tutti: 'Tutti',
 } as const;
 
@@ -71,7 +73,9 @@ export default async function CassaPage({
         ? { status: { in: ['DA_PAGARE', 'PARZIALE'] }, tipo: { not: 'RIMBORSO' } }
         : filtro === 'pagati'
           ? { status: 'PAGATO' }
-          : {};
+          : filtro === 'fuori'
+            ? { status: 'NON_GESTITO' }
+            : {};
 
   const [pagamenti, tutti, metodi] = await Promise.all([
     prisma.payment.findMany({
@@ -239,6 +243,7 @@ export default async function CassaPage({
                 </span>
                 <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
+                  <FuoriGestionale pagamento={p} />
                   <Incassa pagamento={p} metodi={metodi} />
                 </span>
               </div>
@@ -286,6 +291,7 @@ export default async function CassaPage({
                     <td className="whitespace-nowrap text-right">
                       <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
+                  <FuoriGestionale pagamento={p} />
                   <Incassa pagamento={p} metodi={metodi} />
                 </span>
                     </td>
@@ -352,7 +358,11 @@ function Incassa({
   };
   metodi: { id: string; nome: string }[];
 }) {
-  if (pagamento.status === 'PAGATO' || pagamento.status === 'ANNULLATO') {
+  if (
+    pagamento.status === 'PAGATO' ||
+    pagamento.status === 'ANNULLATO' ||
+    pagamento.status === 'NON_GESTITO'
+  ) {
     return <span className="text-xs text-muted">—</span>;
   }
 
@@ -442,5 +452,41 @@ function Sollecita({ invito }: { invito: { link: string | null } | null }) {
       <Icona nome="whatsapp" size={15} />
       Sollecita
     </a>
+  );
+}
+
+/** «Non gestito» e il suo ripensamento, come in Pagamenti. */
+function FuoriGestionale({
+  pagamento,
+}: {
+  pagamento: { id: string; tipo: string; status: string; pagato: unknown };
+}) {
+  if (pagamento.status === 'NON_GESTITO') {
+    return (
+      <AzioneBottone
+        azione={tornaDaGestire}
+        valori={{ id: pagamento.id }}
+        className="text-xs text-muted hover:text-nvg"
+      >
+        torna da gestire
+      </AzioneBottone>
+    );
+  }
+  if (
+    pagamento.status !== 'DA_PAGARE' ||
+    pagamento.tipo === 'RIMBORSO' ||
+    Number(pagamento.pagato) > 0
+  ) {
+    return null;
+  }
+  return (
+    <AzioneBottone
+      azione={segnaNonGestito}
+      valori={{ id: pagamento.id }}
+      conferma="Segnarla come gestita fuori dal gestionale? Conterà come pagata, ma in cassa non entrerà niente."
+      className="text-xs text-muted hover:text-nvg"
+    >
+      non gestito
+    </AzioneBottone>
   );
 }

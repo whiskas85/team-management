@@ -248,6 +248,9 @@ function Dichiara({
     );
   }
 
+  if (pagamento.status === 'NON_GESTITO') {
+    return <span className="text-xs text-muted">si paga fuori dal gestionale</span>;
+  }
   if (pagamento.status === 'PAGATO' || pagamento.status === 'ANNULLATO') {
     return <span className="text-xs text-muted">—</span>;
   }

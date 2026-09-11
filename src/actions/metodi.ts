@@ -102,6 +102,9 @@ export async function dichiaraPagamento(_prev: StatoForm, fd: FormData): Promise
   const pagamento = await prisma.payment.findUnique({ where: { id } });
   if (!pagamento || pagamento.userId !== me.id) return { errore: 'Pagamento non trovato.' };
   if (pagamento.status === 'PAGATO') return { errore: 'Questa quota risulta già saldata.' };
+  if (pagamento.status === 'NON_GESTITO') {
+    return { errore: 'Questa quota si paga fuori dal gestionale: qui non c’è niente da segnalare.' };
+  }
 
   const metodo = await prisma.metodoPagamento.findUnique({ where: { id: metodoId } });
   // e dev'essere della cassa di questa quota: il bonifico al club non salda

@@ -117,7 +117,9 @@ export async function eventiPerLista({
       e.status === 'RILASCIATA' && (!e.chiusuraIscrizioni || e.chiusuraIscrizioni > ora),
     // la mia quota per questa attività, se prevista
     quotaDovuta: e.payments[0] ? Number(e.payments[0].importo) : null,
-    quotaSaldata: e.payments[0] ? e.payments[0].status === 'PAGATO' : false,
+    quotaSaldata: e.payments[0]
+      ? e.payments[0].status === 'PAGATO' || e.payments[0].status === 'NON_GESTITO'
+      : false,
     conFormazione: e.tipo?.riserve ?? false,
     // Novità: rilasciata, ancora da fare, e mai aperta da me. Un'attività
     // passata non è più una novità nemmeno se non l'ho guardata — segnalarla

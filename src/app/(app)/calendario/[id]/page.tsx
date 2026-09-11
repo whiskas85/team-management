@@ -974,6 +974,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     if (q.status === 'PAGATO') {
                                       return <Badge tono="ok">quota saldata</Badge>;
                                     }
+                                    if (q.status === 'NON_GESTITO') {
+                                      return <Badge tono="neutro">gestita fuori</Badge>;
+                                    }
                                     if (q.dichiaratoIl) {
                                       return <Badge tono="info">pagamento dichiarato</Badge>;
                                     }
@@ -1422,12 +1425,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 {mioCosto > 0 && mio?.status === 'PRESENTE' && (
                   <div
                     className={`mt-3 rounded-md border px-3 py-2 text-xs ${
-                      miaQuota?.status === 'PAGATO'
+                      (miaQuota?.status === 'PAGATO' || miaQuota?.status === 'NON_GESTITO')
                         ? 'border-nvg/40 bg-nvg/10 text-nvg'
                         : 'border-warn/40 bg-warn/10 text-warn'
                     }`}
                   >
-                    {miaQuota?.status === 'PAGATO' ? (
+                    {(miaQuota?.status === 'PAGATO' || miaQuota?.status === 'NON_GESTITO') ? (
                       <>Quota di {fmtEuro(mioCosto)} saldata: il posto è confermato.</>
                     ) : (
                       <>

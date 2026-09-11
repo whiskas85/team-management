@@ -120,7 +120,13 @@ export default async function CassaPage({
     .filter((p) => p.tipo === 'RIMBORSO' && p.status !== 'PAGATO')
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
   const quoteDaIncassare = pagamenti
-    .filter((p) => p.tipo !== 'RIMBORSO' && p.status !== 'PAGATO' && p.status !== 'ANNULLATO')
+    .filter(
+      (p) =>
+        p.tipo !== 'RIMBORSO' &&
+        p.status !== 'PAGATO' &&
+        p.status !== 'ANNULLATO' &&
+        p.status !== 'NON_GESTITO',
+    )
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
 
   const entrateManuali = movimenti

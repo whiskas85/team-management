@@ -470,7 +470,13 @@ const cassaRiepilogo: Strumento = {
       .filter((p) => p.tipo === 'RIMBORSO')
       .reduce((t, p) => t + Number(p.pagato), 0);
     const daIncassare = pagamenti
-      .filter((p) => p.tipo !== 'RIMBORSO' && p.status !== 'PAGATO' && p.status !== 'ANNULLATO')
+      .filter(
+        (p) =>
+          p.tipo !== 'RIMBORSO' &&
+          p.status !== 'PAGATO' &&
+          p.status !== 'ANNULLATO' &&
+          p.status !== 'NON_GESTITO',
+      )
       .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
     const entrate = somma(movimenti.filter((m) => m.tipo === 'ENTRATA'));
     const uscite = somma(movimenti.filter((m) => m.tipo === 'USCITA'));

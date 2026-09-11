@@ -210,6 +210,7 @@ export const tonoPagamento: Record<string, Tono> = {
   PARZIALE: 'warn',
   DA_PAGARE: 'danger',
   ANNULLATO: 'neutro',
+  NON_GESTITO: 'neutro',
 };
 
 export const tonoEvento: Record<string, Tono> = {

@@ -123,6 +123,7 @@ enum PaymentStatus {
   PARZIALE
   PAGATO
   ANNULLATO
+  NON_GESTITO // si paga fuori dal gestionale: per l'app è chiusa, ma non è entrato niente
 }
 
 // ---------------------------------------------------------------- operatori

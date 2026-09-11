@@ -127,7 +127,13 @@ export default async function OrdiniPage({
   );
   const valoreRaccolta = inRaccolta.reduce((s, o) => s + totaleRighe(o.righe), 0);
   const daIncassare = ordini
-    .filter((o) => o.stato !== 'ANNULLATO' && o.payment && o.payment.status !== 'PAGATO')
+    .filter(
+      (o) =>
+        o.stato !== 'ANNULLATO' &&
+        o.payment &&
+        o.payment.status !== 'PAGATO' &&
+        o.payment.status !== 'NON_GESTITO',
+    )
     .reduce((s, o) => s + Number(o.payment!.importo) - Number(o.payment!.pagato), 0);
 
   return (
@@ -264,7 +270,9 @@ export default async function OrdiniPage({
                   <Badge tono={TONO[o.stato]}>{ETICHETTA_ORDINE[o.stato]}</Badge>
                   {/* i soldi stanno sul pagamento, e sono un'altra cosa da dove
                       si trova la merce: uno paga oggi e ritira fra tre settimane */}
-                  {o.payment ? (
+                  {o.payment?.status === 'NON_GESTITO' ? (
+                    <Badge tono="neutro">quota gestita fuori</Badge>
+                  ) : o.payment ? (
                     <Badge tono={o.payment.status === 'PAGATO' ? 'ok' : 'warn'}>
                       {o.payment.status === 'PAGATO'
                         ? 'quota incassata'

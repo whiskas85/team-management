@@ -228,13 +228,17 @@ export default async function CarrelloPage() {
                   </Badge>
                   {/* pagato e consegnato sono due cose diverse: uno paga oggi e
                       ritira quando la fornitura arriva */}
-                  <Badge tono={o.payment?.status === 'PAGATO' ? 'ok' : 'warn'}>
-                    {o.payment
-                      ? o.payment.status === 'PAGATO'
-                        ? 'quota saldata'
-                        : 'quota da saldare'
-                      : 'senza quota'}
-                  </Badge>
+                  {o.payment?.status === 'NON_GESTITO' ? (
+                    <Badge tono="neutro">si paga fuori dal gestionale</Badge>
+                  ) : (
+                    <Badge tono={o.payment?.status === 'PAGATO' ? 'ok' : 'warn'}>
+                      {o.payment
+                        ? o.payment.status === 'PAGATO'
+                          ? 'quota saldata'
+                          : 'quota da saldare'
+                        : 'senza quota'}
+                    </Badge>
+                  )}
                   {o.stato === 'RACCOLTA' && Number(o.payment?.pagato ?? 0) === 0 && (
                     <AzioneBottone
                       azione={annullaOrdine}

@@ -84,7 +84,10 @@ export default async function SchedaStagionePage({
     .filter((p) => p.tipo === 'RIMBORSO')
     .reduce((t, p) => t + Number(p.pagato), 0);
   const daIncassare = tutti
-    .filter((p) => p.tipo !== 'RIMBORSO' && p.status !== 'ANNULLATO')
+    // le quote gestite fuori per il gestionale sono chiuse: non restano da incassare
+    .filter(
+      (p) => p.tipo !== 'RIMBORSO' && p.status !== 'ANNULLATO' && p.status !== 'NON_GESTITO',
+    )
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
 
   const attive = stagione.memberships.filter((m) => m.status === 'ATTIVA').length;

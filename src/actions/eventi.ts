@@ -418,7 +418,12 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
           eventId: evento.id,
         },
       });
-    } else if (Number(esistente.pagato) === 0 && Number(esistente.importo) !== costo) {
+    } else if (
+      Number(esistente.pagato) === 0 &&
+      Number(esistente.importo) !== costo &&
+      // una quota gestita fuori è chiusa: il suo importo non si ricalcola
+      esistente.status !== 'NON_GESTITO'
+    ) {
       // il costo è cambiato dopo: finché non è entrato un euro la quota si
       // adegua, altrimenti resterebbe ferma a una cifra che non esiste più
       await prisma.payment.update({
@@ -496,7 +501,7 @@ export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm
       where: { eventId: attuale.eventId, userId: attuale.userId, tipo: { not: 'RIMBORSO' } },
       select: { status: true },
     });
-    if (pagamento && pagamento.status !== 'PAGATO') {
+    if (pagamento && pagamento.status !== 'PAGATO' && pagamento.status !== 'NON_GESTITO') {
       await prisma.eventRsvp.update({
         where: { id: rsvpId },
         data: { assegnazione: 'CONVOCATO' },
@@ -547,7 +552,9 @@ export async function scambiaTitolare(_prev: StatoForm, fd: FormData): Promise<S
     where: { eventId: esce.eventId, userId: esce.userId, tipo: { not: 'RIMBORSO' } },
     select: { status: true },
   });
-  const postoGiaPagato = pagamentoUscente?.status === 'PAGATO';
+  // gestita fuori vale come pagata: i soldi per quel posto sono già stati dati
+  const postoGiaPagato =
+    pagamentoUscente?.status === 'PAGATO' || pagamentoUscente?.status === 'NON_GESTITO';
 
   await prisma.$transaction([
     prisma.eventRsvp.update({

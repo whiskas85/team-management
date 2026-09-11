@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.17.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Una quota si può segnare «gestita fuori».** Quando un pagamento si
+  regola fuori dal gestionale, chi tiene la cassa lo segna con «non gestito»:
+  per l'app è chiusa come se fosse saldata, ma nell'incassato non entra niente.
+  Si fa su una quota ancora tutta da pagare, non sui rimborsi, e resta scritto
+  chi l'ha segnata e quando. Chi ci ripensa la riporta nel gestionale con
+  «torna da gestire».
+- **Nei pagamenti c'è il filtro «Gestiti fuori»**, in segreteria e nelle casse
+  di chi incassa per conto suo.
+
+### Cambiato
+
+- **Una quota gestita fuori conta come pagata**: chi era convocato diventa
+  titolare, il posto in formazione è suo, la polizza giornaliera si può fare, e
+  nella scheda dell'attività si legge «gestita fuori». Chi la deve la vede
+  scritta «si paga fuori dal gestionale», senza metodi né «Ho pagato».
+- **Nei totali «da incassare» le quote gestite fuori non ci sono**: cassa,
+  stagione, ordini e assistente contano solo quello che deve ancora passare
+  dal gestionale. Una quota gestita fuori non si conferma né si dichiara
+  pagata, e correggerne descrizione o importo non la riporta da pagare.
+
 ## 2.16.1 — 11 settembre 2026
 
 ### Corretto

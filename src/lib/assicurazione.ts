@@ -59,7 +59,8 @@ export {
  * stesso modo bloccherebbe la copertura di chi non deve un euro a nessuno.
  */
 export const quotaSaldata = (quota: { status: string } | null | undefined) =>
-  !quota || quota.status === 'PAGATO';
+  // «non gestita»: si paga fuori dal gestionale, e per il gestionale è chiusa
+  !quota || quota.status === 'PAGATO' || quota.status === 'NON_GESTITO';
 
 /**
  * Si può assicurare?
