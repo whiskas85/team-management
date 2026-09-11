@@ -214,6 +214,31 @@ function CardQuota({
   const conGiorni = voci.some((v) => scelte.has(v.id) && v.perGiorno);
   const campoVoci = lato === 'squadra' ? 'tariffeSquadra' : 'tariffeEsterni';
 
+  // le voci e le quote aggiunte, cassa per cassa: il club per primo, poi le
+  // altre in ordine di nome; una cassa senza niente non compare
+  const gruppiCassa = (() => {
+    const per = new Map<
+      string,
+      { chiave: string; nome: string; voci: VoceListino[]; extra: VoceAttivitaModulo[] }
+    >();
+    const gruppo = (cassaId: string | null, cassa: string | null) => {
+      const chiave = cassaId ?? '';
+      const g = per.get(chiave) ?? {
+        chiave: chiave || 'club',
+        nome: cassaId ? (cassa ?? 'Altra cassa') : 'Club',
+        voci: [],
+        extra: [],
+      };
+      per.set(chiave, g);
+      return g;
+    };
+    for (const v of voci) gruppo(v.cassaId ?? null, v.cassa ?? null).voci.push(v);
+    for (const e of extra) gruppo(e.cassaId, e.cassa).extra.push(e);
+    return [...per.entries()]
+      .sort(([a, ga], [b, gb]) => (a === '' ? -1 : b === '' ? 1 : ga.nome.localeCompare(gb.nome)))
+      .map(([, g]) => g);
+  })();
+
   const chip = (attiva: boolean) =>
     `inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
       attiva ? 'border-nvg/50 bg-nvg/10 text-nvg' : 'border-line text-muted hover:border-nvgdim'
@@ -233,40 +258,52 @@ function CardQuota({
       <p className="mb-3 text-[11px] text-muted">{spiega}</p>
 
       <p className="text-[11px] text-muted">Di cosa è fatta</p>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {voci.map((v) => {
-          const attiva = scelte.has(v.id);
-          return (
-            <button key={v.id} type="button" onClick={() => commuta(v.id)} className={chip(attiva)}>
-              {attiva ? '✓ ' : '+ '}
-              {v.nome}
-              <span className="num ml-1 opacity-80">
-                {v.importo.toFixed(2)} €{v.perGiorno ? ' /giorno' : ''}
+      {/* Divise per cassa, il club per primo: si vede subito cosa va a chi,
+          e le voci di Marco non si confondono con quelle del club */}
+      {gruppiCassa.map((g) => (
+        <div key={g.chiave} className="mt-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+            {g.nome}
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {g.voci.map((v) => {
+              const attiva = scelte.has(v.id);
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => commuta(v.id)}
+                  className={chip(attiva)}
+                >
+                  {attiva ? '✓ ' : '+ '}
+                  {v.nome}
+                  <span className="num ml-1 opacity-80">
+                    {v.importo.toFixed(2)} €{v.perGiorno ? ' /giorno' : ''}
+                  </span>
+                </button>
+              );
+            })}
+            {g.extra.map((e) => (
+              <span key={e.chiave} className={chip(e.scelta)}>
+                <button type="button" onClick={() => commutaExtra(e.chiave)}>
+                  {e.scelta ? '✓ ' : '+ '}
+                  {e.nome}
+                  <span className="num ml-1 opacity-80">{e.importo.toFixed(2)} €</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togliExtra(e.chiave)}
+                  className="ml-1.5 text-muted hover:text-danger"
+                  aria-label={`Togli ${e.nome}`}
+                  title="Togli questa quota"
+                >
+                  ×
+                </button>
               </span>
-              {v.cassa && <span className="ml-1 text-warn">→ {v.cassa}</span>}
-            </button>
-          );
-        })}
-        {extra.map((e) => (
-          <span key={e.chiave} className={chip(e.scelta)}>
-            <button type="button" onClick={() => commutaExtra(e.chiave)}>
-              {e.scelta ? '✓ ' : '+ '}
-              {e.nome}
-              <span className="num ml-1 opacity-80">{e.importo.toFixed(2)} €</span>
-              {e.cassa && <span className="ml-1 text-warn">→ {e.cassa}</span>}
-            </button>
-            <button
-              type="button"
-              onClick={() => togliExtra(e.chiave)}
-              className="ml-1.5 text-muted hover:text-danger"
-              aria-label={`Togli ${e.nome}`}
-              title="Togli questa quota"
-            >
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {[...scelte].map((id) => (
         <input key={id} type="hidden" name={campoVoci} value={id} />

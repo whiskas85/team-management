@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.25.0 — 11 settembre 2026
+
+### Cambiato
+
+- **Nelle casse i pagamenti sono divisi per attività.** Nella cassa di chi
+  incassa per conto suo e nei Pagamenti della segreteria ogni attività ha il
+  suo gruppo, con il nome (si apre con un tocco), la data, quanti pagamenti ci
+  sono e quanto resta da incassare: «del Corso CQB chi manca?» si legge a colpo
+  d'occhio. Quello che un'attività non ce l'ha — iscrizioni, tessere,
+  merchandising — sta in fondo, in «Altri pagamenti». I filtri restano quelli.
+- **Nel modulo dell'attività le quote sono divise per cassa.** In ognuna delle
+  due card le voci e le quote aggiunte stanno sotto il nome della loro cassa,
+  il club per primo: la freccina accanto a ogni voce non serve più.
+
 ## 2.24.0 — 11 settembre 2026
 
 ### Cambiato

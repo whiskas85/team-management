@@ -14,6 +14,7 @@ import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { segnaNonGestito, segnaPagato, tornaDaGestire } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
+import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,8 @@ export default async function CassaPage({
             consensoComunicaz: true,
           },
         },
-        event: { select: { id: true, titolo: true } },
+        // l'attività fa da titolo al gruppo: nome e data
+        event: { select: { id: true, titolo: true, inizio: true } },
         metodo: { select: { nome: true } },
       },
     }),
@@ -219,21 +221,18 @@ export default async function CassaPage({
       {pagamenti.length === 0 ? (
         <Vuoto testo="Nessun pagamento in questa vista." />
       ) : (
+        // divisi per attività: «del Corso CQB chi manca?» si legge a colpo d'occhio
+        <div className="space-y-6">
+          {raggruppaPerAttivita(pagamenti).map((g) => (
+            <section key={g.chiave}>
+              <TitoloGruppo gruppo={g} />
         <Elenco
-          cards={pagamenti.map((p) => (
+          cards={g.righe.map((p) => (
             <div key={p.id} className="card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="truncate font-medium">{nomeCompleto(p.user)}</h3>
                   <p className="truncate text-xs text-muted">{p.descrizione}</p>
-                  {p.event && (
-                    <Link
-                      href={`/calendario/${p.event.id}`}
-                      className="text-xs text-muted hover:text-nvg"
-                    >
-                      {p.event.titolo}
-                    </Link>
-                  )}
                 </div>
                 <Stato pagamento={p} />
               </div>
@@ -263,19 +262,11 @@ export default async function CassaPage({
                 </tr>
               </thead>
               <tbody>
-                {pagamenti.map((p) => (
+                {g.righe.map((p) => (
                   <tr key={p.id}>
                     <td className="font-medium">{nomeCompleto(p.user)}</td>
                     <td>
                       {p.descrizione}
-                      {p.event && (
-                        <Link
-                          href={`/calendario/${p.event.id}`}
-                          className="block text-[11px] text-muted hover:text-nvg"
-                        >
-                          {p.event.titolo}
-                        </Link>
-                      )}
                       {p.metodo && (
                         <span className="block text-[11px] text-muted">{p.metodo.nome}</span>
                       )}
@@ -301,6 +292,9 @@ export default async function CassaPage({
             </table>
           }
         />
+            </section>
+          ))}
+        </div>
       )}
     </>
   );

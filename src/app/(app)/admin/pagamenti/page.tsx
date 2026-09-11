@@ -17,6 +17,7 @@ import {
   tornaDaGestire,
 } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
+import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
 
 const FILTRI = {
   dagestire: 'Da gestire',
@@ -88,7 +89,8 @@ export default async function AdminPagamentiPage({
       orderBy: [{ scadenza: 'asc' }, { createdAt: 'desc' }],
       include: {
         user: { select: { id: true, nome: true, cognome: true, callsign: true } },
-        event: { select: { id: true, titolo: true } },
+        // l'attività fa da titolo al gruppo: nome e data
+        event: { select: { id: true, titolo: true, inizio: true } },
         metodo: { select: { nome: true } },
       },
     }),
@@ -302,8 +304,13 @@ export default async function AdminPagamentiPage({
       {pagamenti.length === 0 ? (
         <Vuoto testo="Nessun pagamento in questa vista." />
       ) : (
+        // divisi per attività: di una giornata si vede subito chi manca
+        <div className="space-y-6">
+          {raggruppaPerAttivita(pagamenti).map((g) => (
+            <section key={g.chiave}>
+              <TitoloGruppo gruppo={g} />
         <Elenco
-          cards={pagamenti.map((p) => (
+          cards={g.righe.map((p) => (
             <div key={p.id} className="card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -345,7 +352,7 @@ export default async function AdminPagamentiPage({
                 </tr>
               </thead>
               <tbody>
-                {pagamenti.map((p) => (
+                {g.righe.map((p) => (
                   <tr key={p.id}>
                     <td>
                       <Link
@@ -355,17 +362,7 @@ export default async function AdminPagamentiPage({
                         {p.user.cognome} {p.user.nome}
                       </Link>
                     </td>
-                    <td>
-                      {p.descrizione}
-                      {p.event && (
-                        <Link
-                          href={`/calendario/${p.event.id}`}
-                          className="block text-[11px] text-muted hover:text-nvg"
-                        >
-                          {p.event.titolo}
-                        </Link>
-                      )}
-                    </td>
+                    <td>{p.descrizione}</td>
                     <td className="text-muted">
                       {umanizza(p.tipo)}
                       {p.metodo && <span className="block text-[11px]">{p.metodo.nome}</span>}
@@ -405,6 +402,9 @@ export default async function AdminPagamentiPage({
             </table>
           }
         />
+            </section>
+          ))}
+        </div>
       )}
     </>
   );
