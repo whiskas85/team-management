@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.21.1 — 11 settembre 2026
+
+### Corretto
+
+- **Nelle polizze giornaliere chi non ha una foto ha le sue iniziali**, non
+  un'immagine rotta. L'avatar chiedeva la foto di tutti, anche di chi non l'ha
+  mai caricata — i nuovi, quasi sempre — e al posto di «JP» compariva il
+  riquadro dell'immagine che non si carica. Lo stesso errore c'era nell'elenco
+  della regolarità degli operatori, nel menu in alto per chi non ha la foto e
+  nella scheda di un annuncio del mercatino: sistemato ovunque.
+
 ## 2.21.0 — 11 settembre 2026
 
 ### Aggiunto

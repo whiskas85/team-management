@@ -38,6 +38,8 @@ type Props = {
     cognome: string;
     callsign: string | null;
     iniziali: string;
+    /** Ha una foto del profilo: senza, l'avatar mostra le iniziali. */
+    foto: boolean;
     roles: Role[];
   };
   esci: () => Promise<void>;

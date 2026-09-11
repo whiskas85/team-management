@@ -191,6 +191,7 @@ async function Regolarita() {
       id: o.id,
       nome: nomeCompleto(o),
       iniziali: iniziali(o.nome, o.cognome),
+      foto: !!o.fotoPath,
       stato: o.stato,
       iscrizione,
       certStato: cert ? cert.effettivo : null,

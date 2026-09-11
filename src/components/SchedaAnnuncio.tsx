@@ -446,7 +446,11 @@ export async function SchedaAnnuncio({
           <div className="card">
             <p className="titolo-sezione mb-3">Chi vende</p>
             <div className="flex items-center gap-3">
-              <Avatar iniziali={chi.iniziali} fotoDi={annuncio.venditore.id} size="md" />
+              <Avatar
+                iniziali={chi.iniziali}
+                fotoDi={annuncio.venditore.fotoPath ? annuncio.venditore.id : null}
+                size="md"
+              />
               <div className="min-w-0">
                 <p className="truncate font-medium">{chi.nome}</p>
                 {annuncio.ufficiale && (

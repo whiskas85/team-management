@@ -93,6 +93,8 @@ export type NuovoDaCoprire = {
   /** Per esteso, callsign compreso: chi apre questa pagina segue le persone. */
   nome: string;
   iniziali: string;
+  /** Ha una foto del profilo: senza, l'avatar mostra le iniziali. */
+  foto: boolean;
   stato: StatoOperatore;
   /** Ha risposto "forse": conta comunque, ma non è ancora detto che venga. */
   forse: boolean;
@@ -174,6 +176,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
               stato: true,
               dataNascita: true,
               luogoNascita: true,
+              fotoPath: true,
               figtCards: { select: { status: true, scadeIl: true } },
             },
           },
@@ -199,6 +202,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
           id: r.userId,
           nome: nomeCompleto(r.user),
           iniziali: iniziali(r.user.nome, r.user.cognome),
+          foto: !!r.user.fotoPath,
           stato: r.user.stato,
           forse: r.status === 'FORSE',
           giorni: giorni.map((giorno) => {

@@ -18,6 +18,8 @@ export type RigaRegolarita = {
   id: string;
   nome: string;
   iniziali: string;
+  /** Ha una foto del profilo: senza, l'avatar mostra le iniziali. */
+  foto: boolean;
   stato: StatoOperatore;
   /** L’iscrizione della stagione in corso. Nessuna: non è ancora stata mandata. */
   iscrizione: string | null;
@@ -143,7 +145,7 @@ export function ElencoRegolarita({ righe }: { righe: RigaRegolarita[] }) {
             cards={filtrate.map((r) => (
               <Link key={r.id} href={`/admin/operatori/${r.id}`} className="card block space-y-2">
                 <div className="flex items-center gap-3">
-                  <Avatar iniziali={r.iniziali} fotoDi={r.id} size="sm" />
+                  <Avatar iniziali={r.iniziali} fotoDi={r.foto ? r.id : null} size="sm" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{r.nome}</span>
                     <span className="text-[11px] text-muted">{etichettaStato[r.stato]}</span>

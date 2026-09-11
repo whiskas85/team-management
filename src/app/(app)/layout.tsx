@@ -226,6 +226,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Le casse che questa persona gestisce, se ne gestisce: la cassa del corso di
   // Mario è di Mario, e la voce nel menu la vede solo lui. Il pallino conta chi
   // ha detto di averlo pagato e aspetta la sua conferma, e i rimborsi da dare
+  // la foto del profilo, se c'è: senza, nel menu restano le iniziali invece di
+  // un'immagine rotta
+  const conFoto = !!(
+    await prisma.user.findUnique({ where: { id: utente.id }, select: { fotoPath: true } })
+  )?.fotoPath;
+
   const mieCasse = await prisma.cassa.findMany({
     where: { gestori: { some: { id: utente.id } } },
     orderBy: { nome: 'asc' },
@@ -463,6 +469,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           cognome: utente.cognome,
           callsign: utente.callsign,
           iniziali: iniziali(utente.nome, utente.cognome),
+          foto: conFoto,
           roles: utente.roles,
         }}
         esci={esci}

@@ -95,7 +95,9 @@ export default async function PolizzePage() {
                     key={n.id}
                     className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-surface2 px-3 py-2"
                   >
-                    <Avatar iniziali={n.iniziali} fotoDi={n.id} size="sm" />
+                    {/* la foto solo a chi ce l'ha: agli altri l'immagine
+                        arrivava rotta al posto delle iniziali */}
+                    <Avatar iniziali={n.iniziali} fotoDi={n.foto ? n.id : null} size="sm" />
                     <span className="min-w-0 flex-1">
                       <Link
                         href={`/admin/operatori/${n.id}`}

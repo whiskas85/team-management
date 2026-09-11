@@ -279,7 +279,10 @@ export const dettaglioRighe = (
 
 /** Serve solo a non ripetere la stessa `include` in quattro punti. */
 export const CON_TUTTO = {
-  venditore: { select: { id: true, nome: true, cognome: true, callsign: true, stato: true } },
+  // fotoPath: l'avatar mostra la foto solo a chi l'ha caricata
+  venditore: {
+    select: { id: true, nome: true, cognome: true, callsign: true, stato: true, fotoPath: true },
+  },
   voci: { orderBy: { ordine: 'asc' } },
   foto: { orderBy: { ordine: 'asc' } },
   copertina: true,

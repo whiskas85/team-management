@@ -45,6 +45,8 @@ export function MenuUtente({
     cognome: string;
     callsign: string | null;
     iniziali: string;
+    /** Ha una foto del profilo: senza, l'avatar mostra le iniziali. */
+    foto: boolean;
     roles: Role[];
   };
   esci: () => Promise<void>;
@@ -101,7 +103,7 @@ export function MenuUtente({
         <span className="num max-w-[110px] truncate text-[11px] font-semibold tracking-wide">
           {nick}
         </span>
-        <Avatar iniziali={utente.iniziali} fotoDi={utente.id} size="sm" />
+        <Avatar iniziali={utente.iniziali} fotoDi={utente.foto ? utente.id : null} size="sm" />
       </div>
 
       <div
@@ -128,7 +130,7 @@ export function MenuUtente({
           <span className="num max-w-[110px] truncate text-[11px] font-semibold tracking-wide text-nvg">
             {nick}
           </span>
-          <Avatar iniziali={utente.iniziali} fotoDi={utente.id} size="sm" />
+          <Avatar iniziali={utente.iniziali} fotoDi={utente.foto ? utente.id : null} size="sm" />
         </button>
 
         {/* La riga che passa da 0fr a 1fr è il modo di far scendere un'altezza
