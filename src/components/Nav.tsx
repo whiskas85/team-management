@@ -96,9 +96,6 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
   // con il menu aperto le barre restano dove sono: si sta scegliendo, non
   // leggendo
   const nascoste = barreVia && !apertoMenu;
-  // quante notifiche stanno dentro il menu: senza il pallino qui, chiuso il
-  // pannello non resterebbe alcun segnale che qualcosa aspetta una risposta
-  const daVedere = voci.reduce((t, v) => t + (v.badge ?? 0), 0);
 
   const gruppi = [
     'principale',
@@ -128,6 +125,14 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
     vociPreferite.length > 0
       ? vociPreferite.slice(0, 4)
       : voci.filter((v) => v.gruppo === 'principale').slice(0, 4);
+
+  // Quante notifiche stanno dentro il menu: senza il pallino qui, chiuso il
+  // pannello non resterebbe alcun segnale che qualcosa aspetta una risposta.
+  // Quelle delle voci già in barra non si contano due volte: il loro numero si
+  // legge sulla voce stessa
+  const daVedere = voci
+    .filter((v) => !rapide.includes(v))
+    .reduce((t, v) => t + (v.badge ?? 0), 0);
 
   return (
     <>
@@ -261,7 +266,16 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
               acceso === v.href ? 'text-nvg' : 'text-muted'
             }`}
           >
-            <Icona nome={v.icona} size={19} />
+            {/* il pallino sulla voce, come nel menu: «Miei» dice quante quote
+                aspettano di essere pagate senza doverlo aprire */}
+            <span className="relative">
+              <Icona nome={v.icona} size={19} />
+              {!!v.badge && (
+                <span className="num absolute -right-2.5 -top-1.5 min-w-[15px] rounded-full bg-nvg px-1 text-[9px] font-semibold leading-[15px] text-bg">
+                  {v.badge}
+                </span>
+              )}
+            </span>
             {v.label.split(' ')[0]}
           </Link>
         ))}

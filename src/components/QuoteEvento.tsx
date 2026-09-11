@@ -103,8 +103,8 @@ export function QuoteEvento({
         />
       ) : (
         <p className="text-[11px] text-muted sm:col-span-2">
-          Questa attività è riservata alla squadra: la quota esterni non serve. Comparirà se un
-          giorno la aprirai anche a chi in squadra non è.
+          Questa attività è riservata alla squadra: la quota esterni non serve. Comparirà se la
+          aprirai anche a chi in squadra non è, o se ci aggiungi un nuovo.
         </p>
       )}
     </div>

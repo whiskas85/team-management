@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.16.1 — 11 settembre 2026
+
+### Corretto
+
+- **Nel modulo di un'attività di squadra con dei nuovi c'è la quota esterni.**
+  Da quando si possono forzare dei nuovi su un'attività di squadra, la card del
+  loro prezzo restava nascosta: nel Corso CQB non c'era dove cambiarlo. Adesso
+  compare appena fra i partecipanti c'è un nuovo.
+- **Salvare un'attività non cancella più una quota che il modulo non
+  mostrava.** Una card nascosta arrivava vuota, e il salvataggio azzerava il
+  prezzo esterni che c'era: i nuovi finivano a pagare come la squadra senza che
+  nessuno l'avesse deciso. Adesso quello che il modulo non mostra resta com'era.
+
+### Cambiato
+
+- **Sulla barra in basso del telefono le voci hanno il loro pallino**, come nel
+  menu: «Miei» dice quante quote hai da pagare senza doverlo aprire. Il pallino
+  del Menu conta solo quello che nella barra non si vede, per non dire due volte
+  la stessa cosa.
+
 ## 2.16.0 — 11 settembre 2026
 
 ### Aggiunto

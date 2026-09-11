@@ -537,6 +537,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     stagioni={stagioni}
                     evento={evento}
                     soloLogistica={!admin}
+                    // un nuovo forzato su un'attività di squadra ha bisogno del
+                    // suo prezzo: senza, la card esterni resterebbe nascosta
+                    conNuovi={evento.rsvps.some((r) => !vedeAttivitaSquadra(r.user.stato))}
                   />
                   <Invia icona="salva">Salva modifiche</Invia>
                 </FormAzione>

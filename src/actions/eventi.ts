@@ -84,20 +84,32 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   // Le voci «al giorno» contano i giorni che l'attività occupa, con le date di
   // questo salvataggio: se le si sposta, il conto si rifà da solo
   const giorni = inizio ? giorniDi(inizio, fine).length : 1;
-  const squadra = await componiQuota(fd, {
-    voci: 'tariffeSquadra',
-    importo: 'costo',
-    stagioneId,
-    giorni,
-    sommaAMano: true,
+  // Una quota che il modulo non ha mostrato non si tocca. Prima una card
+  // nascosta — gli esterni su un'attività di squadra, i soldi di una riunione —
+  // arrivava vuota, e il salvataggio cancellava il prezzo che c'era: i nuovi
+  // finivano a pagare come la squadra senza che nessuno l'avesse deciso
+  const tieni = (importo: unknown, dettaglio: string | null | undefined) => ({
+    quota: importo == null ? null : Number(importo),
+    dettaglio: dettaglio ?? null,
   });
-  const esterni = await componiQuota(fd, {
-    voci: 'tariffeEsterni',
-    importo: 'costoEsterni',
-    stagioneId,
-    giorni,
-    sommaAMano: true,
-  });
+  const squadra = fd.has('costo')
+    ? await componiQuota(fd, {
+        voci: 'tariffeSquadra',
+        importo: 'costo',
+        stagioneId,
+        giorni,
+        sommaAMano: true,
+      })
+    : tieni(esistente?.costo, esistente?.dettaglioCosto);
+  const esterni = fd.has('costoEsterni')
+    ? await componiQuota(fd, {
+        voci: 'tariffeEsterni',
+        importo: 'costoEsterni',
+        stagioneId,
+        giorni,
+        sommaAMano: true,
+      })
+    : tieni(esistente?.costoEsterni, esistente?.dettaglioCostoEsterni);
 
   // stato e visibilità non passano da qui: si governano con i pulsanti sulla
   // scheda, così non si rilascia un'attività per sbaglio da una tendina

@@ -94,6 +94,7 @@ export function FormEvento({
   compatto = false,
   soloLogistica = false,
   giorni = 1,
+  conNuovi = false,
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
@@ -111,6 +112,8 @@ export function FormEvento({
   soloLogistica?: boolean;
   /** Giorni che l'attività occupa: le voci «al giorno» della quota contano per ognuno. */
   giorni?: number;
+  /** Fra i partecipanti c'è un nuovo: la quota esterni serve anche sull'attività di squadra. */
+  conNuovi?: boolean;
 }) {
   const conQuota =
     numero(evento?.costo) !== null || numero(evento?.costoEsterni) !== null;
@@ -384,10 +387,10 @@ export function FormEvento({
                   // spuntata: è il caso normale, e chi vuole regalarla scrive
                   // zero
                   preselezionaEsterni={!evento}
-                  // rilasciata alla sola squadra: la quota esterni non verrà
-                  // mai a nessuno, e tenerla lì si presta solo a sbagliare
-                  // casella
-                  mostraEsterni={evento?.visibilita !== 'TEAM'}
+                  // rilasciata alla sola squadra la quota esterni non serve, e
+                  // tenerla lì si presta solo a sbagliare casella — a meno che
+                  // non ci sia un nuovo forzato: allora è il suo prezzo
+                  mostraEsterni={evento?.visibilita !== 'TEAM' || conNuovi}
                   giorni={giorni}
                 />
               </div>
