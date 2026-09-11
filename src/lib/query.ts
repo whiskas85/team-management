@@ -66,10 +66,13 @@ export async function eventiPerLista({
       rsvps: {
         select: { status: true, userId: true, note: true, assegnazione: true, presente: true },
       },
+      // le mie quote di questa attività: quella del club e quelle delle altre
+      // casse, che contano tutte per dire se ho saldato
       payments: {
-        where: { userId, cassaId: null },
+        where: { userId, tipo: { not: 'RIMBORSO' } },
         select: { importo: true, pagato: true, status: true },
       },
+      quoteCasse: { select: { importo: true, importoEsterni: true } },
       // se c'è la riga, quest'attività l'ho già aperta
       letture: { where: { userId }, select: { userId: true } },
     },
@@ -82,8 +85,14 @@ export async function eventiPerLista({
 
   // ognuno legge la quota che riguarda lui: chi è in squadra la sua, chi viene
   // da fuori quella degli esterni
+  // e dove l'attività ha anche quote di altre casse, quanto costa in tutto
   const quotaDi = (e: (typeof eventi)[number]) => {
-    const q = quotaPer(e, stato).importo;
+    const q =
+      quotaPer(e, stato).importo +
+      e.quoteCasse.reduce(
+        (t, c) => t + quotaPer({ costo: c.importo, costoEsterni: c.importoEsterni }, stato).importo,
+        0,
+      );
     return q > 0 ? q : null;
   };
 
@@ -116,10 +125,12 @@ export async function eventiPerLista({
     adesioniAperte:
       e.status === 'RILASCIATA' && (!e.chiusuraIscrizioni || e.chiusuraIscrizioni > ora),
     // la mia quota per questa attività, se prevista
-    quotaDovuta: e.payments[0] ? Number(e.payments[0].importo) : null,
-    quotaSaldata: e.payments[0]
-      ? e.payments[0].status === 'PAGATO' || e.payments[0].status === 'NON_GESTITO'
-      : false,
+    quotaDovuta:
+      e.payments.length > 0 ? e.payments.reduce((t, p) => t + Number(p.importo), 0) : null,
+    // saldata vuol dire saldate tutte: il club e le altre casse
+    quotaSaldata:
+      e.payments.length > 0 &&
+      e.payments.every((p) => p.status === 'PAGATO' || p.status === 'NON_GESTITO'),
     conFormazione: e.tipo?.riserve ?? false,
     // Novità: rilasciata, ancora da fare, e mai aperta da me. Un'attività
     // passata non è più una novità nemmeno se non l'ho guardata — segnalarla

@@ -44,3 +44,22 @@ export async function puoGestireCassa(
   });
   return gestita > 0;
 }
+
+/** Chiusa per il gestionale: pagata, o gestita fuori. */
+export const quotaChiusa = (status: string) => status === 'PAGATO' || status === 'NON_GESTITO';
+
+/**
+ * Ha chiuso tutto quello che deve per questa attività?
+ *
+ * Un'attività può avere più quote — il campo al club, l'istruttore a Mario — e
+ * il posto in formazione si conferma quando sono saldate **tutte**: pagare il
+ * club e non il corso non basta a scendere in campo. I rimborsi sono movimenti
+ * a sé e non contano. Chi non ha nessuna quota non ha niente da chiudere.
+ */
+export async function quoteTutteSaldate(eventId: string, userId: string): Promise<boolean> {
+  const quote = await prisma.payment.findMany({
+    where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
+    select: { status: true },
+  });
+  return quote.every((q) => quotaChiusa(q.status));
+}

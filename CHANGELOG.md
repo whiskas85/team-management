@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.19.0 — 11 settembre 2026
+
+### Aggiunto
+
+- **Un'attività può avere più quote, una per cassa.** Oltre a quella del club
+  — il campo — si può chiedere una quota per un'altra cassa: l'istruttore del
+  corso a Mario. Si aggiunge dalla card «Quote di altre casse» nella scheda
+  dell'attività, con la cassa, a cosa serve e l'importo per la squadra e per
+  gli esterni; si toglie da lì. Le deve chi deve la quota del club, e ognuna
+  diventa un pagamento a sé nella sua cassa: la conferma chi la gestisce, con i
+  suoi metodi, e la sollecita dal suo telefono. Togliendola, chi non l'aveva
+  ancora pagata non la deve più.
+
+### Cambiato
+
+- **Il posto in formazione si conferma quando sono saldate tutte le quote.**
+  Pagare il campo al club e non l'istruttore non basta a passare da convocato
+  a titolare; vale per gli incassi, per le quote gestite fuori e per lo scambio
+  con una riserva. Chi era già titolare quando la quota nuova è stata aggiunta
+  resta titolare.
+- **Nella scheda dell'attività ognuno vede tutto quello che deve**, cassa per
+  cassa: «+ 20 € a Corso K9 · Istruttore». Il badge dei partecipanti conta
+  tutte le quote, e nelle card del calendario la quota è la somma.
+
 ## 2.18.1 — 11 settembre 2026
 
 ### Cambiato

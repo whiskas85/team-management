@@ -47,9 +47,11 @@ import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
   creaRiunione,
   eliminaEvento,
+  eliminaQuotaCassa,
   registraPresenze,
   rimuoviPartecipante,
   salvaEvento,
+  salvaQuotaCassa,
   scambiaTitolare,
   schiera,
 } from '@/actions/eventi';
@@ -74,6 +76,7 @@ import { citabili } from '@/lib/note';
 import { haIncarichi } from '@/lib/domain';
 import { Icona } from '@/components/Icona';
 import { finestraAttivita } from '@/lib/giorni';
+import { quotaChiusa } from '@/lib/casse';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -119,18 +122,24 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         include: { autore: { select: { nome: true, cognome: true, callsign: true } } },
       },
       giornaliere: true,
+      // tutte le quote: quella del club e quelle delle altre casse
       payments: {
-        where: { cassaId: null },
         select: {
           id: true,
           tipo: true,
           userId: true,
+          cassaId: true,
+          cassa: { select: { nome: true } },
           importo: true,
           pagato: true,
           status: true,
           dichiaratoIl: true,
           rimborso: { select: { id: true } },
         },
+      },
+      quoteCasse: {
+        orderBy: { createdAt: 'asc' },
+        include: { cassa: { select: { nome: true } } },
       },
     },
   });
@@ -151,6 +160,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     (evento.visibilita === 'TEAM' && vedeAttivitaSquadra(me.stato));
   if (!admin && !partecipo && !aperta) notFound();
   const tl = puoSchierare(me.roles);
+  // le casse a cui un'attività può chiedere una quota: le sceglie l'admin
+  const casseAttive = admin
+    ? await prisma.cassa.findMany({
+        where: { attiva: true },
+        orderBy: { nome: 'asc' },
+        select: { id: true, nome: true },
+      })
+    : [];
 
   // Commenti e "mi piace" li vede chiunque veda l'attività; le note sotto sono
   // l'opposto e stanno nella stessa pagina solo perché è lì che uno le scrive.
@@ -398,10 +415,29 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const vedeQuoteAltrui = tl || puoGestirePagamenti(me.roles);
   // i rimborsi sono movimenti a sé: la quota di un operatore è quella dovuta,
   // altrimenti si finirebbe per chiedere il rimborso di un rimborso
+  // (quella del club: è la sola che si rimborsa da qui)
   const quotePerUtente = new Map(
-    evento.payments.filter((p) => p.tipo !== 'RIMBORSO').map((p) => [p.userId, p]),
+    evento.payments
+      .filter((p) => p.tipo !== 'RIMBORSO' && p.cassaId === null)
+      .map((p) => [p.userId, p]),
   );
   const miaQuota = quotePerUtente.get(me.id) ?? null;
+  // tutte le quote di una persona, club e altre casse: il posto si conferma
+  // quando sono chiuse tutte
+  const quoteDi = (userId: string) =>
+    evento.payments.filter((p) => p.tipo !== 'RIMBORSO' && p.userId === userId);
+  const mieQuote = quoteDi(me.id);
+  const mieSaldate = mieQuote.length > 0 && mieQuote.every((q) => quotaChiusa(q.status));
+  // quanto mi chiedono le altre casse, una per una
+  const mieAltreVoci = evento.quoteCasse
+    .map((q) => ({
+      id: q.id,
+      cassa: q.cassa.nome,
+      descrizione: q.descrizione,
+      importo: quotaPer({ costo: q.importo, costoEsterni: q.importoEsterni }, me.stato).importo,
+    }))
+    .filter((v) => v.importo > 0);
+  const mioTotale = mioCosto + mieAltreVoci.reduce((t, v) => t + v.importo, 0);
   // dove c'è la formazione la quota la deve chi scende in campo, non chi si è
   // solo reso disponibile: serve a dirlo prima, invece di farlo scoprire dopo
   const mioTitolare = mio?.assegnazione === 'TITOLARE';
@@ -728,13 +764,23 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 etichetta="Quota"
                 valore={
                   <>
-                    {mioCosto > 0 ? (
+                    {mioTotale > 0 ? (
                       <>
-                        {fmtEuro(mioCosto)}
+                        {mioCosto > 0 && fmtEuro(mioCosto)}
                         {/* di cosa è fatta: si paga in una volta sola */}
-                        {mioDettaglio && (
+                        {mioCosto > 0 && mioDettaglio && (
                           <span className="block text-[11px] text-muted">{mioDettaglio}</span>
                         )}
+                        {/* le altre casse: ognuna si paga a chi la tiene */}
+                        {mieAltreVoci.map((v) => (
+                          <span key={v.id} className="block">
+                            {mioCosto > 0 ? '+ ' : ''}
+                            {fmtEuro(v.importo)}{' '}
+                            <span className="text-[11px] text-muted">
+                              a {v.cassa} · {v.descrizione}
+                            </span>
+                          </span>
+                        ))}
                         <span className="block text-[11px] text-warn">
                           {mioConvocato
                             ? 'sei convocato: il posto è tuo, diventa tuo davvero al saldo'
@@ -755,6 +801,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                         {evento.dettaglioCostoEsterni ? ` (${evento.dettaglioCostoEsterni})` : ''}
                       </span>
                     )}
+                    {gestisce &&
+                      evento.quoteCasse.map((q) => (
+                        <span key={q.id} className="block text-[11px] text-muted">
+                          {q.cassa.nome}: squadra {fmtEuro(Number(q.importo))} · esterni{' '}
+                          {q.importoEsterni === null
+                            ? 'come la squadra'
+                            : fmtEuro(Number(q.importoEsterni))}
+                        </span>
+                      ))}
                   </>
                 }
               />
@@ -1037,19 +1092,30 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     quella che spiega perché uno si può assicurare pur non
                                     risultando ancora incassato. */}
                                 {vedeQuoteAltrui &&
-                                  quotePerUtente.has(r.userId) &&
+                                  quoteDi(r.userId).length > 0 &&
                                   (() => {
-                                    const q = quotePerUtente.get(r.userId)!;
-                                    if (q.status === 'PAGATO') {
-                                      return <Badge tono="ok">quota saldata</Badge>;
+                                    // tutte le sue quote insieme: il club e le altre casse
+                                    const qs = quoteDi(r.userId);
+                                    const aperte = qs.filter((q) => !quotaChiusa(q.status));
+                                    if (aperte.length === 0) {
+                                      return qs.every((q) => q.status === 'NON_GESTITO') ? (
+                                        <Badge tono="neutro">gestita fuori</Badge>
+                                      ) : (
+                                        <Badge tono="ok">
+                                          {qs.length > 1 ? 'quote saldate' : 'quota saldata'}
+                                        </Badge>
+                                      );
                                     }
-                                    if (q.status === 'NON_GESTITO') {
-                                      return <Badge tono="neutro">gestita fuori</Badge>;
-                                    }
-                                    if (q.dichiaratoIl) {
+                                    if (aperte.every((q) => q.dichiaratoIl)) {
                                       return <Badge tono="info">pagamento dichiarato</Badge>;
                                     }
-                                    return <Badge tono="warn">quota da saldare</Badge>;
+                                    return (
+                                      <Badge tono="warn">
+                                        {aperte.length > 1
+                                          ? `${aperte.length} quote da saldare`
+                                          : 'quota da saldare'}
+                                      </Badge>
+                                    );
                                   })()}
 
                                 {/* Copertura: chi non ha l'annuale valida gioca con la
@@ -1413,6 +1479,88 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             </details>
           )}
 
+          {/* Le quote che non sono del club: il corso di Mario si paga in due,
+              il campo al club e l'istruttore a Mario. Ognuna diventa un
+              pagamento nella sua cassa, lo conferma chi la gestisce, e il
+              posto in formazione si conferma quando sono saldate tutte. */}
+          {admin && (casseAttive.length > 0 || evento.quoteCasse.length > 0) && (
+            <div className="card">
+              <p className="titolo-sezione mb-1">Quote di altre casse</p>
+              <p className="mb-3 text-[11px] text-muted">
+                Oltre a quella del club. Le deve chi deve la quota del club, si pagano a chi tiene
+                la cassa e non passano dalla segreteria.
+              </p>
+              {evento.quoteCasse.map((q) => (
+                <div
+                  key={q.id}
+                  className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-line px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{q.cassa.nome}</p>
+                    <p className="text-[11px] text-muted">
+                      {q.descrizione} · squadra {fmtEuro(Number(q.importo))} · esterni{' '}
+                      {q.importoEsterni === null
+                        ? 'come la squadra'
+                        : fmtEuro(Number(q.importoEsterni))}
+                    </p>
+                  </div>
+                  <AzioneBottone
+                    azione={eliminaQuotaCassa}
+                    valori={{ id: q.id }}
+                    conferma={`Togliere la quota per ${q.cassa.nome}? Chi non l'ha ancora pagata non la dovrà più.`}
+                    className="shrink-0 text-xs text-danger"
+                  >
+                    togli
+                  </AzioneBottone>
+                </div>
+              ))}
+              {casseAttive.length > 0 && (
+                <FormAzione azione={salvaQuotaCassa} className="mt-3 space-y-2">
+                  <input type="hidden" name="eventId" value={evento.id} />
+                  <Campo label="Cassa">
+                    <select name="cassaId" className="input" defaultValue="" required>
+                      <option value="">— scegli la cassa —</option>
+                      {casseAttive.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                  <Campo label="A cosa serve">
+                    <input name="descrizione" className="input" placeholder="Istruttore" required />
+                  </Campo>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Campo label="Squadra €">
+                      <input
+                        name="importo"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="input"
+                        required
+                      />
+                    </Campo>
+                    <Campo label="Esterni €">
+                      <input
+                        name="importoEsterni"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="input"
+                        placeholder="come squadra"
+                      />
+                    </Campo>
+                  </div>
+                  <p className="text-[11px] text-muted">
+                    Una cassa ha una quota sola per attività: salvarla di nuovo la corregge.
+                  </p>
+                  <Invia className="btn-ghost btn-sm w-full">Salva la quota</Invia>
+                </FormAzione>
+              )}
+            </div>
+          )}
+
           {/* A giornata conclusa la propria adesione non c'è più: non si risponde
               a un invito per una domenica passata. Quello che ne resta — c'eri
               o non c'eri — è scritto sulla riga dei partecipanti, ed è un fatto,
@@ -1486,20 +1634,36 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     </div>
                   )}
 
-                {mioCosto > 0 && mio?.status === 'PRESENTE' && (
+                {mioTotale > 0 && mio?.status === 'PRESENTE' && (
                   <div
                     className={`mt-3 rounded-md border px-3 py-2 text-xs ${
-                      (miaQuota?.status === 'PAGATO' || miaQuota?.status === 'NON_GESTITO')
+                      mieSaldate
                         ? 'border-nvg/40 bg-nvg/10 text-nvg'
                         : 'border-warn/40 bg-warn/10 text-warn'
                     }`}
                   >
-                    {(miaQuota?.status === 'PAGATO' || miaQuota?.status === 'NON_GESTITO') ? (
-                      <>Quota di {fmtEuro(mioCosto)} saldata: il posto è confermato.</>
+                    {mieSaldate ? (
+                      <>
+                        {mieQuote.length > 1
+                          ? 'Quote saldate'
+                          : `Quota di ${fmtEuro(mioTotale)} saldata`}
+                        : il posto è confermato.
+                      </>
                     ) : (
                       <>
                         {schieraQuesta ? 'La disponibilità vale' : 'Il posto è confermato'} al saldo
-                        della quota di {fmtEuro(mioCosto)}.{' '}
+                        {mieAltreVoci.length > 0 ? ' di tutte le quote' : ' della quota'} (
+                        {fmtEuro(mioTotale)}).{' '}
+                        {/* le altre casse non passano dalla segreteria: si pagano
+                            a chi le tiene, e conviene dirlo qui */}
+                        {mieQuote
+                          .filter((q) => q.cassaId && !quotaChiusa(q.status))
+                          .map((q) => (
+                            <span key={q.id} className="block">
+                              {fmtEuro(Number(q.importo) - Number(q.pagato))} da pagare a{' '}
+                              {q.cassa?.nome}.
+                            </span>
+                          ))}
                         <Link href="/pagamenti" className="underline underline-offset-2">
                           Vai ai pagamenti
                         </Link>

@@ -7,6 +7,7 @@ import { stagioneAttiva } from '@/lib/stagioni';
 import { componiQuota, quotaPer } from '@/lib/quote';
 import { giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
+import { quoteTutteSaldate } from '@/lib/casse';
 import {
   MOTIVO_NON_IDONEO,
   conFormazione,
@@ -387,58 +388,94 @@ const deveLaQuota = (
 async function allineaQuota(eventId: string, userId: string): Promise<number | null> {
   const evento = await prisma.event.findUnique({
     where: { id: eventId },
-    include: { tipo: { select: { riserve: true, tipoQuota: true } } },
+    include: {
+      tipo: { select: { riserve: true, tipoQuota: true } },
+      quoteCasse: { include: { cassa: { select: { attiva: true } } } },
+    },
   });
   if (!evento) return null;
 
-  const [rsvp, chi, esistente] = await Promise.all([
+  const [rsvp, chi, esistenti] = await Promise.all([
     prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId } } }),
     prisma.user.findUnique({ where: { id: userId }, select: { stato: true } }),
     // i rimborsi sono movimenti a sé e non si toccano
-    // la quota del club: quelle delle altre casse non le tocca questo giro
-    prisma.payment.findFirst({ where: { eventId, userId, cassaId: null, tipo: { not: 'RIMBORSO' } } }),
+    prisma.payment.findMany({ where: { eventId, userId, tipo: { not: 'RIMBORSO' } } }),
   ]);
 
-  const { importo: costo, dettaglio } = quotaPer(evento, chi?.stato);
-  const deve = costo > 0 && deveLaQuota(rsvp, conFormazione(evento));
+  const dovuta = deveLaQuota(rsvp, conFormazione(evento));
 
-  if (deve) {
-    if (!esistente) {
+  // Una quota per cassa: quella del club, e una per ogni altra cassa che
+  // l'attività prevede — il campo al club, l'istruttore a Mario. Le deve la
+  // stessa persona, con la stessa regola; ognuna è un pagamento a sé, nella
+  // sua cassa, e la conferma chi la gestisce.
+  const club = quotaPer(evento, chi?.stato);
+  const voci = [
+    {
+      cassaId: null as string | null,
+      importo: club.importo,
       // una quota sola, anche quando è fatta di più voci: si paga in una volta
       // e il dettaglio racconta di cosa è composta
-      await prisma.payment.create({
-        data: {
-          userId,
-          tipo: (evento.tipo?.tipoQuota ?? 'EVENTO') as 'EVENTO',
-          descrizione: evento.titolo,
-          note: dettaglio,
-          importo: costo,
-          status: 'DA_PAGARE',
-          scadenza: evento.inizio,
-          eventId: evento.id,
-        },
-      });
-    } else if (
-      Number(esistente.pagato) === 0 &&
-      Number(esistente.importo) !== costo &&
-      // una quota gestita fuori è chiusa: il suo importo non si ricalcola
-      esistente.status !== 'NON_GESTITO'
-    ) {
-      // il costo è cambiato dopo: finché non è entrato un euro la quota si
-      // adegua, altrimenti resterebbe ferma a una cifra che non esiste più
-      await prisma.payment.update({
-        where: { id: esistente.id },
-        data: { importo: costo, note: dettaglio, descrizione: evento.titolo },
-      });
+      note: club.dettaglio,
+      descrizione: evento.titolo,
+      apribile: true,
+    },
+    ...evento.quoteCasse.map((q) => ({
+      cassaId: q.cassaId as string | null,
+      importo: quotaPer({ costo: q.importo, costoEsterni: q.importoEsterni }, chi?.stato).importo,
+      note: null,
+      descrizione: `${evento.titolo} · ${q.descrizione}`,
+      // una cassa spenta non riceve quote nuove: quelle che ci sono restano
+      apribile: q.cassa.attiva,
+    })),
+  ];
+
+  let totale = 0;
+  for (const v of voci) {
+    const esistente = esistenti.find((p) => p.cassaId === v.cassaId) ?? null;
+
+    if (dovuta && v.importo > 0) {
+      if (!esistente) {
+        if (!v.apribile) continue;
+        await prisma.payment.create({
+          data: {
+            userId,
+            tipo: (evento.tipo?.tipoQuota ?? 'EVENTO') as 'EVENTO',
+            descrizione: v.descrizione,
+            note: v.note,
+            importo: v.importo,
+            status: 'DA_PAGARE',
+            scadenza: evento.inizio,
+            eventId: evento.id,
+            cassaId: v.cassaId,
+          },
+        });
+      } else if (
+        Number(esistente.pagato) === 0 &&
+        Number(esistente.importo) !== v.importo &&
+        // una quota gestita fuori è chiusa: il suo importo non si ricalcola
+        esistente.status !== 'NON_GESTITO'
+      ) {
+        // il costo è cambiato dopo: finché non è entrato un euro la quota si
+        // adegua, altrimenti resterebbe ferma a una cifra che non esiste più
+        await prisma.payment.update({
+          where: { id: esistente.id },
+          data: { importo: v.importo, note: v.note, descrizione: v.descrizione },
+        });
+      }
+      totale += v.importo;
+      continue;
     }
-    return costo;
+
+    // non la deve: la quota sparisce, ma solo se non è stato incassato nulla
+    if (esistente && Number(esistente.pagato) === 0) {
+      await prisma.payment.delete({ where: { id: esistente.id } });
+    }
   }
 
-  // non la deve: la quota sparisce, ma solo se non è stato incassato nulla
-  if (esistente && Number(esistente.pagato) === 0) {
-    await prisma.payment.delete({ where: { id: esistente.id } });
-  }
-  return null;
+  // I pagamenti di una cassa che l'attività non prevede non si toccano qui:
+  // può averli registrati a mano la segreteria. Quando una quota viene tolta
+  // dall'attività li ripulisce chi la toglie.
+  return totale > 0 ? totale : null;
 }
 
 /** Ricalcola le quote di tutti: serve quando cambia il costo dell'attività. */
@@ -448,6 +485,97 @@ async function allineaQuoteEvento(eventId: string) {
     select: { userId: true },
   });
   for (const r of rsvps) await allineaQuota(eventId, r.userId);
+}
+
+function aggiornaQuote(eventId: string) {
+  aggiorna(eventId);
+  revalidatePath('/pagamenti');
+  revalidatePath('/admin/pagamenti');
+  revalidatePath('/cassa');
+}
+
+/**
+ * Aggiunge (o corregge) la quota che un'attività chiede per un'altra cassa.
+ *
+ * Il corso di Mario: il campo si paga al club con la quota di sempre,
+ * l'istruttore a Mario con questa. Chi deve la quota del club la trova fra i
+ * suoi pagamenti come un pagamento a parte, «da pagare a» quella cassa. Una
+ * cassa per attività ha una quota sola: salvarne un'altra la corregge.
+ */
+export async function salvaQuotaCassa(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Le quote di un’attività le decide l’admin.' };
+
+  const eventId = str(fd, 'eventId');
+  const cassaId = str(fd, 'cassaId');
+  const descrizione = str(fd, 'descrizione');
+  const importo = num(fd, 'importo');
+  const importoEsterni = num(fd, 'importoEsterni');
+
+  if (!cassaId) return { errore: 'Scegli la cassa a cui va questa quota.' };
+  if (!descrizione) return { errore: 'Scrivi a cosa serve, es. «Istruttore».' };
+  if (importo === null || importo <= 0) return { errore: 'Importo non valido.' };
+  if (importoEsterni !== null && importoEsterni < 0) {
+    return { errore: 'L’importo degli esterni non può essere negativo.' };
+  }
+
+  const cassa = await prisma.cassa.findUnique({
+    where: { id: cassaId },
+    select: { nome: true, attiva: true },
+  });
+  if (!cassa?.attiva) return { errore: 'Quella cassa non c’è più o è spenta.' };
+
+  const valori = { descrizione, importo, importoEsterni };
+  await prisma.quotaCassa.upsert({
+    where: { eventId_cassaId: { eventId, cassaId } },
+    create: { eventId, cassaId, ...valori },
+    update: valori,
+  });
+  await allineaQuoteEvento(eventId);
+
+  aggiornaQuote(eventId);
+  return { ok: `Quota per ${cassa.nome} salvata: chi la deve la trova fra i suoi pagamenti.` };
+}
+
+/**
+ * Toglie la quota di un'altra cassa da un'attività.
+ *
+ * Chi non l'aveva ancora pagata non la deve più; quello che è già entrato
+ * resta dov'è — se e come restituirlo lo decide chi tiene quella cassa. Chi
+ * era convocato solo perché mancava questa quota diventa titolare.
+ */
+export async function eliminaQuotaCassa(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Le quote di un’attività le decide l’admin.' };
+
+  const quota = await prisma.quotaCassa.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { cassa: { select: { nome: true } } },
+  });
+  if (!quota) return { errore: 'Quota non trovata.' };
+
+  await prisma.quotaCassa.delete({ where: { id: quota.id } });
+  await prisma.payment.deleteMany({
+    where: {
+      eventId: quota.eventId,
+      cassaId: quota.cassaId,
+      tipo: { not: 'RIMBORSO' },
+      pagato: 0,
+    },
+  });
+
+  const convocati = await prisma.eventRsvp.findMany({
+    where: { eventId: quota.eventId, assegnazione: 'CONVOCATO' },
+    select: { id: true, userId: true },
+  });
+  for (const c of convocati) {
+    if (await quoteTutteSaldate(quota.eventId, c.userId)) {
+      await prisma.eventRsvp.update({ where: { id: c.id }, data: { assegnazione: 'TITOLARE' } });
+    }
+  }
+
+  aggiornaQuote(quota.eventId);
+  return { ok: `Quota per ${quota.cassa.nome} tolta.` };
 }
 /** Schieramento: il TL decide chi è titolare e chi riserva. */
 export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
@@ -496,12 +624,10 @@ export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm
   // è chiusa finché i soldi non entrano. Su un'attività gratuita, o per chi ha
   // già pagato, si è titolari subito e questo passaggio non si vede nemmeno.
   let finale: string = assegnazione;
+  // Con più quote — il club e il corso di Mario — titolare si diventa quando
+  // sono chiuse tutte.
   if (assegnazione === 'TITOLARE' && quota !== null) {
-    const pagamento = await prisma.payment.findFirst({
-      where: { eventId: attuale.eventId, userId: attuale.userId, tipo: { not: 'RIMBORSO' } },
-      select: { status: true },
-    });
-    if (pagamento && pagamento.status !== 'PAGATO' && pagamento.status !== 'NON_GESTITO') {
+    if (!(await quoteTutteSaldate(attuale.eventId, attuale.userId))) {
       await prisma.eventRsvp.update({
         where: { id: rsvpId },
         data: { assegnazione: 'CONVOCATO' },
@@ -516,7 +642,7 @@ export async function schiera(_prev: StatoForm, fd: FormData): Promise<StatoForm
 
   if (finale === 'CONVOCATO') {
     return {
-      ok: `Convocato: il posto è suo, e diventa titolare quando la quota di ${quota} € risulta saldata.`,
+      ok: `Convocato: il posto è suo, e diventa titolare quando risulta saldato tutto (${quota} €).`,
     };
   }
   return { ok: quota !== null ? `Schierato titolare (quota ${quota} € già saldata).` : 'Schieramento aggiornato.' };
@@ -548,13 +674,13 @@ export async function scambiaTitolare(_prev: StatoForm, fd: FormData): Promise<S
   if (!esce || !entra) return { errore: 'Adesione non trovata.' };
   if (esce.eventId !== entra.eventId) return { errore: 'Sono di due attività diverse.' };
 
-  const pagamentoUscente = await prisma.payment.findFirst({
+  // Il posto è pagato se chi esce ha chiuso **tutte** le sue quote — il club e
+  // le altre casse; gestita fuori vale come pagata. Chi non ne aveva nessuna
+  // non ha pagato niente: lì non c'è un posto saldato da passare.
+  const uscente = await prisma.payment.count({
     where: { eventId: esce.eventId, userId: esce.userId, tipo: { not: 'RIMBORSO' } },
-    select: { status: true },
   });
-  // gestita fuori vale come pagata: i soldi per quel posto sono già stati dati
-  const postoGiaPagato =
-    pagamentoUscente?.status === 'PAGATO' || pagamentoUscente?.status === 'NON_GESTITO';
+  const postoGiaPagato = uscente > 0 && (await quoteTutteSaldate(esce.eventId, esce.userId));
 
   await prisma.$transaction([
     prisma.eventRsvp.update({

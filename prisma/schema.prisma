@@ -651,6 +651,8 @@ model Event {
   commenti    CommentoEvento[]
   miPiace     MiPiaceEvento[]
   debriefing  Debriefing?
+  /// Le quote che vanno ad altre casse, oltre a quella del club.
+  quoteCasse  QuotaCassa[]
 
   @@index([inizio])
 }
@@ -805,9 +807,34 @@ model Cassa {
 
   /// Chi la gestisce. Una lista e non una persona sola: oggi Mario, domani
   /// anche chi gli dà una mano — o l'admin, se un giorno servirà.
-  gestori  User[]            @relation("GestoriCassa")
-  metodi   MetodoPagamento[]
-  payments Payment[]
+  gestori       User[]            @relation("GestoriCassa")
+  metodi        MetodoPagamento[]
+  payments      Payment[]
+  quoteAttivita QuotaCassa[]
+}
+
+/// Una quota di un'attività che non va al club.
+///
+/// Il corso di Mario si paga in due: il campo al club, l'istruttore a Mario.
+/// La quota del club resta dov'è sempre stata — `costo` e `costoEsterni`
+/// sull'attività — e ogni altra cassa ne ha una sua qui, al massimo una per
+/// attività. Chi deve la quota del club deve anche queste, e ognuna diventa un
+/// pagamento a sé nella sua cassa: lo conferma chi la gestisce, con i suoi
+/// metodi. Il posto in formazione si conferma quando sono saldate tutte.
+model QuotaCassa {
+  id             String   @id @default(cuid())
+  eventId        String
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  cassaId        String
+  cassa          Cassa    @relation(fields: [cassaId], references: [id], onDelete: Cascade)
+  /// A cosa serve, come si legge fra i pagamenti: «Istruttore».
+  descrizione    String
+  importo        Decimal  @db.Decimal(10, 2)
+  /// Per chi non è in squadra. Nulla = come la squadra, come per il club.
+  importoEsterni Decimal? @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+
+  @@unique([eventId, cassaId])
 }
 
 enum TipoMovimento {

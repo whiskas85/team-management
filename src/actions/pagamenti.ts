@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
-import { puoGestireCassa } from '@/lib/casse';
+import { puoGestireCassa, quoteTutteSaldate } from '@/lib/casse';
 import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 const TIPI = [
@@ -192,8 +192,14 @@ export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<Stato
   // convocato diventa titolare da solo. Senza questo passaggio la segreteria
   // incasserebbe e il TL dovrebbe ricordarsi di andare a promuoverlo a mano,
   // cioè prima o poi non lo farebbe.
+  // Con più quote — il club e il corso di Mario — si passa quando sono chiuse
+  // tutte: pagare il campo e non l'istruttore non basta.
   let promosso = false;
-  if (status === 'PAGATO' && pagamento.eventId) {
+  if (
+    status === 'PAGATO' &&
+    pagamento.eventId &&
+    (await quoteTutteSaldate(pagamento.eventId, pagamento.userId))
+  ) {
     const passati = await prisma.eventRsvp.updateMany({
       where: {
         eventId: pagamento.eventId,
@@ -382,12 +388,15 @@ export async function segnaNonGestito(_prev: StatoForm, fd: FormData): Promise<S
     },
   });
 
-  // come a quota pagata: chi era convocato diventa titolare
+  // come a quota pagata: chi era convocato diventa titolare, se non gli resta
+  // un'altra quota aperta
   if (pagamento.eventId) {
-    await prisma.eventRsvp.updateMany({
-      where: { eventId: pagamento.eventId, userId: pagamento.userId, assegnazione: 'CONVOCATO' },
-      data: { assegnazione: 'TITOLARE' },
-    });
+    if (await quoteTutteSaldate(pagamento.eventId, pagamento.userId)) {
+      await prisma.eventRsvp.updateMany({
+        where: { eventId: pagamento.eventId, userId: pagamento.userId, assegnazione: 'CONVOCATO' },
+        data: { assegnazione: 'TITOLARE' },
+      });
+    }
     revalidatePath(`/calendario/${pagamento.eventId}`);
   }
 
