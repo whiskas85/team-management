@@ -3,6 +3,7 @@ import { Campo } from './ui';
 import { inputDateTime } from '@/lib/format';
 import { QuoteEvento } from './QuoteEvento';
 import { CercaLuogo } from './CercaLuogo';
+import { InizioFine } from './InizioFine';
 import type { VoceListino } from './CampiRichiesta';
 
 type CampoGioco = { id: string; nome: string; citta: string | null; attivo?: boolean };
@@ -290,24 +291,10 @@ export function FormEvento({
             </Campo>
           )}
 
-          <Campo label="Inizio *">
-            <input
-              type="datetime-local"
-              name="inizio"
-              required
-              defaultValue={inputDateTime(evento?.inizio) || (inizioPredefinito ?? '')}
-              className="input"
-            />
-          </Campo>
-
-          <Campo label="Fine">
-            <input
-              type="datetime-local"
-              name="fine"
-              defaultValue={inputDateTime(evento?.fine)}
-              className="input"
-            />
-          </Campo>
+          <InizioFine
+            inizio={inputDateTime(evento?.inizio) || (inizioPredefinito ?? '')}
+            fine={inputDateTime(evento?.fine)}
+          />
 
           {/* La stagione: di solito quella in corso, ma la gara di settembre
               si organizza a giugno e appartiene all'anno dopo. Da qui dipendono

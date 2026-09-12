@@ -1,5 +1,6 @@
 import { Campo } from './ui';
 import { CercaLuogo } from './CercaLuogo';
+import { InizioFine } from './InizioFine';
 
 type Tipologia = { id: string; nome: string };
 
@@ -47,19 +48,7 @@ export function FormRiunione({
         )}
         {tipologie.length === 1 && <input type="hidden" name="tipoId" value={tipologie[0].id} />}
 
-        <Campo label="Quando *">
-          <input
-            type="datetime-local"
-            name="inizio"
-            required
-            defaultValue={inizioPredefinito}
-            className="input"
-          />
-        </Campo>
-
-        <Campo label="Fine">
-          <input type="datetime-local" name="fine" className="input" />
-        </Campo>
+        <InizioFine inizio={inizioPredefinito} etichettaInizio="Quando *" />
 
         <Campo label="Collegamento da remoto" span>
           <input

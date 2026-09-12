@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.29.0 — 12 settembre 2026
+
+### Cambiato
+
+- **Inizio e fine di un'attività si scrivono in metà tempo.** Toccando
+  l'inizio vuoto si riempie con oggi: si scrivono sopra giorno e mese e l'anno
+  è già quello in corso, invece di ripartire da gg/mm/aaaa. Appena l'inizio è
+  scritto la fine va sullo stesso giorno (alle 18, o a fine giornata se si
+  comincia dopo), e si corregge solo l'ora. Se la fine era già su un altro
+  giorno — la 24 ore dal venerdì alla domenica — spostando l'inizio si sposta
+  anche lei degli stessi giorni, e l'attività non si accorcia di nascosto.
+  Vale anche per le riunioni.
+
 ## 2.28.0 — 12 settembre 2026
 
 ### Tolto
