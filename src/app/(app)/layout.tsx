@@ -433,7 +433,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/stagioni', label: 'Stagioni', icona: 'calendario', gruppo: 'comando' },
       { href: '/admin/tariffe', label: 'Tariffario', icona: 'pagamenti', gruppo: 'comando' },
       { href: '/admin/tipologie', label: 'Tipologie attività', icona: 'bozza', gruppo: 'comando' },
-      { href: '/admin/tipi-gara', label: 'Tipi di gara', icona: 'titolare', gruppo: 'comando' },
       { href: '/admin/metodi', label: 'Metodi di pagamento', icona: 'incassa', gruppo: 'comando' },
       { href: '/admin/statistiche', label: 'Statistiche', icona: 'grafici', gruppo: 'comando' },
       { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },

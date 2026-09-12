@@ -535,31 +535,6 @@ model TipoAttivita {
   @@index([attivo, ordine])
 }
 
-/// Che gara è: 24 ore, scenario, speedsoft, torneo a squadre.
-///
-/// È un'anagrafica a parte dalla tipologia di attività, e non un doppione: la
-/// tipologia dice **come il gestionale tratta** quella giornata — se schiera
-/// titolari, se chiede il certificato, in che categoria finisce la quota. Il
-/// tipo di gara dice **che gara è**, che riguarda chi gioca e non il
-/// gestionale: due 24 ore possono avere la stessa tipologia e non somigliarsi
-/// per niente.
-///
-/// Sta in tabella e non in un elenco scritto nel codice perché i formati li
-/// inventano gli organizzatori, non noi: ne esce uno nuovo ogni stagione, e
-/// aggiungerlo non deve voler dire fare un rilascio.
-model TipoGara {
-  id          String   @id @default(cuid())
-  nome        String   @unique
-  descrizione String?
-  ordine      Int      @default(0)
-  attivo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  eventi Event[]
-
-  @@index([attivo, ordine])
-}
-
 /// Modalità con cui si incassa una quota, gestite nei dati di base.
 model MetodoPagamento {
   id          String   @id @default(cuid())
@@ -598,10 +573,6 @@ model Event {
   tipo                  TipoAttivita?    @relation(fields: [tipoId], references: [id])
   stagioneId            String?
   stagione              Stagione?        @relation(fields: [stagioneId], references: [id])
-  /// Che gara è, dall'anagrafica dei tipi di gara. Vuoto su tutto ciò che una
-  /// gara non è: un allenamento, una riunione, una cena.
-  tipoGaraId            String?
-  tipoGara              TipoGara?        @relation(fields: [tipoGaraId], references: [id], onDelete: SetNull)
   /// La durata dichiarata dall'organizzatore, in ore: la **24h** del volantino.
   ///
   /// **Non si confronta con inizio e fine, ed è voluto.** Una 24 ore si gioca

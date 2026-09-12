@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.28.0 — 12 settembre 2026
+
+### Tolto
+
+- **Il tipo di gara non c'è più**: né la tendina nel modulo dell'attività, né
+  la voce *Tipi di gara* fra i dati di base. Non governava niente, raccontava
+  soltanto che gara fosse — e quello lo dicono già titolo e descrizione.
+- **La durata dichiarata in ore resta**, nel modulo come prima. Nella scheda
+  dell'attività si legge come «Durata gara», accanto alle date: è lì che uno
+  si chiede perché una 24 ore tenga occupato un fine settimana intero.
+
 ## 2.27.0 — 12 settembre 2026
 
 ### Cambiato

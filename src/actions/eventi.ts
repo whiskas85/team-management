@@ -142,7 +142,6 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     ...logistica,
     descrizione: strOpt(fd, 'descrizione'),
     tipoId: strOpt(fd, 'tipoId'),
-    tipoGaraId: strOpt(fd, 'tipoGaraId'),
     // La durata dichiarata si scrive e basta: **non si confronta con inizio e
     // fine**. Una 24 ore si gioca dentro un fine settimana che parte il
     // venerdì, perché quello spazio va tenuto occupato tutto — si viaggia, si

@@ -87,7 +87,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     where: { id },
     include: {
       tipo: true,
-      tipoGara: { select: { nome: true } },
       field: { include: { squadra: { select: { nome: true } } } },
       createdBy: { select: { nome: true, cognome: true } },
       rsvps: {
@@ -344,7 +343,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           ? 'border-danger/50 bg-danger/15 text-danger'
           : 'border-line bg-surface2 text-muted';
 
-  const [campi, tipologie, tipiGara, operatoriGrezzi, listino, stagioni] = tl
+  const [campi, tipologie, operatoriGrezzi, listino, stagioni] = tl
     ? await Promise.all([
         // teniamo anche la voce già collegata, se nel frattempo è stata
         // archiviata: modificando l'attività non deve sparire
@@ -357,15 +356,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         admin
           ? prisma.tipoAttivita.findMany({
               where: { OR: [{ attivo: true }, { id: evento.tipoId ?? '' }] },
-              orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-              select: { id: true, nome: true, attivo: true },
-            })
-          : Promise.resolve([]),
-        // anche il tipo già scelto, se nel frattempo è stato disattivato:
-        // modificando l'attività non deve sparire da sotto le dita
-        admin
-          ? prisma.tipoGara.findMany({
-              where: { OR: [{ attivo: true }, { id: evento.tipoGaraId ?? '' }] },
               orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
               select: { id: true, nome: true, attivo: true },
             })
@@ -615,7 +605,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   <FormEvento giorni={giorniEvento.length}
                     campi={campi}
                     tipologie={tipologie}
-                    tipiGara={tipiGara}
                     listino={listino}
                     stagioneId={evento.stagioneId}
                     stagioni={stagioni}
@@ -779,22 +768,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Dato etichetta="Inizio" valore={fmtDateTime(evento.inizio)} />
               <Dato etichetta="Fine" valore={evento.fine ? fmtDateTime(evento.fine) : '—'} />
-              {/* Che gara è e quanto dura sul volantino. La durata sta accanto
-                  alle date apposta: è lì che uno si chiede perché una 24 ore
-                  occupi tre giorni, e la risposta deve stargli sotto gli occhi
-                  invece che venirgli il dubbio di un errore. */}
-              {(evento.tipoGara || evento.durataOre !== null) && (
+              {/* Quanto dura la gara sul volantino. Sta accanto alle date
+                  apposta: è lì che uno si chiede perché una 24 ore occupi tre
+                  giorni, e la risposta deve stargli sotto gli occhi invece che
+                  venirgli il dubbio di un errore. */}
+              {evento.durataOre !== null && (
                 <Dato
-                  etichetta="Gara"
+                  etichetta="Durata gara"
                   valore={
                     <>
-                      {evento.tipoGara?.nome ?? '—'}
-                      {evento.durataOre !== null && (
-                        <span className="block text-[11px] text-muted">
-                          durata dichiarata {evento.durataOre}h · l’attività tiene occupato tutto
-                          lo spazio fra inizio e fine
-                        </span>
-                      )}
+                      {evento.durataOre}h
+                      <span className="block text-[11px] text-muted">
+                        dichiarata · l’attività tiene occupato tutto lo spazio fra inizio e fine
+                      </span>
                     </>
                   }
                 />

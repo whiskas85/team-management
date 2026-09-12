@@ -163,28 +163,6 @@ async function importaDocumenti() {
   }
 }
 
-/**
- * I tipi di gara con cui si parte.
- *
- * Sono i formati che la squadra gioca davvero, e servono perché la tendina
- * nasca piena: un elenco vuoto al primo avvio fa sembrare rotto un campo che
- * funziona. Si aggiungono solo se **non c'è ancora niente**, così chi li
- * rinomina o ne toglie uno non se li ritrova ricomparire a ogni riavvio.
- */
-async function tipiGaraDiPartenza() {
-  if ((await prisma.tipoGara.count()) > 0) return;
-
-  await prisma.tipoGara.createMany({
-    data: [
-      { nome: 'PCR', ordine: 0 },
-      { nome: 'PLR', ordine: 1 },
-      { nome: 'MILSIM', ordine: 2 },
-      { nome: 'SMR', ordine: 3 },
-    ],
-  });
-  console.log('[seed] creati 4 tipi di gara: PCR, PLR, MILSIM, SMR');
-}
-
 async function main() {
   // L'admin di partenza serve a una cosa sola: non restare chiusi fuori da
   // un'installazione nuova. Quindi si crea quando di amministratori non ce n'è
@@ -289,7 +267,6 @@ async function main() {
   }
 
   await importaDocumenti();
-  await tipiGaraDiPartenza();
 }
 
 main()
