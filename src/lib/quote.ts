@@ -51,6 +51,7 @@ export async function listinoAttivo() {
     // di chi sono i soldi: vuota, del club
     cassaId: t.cassaId,
     cassa: t.cassa?.nome ?? null,
+    perPolizza: t.perPolizza,
   }));
 }
 
@@ -72,6 +73,8 @@ export type VoceAggiunta = {
   cassaId: string | null;
   scelta: boolean;
   perEsterni: boolean;
+  /** Paga la polizza giornaliera. */
+  perPolizza: boolean;
 };
 
 /** Le quote di un'attività come le ha lasciate il modulo, cassa per cassa. */
@@ -135,6 +138,7 @@ export async function leggiQuoteAttivita(
           cassaId: typeof v.cassaId === 'string' && casseValide.has(v.cassaId) ? v.cassaId : null,
           scelta: v.scelta !== false,
           perEsterni: lato === 'esterni',
+          perPolizza: v.perPolizza === true,
         });
       } catch {
         // una riga illeggibile si salta: non deve far perdere le altre

@@ -236,6 +236,7 @@ async function salvaQuoteCasse(eventId: string, quote: QuoteAttivita) {
       cassaId: a.cassaId,
       scelta: a.scelta,
       perEsterni: a.perEsterni,
+      perPolizza: a.perPolizza,
     };
     if (a.id && tenute.has(a.id)) {
       await prisma.voceAttivita.update({ where: { id: a.id }, data: dati });
@@ -985,6 +986,8 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
           nome: aMano === 0 ? 'Offerta' : 'Quota esterni',
           importo: aMano,
           scelta: true,
+          // è il prezzo della giocata di chi viene da fuori: paga la polizza
+          perPolizza: true,
         },
       });
     }

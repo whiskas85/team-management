@@ -1,4 +1,4 @@
-import type { Prisma, StatoAssicurazione, StatoOperatore } from '@prisma/client';
+import type { StatoAssicurazione, StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
 import { vedeAttivitaSquadra, type Tono } from './domain';
 import { iniziali, nomeCompleto } from './format';
@@ -78,21 +78,67 @@ export const quotaOnorata = (
   quota: { status: string; dichiaratoIl: Date | null } | null | undefined,
 ) => quotaSaldata(quota) || quota?.dichiaratoIl != null;
 
-/**
- * Le quote che la polizza aspetta: quella del club e quelle delle casse che
- * lo dicono.
- *
- * Un'attività può chiedere soldi a più casse — la giornata a chi tiene i
- * nuovi, l'istruttore a SAT & Gaming. Prima contava solo il club, e sul Corso
- * CQB, che al club non chiede niente, «Assicura» si accendeva senza che
- * nessuno avesse pagato. Adesso ogni cassa dice se conta: di serie sì, e chi
- * non c'entra con la giornata si spegne dalla sua scheda. I rimborsi sono
- * movimenti a sé e non dicono niente su cosa è dovuto.
- */
-export const QUOTE_PER_POLIZZA: Prisma.PaymentWhereInput = {
-  tipo: { not: 'RIMBORSO' },
-  OR: [{ cassaId: null }, { cassa: { perPolizza: true } }],
+/** Com'è composta la quota di un'attività, quanto serve a sapere cosa paga la polizza. */
+export type ComposizionePolizza = {
+  costoEsterni: unknown;
+  vociSquadra: string[];
+  vociEsterni: string[];
+  quoteCasse: { cassaId: string; importoEsterni: unknown }[];
+  vociAttivita: {
+    cassaId: string | null;
+    perEsterni: boolean;
+    scelta: boolean;
+    perPolizza: boolean;
+  }[];
 };
+
+/** Una voce del tariffario, per quello che conta alla polizza. */
+export type TariffaPolizza = { id: string; cassaId: string | null; perPolizza: boolean };
+
+/** Le voci del tariffario che un'attività usa, lette per la polizza. */
+export async function tariffePolizza(ids: string[]): Promise<TariffaPolizza[]> {
+  if (ids.length === 0) return [];
+  return prisma.tariffa.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, cassaId: true, perPolizza: true },
+  });
+}
+
+/**
+ * Le casse la cui quota paga la polizza di chi viene da fuori.
+ *
+ * Lo dice la voce, non la cassa: nel tariffario ogni voce ha «paga la polizza
+ * giornaliera», e così le quote aggiunte con il +. Una cassa conta quando la
+ * quota che chiede a un esterno contiene una di quelle voci — sul Corso CQB la
+ * giornata a chi tiene i nuovi sì, l'istruttore a SAT & Gaming no. Chi viene
+ * da fuori paga le voci della card esterni; dove per quella cassa la card è
+ * vuota paga come la squadra, e allora contano le voci della squadra. Il club
+ * è la chiave vuota.
+ */
+export function cassePerPolizza(e: ComposizionePolizza, tariffe: TariffaPolizza[]): Set<string> {
+  const chiavi = new Set<string>();
+  for (const cassaId of [null, ...e.quoteCasse.map((q) => q.cassaId)]) {
+    const comeSquadra =
+      cassaId === null
+        ? e.costoEsterni == null
+        : e.quoteCasse.find((q) => q.cassaId === cassaId)?.importoEsterni == null;
+    const ids = comeSquadra ? e.vociSquadra : e.vociEsterni;
+    const dalListino = tariffe.some(
+      (t) => t.perPolizza && t.cassaId === cassaId && ids.includes(t.id),
+    );
+    const aggiunte = e.vociAttivita.some(
+      (v) => v.perPolizza && v.scelta && v.cassaId === cassaId && v.perEsterni === !comeSquadra,
+    );
+    if (dalListino || aggiunte) chiavi.add(cassaId ?? '');
+  }
+  return chiavi;
+}
+
+/** Delle quote di una persona, quelle che pagano la polizza. */
+export const quotePerPolizza = <T extends { cassaId: string | null }>(
+  quote: T[],
+  casse: Set<string>,
+) => quote.filter((q) => casse.has(q.cassaId ?? ''));
 
 /** Tutte le quote che la polizza aspetta sono pagate o dichiarate. */
 export const quoteOnorate = (
@@ -181,10 +227,15 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       field: { select: { nome: true } },
       giornaliere: { select: { userId: true, giorno: true, stato: true, codice: true } },
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
-      // le quote che la polizza aspetta: il club e le casse che contano
+      // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
       payments: {
-        where: QUOTE_PER_POLIZZA,
-        select: { userId: true, status: true, dichiaratoIl: true },
+        where: { tipo: { not: 'RIMBORSO' } },
+        select: { userId: true, status: true, dichiaratoIl: true, cassaId: true },
+      },
+      // com'è composta la quota: serve a sapere quale paga la polizza
+      quoteCasse: { select: { cassaId: true, importoEsterni: true } },
+      vociAttivita: {
+        select: { cassaId: true, perEsterni: true, scelta: true, perPolizza: true },
       },
       rsvps: {
         where: { status: { not: 'ASSENTE' } },
@@ -207,6 +258,11 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     },
   });
 
+  // le voci del tariffario usate da queste attività, lette una volta sola
+  const tariffe = await tariffePolizza([
+    ...new Set(eventi.flatMap((e) => [...e.vociSquadra, ...e.vociEsterni])),
+  ]);
+
   return eventi.map((e) => {
     // una copertura per persona e per giorno
     const coperture = new Map(
@@ -214,14 +270,18 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     );
     // i giorni già passati non si coprono più: il portale non torna indietro
     const giorni = giorniDi(e.inizio, e.fine).filter((g) => g >= chiaveGiorno(oggi));
-    // più quote per persona: il club e le casse che la polizza aspetta
+    // più quote per persona, e fra queste quelle che pagano la polizza
     const quote = new Map<string, (typeof e.payments)[number][]>();
     for (const p of e.payments) quote.set(p.userId, [...(quote.get(p.userId) ?? []), p]);
+    const casse = cassePerPolizza(e, tariffe);
 
     const nuovi = e.rsvps
       .filter((r) => !vedeAttivitaSquadra(r.user.stato))
       .map((r) => {
+        // tutte le sue quote dicono se ha pagato; quelle con le voci che
+        // pagano la polizza dicono se lo si può assicurare
         const sue = quote.get(r.userId) ?? [];
+        const perPolizza = quotePerPolizza(sue, casse);
         return {
           id: r.userId,
           nome: nomeCompleto(r.user),
@@ -243,7 +303,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
           // dire che i soldi sono entrati — sono due cose diverse e si leggono
           // diverse
           dichiarata: sue.some((q) => q.dichiaratoIl != null && !quotaSaldata(q)),
-          copribile: quoteOnorate(sue),
+          copribile: quoteOnorate(perPolizza),
           haQuota: sue.length > 0,
           datiCompleti: r.user.dataNascita !== null && r.user.luogoNascita !== null,
         } satisfies NuovoDaCoprire;

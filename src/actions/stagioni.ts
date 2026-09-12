@@ -233,6 +233,8 @@ export async function salvaTariffa(_prev: StatoForm, fd: FormData): Promise<Stat
     stagioneId,
     // solo se spuntata: le voci che c'erano valgono una volta, come sempre
     perGiorno: fd.get('perGiorno') !== null,
+    // se la quota che la contiene paga la polizza giornaliera
+    perPolizza: fd.get('perPolizza') !== null,
     cassaId,
     note: strOpt(fd, 'note'),
     attiva: true,

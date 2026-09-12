@@ -87,7 +87,6 @@ export default async function AltreCassePage() {
                   placeholder="es. Corso K9 — Mario Rossi"
                 />
               </Campo>
-              <SpuntaPolizza acceso />
               <Invia icona="salva">Crea</Invia>
             </FormAzione>
           </BottoneModale>
@@ -116,11 +115,6 @@ export default async function AltreCassePage() {
                     <h2 className="flex flex-wrap items-center gap-2 font-medium">
                       {c.nome}
                       {!c.attiva && <Badge tono="neutro">spenta</Badge>}
-                      {c.perPolizza ? (
-                        <Badge tono="info">serve per la polizza</Badge>
-                      ) : (
-                        <Badge tono="neutro">non conta per la polizza</Badge>
-                      )}
                     </h2>
                     <p className="num mt-1 text-xs text-muted">
                       {n.aperti === 0
@@ -157,7 +151,6 @@ export default async function AltreCassePage() {
                             </span>
                           </span>
                         </label>
-                        <SpuntaPolizza acceso={c.perPolizza} />
                         <Invia icona="salva">Salva</Invia>
                       </FormAzione>
                     </BottoneModale>
@@ -297,35 +290,6 @@ export default async function AltreCassePage() {
         </div>
       )}
     </>
-  );
-}
-
-/**
- * Se la quota di questa cassa va pagata prima della polizza giornaliera.
- *
- * La polizza la paga il club e non torna indietro: si assicura un nuovo quando
- * ha pagato — o almeno detto di averlo fatto — quello che l'attività gli
- * chiede. Una cassa che con la giornata non c'entra, l'istruttore di un corso,
- * si spegne qui e la polizza non la aspetta.
- */
-function SpuntaPolizza({ acceso }: { acceso: boolean }) {
-  return (
-    <label className="flex items-start gap-2 text-sm">
-      <input
-        type="checkbox"
-        name="perPolizza"
-        defaultChecked={acceso}
-        className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
-      />
-      <span>
-        Va pagata per la polizza giornaliera
-        <span className="block text-[11px] text-muted">
-          «Assicura» si accende quando chi viene da fuori ha pagato (o segnalato) anche questa
-          quota. Spegnila per una cassa che con la giornata non c’entra, come l’istruttore di un
-          corso.
-        </span>
-      </span>
-    </label>
   );
 }
 

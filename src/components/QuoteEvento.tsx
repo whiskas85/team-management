@@ -35,6 +35,8 @@ export type VoceAttivitaModulo = {
   cassaId: string | null;
   cassa: string | null;
   scelta: boolean;
+  /** Paga la polizza giornaliera. */
+  perPolizza: boolean;
 };
 
 /**
@@ -127,6 +129,15 @@ export function QuoteEvento({
   );
 }
 
+/** Il segno accanto a una voce che paga la polizza giornaliera. */
+function SegnoPolizza() {
+  return (
+    <span className="ml-1 text-sky-300" title="Paga la polizza giornaliera">
+      · polizza
+    </span>
+  );
+}
+
 let contatore = 0;
 const nuovaChiave = () => `nuova-${Date.now()}-${contatore++}`;
 
@@ -156,9 +167,12 @@ function CardQuota({
     () => new Set(iniziali.filter((id) => voci.some((v) => v.id === id))),
   );
   const [extra, setExtra] = useState<VoceAttivitaModulo[]>(aggiunte);
-  const [nuova, setNuova] = useState<{ nome: string; importo: string; cassaId: string } | null>(
-    null,
-  );
+  const [nuova, setNuova] = useState<{
+    nome: string;
+    importo: string;
+    cassaId: string;
+    perPolizza: boolean;
+  } | null>(null);
 
   const commuta = (id: string) =>
     setScelte((s) => {
@@ -186,6 +200,7 @@ function CardQuota({
         cassaId: cassa?.id ?? null,
         cassa: cassa?.nome ?? null,
         scelta: true,
+        perPolizza: nuova.perPolizza,
       },
     ]);
     setNuova(null);
@@ -280,6 +295,7 @@ function CardQuota({
                   <span className="num ml-1 opacity-80">
                     {v.importo.toFixed(2)} €{v.perGiorno ? ' /giorno' : ''}
                   </span>
+                  {v.perPolizza && <SegnoPolizza />}
                 </button>
               );
             })}
@@ -289,6 +305,7 @@ function CardQuota({
                   {e.scelta ? '✓ ' : '+ '}
                   {e.nome}
                   <span className="num ml-1 opacity-80">{e.importo.toFixed(2)} €</span>
+                  {e.perPolizza && <SegnoPolizza />}
                 </button>
                 <button
                   type="button"
@@ -319,6 +336,7 @@ function CardQuota({
             importo: e.importo,
             cassaId: e.cassaId,
             scelta: e.scelta,
+            perPolizza: e.perPolizza,
           })}
         />
       ))}
@@ -363,6 +381,16 @@ function CardQuota({
               ))}
             </select>
           )}
+          {/* come una voce del tariffario: la polizza aspetta questa quota */}
+          <label className="flex items-center gap-2 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={nuova.perPolizza}
+              onChange={(e) => setNuova({ ...nuova, perPolizza: e.target.checked })}
+              className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+            />
+            paga la polizza giornaliera
+          </label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -380,7 +408,7 @@ function CardQuota({
       ) : (
         <button
           type="button"
-          onClick={() => setNuova({ nome: '', importo: '', cassaId: '' })}
+          onClick={() => setNuova({ nome: '', importo: '', cassaId: '', perPolizza: false })}
           className="mt-3 text-xs text-nvg hover:underline"
         >
           + aggiungi una quota

@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.27.0 — 12 settembre 2026
+
+### Cambiato
+
+- **Quale quota paga la polizza giornaliera lo dice la voce del tariffario**,
+  non la cassa. Nella voce c'è «Paga la polizza giornaliera»: chi viene da
+  fuori si assicura quando ha pagato (o segnalato) la quota che la contiene.
+  Sul Corso CQB la giornata sì, l'istruttore no — anche se vanno a casse
+  diverse, e anche se una stessa cassa ne chiede tutte e due. Nel tariffario si
+  legge «paga la polizza», e nel modulo dell'attività le voci che la pagano
+  hanno «· polizza». Le quote aggiunte con il + hanno la stessa spunta.
+- **La spunta «Va pagata per la polizza» sulle casse non c'è più**: la
+  sostituisce questa. Si parte da quello che c'era: le voci «giocata esterni»
+  del tariffario pagano la polizza, e così gli importi scritti a mano sul club
+  — che la polizza aspettava da sempre — e le quote aggiunte nate da una
+  giocata esterni. Chi aggiunge un nuovo decidendo al volo il suo prezzo,
+  decide anche la quota che paga la sua polizza.
+
 ## 2.26.1 — 11 settembre 2026
 
 ### Corretto

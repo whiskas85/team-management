@@ -15,6 +15,8 @@ export type VoceListino = {
   /** La cassa a cui vanno i soldi, e come si chiama: vuota, il club. */
   cassaId?: string | null;
   cassa?: string | null;
+  /** La quota che la contiene paga la polizza giornaliera. */
+  perPolizza?: boolean;
 };
 
 /**

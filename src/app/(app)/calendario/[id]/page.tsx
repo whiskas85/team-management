@@ -62,6 +62,9 @@ import {
   etichettaGiorno,
   giorniDi,
   quotaOnorata,
+  cassePerPolizza,
+  quotePerPolizza,
+  tariffePolizza,
   serveGiornaliera,
 } from '@/lib/assicurazione';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
@@ -127,7 +130,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           tipo: true,
           userId: true,
           cassaId: true,
-          cassa: { select: { nome: true, perPolizza: true } },
+          cassa: { select: { nome: true } },
           importo: true,
           pagato: true,
           status: true,
@@ -450,6 +453,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     }))
     .filter((v) => v.importo > 0);
   const mioTotale = mioCosto + mieAltreVoci.reduce((t, v) => t + v.importo, 0);
+  // le casse la cui quota paga la polizza: lo dicono le voci del tariffario e
+  // le quote aggiunte con il +, non la cassa
+  const cassePolizza = cassePerPolizza(
+    evento,
+    await tariffePolizza([...evento.vociSquadra, ...evento.vociEsterni]),
+  );
   // dove c'è la formazione la quota la deve chi scende in campo, non chi si è
   // solo reso disponibile: serve a dirlo prima, invece di farlo scoprire dopo
   const mioTitolare = mio?.assegnazione === 'TITOLARE';
@@ -1170,10 +1179,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     // prima si incassa. Chi ha dichiarato il pagamento
                                     // passa, ci ha messo la faccia. Il motivo si scrive
                                     // una volta sola, non uguale sotto ogni giorno.
-                                    // conta il club e ogni cassa che la polizza aspetta
-                                    const copribile = quoteDi(r.userId)
-                                      .filter((q) => !q.cassa || q.cassa.perPolizza)
-                                      .every((q) => quotaOnorata(q));
+                                    // contano le quote con le voci che pagano la polizza
+                                    const copribile = quotePerPolizza(
+                                      quoteDi(r.userId),
+                                      cassePolizza,
+                                    ).every((q) => quotaOnorata(q));
                                     const daFare = giorniScoperti.some(
                                       (giorno) =>
                                         giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',

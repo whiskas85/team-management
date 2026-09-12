@@ -39,6 +39,7 @@ type Evento = {
     importo: unknown;
     cassaId: string | null;
     scelta: boolean;
+    perPolizza: boolean;
     cassa: { nome: string } | null;
   }[];
   /** Le quote delle altre casse: servono solo a sapere se ce n'è. */
@@ -149,6 +150,7 @@ export function FormEvento({
         cassaId: v.cassaId,
         cassa: v.cassa?.nome ?? null,
         scelta: v.scelta,
+        perPolizza: v.perPolizza,
       }));
 
   // Su una riunione metà del modulo non c'entra: non c'è un punto di ritrovo da

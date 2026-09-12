@@ -26,6 +26,7 @@ type RigaTariffa = {
   note: string | null;
   perGiorno: boolean;
   cassaId: string | null;
+  perPolizza: boolean;
 };
 
 export default async function TariffePage() {
@@ -122,6 +123,11 @@ export default async function TariffePage() {
                     {t.stagione ? `solo ${t.stagione.nome}` : 'vale per tutte le stagioni'}
                   </p>
                   {t.cassa && <p className="text-[11px] text-warn">va a {t.cassa.nome}</p>}
+                  {t.perPolizza && (
+                    <p className="mt-1">
+                      <Badge tono="info">paga la polizza giornaliera</Badge>
+                    </p>
+                  )}
                   {t.usi.length > 0 && (
                     <p className="mt-1 text-[11px] text-nvg">
                       auto: {t.usi.map((u) => ETICHETTA_VOCE[u]).join(', ')}
@@ -187,6 +193,11 @@ export default async function TariffePage() {
                       {/* di chi sono i soldi: il club non si scrive, è il solito */}
                       {t.cassa && (
                         <span className="mt-1 block text-[11px] text-warn">va a {t.cassa.nome}</span>
+                      )}
+                      {t.perPolizza && (
+                        <span className="mt-1 block">
+                          <Badge tono="info">paga la polizza</Badge>
+                        </span>
                       )}
                     </td>
                     <td className="num whitespace-nowrap text-right font-semibold text-nvg">
@@ -355,6 +366,26 @@ function CampiTariffa({
             Su un&rsquo;attivit&agrave; di pi&ugrave; giorni si conta una volta per ogni giorno: una
             24 ore da sabato a domenica la chiede due volte. &Egrave; per le voci che valgono un
             giorno solo, come la giornaliera. Spenta, vale una volta sola.
+          </span>
+        </span>
+      </label>
+
+      {/* Quale quota paga la polizza lo dice la voce: la giornata sì,
+          l'istruttore no. Chi viene da fuori si assicura quando ha pagato la
+          quota che la contiene. */}
+      <label className="flex items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="perPolizza"
+          defaultChecked={tariffa?.perPolizza ?? false}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span>
+          Paga la polizza giornaliera
+          <span className="block text-[11px] text-muted">
+            Chi viene da fuori si assicura quando ha pagato (o segnalato) la quota che contiene
+            questa voce: la polizza la paga il club e non torna indietro. Di solito è la giocata
+            degli esterni; l&rsquo;istruttore di un corso, no.
           </span>
         </span>
       </label>

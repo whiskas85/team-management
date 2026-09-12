@@ -38,17 +38,13 @@ export async function salvaCassa(_prev: StatoForm, fd: FormData): Promise<StatoF
   if (id) {
     await prisma.cassa.update({
       where: { id },
-      data: {
-        nome,
-        attiva: fd.get('attiva') !== null,
-        perPolizza: fd.get('perPolizza') !== null,
-      },
+      data: { nome, attiva: fd.get('attiva') !== null },
     });
     aggiorna();
     return { ok: 'Cassa aggiornata.' };
   }
 
-  await prisma.cassa.create({ data: { nome, perPolizza: fd.get('perPolizza') !== null } });
+  await prisma.cassa.create({ data: { nome } });
   aggiorna();
   return {
     ok: 'Cassa creata: adesso abilita chi la gestisce e aggiungi i suoi metodi di pagamento.',

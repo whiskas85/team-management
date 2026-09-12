@@ -13,7 +13,9 @@ import {
   giornoDaChiave,
   giorniDi,
   quotaOnorata,
-  QUOTE_PER_POLIZZA,
+  cassePerPolizza,
+  quotePerPolizza,
+  tariffePolizza,
 } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
 
@@ -42,13 +44,31 @@ function aggiorna(eventId: string) {
  * severo col rischio sbagliato.
  */
 async function quotaDaSaldare(userId: string, eventId: string) {
-  // tutte le quote che la polizza aspetta: il club e le casse che contano —
-  // sul Corso CQB il club non chiede niente, e bastava quello per assicurare
-  const quote = await prisma.payment.findMany({
-    where: { eventId, userId, ...QUOTE_PER_POLIZZA },
-    select: { status: true, dichiaratoIl: true },
+  // quale quota paga la polizza lo dicono le voci: la giornata sì,
+  // l'istruttore no — sul Corso CQB il club non chiede niente, e prima
+  // bastava quello per assicurare
+  const evento = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      costoEsterni: true,
+      vociSquadra: true,
+      vociEsterni: true,
+      quoteCasse: { select: { cassaId: true, importoEsterni: true } },
+      vociAttivita: {
+        select: { cassaId: true, perEsterni: true, scelta: true, perPolizza: true },
+      },
+    },
   });
-  return quote.find((q) => !quotaOnorata(q)) ?? null;
+  if (!evento) return null;
+  const casse = cassePerPolizza(
+    evento,
+    await tariffePolizza([...evento.vociSquadra, ...evento.vociEsterni]),
+  );
+  const quote = await prisma.payment.findMany({
+    where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
+    select: { status: true, dichiaratoIl: true, cassaId: true },
+  });
+  return quotePerPolizza(quote, casse).find((q) => !quotaOnorata(q)) ?? null;
 }
 
 /**

@@ -493,6 +493,10 @@ model Tariffa {
   /// quella cassa. Iscrizioni e tessere restano del club.
   cassaId    String?
   cassa      Cassa?        @relation(fields: [cassaId], references: [id], onDelete: Restrict)
+  /// Paga la polizza giornaliera: chi viene da fuori si assicura quando ha
+  /// pagato (o dichiarato) la quota che contiene questa voce. La polizza la
+  /// paga il club e non torna indietro; di solito è la giocata degli esterni.
+  perPolizza Boolean       @default(false)
   note       String?
   attiva     Boolean       @default(true)
   createdAt  DateTime      @default(now())
@@ -816,11 +820,6 @@ model Cassa {
   nome      String   @unique
   /// Spenta non riceve quote nuove, ma chi la gestisce continua a vedere le sue.
   attiva    Boolean  @default(true)
-  /// La sua quota va pagata (o almeno dichiarata) prima di assicurare un nuovo
-  /// con la giornaliera: la polizza la paga il club e non torna indietro. Si
-  /// spegne per una cassa che con la giornata non c'entra — l'istruttore di un
-  /// corso — e allora la polizza non la aspetta.
-  perPolizza Boolean @default(true)
   createdAt DateTime @default(now())
 
   /// Chi la gestisce. Una lista e non una persona sola: oggi Mario, domani
@@ -876,6 +875,8 @@ model VoceAttivita {
   cassa      Cassa?   @relation(fields: [cassaId], references: [id], onDelete: Restrict)
   /// Spuntata: fa parte della quota. Tolta la spunta resta lì, da riprendere.
   scelta     Boolean  @default(true)
+  /// Paga la polizza giornaliera, come una voce del tariffario che lo dice.
+  perPolizza Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   @@index([eventId])
