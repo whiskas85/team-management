@@ -575,6 +575,12 @@ Si comandano con `zd.ps1`:
 `down` non cancella mai i dati. L'unico comando che li butta via è
 `azzera-test`, che chiede conferma e tocca soltanto il test.
 
+### Su un server pubblico
+
+Per metterlo su una macchina in affitto, con un dominio e un certificato
+valido, c'è `docker-compose.prod.yml`. Il giro completo — macchina, dominio,
+`.env.prod`, trasloco dei dati — è in [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+
 ### Perché in test le polizze sono bloccate
 
 Attivare una polizza prova sul portale federale consuma una polizza vera e non

@@ -12,14 +12,9 @@ browser, non considerando sicura quella pagina, **non offrono di installare
 l'applicazione**: niente icona sulla schermata iniziale, niente avvio a schermo
 intero. Il PWA è pronto e funzionante, gli manca solo un indirizzo credibile.
 
-**Cosa serve:** un dominio qualsiasi già posseduto. Poi:
-
-1. si crea un record `A` — per esempio `gestionale.tuodominio.it` — che punta a
-   `10.147.19.76`, l'indirizzo ZeroTier. Un indirizzo privato in un DNS pubblico
-   non espone niente: chi non è nella rete non ci arriva;
-2. si ottiene un certificato Let's Encrypt con la **validazione DNS**, che non
-   richiede che il gestionale sia raggiungibile da internet;
-3. si sostituisce il certificato in `certificati/` e si riavvia il proxy.
+**Deciso il 15 settembre 2026:** il gestionale va su un server Hetzner da
+16 GB, insieme al TAK, con un dominio nuovo e il certificato di Let's Encrypt.
+Il come è in `deploy/DEPLOY.md`; **manca solo comprare macchina e dominio**.
 
 **Serve anche agli assistenti (MCP).** Un assistente che si collega da un altro
 computer parla HTTPS e, a differenza di un browser, non ha un pulsante

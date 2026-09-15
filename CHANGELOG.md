@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.29.1 — 15 settembre 2026
+
+### Corretto
+
+- **Il compose per il server pubblico adesso parte.** `docker-compose.prod.yml`
+  montava `deploy/Caddyfile`, che non era mai stato salvato: il proxy non
+  avrebbe avuto la sua configurazione. Ora c'è, e fa le stesse cose del nginx
+  di casa — tetto di 12 MB ai caricamenti, attese lunghe per le server action,
+  rimando da http a https — con un certificato Let's Encrypt vero.
+
+### Aggiunto
+
+- **`deploy/DEPLOY.md`: come si porta il gestionale su un server in affitto.**
+  La macchina (16 GB, perché accanto gira il TAK), il dominio, `.env.prod`, il
+  trasloco dei dati nell'ordine giusto e il controllo finale. Con un avviso in
+  grassetto: `SESSION_SECRET` va copiata identica, perché è la chiave delle
+  credenziali del portale federale.
+- `DOMINIO` ed `EMAIL_CERTIFICATI` nel modello `.env.example`.
+
 ## 2.29.0 — 12 settembre 2026
 
 ### Cambiato

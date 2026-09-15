@@ -1,0 +1,38 @@
+# Davanti al gestionale sulla macchina pubblica. Fa le stesse cose del nginx di
+# casa (certificati/nginx.conf.template), con un certificato vero al posto di
+# quello firmato da noi: lo chiede a Let's Encrypt, lo rinnova e manda chi
+# arriva in http sulla porta sicura, tutto da solo.
+#
+# DOMINIO ed EMAIL_CERTIFICATI arrivano da .env.prod, attraverso il compose.
+
+{
+	email {$EMAIL_CERTIFICATI}
+}
+
+{$DOMINIO} {
+	encode zstd gzip
+
+	# i certificati medici sono PDF o foto da telefono: stesso tetto di casa,
+	# altrimenti un caricamento grosso si interrompe senza spiegare perché
+	request_body {
+		max_size 12MB
+	}
+
+	# chi è arrivato una volta in HTTPS non torna più in chiaro, nemmeno
+	# scrivendo l'indirizzo a mano senza https davanti
+	header Strict-Transport-Security "max-age=31536000"
+
+	# Host, X-Forwarded-Proto e X-Forwarded-Host li passa già Caddy: è da
+	# quelli che il gestionale compone i link verso sé stesso. Il nome "app"
+	# viene risolto a ogni connessione, quindi dopo una ricostruzione non c'è
+	# il 502 che in casa costringeva al resolver esplicito.
+	reverse_proxy app:3000 {
+		header_up X-Real-IP {remote_host}
+
+		# le server action sono richieste lunghe: caricare un certificato o
+		# parlare col portale federale può prendere qualche secondo
+		transport http {
+			read_timeout 120s
+		}
+	}
+}
