@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.30.1 — 16 settembre 2026
+
+### Corretto
+
+- **Le ore scritte dal server erano indietro di due.** Il fuso `Europe/Rome`
+  era impostato da sempre nel compose, ma non ha mai fatto niente: l'immagine
+  è basata su Alpine, che i dati dei fusi orari non li ha, e senza quelli la
+  variabile `TZ` viene ignorata e il container resta a Greenwich. Così
+  un'attività delle 20:00 si leggeva **18:00** in tutte le pagine composte dal
+  server — calendario, dashboard, pagamenti — mentre quelle disegnate dal
+  browser mostravano l'ora giusta. Ora `tzdata` è dentro l'immagine, e le due
+  ore combaciano.
+- **Stessa cura per il ponte WhatsApp**: gli auguri e il promemoria del giorno
+  prima partivano sull'orario di Greenwich.
+- Il database dell'ambiente locale riceve `TZ` come già faceva quello di
+  produzione: nei log le ore sono quelle di qui.
+
 ## 2.30.0 — 16 settembre 2026
 
 ### Cambiato

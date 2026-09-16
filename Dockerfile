@@ -1,5 +1,8 @@
 FROM node:22-alpine AS base
-RUN apk add --no-cache libc6-compat openssl
+# tzdata non c'e' in alpine, e senza di lui la variabile TZ e' carta straccia:
+# il container resta in UTC e le ore scritte dal server — calendario, dashboard,
+# ricevute — escono indietro di due ore rispetto a quelle digitate.
+RUN apk add --no-cache libc6-compat openssl tzdata
 WORKDIR /app
 
 # ---------------------------------------------------------------- dipendenze

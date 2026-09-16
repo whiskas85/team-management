@@ -7,6 +7,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-zerodark}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zerodark}
       POSTGRES_DB: ${POSTGRES_DB:-zerodark}
+      # come in produzione: nei log del database le ore sono quelle di qui
+      TZ: ${TZ:-Europe/Rome}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
