@@ -86,8 +86,17 @@ export const vedeAttivitaSquadra = (stato: StatoOperatore) =>
 export const isNuovo = (stato: StatoOperatore) =>
   stato === 'NUOVO' || stato === 'ATTESA_COMPILAZIONE' || stato === 'ATTESA_ACCETTAZIONE';
 
-/** Gli stati che popolano l'elenco "Nuovi": l'iter di ingresso e chi si è fermato. */
+/** Si è registrato da solo e aspetta il via libera: non vede ancora niente. */
+export const inAttesaDiApprovazione = (stato: StatoOperatore) => stato === 'REGISTRATO';
+
+/**
+ * Gli stati che popolano l'elenco "Nuovi": l'iter di ingresso e chi si è
+ * fermato. `REGISTRATO` c'è dentro perché anche lui è un contatto e la sua
+ * scheda va protetta come le altre — nella pagina però sta a parte, in cima,
+ * fra le richieste da approvare.
+ */
 export const STATI_CONTATTO: StatoOperatore[] = [
+  'REGISTRATO',
   'NUOVO',
   'ATTESA_COMPILAZIONE',
   'ATTESA_ACCETTAZIONE',
@@ -101,6 +110,7 @@ export const isContatto = (stato: StatoOperatore) => STATI_CONTATTO.includes(sta
 export const vedeAreaTesseramento = (stato: StatoOperatore) => stato === 'SQUADRA' || stato === 'SOSPESO';
 
 export const etichettaStato: Record<StatoOperatore, string> = {
+  REGISTRATO: 'Da approvare',
   NUOVO: 'Nuovo',
   ATTESA_COMPILAZIONE: 'Attesa compilazione',
   ATTESA_ACCETTAZIONE: 'Attesa accettazione',
@@ -196,6 +206,7 @@ export const tonoCertificato: Record<CertStatus, Tono> = {
 
 export const tonoStato: Record<StatoOperatore, Tono> = {
   SQUADRA: 'ok',
+  REGISTRATO: 'warn',
   NUOVO: 'info',
   ATTESA_COMPILAZIONE: 'warn',
   ATTESA_ACCETTAZIONE: 'warn',

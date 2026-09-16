@@ -21,6 +21,7 @@ enum Role {
 
 /// Percorso di un operatore, dal primo contatto all'ingresso in squadra.
 enum StatoOperatore {
+  REGISTRATO // si è iscritto da solo dal sito: aspetta il via libera, e intanto non vede niente
   NUOVO // si sta approcciando al team, viene alle open
   ATTESA_COMPILAZIONE // ha ricevuto l'invito di iscrizione, deve compilare
   ATTESA_ACCETTAZIONE // ha inviato il modulo, attende la valutazione
@@ -226,6 +227,8 @@ model User {
   preferiti             Preferito[]             @relation("PreferitiDi")
   erroriIncontrati      ErroreClient[]          @relation("ErroriIncontrati")
   casseGestite          Cassa[]                 @relation("GestoriCassa")
+  rifiutiDecisi         RifiutoRegistrazione[]  @relation("RifiutiDecisi")
+  iscrizioniPush        IscrizionePush[]        @relation("PushDi")
 
   @@index([stato])
 }
@@ -1385,6 +1388,62 @@ enum StatoRiordino {
 /// È il contrario di un ordine del merchandising — lì la squadra compra dal
 /// team, qui il team compra dal fornitore — e per questo tocca la cassa dalla
 /// parte delle **uscite**, non degli incassi.
+/// Un dispositivo che ha accettato di ricevere le notifiche.
+///
+/// Una riga per **dispositivo**, non per persona: chi ha telefono e computer
+/// ne ha due, e vuole squillare su tutti e due. L'endpoint è l'indirizzo che
+/// il browser ci dà per raggiungerlo, ed è lui la chiave: lo stesso telefono
+/// che riaccetta non si sdoppia.
+///
+/// Quando un endpoint non vale più — app disinstallata, permesso revocato —
+/// il servizio di push risponde «non esiste» e la riga si cancella da sé: le
+/// iscrizioni morte non si accumulano.
+model IscrizionePush {
+  id        String   @id @default(cuid())
+  userId    String
+  utente    User     @relation("PushDi", fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  /// Le due chiavi con cui il browser cifra il messaggio: senza, il telefono
+  /// riceve e butta via.
+  p256dh    String
+  auth      String
+  /// Che dispositivo è, come si è presentato: serve solo a farsi riconoscere
+  /// nell'elenco quando se ne vogliono togliere.
+  dispositivo String?
+  creatoIl  DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Chi è stato respinto all'ingresso — **senza conservarne i dati**.
+///
+/// Di una registrazione rifiutata non resta né il nome né l'indirizzo: quel
+/// profilo viene cancellato per davvero. Restano due impronte, una dell'email
+/// e una di nome, cognome e data di nascita, calcolate con la chiave di questa
+/// installazione. Da un'impronta non si torna indietro: non dicono chi era,
+/// sanno solo rispondere «questo è già passato di qui» quando qualcuno ritenta
+/// — anche cambiando indirizzo, perché le impronte sono due.
+///
+/// Cambiando `SESSION_SECRET` smettono di combaciare, e le vecchie diventano
+/// carta straccia. È il prezzo di non tenersi i dati veri, ed è un prezzo
+/// giusto: la memoria di un rifiuto non vale quanto l'anagrafica di qualcuno
+/// che non è entrato.
+model RifiutoRegistrazione {
+  id            String   @id @default(cuid())
+  /// Impronta dell'email normalizzata.
+  hashEmail     String
+  /// Impronta di nome + cognome + data di nascita: riconosce chi ci riprova
+  /// con un altro indirizzo.
+  hashIdentita  String
+  rifiutatoIl   DateTime @default(now())
+  /// Chi ha deciso: è un dato della squadra, non della persona respinta.
+  rifiutatoDaId String?
+  rifiutatoDa   User?    @relation("RifiutiDecisi", fields: [rifiutatoDaId], references: [id], onDelete: SetNull)
+
+  @@index([hashEmail])
+  @@index([hashIdentita])
+}
+
 model Riordino {
   id          String          @id @default(cuid())
   /// Progressivo leggibile: "il riordino 7" si dice a voce, un cuid no.

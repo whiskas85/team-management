@@ -80,6 +80,50 @@ self.addEventListener('fetch', (evento) => {
   }
 });
 
+/*
+ * Le notifiche che arrivano col gestionale chiuso.
+ *
+ * Il messaggio porta con sé solo titolo, testo e dove andare a finire: niente
+ * nomi, niente numeri, niente dati di nessuno. Una notifica si legge sullo
+ * schermo bloccato, e lì può leggerla chiunque abbia in mano il telefono.
+ */
+self.addEventListener('push', (evento) => {
+  let avviso = { titolo: 'Zero Dark', testo: 'C’è una novità.', url: '/dashboard' };
+  try {
+    if (evento.data) avviso = { ...avviso, ...evento.data.json() };
+  } catch {
+    /* messaggio malformato: resta l'avviso generico, meglio di niente */
+  }
+
+  evento.waitUntil(
+    self.registration.showNotification(avviso.titolo, {
+      body: avviso.testo,
+      icon: '/icona-192.png',
+      badge: '/icona-192.png',
+      tag: avviso.tag,
+      data: { url: avviso.url },
+    }),
+  );
+});
+
+// Toccandola si va dove serve. Se il gestionale è già aperto da qualche parte
+// si porta in primo piano quella scheda invece di aprirne un'altra.
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  const url = evento.notification.data?.url || '/dashboard';
+
+  evento.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((aperte) => {
+      for (const c of aperte) {
+        if (c.url.includes(url) && 'focus' in c) return c.focus();
+      }
+      const prima = aperte[0];
+      if (prima && 'navigate' in prima) return prima.navigate(url).then((c) => c && c.focus());
+      return clients.openWindow(url);
+    }),
+  );
+});
+
 // a ogni versione nuova si buttano via le cache vecchie
 self.addEventListener('activate', (evento) => {
   evento.waitUntil(

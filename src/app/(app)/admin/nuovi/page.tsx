@@ -6,6 +6,11 @@ import { stagioneAttiva } from '@/lib/stagioni';
 import { Intestazione, Statistica } from '@/components/ui';
 import { BottoneCreaOperatore } from '@/components/FormOperatore';
 import { ElencoNuovi, type RigaNuovo } from '@/components/ElencoNuovi';
+import {
+  RegistrazioniInAttesa,
+  type RegistrazioneInAttesa,
+} from '@/components/RegistrazioniInAttesa';
+import { improntaEmail, improntaIdentita } from '@/lib/impronte';
 
 /** Da quanti giorni un contatto è considerato "sparito". */
 const GIORNI_INATTIVITA = 90;
@@ -34,8 +39,60 @@ export default async function NuoviPage() {
     stagioneId: t.stagioneId,
   }));
 
+  // Chi bussa e aspetta: sta in cima, in card sue, e non in mezzo all'elenco
+  // dei contatti — sono due cose diverse, una è una decisione da prendere,
+  // l'altro è un elenco da consultare.
+  const inAttesa = await prisma.user.findMany({
+    where: { stato: 'REGISTRATO' },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      nome: true,
+      cognome: true,
+      callsign: true,
+      email: true,
+      telefono: true,
+      dataNascita: true,
+      luogoNascita: true,
+      createdAt: true,
+      consensoImmagini: true,
+    },
+  });
+
+  // Di chi è stato respinto non abbiamo più niente, solo due impronte: le
+  // ricalcoliamo su chi sta bussando adesso e vediamo se combaciano.
+  const daApprovare: RegistrazioneInAttesa[] = await Promise.all(
+    inAttesa.map(async (n) => {
+      const precedente = await prisma.rifiutoRegistrazione.findFirst({
+        where: {
+          OR: [
+            { hashEmail: improntaEmail(n.email) },
+            { hashIdentita: improntaIdentita(n.nome, n.cognome, n.dataNascita) },
+          ],
+        },
+        orderBy: { rifiutatoIl: 'desc' },
+        select: { rifiutatoIl: true },
+      });
+
+      return {
+        id: n.id,
+        nome: n.nome,
+        cognome: n.cognome,
+        callsign: n.callsign,
+        email: n.email,
+        telefono: n.telefono,
+        nato: n.dataNascita ? fmtDate(n.dataNascita) : null,
+        luogoNascita: n.luogoNascita,
+        richiestaDel: fmtDate(n.createdAt),
+        consensoImmagini: n.consensoImmagini,
+        giaRespintoIl: precedente ? fmtDate(precedente.rifiutatoIl) : null,
+      };
+    }),
+  );
+
   const nuovi = await prisma.user.findMany({
-    where: { stato: { in: STATI_CONTATTO } },
+    // i REGISTRATO stanno nelle card qui sopra: in elenco sarebbero due volte
+    where: { stato: { in: STATI_CONTATTO.filter((s) => s !== 'REGISTRATO') } },
     orderBy: { createdAt: 'desc' },
     include: {
       // una riga sola se chi sta guardando ha gia' aperto la scheda
@@ -90,6 +147,8 @@ export default async function NuoviPage() {
         sottotitolo="Chi si sta approcciando al team: monitora chi torna e chi no, poi invita o elimina"
         azioni={isAdmin(me.roles) ? <BottoneCreaOperatore stato="NUOVO" /> : undefined}
       />
+
+      <RegistrazioniInAttesa righe={daApprovare} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Statistica etichetta="Contatti attivi" valore={righe.length} tono="info" />

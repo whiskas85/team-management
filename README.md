@@ -116,6 +116,11 @@ può eseguire: invita solo l'amministrazione, elimina solo l'admin.
 ## Percorso di un nuovo operatore
 
 ```
+Registrato ──► chi si iscrive dal sito: aspetta il via libera e vede
+  │            una pagina sola, "richiesta in attesa"
+  │      └──► (respinto)   l'account si cancella: restano due impronte
+  │                        che lo riconoscono se ritenta
+  ▼
 Nuovo ──► (rifiutato)      resta a storico, ha dato problemi
   │   └──► (cancellato)    rimosso definitivamente
   │
@@ -134,6 +139,19 @@ Nuovo ──► (rifiutato)      resta a storico, ha dato problemi
 Il **tipo di richiesta** (Iscrizione o Reiscrizione) determina la quota.
 All'accettazione l'operatore entra in squadra, viene creata la voce di
 pagamento e predisposta la riga della tessera federale.
+
+**Chi si registra dal sito non entra da solo.** Resta in *Registrato*: vede la
+pagina «richiesta inviata» con i dati che ha mandato, e nient'altro — non il
+calendario, non la squadra, non dove ci si trova sabato. In cima all'elenco
+**Nuovi** compare la sua card con tutto quello che ha scritto e due pulsanti:
+*Approva*, e diventa un contatto come gli altri, oppure *Rifiuta e cancella*.
+
+Il rifiuto **cancella davvero i dati**. Al loro posto restano due impronte —
+una dell'email, una di nome, cognome e data di nascita — calcolate con la
+chiave dell'installazione: da lì non si torna indietro a chi era, ma se quella
+persona ci riprova, anche con un altro indirizzo, sulla sua nuova richiesta
+compare l'avviso che una uguale era già stata respinta. Ricordarsi di un no
+senza tenersi l'anagrafica di chi non è entrato.
 
 Un operatore **Nuovo** non ha certificati, iscrizione né tessera: quelle
 sezioni non compaiono proprio. Vede solo il calendario degli eventi *aperti*, vi
@@ -332,6 +350,26 @@ ha un incarico che li richiede.
 
 **Ricerca** — le liste filtrano mentre digiti, senza premere invio: valgono
 anche per le tendine dei filtri.
+
+## Notifiche sul telefono
+
+Arrivano anche col gestionale chiuso, e si accendono dal proprio **profilo**,
+dispositivo per dispositivo: telefono e computer sono due iscrizioni diverse,
+perché due sono gli schermi che devono squillare.
+
+Il permesso lo chiede il browser **dopo un gesto**, mai da solo: un avviso che
+spunta all'apertura viene negato per riflesso, e una volta negato non si può
+più richiedere se non dalle impostazioni. Su iPhone funzionano solo se il
+gestionale è stato installato dalla schermata iniziale — è una regola di Apple.
+
+**Nel messaggio non finiscono dati di nessuno**: titolo, una riga e dove
+andare. Una notifica si legge sullo schermo bloccato, e lì la legge chiunque
+abbia in mano il telefono. Oggi ne parte una sola — una registrazione da
+approvare — e la riceve chi quelle richieste le può decidere.
+
+Servono le chiavi `VAPID_*` nell'ambiente, **una coppia per installazione**: si
+generano con `npx web-push generate-vapid-keys --json`. Senza, il gestionale
+non propone nemmeno di attivarle e tutto il resto funziona come prima.
 
 ## Messaggi WhatsApp
 

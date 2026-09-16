@@ -121,7 +121,10 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
       dataNascita,
       luogoNascita,
       roles: [], // nessun incarico: è un contatto, non un atleta
-      stato: 'NUOVO',
+      // In attesa del via libera: fino ad allora vede una pagina sola. Chi
+      // arriva dal sito non l'ha ancora visto in faccia nessuno, e il
+      // calendario della squadra dice dove siamo e quando.
+      stato: 'REGISTRATO',
       privacyAccettataIl: adesso,
       privacyVersione: VERSIONE_PRIVACY,
       consensoImmagini,
@@ -130,8 +133,25 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
     },
   });
 
+  // Chi può decidere lo sa subito, anche col gestionale chiuso. Il messaggio
+  // non dice chi è: una notifica si legge sullo schermo bloccato, e lì può
+  // leggerla chiunque abbia in mano il telefono.
+  const { avvisa, chiSegueINuovi } = await import('@/lib/push');
+  void chiSegueINuovi()
+    .then((chi) =>
+      avvisa(chi, {
+        titolo: 'Una richiesta di accesso',
+        testo: 'Qualcuno ha chiesto di entrare: la trovi in Nuovi.',
+        url: '/admin/nuovi',
+        tag: 'registrazioni',
+      }),
+    )
+    .catch(() => {
+      /* un avviso mancato non deve far fallire una registrazione riuscita */
+    });
+
   await createSession(user.id, flag(fd, 'ricordami'));
-  redirect('/dashboard?benvenuto=1');
+  redirect('/in-attesa');
 }
 
 export async function esci() {

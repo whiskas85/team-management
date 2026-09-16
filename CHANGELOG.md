@@ -5,6 +5,38 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.32.0 — 16 settembre 2026
+
+### Aggiunto
+
+- **Chi si registra dal sito aspetta il via libera.** Prima entrava dritto come
+  contatto e si trovava dentro: calendario, dove ci si vede sabato, chi c'è.
+  Ora resta in un gradino a parte — *Registrato* — e vede **una pagina sola**,
+  con i dati che ha mandato e nient'altro. Chi ha sbagliato a scrivere la
+  propria email se ne accorge lì, non dopo tre giorni di attesa.
+- **In cima ai Nuovi ci sono le richieste da approvare**, una card per uno, con
+  tutto quello che hanno scritto: nome, callsign, recapiti, data di nascita,
+  consenso alle foto. Due pulsanti, e non sono simmetrici: *Approva* è un gesto
+  normale, *Rifiuta e cancella* chiede conferma perché cancella una persona.
+- **Il badge accanto a «Nuovi» conta anche chi aspetta una risposta**, non solo
+  chi non hai ancora guardato in faccia. Sono entrambe cose da fare.
+- **Notifiche sul telefono, anche col gestionale chiuso.** Si accendono dal
+  proprio profilo, un dispositivo alla volta. Oggi ne parte una: una
+  registrazione da approvare, a chi la può decidere. Il messaggio non contiene
+  dati di nessuno — titolo, una riga, e dove andare — perché una notifica si
+  legge sullo schermo bloccato, e lì la legge chiunque abbia in mano il
+  telefono. Era l'ultimo pezzo che aspettava il dominio: senza un certificato
+  vero i browser non le permettono.
+
+### Cambiato
+
+- **Rifiutare una registrazione cancella i dati per davvero.** Al loro posto
+  restano due impronte, una dell'email e una di nome, cognome e data di
+  nascita, calcolate con la chiave dell'installazione: non dicono chi era, ma
+  se quella persona ci riprova — anche cambiando indirizzo — sulla nuova
+  richiesta compare l'avviso che una uguale era già stata respinta. Ricordarsi
+  di un no senza tenersi l'anagrafica di chi non è entrato.
+
 ## 2.31.1 — 16 settembre 2026
 
 ### Corretto

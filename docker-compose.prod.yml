@@ -65,6 +65,11 @@ services:
       TZ: ${TZ:-Europe/Rome}
       WHATSAPP_URL: http://whatsapp:3001
       SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
+      # notifiche push: le chiavi di questo ambiente, diverse da quelle del
+      # test — un dispositivo iscritto in test non deve ricevere gli avvisi veri
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     volumes:
       - uploads:/data/uploads
     # Nemmeno l'applicazione pubblica una porta: ci arriva il proxy, e basta.

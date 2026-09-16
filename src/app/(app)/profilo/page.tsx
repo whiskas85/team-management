@@ -19,6 +19,7 @@ import { Fisarmonica, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { ModuloIscrizione } from '@/components/ModuloIscrizione';
 import { FotoProfilo } from '@/components/FotoProfilo';
+import { Notifiche } from '@/components/Notifiche';
 import { GRUPPI_SANGUIGNI } from '@/lib/medico';
 import { aggiornaConsensi, aggiornaProfilo, cambiaPassword } from '@/actions/operatori';
 
@@ -265,6 +266,11 @@ export default async function ProfiloPage() {
           </div>
         </div>
       )}
+
+      {/* -------------------------------------------------- notifiche */}
+      <div className="mb-4">
+        <Notifiche />
+      </div>
 
       {/* -------------------------------------------------- anagrafica */}
       <Fisarmonica titolo="Anagrafica" apertoIniziale={!utente.dataNascita}>

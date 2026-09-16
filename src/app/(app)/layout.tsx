@@ -10,6 +10,7 @@ import {
   isAdmin,
   puoAmministrare,
   puoGestirePagamenti,
+  inAttesaDiApprovazione,
   puoModerareChat,
   puoVedereNuovi,
   puoVedereOperatori,
@@ -43,6 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (utente.deveCambiarePassword) redirect('/cambia-password');
 
+  // Chi si è registrato da solo aspetta il via libera, e finché aspetta vede
+  // una pagina sola: prima ancora dei consensi, perché non c'è niente da
+  // acconsentire se non si è ancora entrati.
+  if (inAttesaDiApprovazione(utente.stato)) redirect('/in-attesa');
+
   // Poi i consensi: informativa privacy e regole del club sono obbligatorie,
   // la scelta sulle foto va fatta — in un senso o nell’altro. Anche questa
   // pagina sta fuori dal gruppo, o si rimanderebbe a sé stessa.
@@ -59,17 +65,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ]);
   }
 
-  // chi si e' registrato e non e' ancora stato guardato in faccia da chi sta
-  // navigando: il pallino resta finche' non se ne apre la scheda, e la lettura
-  // e' di chi legge, non della squadra
-  const nuoviDaLeggere = puoVedereNuovi(utente.roles)
-    ? await prisma.user.count({
-        where: {
-          stato: 'NUOVO',
-          NOT: { letturaDaAltri: { some: { lettoreId: utente.id } } },
-        },
-      })
-    : 0;
+  // Due conti diversi sulla stessa voce di menu:
+  //
+  // - chi si è iscritto dal sito e **aspetta una risposta**: è una cosa da
+  //   fare, e vale per tutti quelli che la possono fare;
+  // - chi è già un contatto ma non l'ha ancora guardato in faccia **chi sta
+  //   navigando**: quel pallino è personale e si spegne aprendo la scheda.
+  //
+  // Sul badge finiscono insieme, perché insieme rispondono alla domanda
+  // «quante persone mi stanno aspettando da quella parte?».
+  const [daApprovare, nuoviDaLeggere] = puoVedereNuovi(utente.roles)
+    ? await Promise.all([
+        prisma.user.count({ where: { stato: 'REGISTRATO' } }),
+        prisma.user.count({
+          where: {
+            stato: 'NUOVO',
+            NOT: { letturaDaAltri: { some: { lettoreId: utente.id } } },
+          },
+        }),
+      ])
+    : [0, 0];
 
   // cosa aspetta la segreteria: incassi segnalati da verificare e rimborsi da
   // erogare. Sul badge vanno insieme, perché in entrambi i casi c'è una
@@ -339,7 +354,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: 'Nuovi',
       icona: 'nuovi',
       gruppo: 'persone',
-      badge: nuoviDaLeggere,
+      badge: daApprovare + nuoviDaLeggere,
     });
   }
 

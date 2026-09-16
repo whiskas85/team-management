@@ -386,6 +386,69 @@ export async function eliminaOperatore(_prev: StatoForm, fd: FormData): Promise<
   redirect(str(fd, 'ritorno') || '/admin/operatori');
 }
 
+/**
+ * Via libera a chi si è iscritto dal sito: da qui in poi è un contatto come
+ * gli altri, vede le attività aperte e può segnarsi.
+ */
+export async function approvaRegistrazione(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoVedereNuovi(me.roles)) return { errore: 'Non puoi decidere sulle registrazioni.' };
+
+  const userId = str(fd, 'userId');
+  const utente = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { nome: true, cognome: true, stato: true },
+  });
+  if (!utente) return { errore: 'Registrazione non trovata.' };
+  if (utente.stato !== 'REGISTRATO') return { errore: 'Questa registrazione è già stata decisa.' };
+
+  await prisma.user.update({ where: { id: userId }, data: { stato: 'NUOVO' } });
+
+  aggiorna(userId);
+  return { ok: `${utente.nome} ${utente.cognome} è entrato: adesso vede le attività aperte.` };
+}
+
+/**
+ * Porta chiusa — e di chi resta fuori non si tiene niente.
+ *
+ * L'account viene cancellato per davvero. Al suo posto restano due impronte
+ * (vedi `lib/impronte.ts`): non dicono chi era, ma se quella persona ci
+ * riprova, con la stessa email o con lo stesso nome e la stessa data di
+ * nascita, chi dovrà decidere lo saprà. È l'unico modo per ricordarsi di un
+ * rifiuto senza conservare i dati di qualcuno che non è mai entrato.
+ */
+export async function rifiutaRegistrazione(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoVedereNuovi(me.roles)) return { errore: 'Non puoi decidere sulle registrazioni.' };
+
+  const userId = str(fd, 'userId');
+  const utente = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { nome: true, cognome: true, email: true, dataNascita: true, stato: true },
+  });
+  if (!utente) return { errore: 'Registrazione non trovata.' };
+  if (utente.stato !== 'REGISTRATO') return { errore: 'Questa registrazione è già stata decisa.' };
+
+  const { improntaEmail, improntaIdentita } = await import('@/lib/impronte');
+
+  // prima l'impronta, poi la cancellazione, e nella stessa transazione: se
+  // saltasse in mezzo resterebbe un rifiuto senza memoria o una memoria senza
+  // rifiuto
+  await prisma.$transaction([
+    prisma.rifiutoRegistrazione.create({
+      data: {
+        hashEmail: improntaEmail(utente.email),
+        hashIdentita: improntaIdentita(utente.nome, utente.cognome, utente.dataNascita),
+        rifiutatoDaId: me.id,
+      },
+    }),
+    prisma.user.delete({ where: { id: userId } }),
+  ]);
+
+  aggiorna();
+  return { ok: 'Registrazione respinta: i dati sono stati cancellati.' };
+}
+
 /** Consensi facoltativi, modificabili dall'interessato in qualsiasi momento. */
 export async function aggiornaConsensi(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
