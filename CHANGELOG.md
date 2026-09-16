@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.30.0 — 16 settembre 2026
+
+### Cambiato
+
+- **Il gestionale è in rete: `https://ops.zerodarkteam.it`.** Gira su un server
+  Aruba Cloud, con certificato vero di Let's Encrypt preso e rinnovato da Caddy.
+  Niente più avviso «la connessione non è privata», e finalmente **il telefono
+  propone di installare l'applicazione**: era il primo punto di `DA-FARE.md`,
+  fermo da mesi in attesa di un indirizzo credibile.
+- **Il test resta qui, la produzione no.** `zd.ps1` comanda solo l'ambiente di
+  test; `up prod` e `copia-da-prod` ora spiegano che la produzione sta altrove
+  invece di riaccendere una copia ferma al giorno del trasloco. I volumi
+  `gestionale_*` rimasti su questo computer sono la copia di riserva.
+- **La schermata senza connessione non parla più di ZeroTier.** Diceva che il
+  gestionale gira sul computer del team e che serve essere in quella rete: da
+  oggi è falso, e a leggerla uno si sarebbe messo a cercare un problema che non
+  c'è.
+
 ## 2.29.1 — 15 settembre 2026
 
 ### Corretto

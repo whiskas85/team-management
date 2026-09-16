@@ -548,38 +548,47 @@ docker compose exec db pg_dump -U zerodark zerodark > backup.sql
 
 ## Due ambienti
 
-Il gestionale gira su due stack Docker separati e indipendenti.
+Dal 16 settembre 2026 i due ambienti non stanno più sulla stessa macchina: la
+produzione è in rete, il test sul computer di chi sviluppa.
 
 | | produzione | test |
 |---|---|---|
-| indirizzo | http://localhost:3000 | http://localhost:3100 |
+| indirizzo | <https://ops.zerodarkteam.it> | <http://localhost:3100> |
+| dove gira | server Aruba Cloud, in `/opt/gestionale` | questo computer |
 | progetto Docker | `gestionale` | `zerodark-test` |
-| volumi | `gestionale_db-data`, `gestionale_uploads` | `zerodark-test_db-data`, `zerodark-test_uploads` |
-| file di configurazione | `.env` | `.env.test` |
+| file di configurazione | `.env.prod`, solo sul server | `.env.test` |
+| certificato | Let's Encrypt, rinnovato da Caddy | firmato da noi |
 | polizze sul portale FIGT | attive | **bloccate** |
 
 Database, caricamenti e chiavi di firma non si toccano fra i due.
 
-Si comandano con `zd.ps1`:
+Il test si comanda con `zd.ps1`:
 
 ```powershell
 .\zd.ps1 up test          # avvia o ricostruisce il test
-.\zd.ps1 up prod          # avvia o ricostruisce la produzione
 .\zd.ps1 stato            # cosa sta girando, e i volumi
 .\zd.ps1 logs test        # cosa dice l'app
-.\zd.ps1 copia-da-prod    # porta i dati veri dentro al test
 .\zd.ps1 down test        # spegne, senza cancellare niente
 .\zd.ps1 azzera-test      # cancella i dati del solo test
 ```
 
+`up prod` e `copia-da-prod` non valgono più: parlavano ai container locali, che
+non sono più la produzione. Lo script lo dice invece di far finta di niente.
+
 `down` non cancella mai i dati. L'unico comando che li butta via è
 `azzera-test`, che chiede conferma e tocca soltanto il test.
 
-### Su un server pubblico
+### La produzione, sul server
 
-Per metterlo su una macchina in affitto, con un dominio e un certificato
-valido, c'è `docker-compose.prod.yml`. Il giro completo — macchina, dominio,
-`.env.prod`, trasloco dei dati — è in [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+Gira con `docker-compose.prod.yml`: Caddy davanti, che prende e rinnova da solo
+il certificato di `ops.zerodarkteam.it`, e database, applicazione e ponte
+WhatsApp che non pubblicano nessuna porta. Un rilascio, dal server, è backup del
+database, `git pull` e ricostruzione: i comandi esatti sono in
+[`deploy/DEPLOY.md`](deploy/DEPLOY.md), insieme a come si rifà tutto da zero su
+una macchina nuova.
+
+I volumi `gestionale_*` rimasti su questo computer sono la copia di riserva del
+trasloco del 16 settembre 2026, non un secondo ambiente: non si riaccendono.
 
 ### Perché in test le polizze sono bloccate
 

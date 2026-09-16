@@ -63,8 +63,8 @@ self.addEventListener('fetch', (evento) => {
                  <p style="font-size:.75rem;letter-spacing:.3em;color:#7bd88f">ZERO DARK</p>
                  <h1 style="font-size:1.25rem;margin-top:1rem">Nessuna connessione</h1>
                  <p style="font-size:.875rem;color:#8b918b;margin-top:.75rem">
-                   Il gestionale gira sul computer del team: serve essere sulla rete ZeroTier,
-                   e quel computer deve essere acceso.
+                   Il telefono non riesce a raggiungere il gestionale: di solito è la rete
+                   di qui, non il server. Riprova fra un momento.
                  </p>
                  <button onclick="location.reload()"
                    style="margin-top:1.5rem;padding:.5rem 1rem;border-radius:.375rem;

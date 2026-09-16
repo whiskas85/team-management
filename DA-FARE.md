@@ -3,31 +3,15 @@
 Le cose in sospeso, in ordine di quanto pesano. Non sono difetti: sono passi
 che aspettano una decisione o qualcosa che ancora non c'è.
 
-## Dominio e certificato valido
+## Copiare i dati veri dentro al test
 
-**Perché:** oggi il gestionale gira su `https://10.147.19.76` con un certificato
-firmato da noi. Nessuna autorità al mondo può certificare un indirizzo privato,
-quindi ogni dispositivo mostra l'avviso *"la connessione non è privata"* — e i
-browser, non considerando sicura quella pagina, **non offrono di installare
-l'applicazione**: niente icona sulla schermata iniziale, niente avvio a schermo
-intero. Il PWA è pronto e funzionante, gli manca solo un indirizzo credibile.
+**Perché:** `.\zd.ps1 copia-da-prod` prendeva i dati dal database di produzione
+che girava su questo stesso computer. Da quando la produzione sta sul server in
+rete, quel comando non ha più niente da cui copiare e si ferma.
 
-**Deciso il 15 settembre 2026:** il gestionale va su un server Hetzner da
-16 GB, insieme al TAK, con un dominio nuovo e il certificato di Let's Encrypt.
-Il come è in `deploy/DEPLOY.md`; **manca solo comprare macchina e dominio**.
-
-**Serve anche agli assistenti (MCP).** Un assistente che si collega da un altro
-computer parla HTTPS e, a differenza di un browser, non ha un pulsante
-"procedi lo stesso": un certificato firmato da noi lo rifiuta e basta. Dal PC
-dove gira il gestionale si aggira usando `http://localhost:3000`, ma per gli
-altri della squadra la strada è il certificato valido.
-
-Da quel momento: nessun avviso sui dispositivi, applicazione installabile su
-Android, iPhone e computer, e un indirizzo che si detta a voce senza numeri.
-
-**Alternativa nell'attesa:** creare una piccola autorità di certificazione
-nostra e installarla su ogni dispositivo. Funziona, ma è un giro da fare su
-ogni telefono e va rifatto a ogni dispositivo nuovo.
+**Cosa serve:** rifarlo in modo che il dump lo chieda al server via SSH e lo
+versi nel test locale. Nel frattempo, per provare sui dati veri si scarica a
+mano un dump dal server e si ripristina nel test.
 
 ## Numero dedicato per WhatsApp
 
