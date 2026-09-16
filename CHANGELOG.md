@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.31.1 — 16 settembre 2026
+
+### Corretto
+
+- **Le attività annullate spariscono da «In programma».** Restavano in mezzo a
+  quelle che verranno, col loro bollino rosso: chi scorreva l'elenco di corsa
+  se le contava fra i programmi. La colonna laterale del mese le teneva già
+  fuori, la lista no. Ora non c'è più questa differenza.
+- **Non si perdono:** restano nella griglia del **mese**, dove serve vedere che
+  quel sabato era occupato e non lo è più, e passata la data scendono nello
+  **storico** con il motivo per cui sono saltate.
+
 ## 2.31.0 — 16 settembre 2026
 
 ### Aggiunto

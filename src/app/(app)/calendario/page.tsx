@@ -105,6 +105,12 @@ export default async function CalendarioPage({
             attuale === 'passati'
               ? { inizio: { lt: new Date() } }
               : {
+                  // Un'attività annullata non è più in programma: lasciarla fra
+                  // quelle che verranno vuol dire farla contare nei piani di
+                  // chi legge l'elenco di corsa. Resta nella griglia del mese,
+                  // col suo bollino, e passata la data scende nello storico
+                  // col motivo per cui è saltata.
+                  status: { not: 'ANNULLATA' },
                   OR: [
                     { inizio: { gte: new Date() } },
                     { status: 'RILASCIATA', inizio: { lt: new Date() } },
