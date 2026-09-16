@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.35.1 — 16 settembre 2026
+
+### Aggiunto
+
+- **Chi aspetta l'approvazione trova l'invito al gruppo dei nuovi.** In cima
+  alla pagina d'attesa, con il suo pulsante: è il posto dove fare domande — come
+  funziona, cosa serve, come ci si veste — e dove si raccontano le uscite in
+  programma. Si entra subito, senza aspettare la risposta: restare due giorni
+  davanti a una pagina d'attesa senza nessuno con cui parlare è il modo più
+  rapido per far perdere interesse a qualcuno che si era fatto avanti.
+
 ## 2.35.0 — 16 settembre 2026
 
 ### Cambiato

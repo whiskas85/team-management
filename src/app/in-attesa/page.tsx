@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { inAttesaDiApprovazione } from '@/lib/domain';
 import { fmtDate } from '@/lib/format';
 import { Logo } from '@/components/Logo';
+import { Icona } from '@/components/Icona';
+import { GRUPPO_WHATSAPP } from '@/lib/squadra';
 import { esci } from '@/actions/auth';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +49,29 @@ export default async function InAttesaPage() {
           Il tuo accesso è in attesa di approvazione: non devi fare altro. Qualcuno della squadra
           guarda la richiesta e decide. Quando è accolta, al primo accesso entri direttamente.
         </p>
+      </div>
+
+      {/* Il gruppo si propone subito, non dopo l'approvazione: è lì che si
+          vede se una squadra è viva, e due giorni di attesa senza nessuno con
+          cui parlare spengono chiunque si fosse fatto avanti. */}
+      <div className="card mb-4 space-y-3 border-nvg/40 bg-nvg/5">
+        <div>
+          <h2 className="font-medium">Intanto entra nel gruppo dei nuovi</h2>
+          <p className="mt-1 text-sm text-muted">
+            È il posto dove fare domande — come funziona, cosa serve, come ci si veste — e dove si
+            raccontano le uscite in programma. Entra pure adesso, senza aspettare la risposta:
+            nessuno ti chiede niente.
+          </p>
+        </div>
+        <a
+          href={GRUPPO_WHATSAPP}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-primary w-full justify-center"
+        >
+          <Icona nome="whatsapp" size={16} />
+          Entra nel gruppo dei nuovi
+        </a>
       </div>
 
       <div className="card space-y-3">
