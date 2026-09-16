@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { Icona } from './Icona';
+import { mostraToast } from './Toast';
+import { componiMessaggioAccesso } from '@/lib/messaggio-accesso';
+import { mandaAccessoWhatsapp } from '@/actions/messaggi';
 
 /**
  * Le credenziali appena generate, pronte da consegnare.
@@ -20,6 +23,7 @@ export function Credenziali({
   password,
   link,
   telefono,
+  userId,
   indirizzo,
 }: {
   utente: string;
@@ -28,11 +32,14 @@ export function Credenziali({
   link?: string;
   /** Il suo numero, solo cifre col prefisso: apre la chat già scritta. */
   telefono?: string;
+  /** Di chi sono: serve al ponte per sapere a chi scrivere. */
+  userId?: string;
   /** L'indirizzo a cui collegarsi, per chi entrerà a mano. */
   indirizzo?: string;
 }) {
   const [copiato, setCopiato] = useState<string | null>(null);
   const [fallito, setFallito] = useState(false);
+  const [invio, setInvio] = useState<'fermo' | 'in corso' | 'fatto'>('fermo');
 
   /*
    * Nel messaggio la password non c'è.
@@ -46,27 +53,21 @@ export function Credenziali({
    * callsign, o l'email, o il telefono — perché al secondo accesso il link non
    * c'è più e bisogna sapere cosa scrivere nel primo campo.
    */
-  const messaggio = (
-    link
-      ? [
-          'Accesso a Zero Dark Ops',
-          `Il tuo utente: ${utente}`,
-          '',
-          'Entra da qui:',
-          link,
-          '',
-          'Il link vale 7 giorni e si usa una volta sola: ti fa entrare e ti chiede di scegliere la tua password.',
-        ]
-      : [
-          'Accesso a Zero Dark Ops',
-          indirizzo ? `Indirizzo: ${indirizzo}` : null,
-          `Il tuo utente: ${utente}`,
-          `Password: ${password}`,
-          'Al primo accesso ti verrà chiesto di sceglierne una tua.',
-        ]
-  )
-    .filter((r) => r !== null)
-    .join('\n');
+  const messaggio = componiMessaggioAccesso({ utente, password, link, indirizzo });
+
+  /** Lo manda il numero della squadra, senza passare dal telefono di nessuno. */
+  const mandaDalPonte = async () => {
+    if (!userId || !link) return;
+    setInvio('in corso');
+    const esito = await mandaAccessoWhatsapp(userId, link);
+    if (esito.errore) {
+      mostraToast(esito.errore, 'errore');
+      setInvio('fermo');
+    } else {
+      mostraToast(esito.ok ?? 'Messaggio mandato.', 'ok');
+      setInvio('fatto');
+    }
+  };
 
   const copia = async (testo: string, cosa: string) => {
     try {
@@ -107,19 +108,20 @@ export function Credenziali({
       <Riga etichetta="Password" valore={password} />
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2">
-        {/* Apre WhatsApp sulla chat di questa persona con il messaggio già
-            scritto. L'ultimo tocco — quello che manda — resta suo: WhatsApp
-            non lascia spedire niente di nascosto, ed è giusto così. */}
-        {telefono && (
-          <a
-            href={`https://wa.me/${telefono}?text=${encodeURIComponent(messaggio)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+        {/* Lo manda il ponte, cioè il numero della squadra: chi riceve vede
+            arrivare il messaggio da lì e non dal telefono personale di chi ha
+            premuto. Se il ponte non è collegato l'azione lo dice, e resta la
+            via di sotto. */}
+        {telefono && userId && link && (
+          <button
+            type="button"
+            onClick={mandaDalPonte}
+            disabled={invio !== 'fermo'}
             className="btn-primary btn-sm"
           >
             <Icona nome="whatsapp" size={15} />
-            Invia su WhatsApp
-          </a>
+            {invio === 'in corso' ? 'Mando…' : invio === 'fatto' ? 'Mandato' : 'Invia su WhatsApp'}
+          </button>
         )}
         <button
           type="button"
@@ -129,9 +131,19 @@ export function Credenziali({
           <Icona nome="carica" size={15} />
           {copiato === 'Messaggio' ? 'Messaggio copiato' : 'Copia il messaggio pronto'}
         </button>
-        <span className="text-[11px] text-muted">
-          {telefono ? 'si apre la chat col messaggio già scritto' : 'da incollare in chat'}
-        </span>
+        {/* La strada di sempre, che funziona anche col ponte spento: apre
+            WhatsApp sul proprio telefono, con il messaggio già scritto. */}
+        {telefono && (
+          <a
+            href={`https://wa.me/${telefono}?text=${encodeURIComponent(messaggio)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-muted underline hover:text-ink"
+          >
+            oppure apri la chat dal tuo telefono
+          </a>
+        )}
+        {!telefono && <span className="text-[11px] text-muted">da incollare in chat</span>}
       </div>
 
       {fallito && (

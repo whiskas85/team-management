@@ -382,6 +382,7 @@ export async function resettaPassword(_prev: StatoForm, fd: FormData): Promise<S
       password: nuova,
       link: host ? `${protocollo}://${host}/accesso/${gettone}` : undefined,
       telefono: perWhatsapp(utente.telefono) ?? undefined,
+      userId,
     },
   };
 }

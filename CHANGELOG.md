@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.35.0 — 16 settembre 2026
+
+### Cambiato
+
+- **«Invia su WhatsApp» adesso manda davvero, dal numero della squadra.** Prima
+  apriva la chat sul tuo telefono e l'ultimo tocco restava tuo; ora il
+  messaggio parte dal ponte, come i promemoria e gli auguri. Chi lo riceve lo
+  vede arrivare dal numero del team e non da quello personale di chi ha premuto.
+- **La via di prima resta**, come riga sotto al pulsante: *«oppure apri la chat
+  dal tuo telefono»*. Serve quando il ponte non è collegato — e serve a chi il
+  collegamento non ce l'ha, perché il numero della squadra è di una persona
+  sola, quella che l'ha rivendicato.
+- **Il testo del messaggio adesso vive in un posto solo**, usato sia dal
+  pulsante che copia sia da quello che spedisce: scritto due volte, prima o poi
+  le due versioni si sarebbero allontanate. E quando parte dal ponte **non è il
+  browser a dettarlo**: lo ricompone il server, che accetta solo un link di
+  accesso di questa installazione. Chi sta davanti allo schermo sceglie a chi
+  mandare le credenziali, non cosa far scrivere al numero della squadra.
+
 ## 2.34.2 — 16 settembre 2026
 
 ### Corretto

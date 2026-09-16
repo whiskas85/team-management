@@ -8,6 +8,8 @@ import { isAdmin } from '@/lib/domain';
 import { bozzeDiOggi, bozzeSuRichiesta, segnaUsato, spezzaTesti, type Bozza } from '@/lib/messaggi';
 import { gruppiWhatsapp, inviaWhatsapp, scollegaPonte, statoPonte } from '@/lib/whatsapp';
 import { enumVal, str, strOpt, type StatoForm } from '@/lib/form';
+import { componiMessaggioAccesso } from '@/lib/messaggio-accesso';
+import { perWhatsapp } from '@/lib/telefono';
 
 const SCATENANTI = [
   'COMPLEANNO',
@@ -109,6 +111,59 @@ export async function ricominciaWhatsapp(_prev: StatoForm, _fd: FormData): Promi
 
   aggiorna();
   return { ok: 'Ponte azzerato: fra pochi secondi compare un codice nuovo da inquadrare.' };
+}
+
+/**
+ * Manda le credenziali dal ponte, alla persona a cui sono state rigenerate.
+ *
+ * Non è un form ma una chiamata diretta dal riquadro delle credenziali, che
+ * vive già dentro un altro form: due form annidati non si possono fare, e
+ * un'azione chiamata a mano fa lo stesso lavoro.
+ *
+ * Il testo **non arriva dal browser**: lo ricompone il server dallo stesso
+ * stampo del pulsante che copia. Chi sta davanti allo schermo può scegliere a
+ * chi mandare le credenziali, non cosa far scrivere al numero della squadra.
+ */
+export async function mandaAccessoWhatsapp(
+  userId: string,
+  link: string,
+): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin manda le credenziali.' };
+
+  if (!(await mioCollegamento(me.id))) {
+    return {
+      errore:
+        'Il numero WhatsApp non è collegato a te: collegalo da Messaggi WhatsApp, oppure usa «apri la chat» e manda il messaggio dal tuo telefono.',
+    };
+  }
+
+  const utente = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { nome: true, cognome: true, callsign: true, email: true, telefono: true },
+  });
+  if (!utente) return { errore: 'Operatore non trovato.' };
+
+  const numero = perWhatsapp(utente.telefono);
+  if (!numero) return { errore: 'Di questa persona non abbiamo un numero di telefono.' };
+
+  // il link arriva dal browser perché è l'unico posto dove esiste — è appena
+  // stato generato e in chiaro non lo conserva nessuno — ma deve essere uno
+  // dei nostri, non un indirizzo qualsiasi da far recapitare dal ponte
+  if (!/^https?:\/\/[^/]+\/accesso\/[A-Za-z0-9_-]+$/.test(link)) {
+    return { errore: 'Il link di accesso non è valido.' };
+  }
+
+  const testo = componiMessaggioAccesso({
+    utente: utente.callsign || utente.email || utente.telefono || '',
+    password: '',
+    link,
+  });
+
+  const esito = await inviaWhatsapp(numero, testo);
+  if (!esito.ok) return { errore: `Non sono riuscito a mandarlo: ${esito.errore}` };
+
+  return { ok: `Messaggio mandato a ${utente.nome} ${utente.cognome} su WhatsApp.` };
 }
 
 /** Il gruppo su cui scrivere di solito. */

@@ -17,6 +17,8 @@ export type StatoForm = {
     link?: string;
     /** Il suo numero, già pronto per WhatsApp: serve al pulsante che apre la chat. */
     telefono?: string;
+    /** Di chi sono queste credenziali: serve al pulsante che le manda dal ponte. */
+    userId?: string;
   };
   /**
    * Chiave appena creata per un assistente. Come le credenziali viaggia a
