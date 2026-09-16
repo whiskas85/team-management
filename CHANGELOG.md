@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.34.2 — 16 settembre 2026
+
+### Corretto
+
+- **«Link già usato» senza averlo mai usato: era WhatsApp.** Quando si incolla
+  un link in chat, WhatsApp lo apre dal proprio server per costruire
+  l'anteprima — e lo stesso fanno antivirus e filtri aziendali. Quella visita
+  bruciava il gettone prima che la persona lo toccasse. Ora il link porta a una
+  pagina con un pulsante: aprirla non consuma niente, si entra premendo, e i
+  robot i pulsanti non li premono.
+- **Chi entra dal link non deve più digitare la vecchia password.** Non l'ha
+  mai vista — la genera il gestionale e non esce di lì — e il cambio
+  obbligatorio gliela chiedeva lo stesso: si restava chiusi fuori proprio
+  mentre si faceva l'unica cosa richiesta. Ora, nel cambio obbligatorio, basta
+  scegliere quella nuova. Dal proprio profilo la vecchia resta obbligatoria:
+  lì serve a proteggere da chi trova un telefono sbloccato.
+
 ## 2.34.1 — 16 settembre 2026
 
 ### Corretto

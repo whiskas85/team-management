@@ -178,6 +178,36 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
   redirect('/in-attesa');
 }
 
+/**
+ * Il pulsante del link di accesso.
+ *
+ * È un'azione e non una semplice apertura di pagina per due ragioni che vanno
+ * insieme: le azioni possono scrivere il cookie di sessione (le pagine no), e
+ * soprattutto **nessun robot preme un pulsante**. L'anteprima che WhatsApp
+ * costruisce aprendo il link non arriva fin qui, e il gettone resta buono per
+ * la persona a cui è stato mandato.
+ *
+ * L'ordine conta: prima la sessione, poi si spegne il gettone. Se qualcosa va
+ * storto nel mezzo, il link resta valido e si può riprovare.
+ */
+export async function entraConGettone(fd: FormData): Promise<void> {
+  const { verificaGettone, bruciaGettone } = await import('@/lib/gettoni');
+
+  const esito = await verificaGettone(testo(fd, 'gettone'));
+  if (!esito.ok) redirect(`/login?accesso=${esito.motivo}`);
+
+  // chi entra così deve comunque scegliersi una password: il link consegna le
+  // chiavi, non tiene il posto di una password
+  await prisma.user.update({
+    where: { id: esito.userId },
+    data: { deveCambiarePassword: true, ultimoAccesso: new Date() },
+  });
+  await createSession(esito.userId, false);
+  await bruciaGettone(esito.gettoneId);
+
+  redirect('/cambia-password');
+}
+
 export async function esci() {
   await destroySession();
   redirect('/login');

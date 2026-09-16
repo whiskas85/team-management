@@ -26,9 +26,8 @@ export default async function CambiaPasswordPage() {
           <Logo size={64} />
           <h1 className="mt-4 text-xl font-semibold">Scegli la tua password</h1>
           <p className="mt-2 text-sm text-muted">
-            Quella con cui sei entrato l&rsquo;ha generata l&rsquo;amministrazione e te l&rsquo;ha
-            passata a voce. Sostituiscila con una tua: da qui non si va avanti finch&eacute; non
-            l&rsquo;hai fatto.
+            Scegline una tua: da qui non si va avanti finch&eacute; non l&rsquo;hai fatto. La
+            vecchia non serve &mdash; sei gi&agrave; entrato, ed &egrave; quello che conta.
           </p>
         </div>
 
@@ -36,16 +35,10 @@ export default async function CambiaPasswordPage() {
           <FormAzione azione={cambiaPassword}>
             <input type="hidden" name="ritorno" value="/dashboard" />
             <div className="space-y-4">
-              <Campo label="Password attuale *">
-                <input
-                  name="attuale"
-                  type="password"
-                  required
-                  className="input"
-                  autoComplete="current-password"
-                  placeholder="quella che ti hanno dato"
-                />
-              </Campo>
+              {/* La password attuale non si chiede: chi entra dal link monouso
+                  non l'ha mai vista — la genera il gestionale e non esce da
+                  lì — e chiedergliela vorrebbe dire lasciarlo chiuso fuori
+                  proprio mentre fa l'unica cosa che gli abbiamo chiesto. */}
               <Campo label="Nuova password *">
                 <input
                   name="nuova"

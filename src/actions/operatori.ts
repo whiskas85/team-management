@@ -127,7 +127,23 @@ export async function cambiaPassword(_prev: StatoForm, fd: FormData): Promise<St
   if (nuova !== conferma) return { errore: 'Le due password non coincidono.' };
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: me.id } });
-  if (!(await verifyPassword(attuale, user.passwordHash))) {
+
+  /*
+   * Chi è già davanti al cambio obbligatorio non deve ridire la password di
+   * prima — e spesso non la sa nemmeno.
+   *
+   * Da quando l'accesso si consegna con un link monouso, quella password
+   * l'ha generata il gestionale e non l'ha mai vista nessuno: chiederla qui
+   * vorrebbe dire lasciare la persona chiusa fuori proprio mentre sta
+   * facendo l'unica cosa che le abbiamo chiesto. La sessione è già aperta, e
+   * l'ha aperta o chi conosceva la password provvisoria o chi aveva in mano
+   * il link: la prova di identità è già stata data.
+   *
+   * Fuori dal cambio obbligatorio — dal proprio profilo — la vecchia password
+   * resta obbligatoria: lì serve a proteggere da chi trova il telefono
+   * sbloccato di qualcun altro.
+   */
+  if (!user.deveCambiarePassword && !(await verifyPassword(attuale, user.passwordHash))) {
     return { errore: 'Password attuale errata.' };
   }
 
