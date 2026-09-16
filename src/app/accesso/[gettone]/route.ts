@@ -25,10 +25,24 @@ export async function GET(
   const { gettone } = await params;
   const esito = await verificaGettone(gettone);
 
+  /*
+   * Dove rimandare la gente.
+   *
+   * Non si usa l'indirizzo della richiesta così com'è: dentro al container
+   * quello è `http://0.0.0.0:3000`, e un rimando lì manda il telefono a
+   * sbattere contro un indirizzo che dal mondo non esiste. L'indirizzo vero lo
+   * dice il proxy nelle sue intestazioni, le stesse da cui il gestionale
+   * ricava gli altri link verso sé stesso.
+   */
+  const intestazioni = richiesta.headers;
+  const host = intestazioni.get('x-forwarded-host') ?? intestazioni.get('host');
+  const protocollo = intestazioni.get('x-forwarded-proto') ?? 'http';
+  const base = host ? `${protocollo}://${host}` : richiesta.url;
+
   if (!esito.ok) {
     // Si dice cosa è successo, non di chi fosse: chi apre il link di un altro
     // non deve scoprire a chi apparteneva.
-    return NextResponse.redirect(new URL(`/login?accesso=${esito.motivo}`, richiesta.url));
+    return NextResponse.redirect(new URL(`/login?accesso=${esito.motivo}`, base));
   }
 
   // Chi entra così deve comunque scegliersi una password: il link consegna le
@@ -40,5 +54,5 @@ export async function GET(
   await createSession(esito.userId, false);
   await bruciaGettone(esito.gettoneId);
 
-  return NextResponse.redirect(new URL('/cambia-password', richiesta.url));
+  return NextResponse.redirect(new URL('/cambia-password', base));
 }

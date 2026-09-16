@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.33.2 — 16 settembre 2026
+
+### Corretto
+
+- **Il link di accesso rimandava a un indirizzo che dal mondo non esiste.**
+  Dentro al container la richiesta arriva come `http://0.0.0.0:3000`, e il
+  rimando dopo l'ingresso portava lì: sessione aperta correttamente, e poi il
+  telefono a sbattere contro il nulla. Ora l'indirizzo lo dice il proxy nelle
+  sue intestazioni, come già fa per gli altri link del gestionale.
+
 ## 2.33.1 — 16 settembre 2026
 
 ### Corretto
