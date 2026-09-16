@@ -19,12 +19,15 @@ export function Credenziali({
   utente,
   password,
   link,
+  telefono,
   indirizzo,
 }: {
   utente: string;
   password: string;
   /** Il link che fa entrare una volta sola: quando c'è, nel messaggio va lui. */
   link?: string;
+  /** Il suo numero, solo cifre col prefisso: apre la chat già scritta. */
+  telefono?: string;
   /** L'indirizzo a cui collegarsi, per chi entrerà a mano. */
   indirizzo?: string;
 }) {
@@ -104,15 +107,31 @@ export function Credenziali({
       <Riga etichetta="Password" valore={password} />
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2">
+        {/* Apre WhatsApp sulla chat di questa persona con il messaggio già
+            scritto. L'ultimo tocco — quello che manda — resta suo: WhatsApp
+            non lascia spedire niente di nascosto, ed è giusto così. */}
+        {telefono && (
+          <a
+            href={`https://wa.me/${telefono}?text=${encodeURIComponent(messaggio)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary btn-sm"
+          >
+            <Icona nome="whatsapp" size={15} />
+            Invia su WhatsApp
+          </a>
+        )}
         <button
           type="button"
           onClick={() => copia(messaggio, 'Messaggio')}
-          className="btn-primary btn-sm"
+          className={`btn-sm ${telefono ? 'btn-ghost' : 'btn-primary'}`}
         >
           <Icona nome="carica" size={15} />
           {copiato === 'Messaggio' ? 'Messaggio copiato' : 'Copia il messaggio pronto'}
         </button>
-        <span className="text-[11px] text-muted">da incollare in chat</span>
+        <span className="text-[11px] text-muted">
+          {telefono ? 'si apre la chat col messaggio già scritto' : 'da incollare in chat'}
+        </span>
       </div>
 
       {fallito && (

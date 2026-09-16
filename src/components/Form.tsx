@@ -54,6 +54,7 @@ export function FormAzione({
           utente={stato.credenziali.utente}
           password={stato.credenziali.password}
           link={stato.credenziali.link}
+          telefono={stato.credenziali.telefono}
           indirizzo={indirizzo}
         />
       )}

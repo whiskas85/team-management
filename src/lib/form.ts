@@ -15,6 +15,8 @@ export type StatoForm = {
     password: string;
     /** Il link che fa entrare una volta sola, se è stato generato. */
     link?: string;
+    /** Il suo numero, già pronto per WhatsApp: serve al pulsante che apre la chat. */
+    telefono?: string;
   };
   /**
    * Chiave appena creata per un assistente. Come le credenziali viaggia a

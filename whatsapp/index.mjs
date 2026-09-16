@@ -90,15 +90,35 @@ async function avvia() {
       stato.collegato = false;
       const codice = new Boom(lastDisconnect?.error)?.output?.statusCode;
       const uscito = codice === DisconnectReason.loggedOut;
+
+      // Il 515 non è un guasto: è quello che WhatsApp manda subito dopo la
+      // scansione del codice. La connessione va rifatta da capo, e solo al
+      // secondo giro l'abbinamento si completa. Detto così invece che come
+      // "connessione caduta" si capisce che sta andando bene.
+      const abbinamento = codice === DisconnectReason.restartRequired;
+      if (abbinamento) log.warn('codice accettato dal telefono: riparto per completare');
+
       stato.ultimoErrore = uscito
         ? 'Sessione chiusa da WhatsApp: serve ricollegare il numero.'
-        : `Connessione caduta (${codice ?? 'motivo sconosciuto'}), riprovo.`;
+        : abbinamento
+          ? 'Telefono agganciato: sto completando il collegamento.'
+          : `Connessione caduta (${codice ?? 'motivo sconosciuto'}), riprovo.`;
 
       // se l'hanno scollegato dal telefono non ha senso insistere: la sessione
       // è morta e va rifatta a mano
       if (!uscito && stato.riavvii < 20) {
         stato.riavvii++;
-        setTimeout(avvia, Math.min(30_000, 2000 * stato.riavvii));
+        // subito dopo la scansione non si fa aspettare: ogni secondo in più è
+        // un secondo in cui chi ha appena inquadrato non vede succedere niente
+        const attesa = abbinamento ? 500 : Math.min(30_000, 2000 * stato.riavvii);
+        // se il riavvio va storto lo si legge: un `setTimeout` che rifiuta in
+        // silenzio lascia il ponte fermo senza dire perché
+        setTimeout(() => {
+          avvia().catch((e) => {
+            stato.ultimoErrore = `Riavvio non riuscito: ${e.message}`;
+            log.error({ err: e }, 'riavvio del ponte non riuscito');
+          });
+        }, attesa);
       }
     }
   });

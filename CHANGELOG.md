@@ -5,6 +5,31 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.34.0 — 16 settembre 2026
+
+### Corretto
+
+- **Il codice QR di WhatsApp adesso si collega davvero.** Era disegnato una
+  volta sola, quando si apriva la pagina — ma WhatsApp lo cambia ogni venti
+  secondi: quello che si inquadrava era quasi sempre già scaduto, e il telefono
+  non faceva niente. Ora il riquadro se lo riprende da solo ogni pochi secondi.
+- **E resta a guardare anche dopo la scansione.** Appena il telefono accetta,
+  WhatsApp chiude la connessione con un errore (515) e il ponte deve ripartire
+  da capo per completare l'abbinamento: per qualche secondo non c'è né codice
+  né collegamento. Prima sembrava un fallimento, adesso si legge «telefono
+  agganciato: sto completando il collegamento», il ponte riparte in mezzo
+  secondo invece che in due, e quando entra la pagina si aggiorna da sola.
+- Se il riavvio del ponte fallisce, ora lo si legge nei log e nella pagina:
+  prima falliva in silenzio e restava tutto fermo senza spiegazioni.
+
+### Aggiunto
+
+- **«Invia su WhatsApp» dopo il reset di una password.** Apre la chat di quella
+  persona con il messaggio già scritto — utente e link di accesso — e resta a
+  te l'ultimo tocco, quello che manda. Compare solo se di quella persona
+  abbiamo un numero; il pulsante per copiare il messaggio resta lì accanto per
+  tutti gli altri casi.
+
 ## 2.33.2 — 16 settembre 2026
 
 ### Corretto

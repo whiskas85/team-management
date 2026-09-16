@@ -10,6 +10,7 @@ import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
+import { CodiceWhatsapp } from '@/components/CodiceWhatsapp';
 import {
   accendiTesto,
   aggiungiTesti,
@@ -127,26 +128,10 @@ export default async function MessaggiPage() {
           </div>
         </div>
 
-        {/* il codice si inquadra una volta sola: poi la sessione resta nel volume */}
-        {!ponte.collegato && ponte.qr && (
-          <div className="mt-4 flex flex-col items-center gap-3 border-t border-line pt-4">
-            <p className="text-sm text-muted">
-              Su WhatsApp: <strong className="text-ink">Impostazioni → Dispositivi collegati →
-              Collega un dispositivo</strong>, poi inquadra.
-            </p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={ponte.qr}
-              alt="Codice da inquadrare con WhatsApp"
-              className="rounded-lg bg-white p-2"
-              width={280}
-              height={280}
-            />
-            <p className="text-xs text-muted">
-              Il codice cambia ogni minuto: se scade, ricarica la pagina.
-            </p>
-          </div>
-        )}
+        {/* Il codice si inquadra una volta sola — poi la sessione resta nel
+            volume — ma va inseguito mentre si inquadra: WhatsApp lo cambia
+            ogni venti secondi, e il riquadro se lo riprende da solo. */}
+        {!ponte.collegato && <CodiceWhatsapp iniziale={ponte} />}
 
         {mio && (
           <div className="mt-4 border-t border-line pt-4">

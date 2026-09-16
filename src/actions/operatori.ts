@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db';
 import { hashPassword, requireUser, verifyPassword } from '@/lib/auth';
 import { isAdmin, isContatto, puoVedereNuovi, puoVedereOperatori } from '@/lib/domain';
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
+import { perWhatsapp } from '@/lib/telefono';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
 
@@ -364,6 +365,7 @@ export async function resettaPassword(_prev: StatoForm, fd: FormData): Promise<S
       utente: utente.callsign || utente.email || utente.telefono || '',
       password: nuova,
       link: host ? `${protocollo}://${host}/accesso/${gettone}` : undefined,
+      telefono: perWhatsapp(utente.telefono) ?? undefined,
     },
   };
 }
