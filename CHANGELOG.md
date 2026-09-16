@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.33.1 — 16 settembre 2026
+
+### Corretto
+
+- **Il link di accesso non faceva entrare.** Era scritto come pagina, e in
+  Next.js una pagina non può scrivere il cookie di sessione: quel cookie lo
+  mettono solo un'azione o una rotta. Risultato: il gettone veniva consumato,
+  la sessione non nasceva, e chi apriva il link restava fuori — con un link
+  ormai bruciato che al secondo tentativo rispondeva «già usato» senza che
+  nessuno l'avesse usato. Ora è una rotta.
+- **Verificare e bruciare sono due gesti separati.** Prima si guarda se il
+  gettone vale, poi si apre la sessione, e solo alla fine lo si spegne: se
+  qualcosa va storto nel mezzo il link resta buono e si può riprovare.
+- **Chi arriva con un link scaduto o già usato ora lo legge**: sulla pagina di
+  accesso compare una riga che dice cosa è successo, invece di lasciarlo
+  davanti a un modulo che non spiega niente.
+
+> I link mandati con la 2.33.0 sono da rifare: quelli si sono bruciati senza
+> far entrare nessuno. Basta rigenerare la password e mandare il messaggio nuovo.
+
 ## 2.33.0 — 16 settembre 2026
 
 ### Aggiunto

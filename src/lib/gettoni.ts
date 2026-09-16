@@ -49,17 +49,23 @@ export async function creaGettone(userId: string, creatoDaId?: string): Promise<
 }
 
 export type EsitoGettone =
-  | { ok: true; userId: string }
+  | { ok: true; userId: string; gettoneId: string }
   | { ok: false; motivo: 'sconosciuto' | 'usato' | 'scaduto' };
 
 /**
- * Verifica un gettone e lo consuma.
+ * Guarda se il gettone vale, **senza consumarlo**.
+ *
+ * Verificare e bruciare sono due gesti separati apposta: prima si apre la
+ * sessione, poi si spegne il gettone. Facendo il contrario — ed è l'errore
+ * che c'era qui il 16 settembre 2026 — un intoppo nel mezzo lasciava la
+ * persona fuori con un link ormai bruciato, che al secondo tentativo
+ * rispondeva «già usato» senza che nessuno l'avesse usato.
  *
  * Il confronto sull'impronta passa da `timingSafeEqual` più che altro per
  * abitudine: la ricerca è su un indice unico, e chi tira a indovinare deve
  * comunque azzeccare ventiquattro byte casuali.
  */
-export async function consumaGettone(gettone: string): Promise<EsitoGettone> {
+export async function verificaGettone(gettone: string): Promise<EsitoGettone> {
   if (!gettone) return { ok: false, motivo: 'sconosciuto' };
 
   const atteso = impronta(gettone);
@@ -73,10 +79,13 @@ export async function consumaGettone(gettone: string): Promise<EsitoGettone> {
   if (riga.usatoIl) return { ok: false, motivo: 'usato' };
   if (riga.scadeIl < new Date()) return { ok: false, motivo: 'scaduto' };
 
+  return { ok: true, userId: riga.userId, gettoneId: riga.id };
+}
+
+/** Spegne il gettone: da qui in poi quel link non apre più niente. */
+export async function bruciaGettone(gettoneId: string): Promise<void> {
   await prisma.gettoneAccesso.update({
-    where: { id: riga.id },
+    where: { id: gettoneId },
     data: { usatoIl: new Date() },
   });
-
-  return { ok: true, userId: riga.userId };
 }

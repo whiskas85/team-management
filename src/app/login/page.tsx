@@ -81,8 +81,21 @@ export const dynamic = 'force-dynamic';
  * poi i sottotitoli e le righe del terminale — e resta sempre quella che dice
  * in che ambiente si è.
  */
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ accesso?: string }>;
+}) {
   const debug = process.env.DEBUG_LOGIN === '1';
+
+  // chi arriva da un link di accesso che non vale più: si dice cosa è
+  // successo, invece di lasciarlo davanti a un modulo che non aspettava
+  const { accesso } = await searchParams;
+  const avvisoLink = {
+    usato: 'Quel link era già stato usato: vale una volta sola. Entra con la tua password, o fattene mandare un altro.',
+    scaduto: 'Quel link è scaduto. Entra con la tua password, o fattene mandare un altro.',
+    sconosciuto: 'Quel link non è valido: forse è stato copiato a metà.',
+  }[accesso ?? ''];
 
   const righe: RigaTerminale[] = [
     { testo: 'CONNESSIONE AL GESTIONALE', esito: 'OK' },
@@ -104,6 +117,12 @@ export default function LoginPage() {
       className={`${pixel.variable} ${titoli.variable} ${terminale.variable} login-schermo flex min-h-[100dvh] items-center justify-center px-4 py-[clamp(0.75rem,3dvh,2.5rem)]`}
     >
       <div className="w-full max-w-5xl">
+        {avvisoLink && (
+          <p className="mx-auto mb-4 max-w-xl rounded-md border border-warn/40 bg-warn/10 px-4 py-3 text-center text-sm text-warn">
+            {avvisoLink}
+          </p>
+        )}
+
         <header className="mb-[clamp(0.75rem,2.5dvh,2.5rem)] flex flex-col items-center text-center">
           <h1 className="login-titolo" data-testo="ZERO DARK">
             ZERO DARK
