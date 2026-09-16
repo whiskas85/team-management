@@ -1,4 +1,5 @@
 import { AzioneBottone } from './AzioneBottone';
+import { AnnullaEvento } from './AnnullaEvento';
 import { cambiaStatoEvento, eliminaEvento, rilasciaEvento } from '@/actions/eventi';
 
 /**
@@ -114,15 +115,9 @@ export function AzioniEvento({
           >
             Concludi
           </AzioneBottone>
-          <AzioneBottone
-            azione={cambiaStatoEvento}
-            valori={{ id, status: 'ANNULLATA' }}
-            conferma={`Annullare "${titolo}"? Resterà visibile ma non accetterà più adesioni.`}
-            icona="annulla"
-            className={`btn-danger ${dim}`}
-          >
-            Annulla
-          </AzioneBottone>
+          {/* l'unico cambio di stato che non basta confermare: chiede anche
+              perché, e quel perché resta nello storico */}
+          <AnnullaEvento id={id} titolo={titolo} compatto={compatto} />
           <AzioneBottone
             azione={cambiaStatoEvento}
             valori={{ id, status: 'CREATA' }}

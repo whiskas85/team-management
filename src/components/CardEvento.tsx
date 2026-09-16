@@ -38,6 +38,8 @@ export type EventoLista = {
   mancati: number;
   appelloFatto: boolean;
   mioPresente: boolean | null;
+  /** Perché è saltata: nello storico «annullata» da sola non dice niente. */
+  motivoAnnullamento: string | null;
 };
 
 /**
@@ -204,6 +206,11 @@ export function RigaStorico({ e }: { e: EventoLista }) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
           {e.tipo}
         </p>
+        {e.motivoAnnullamento && (
+          <p className="mt-0.5 text-[11px] text-danger">
+            Annullata: {e.motivoAnnullamento}
+          </p>
+        )}
       </td>
       <td className="whitespace-nowrap text-muted num">{fmtDateTime(e.inizio)}</td>
       <td className="text-muted">{e.campo ?? '—'}</td>
@@ -251,6 +258,9 @@ export function CardStorico({ e }: { e: EventoLista }) {
           <h3 className="mt-1 truncate font-medium">{e.titolo}</h3>
           <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
           {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
+          {e.motivoAnnullamento && (
+            <p className="mt-1 text-xs text-danger">Annullata: {e.motivoAnnullamento}</p>
+          )}
         </div>
         {e.mioPresente === true ? (
           <Badge tono="ok">c'eri</Badge>

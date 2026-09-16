@@ -586,6 +586,14 @@ model Event {
   durataOre             Int?
   visibilita            EventVisibility? // obbligatoria solo al rilascio
   status                EventStatus      @default(CREATA)
+  /// Perché è stata annullata, con le parole di chi l'ha annullata.
+  ///
+  /// «Annullata» da sola, riletta mesi dopo, non dice niente: che sia saltata
+  /// per la pioggia, per il campo occupato o perché eravamo in quattro cambia
+  /// il senso di quella riga nello storico — e cambia le domande che uno si fa
+  /// guardando una stagione intera. Si svuota se l'attività viene riaperta:
+  /// quel motivo riguardava l'annullamento di allora, non quello che verrà.
+  motivoAnnullamento    String?
   inizio                DateTime
   fine                  DateTime?
   /// Dove ci si trova prima di partire: il testo che si legge, e le coordinate

@@ -361,7 +361,19 @@ export async function cambiaStatoEvento(_prev: StatoForm, fd: FormData): Promise
     }
   }
 
-  await prisma.event.update({ where: { id }, data: { status } });
+  // Annullare senza dire perché lascia nello storico una riga muta: fra sei
+  // mesi «annullata» non distingue la pioggia dal campo occupato.
+  const motivo = strOpt(fd, 'motivo');
+  if (status === 'ANNULLATA' && !motivo) {
+    return { errore: 'Scrivi perché l’attività viene annullata: resta scritto nello storico.' };
+  }
+
+  await prisma.event.update({
+    where: { id },
+    // riaprendola il motivo se ne va con lei: raccontava l'annullamento di
+    // allora, e lasciarlo lì farebbe sembrare annullata un'attività viva
+    data: { status, motivoAnnullamento: status === 'ANNULLATA' ? motivo : null },
+  });
 
   aggiorna(id);
   const messaggi: Record<string, string> = {

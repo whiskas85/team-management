@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.31.0 — 16 settembre 2026
+
+### Aggiunto
+
+- **Annullare un'attività adesso chiede perché.** Gli altri cambi di stato
+  restano un clic e una conferma; annullare apre una finestra e vuole una
+  riga: pioggia, campo occupato, eravamo in quattro. È l'unico stato che
+  lascia dietro di sé una riga che da sola non si spiega — e a distanza di
+  mesi «annullata» non distingue una giornata saltata per il tempo da una
+  saltata perché non c'era nessuno.
+- **Il motivo si legge dove serve**: nella fascia in cima alla scheda, così lo
+  trova subito chi si era segnato e viene a vedere cos'è successo; al posto di
+  «le adesioni sono chiuse» nel riquadro delle adesioni; e nello storico,
+  sotto il titolo, sia nella tabella che nelle card del telefono.
+- **Riaprendo l'attività il motivo se ne va con lei.** Raccontava
+  l'annullamento di allora: lasciarlo lì farebbe sembrare annullata
+  un'attività tornata viva.
+
 ## 2.30.1 — 16 settembre 2026
 
 ### Corretto

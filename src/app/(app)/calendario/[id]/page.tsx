@@ -741,7 +741,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
       {evento.status !== 'RILASCIATA' && (
         <div
-          className={`mb-6 flex items-center gap-3 rounded-lg border px-4 py-3 ${
+          className={`mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-4 py-3 ${
             evento.status === 'CREATA'
               ? 'border-warn/40 bg-warn/10 text-warn'
               : evento.status === 'ANNULLATA'
@@ -759,6 +759,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 ? 'Attività annullata: le adesioni sono chiuse.'
                 : 'Attività conclusa: restano solo le presenze registrate.'}
           </span>
+          {/* Il motivo va a capo, tutto intero: è la prima cosa che cerca chi
+              si era segnato e trova l'attività saltata. */}
+          {evento.motivoAnnullamento && (
+            <p className="w-full text-sm">
+              <span className="opacity-70">Motivo: </span>
+              {evento.motivoAnnullamento}
+            </p>
+          )}
         </div>
       )}
 
@@ -1532,7 +1540,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 {evento.status === 'CREATA'
                   ? 'Attività in bozza: non è ancora stata rilasciata.'
                   : evento.status === 'ANNULLATA'
-                    ? 'Attività annullata.'
+                    ? evento.motivoAnnullamento
+                      ? `Attività annullata: ${evento.motivoAnnullamento}`
+                      : 'Attività annullata.'
                     : 'Le adesioni sono chiuse.'}
               </p>
             ) : (

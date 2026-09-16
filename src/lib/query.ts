@@ -146,6 +146,7 @@ export async function eventiPerLista({
     mancati: e.rsvps.filter((r) => r.presente === false).length,
     appelloFatto: e.rsvps.some((r) => r.presente !== null),
     mioPresente: e.rsvps.find((r) => r.userId === userId)?.presente ?? null,
+    motivoAnnullamento: e.motivoAnnullamento,
   }));
 }
 
