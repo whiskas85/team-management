@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.36.1 — 17 settembre 2026
+
+### Corretto
+
+- **Su iPhone il marchio finiva dietro alla tacca.** L'applicazione installata
+  disegna sotto la barra di sistema — è così che si prende tutto lo schermo —
+  ma l'intestazione non lasciava spazio al notch: «ZERO DARK OPS» e il numero
+  di versione restavano nascosti là sotto. Ora quello spazio se lo prende, e
+  solo dove serve: su un telefono senza tacca e sul computer non cambia nulla.
+- **La barra in basso non arrivava a toccare il fondo.** L'altezza della pagina
+  era misurata in `vh`, che su iPhone conta anche la striscia coperta dalle
+  barre del browser: la pagina risultava più alta dello schermo. Ora si misura
+  in `dvh`, quella vera.
+- **E non balla più quando il dito lascia lo schermo**: nel rimbalzo elastico
+  di iOS lo scorrimento va in negativo, e le due barre lo leggevano come «sta
+  risalendo, rimettiti in vista».
+- **Lo spazio in fondo alle pagine tiene conto della barra gesti**: l'ultima
+  riga non finisce più sotto al menu.
+
 ## 2.36.0 — 16 settembre 2026
 
 ### Aggiunto

@@ -478,7 +478,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   for (const v of voci) v.preferito = messiDaParte.has(v.href);
 
   return (
-    <div className="min-h-screen md:pl-60">
+    /* 100dvh e non 100vh: su iPhone il vh conta anche la parte coperta dalle
+       barre del browser, così la pagina risulta più alta dello schermo e la
+       striscia in basso non arriva mai a toccare il fondo. */
+    <div className="min-h-[100dvh] md:pl-60">
       <Nav
         voci={voci}
         preferiti={preferiti}
@@ -510,7 +513,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           è già stata messa. */}
       {/* sul computer sopra c'è la striscia con chi sei: meno spazio in cima,
           o il titolo scende di due centimetri per niente */}
-      <main className="px-4 pb-28 pt-5 md:px-8 md:pb-12 md:pt-2">
+      {/* lo spazio in fondo tiene conto anche della barra gesti dell'iPhone:
+          senza, l'ultima riga di ogni pagina finisce sotto il menu */}
+      <main className="px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-12 md:pt-2">
         <div className="mx-auto max-w-6xl">
           <ContestoMenu voci={voci}>{children}</ContestoMenu>
         </div>

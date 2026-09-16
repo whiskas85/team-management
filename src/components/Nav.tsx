@@ -83,7 +83,10 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
 
   useEffect(() => {
     const scorri = () => {
-      const y = window.scrollY;
+      // su iPhone la pagina rimbalza oltre i bordi e scrollY diventa negativa
+      // o supera il fondo: senza questo taglio le barre si mettono a ballare
+      // proprio nel momento in cui il dito lascia lo schermo
+      const y = Math.max(0, window.scrollY);
       // in cima non si nasconde mai, e sotto i venti pixel di differenza si
       // resta fermi: senza, la barra sfarfalla a ogni sussulto del dito
       if (y < 80) setBarreVia(false);
@@ -230,7 +233,13 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
       {/* un solo accesso al menu: quello della barra in basso, dove arriva il
           pollice. Un secondo hamburger qui sopra ripeteva la stessa strada */}
       <header
-        className={`sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-2.5 backdrop-blur transition-transform duration-200 md:border-0 md:bg-transparent md:px-8 md:py-3 md:translate-y-0 ${
+        /* Il padding in cima somma la tacca: su iPhone l'applicazione
+           installata disegna **sotto** la barra di sistema (statusBarStyle
+           black-translucent con viewport-fit=cover), e senza questo spazio il
+           marchio e la versione finiscono dietro al notch — invisibili, come
+           se la riga fosse tagliata. Dove la tacca non c'è, env() vale zero e
+           non cambia niente. */
+        className={`sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/95 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur transition-transform duration-200 md:border-0 md:bg-transparent md:px-8 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top))] md:translate-y-0 ${
           nascoste ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
