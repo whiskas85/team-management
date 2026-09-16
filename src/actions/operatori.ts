@@ -332,7 +332,7 @@ export async function resettaPassword(_prev: StatoForm, fd: FormData): Promise<S
   const userId = str(fd, 'userId');
   const utente = await prisma.user.findUnique({
     where: { id: userId },
-    select: { nome: true, cognome: true, email: true },
+    select: { nome: true, cognome: true, email: true, callsign: true, telefono: true },
   });
   if (!utente) return { errore: 'Operatore non trovato.' };
 
@@ -343,12 +343,28 @@ export async function resettaPassword(_prev: StatoForm, fd: FormData): Promise<S
     data: { passwordHash: await hashPassword(nuova), deveCambiarePassword: true },
   });
 
+  // Il link che fa entrare una volta sola: vale sette giorni e si brucia al
+  // primo uso. È lui che consegna l'accesso, non la password — che resta
+  // sotto, per chi dovesse entrare da un altro dispositivo.
+  const { creaGettone } = await import('@/lib/gettoni');
+  const { headers } = await import('next/headers');
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const protocollo = h.get('x-forwarded-proto') ?? 'http';
+  const gettone = await creaGettone(userId, me.id);
+
   aggiorna(userId);
   return {
     ok:
-      `Password nuova per ${utente.nome} ${utente.cognome}. Consegnagliela adesso: ` +
-      'non verrà più mostrata. Al primo accesso dovrà sceglierne una sua.',
-    credenziali: { utente: utente.email, password: nuova },
+      `Password nuova per ${utente.nome} ${utente.cognome}. Mandagli il messaggio adesso: ` +
+      'il link vale sette giorni e si usa una volta sola.',
+    credenziali: {
+      // Come si presenta al login: il callsign se ce l'ha — è quello che si
+      // ricorda — poi l'email, e per ultimo il telefono, che vale lo stesso.
+      utente: utente.callsign || utente.email || utente.telefono || '',
+      password: nuova,
+      link: host ? `${protocollo}://${host}/accesso/${gettone}` : undefined,
+    },
   };
 }
 

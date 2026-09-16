@@ -21,10 +21,12 @@ export async function accedi(_prev: StatoForm, fd: FormData): Promise<StatoForm>
   const identita = testo(fd, 'email').toLowerCase();
   const password = testo(fd, 'password');
 
-  if (!identita || !password) return { errore: 'Inserisci email o callsign, e la password.' };
+  if (!identita || !password) {
+    return { errore: 'Inserisci callsign, email o telefono, e la password.' };
+  }
 
-  // si entra con l'email o con il callsign: chi ne ha uno se lo ricorda meglio
-  // dell'indirizzo. Il confronto sul callsign ignora le maiuscole
+  // Si entra con quello che uno si ricorda: il callsign, l'email o il proprio
+  // numero di telefono. Il confronto sul callsign ignora le maiuscole.
   let user = await prisma.user.findUnique({ where: { email: identita } });
 
   if (!user) {
@@ -38,6 +40,28 @@ export async function accedi(_prev: StatoForm, fd: FormData): Promise<StatoForm>
       return { errore: 'Questo callsign appartiene a più operatori: entra con l’email.' };
     }
     user = perCallsign[0] ?? null;
+  }
+
+  // Il telefono si confronta a sole cifre: in rubrica lo stesso numero è
+  // scritto in cinque modi — con il prefisso, con gli spazi, con il trattino —
+  // e chi entra digita quello che ha in testa. Si guardano le ultime nove
+  // cifre, così "+39 333 1234567" e "3331234567" sono la stessa persona.
+  if (!user) {
+    const cifre = identita.replace(/\D/g, '');
+    if (cifre.length >= 8) {
+      const coda = cifre.slice(-9);
+      const perTelefono = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "User"
+        WHERE regexp_replace(COALESCE(telefono, ''), '[^0-9]', '', 'g') LIKE ${'%' + coda}
+          AND telefono IS NOT NULL AND telefono <> ''
+        LIMIT 2`;
+      if (perTelefono.length > 1) {
+        return { errore: 'Questo numero risulta a più operatori: entra con l’email.' };
+      }
+      if (perTelefono[0]) {
+        user = await prisma.user.findUnique({ where: { id: perTelefono[0].id } });
+      }
+    }
   }
 
   if (!user || !(await verifyPassword(password, user.passwordHash))) {

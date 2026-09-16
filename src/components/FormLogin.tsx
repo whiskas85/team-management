@@ -17,8 +17,8 @@ export type RigaTerminale = {
 /**
  * Il modulo di accesso, con la faccia da terminale.
  *
- * Si entra con l'email o con il callsign, come sempre: le etichette sono
- * cambiate, i campi no. «Ricordami» resta spuntato di partenza, perché chi
+ * Si entra con il callsign, l'email o il proprio numero di telefono: quello
+ * che uno si ricorda. «Ricordami» resta spuntato di partenza, perché chi
  * apre il gestionale dal telefono della squadra non vuole riscrivere la
  * password ogni sabato.
  */
@@ -55,7 +55,7 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
             spellCheck={false}
             required
             className="login-campo"
-            placeholder="email o callsign"
+            placeholder="callsign, email o telefono"
           />
         </div>
 

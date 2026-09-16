@@ -5,6 +5,34 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.33.0 — 16 settembre 2026
+
+### Aggiunto
+
+- **Si entra anche col proprio numero di telefono**, oltre che con callsign ed
+  email. Il confronto guarda le sole cifre, le ultime nove: in rubrica lo
+  stesso numero è scritto in cinque modi — col prefisso, con gli spazi, col
+  trattino — e chi entra digita quello che ha in testa. Se quel numero risulta
+  a due persone il gestionale lo dice e chiede l'email, come già faceva per i
+  callsign doppi.
+- **Il reset della password consegna un link, non una password.** Il messaggio
+  da incollare in chat adesso contiene come ci si chiama — il callsign, o
+  l'email, o il telefono — e un link che fa entrare con un tocco e porta
+  dritto alla scelta della password.
+
+### Cambiato
+
+- **Nel messaggio la password non c'è più.** Scritta in chat resta lì per
+  sempre e la legge chiunque si trovi quel telefono in mano. Il link invece
+  **vale sette giorni, si brucia al primo uso**, e nel database non è
+  conservato: ce n'è solo l'impronta, come per le password. Un messaggio
+  inoltrato per sbaglio, o ripescato in una chat mesi dopo, non apre più
+  niente. La password generata resta visibile nel riquadro, fuori dal
+  messaggio: serve a dettarla a voce a chi ce l'hai davanti.
+- **Nel messaggio si legge il callsign** invece dell'email, quando c'è: è
+  quello che uno si ricorda, ed è quello che deve scrivere nel primo campo al
+  secondo accesso, quando il link non vale più.
+
 ## 2.32.0 — 16 settembre 2026
 
 ### Aggiunto

@@ -9,7 +9,13 @@ export type StatoForm = {
    * ricopiare a mano una password di dodici caratteri è il modo più sicuro per
    * sbagliarla e far tornare la persona a chiedere.
    */
-  credenziali?: { utente: string; password: string };
+  credenziali?: {
+    /** Come si presenta al login: callsign se ce l'ha, altrimenti email, altrimenti telefono. */
+    utente: string;
+    password: string;
+    /** Il link che fa entrare una volta sola, se è stato generato. */
+    link?: string;
+  };
   /**
    * Chiave appena creata per un assistente. Come le credenziali viaggia a
    * parte, e per lo stesso motivo: si vede una volta sola e va copiata, non

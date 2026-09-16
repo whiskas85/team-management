@@ -53,6 +53,7 @@ export function FormAzione({
         <Credenziali
           utente={stato.credenziali.utente}
           password={stato.credenziali.password}
+          link={stato.credenziali.link}
           indirizzo={indirizzo}
         />
       )}

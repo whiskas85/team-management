@@ -18,24 +18,51 @@ import { Icona } from './Icona';
 export function Credenziali({
   utente,
   password,
+  link,
   indirizzo,
 }: {
   utente: string;
   password: string;
-  /** L'indirizzo a cui collegarsi, se lo si vuole nel messaggio. */
+  /** Il link che fa entrare una volta sola: quando c'è, nel messaggio va lui. */
+  link?: string;
+  /** L'indirizzo a cui collegarsi, per chi entrerà a mano. */
   indirizzo?: string;
 }) {
   const [copiato, setCopiato] = useState<string | null>(null);
   const [fallito, setFallito] = useState(false);
 
-  const messaggio = [
-    'Accesso a Zero Dark Ops',
-    indirizzo ? `Indirizzo: ${indirizzo}` : null,
-    `Utente: ${utente}`,
-    `Password: ${password}`,
-    'Al primo accesso ti verrà chiesto di sceglierne una tua.',
-  ]
-    .filter(Boolean)
+  /*
+   * Nel messaggio la password non c'è.
+   *
+   * Scritta in chat resta lì per sempre, la legge chiunque si trovi quel
+   * telefono in mano e va bene finché non viene cambiata. Il link invece vale
+   * sette giorni, si spegne al primo uso e porta dritto alla scelta della
+   * password: è la stessa comodità senza la coda.
+   *
+   * Resta scritto **come si chiama** questa persona per il gestionale — il suo
+   * callsign, o l'email, o il telefono — perché al secondo accesso il link non
+   * c'è più e bisogna sapere cosa scrivere nel primo campo.
+   */
+  const messaggio = (
+    link
+      ? [
+          'Accesso a Zero Dark Ops',
+          `Il tuo utente: ${utente}`,
+          '',
+          'Entra da qui:',
+          link,
+          '',
+          'Il link vale 7 giorni e si usa una volta sola: ti fa entrare e ti chiede di scegliere la tua password.',
+        ]
+      : [
+          'Accesso a Zero Dark Ops',
+          indirizzo ? `Indirizzo: ${indirizzo}` : null,
+          `Il tuo utente: ${utente}`,
+          `Password: ${password}`,
+          'Al primo accesso ti verrà chiesto di sceglierne una tua.',
+        ]
+  )
+    .filter((r) => r !== null)
     .join('\n');
 
   const copia = async (testo: string, cosa: string) => {
@@ -71,6 +98,9 @@ export function Credenziali({
   return (
     <div className="space-y-2 rounded-md border border-nvg/40 bg-nvg/5 p-3">
       <Riga etichetta="Utente" valore={utente} />
+      {link && <Riga etichetta="Link" valore={link} />}
+      {/* La password resta qui sotto, ma fuori dal messaggio: serve a dettarla
+          a voce se il link non arriva o se la persona è davanti a te. */}
       <Riga etichetta="Password" valore={password} />
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2">

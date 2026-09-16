@@ -229,6 +229,8 @@ model User {
   casseGestite          Cassa[]                 @relation("GestoriCassa")
   rifiutiDecisi         RifiutoRegistrazione[]  @relation("RifiutiDecisi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
+  gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
+  gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
 
   @@index([stato])
 }
@@ -1388,6 +1390,33 @@ enum StatoRiordino {
 /// È il contrario di un ordine del merchandising — lì la squadra compra dal
 /// team, qui il team compra dal fornitore — e per questo tocca la cassa dalla
 /// parte delle **uscite**, non degli incassi.
+/// Il link che fa entrare una volta sola.
+///
+/// Nasce quando l'admin resetta una password: invece di dettare dodici
+/// caratteri a voce, si manda un link. Chi lo apre entra e si trova davanti
+/// alla scelta della password, che è l'unica cosa che deve fare.
+///
+/// **Del gettone si conserva solo l'impronta**, come per le password: se il
+/// database finisse nelle mani sbagliate, quello che c'è dentro non fa entrare
+/// nessuno. Vale pochi giorni e si brucia al primo uso: un messaggio inoltrato
+/// per sbaglio, o ripescato in una chat mesi dopo, non apre più niente.
+model GettoneAccesso {
+  id         String    @id @default(cuid())
+  userId     String
+  utente     User      @relation("GettoniDi", fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 del gettone, con la chiave dell'installazione.
+  hash       String    @unique
+  creatoIl   DateTime  @default(now())
+  scadeIl    DateTime
+  /// Quando è stato speso: da lì in poi non vale più.
+  usatoIl    DateTime?
+  /// Chi l'ha generato, per sapere chi ha consegnato le chiavi di casa.
+  creatoDaId String?
+  creatoDa   User?     @relation("GettoniCreati", fields: [creatoDaId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
 /// Un dispositivo che ha accettato di ricevere le notifiche.
 ///
 /// Una riga per **dispositivo**, non per persona: chi ha telefono e computer
