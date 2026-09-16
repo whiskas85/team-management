@@ -20,6 +20,7 @@ import {
   inviaMessaggiPronti,
   preparaMessaggiDiOggi,
   preparaSollecito,
+  ricominciaWhatsapp,
   rivendicaWhatsapp,
   salvaModello,
   salvaTesto,
@@ -122,6 +123,16 @@ export default async function MessaggiPage() {
               <FormAzione azione={scollegaWhatsapp} className="contents">
                 <Invia icona="esci" className="btn-danger btn-sm">
                   Scollega
+                </Invia>
+              </FormAzione>
+            )}
+            {/* La via d'uscita quando il ponte è incastrato: sessione chiusa da
+                WhatsApp, nessun codice, e "Scollega" che non compare perché
+                quel collegamento non risulta di nessuno. */}
+            {!ponte.collegato && (
+              <FormAzione azione={ricominciaWhatsapp} className="contents">
+                <Invia icona="riapri" className="btn-ghost btn-sm">
+                  Ricomincia il collegamento
                 </Invia>
               </FormAzione>
             )}

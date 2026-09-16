@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.34.1 — 16 settembre 2026
+
+### Corretto
+
+- **Dal «serve ricollegare il numero» non si usciva.** Quando WhatsApp chiude
+  la sessione dall'altra parte, le credenziali morte restavano nel volume: il
+  ponte continuava a rimuginare su una connessione che non esisteva più e un
+  codice nuovo non lo mostrava mai. E il pulsante *Scollega* compare solo a chi
+  quel collegamento l'aveva fatto, quindi spesso non compariva a nessuno.
+  Adesso il ponte, quando lo scollegano, **butta via la sessione e riparte da
+  solo**: il codice ricompare senza che nessuno debba toccare niente.
+- **C'è anche il pulsante «Ricomincia il collegamento»**, per l'admin, ogni
+  volta che il ponte non è collegato. Non pretende che quel collegamento sia
+  tuo: un ponte incastrato non è di nessuno.
+- *Scollega* ora fa il lavoro fino in fondo — saluta WhatsApp, azzera la
+  sessione e riparte — invece di lasciare le credenziali vecchie sul disco.
+
 ## 2.34.0 — 16 settembre 2026
 
 ### Corretto

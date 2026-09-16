@@ -89,6 +89,28 @@ export async function scollegaWhatsapp(_prev: StatoForm, _fd: FormData): Promise
   return { ok: 'Numero scollegato: la sessione sul ponte è chiusa.' };
 }
 
+/**
+ * «Ricomincia da capo»: butta la sessione del ponte e chiedi un codice nuovo.
+ *
+ * A differenza di *Scollega*, **non pretende che il collegamento sia tuo**: è
+ * il rimedio a un ponte incastrato, e un ponte incastrato non è di nessuno.
+ * Capitava quando WhatsApp chiudeva la sessione dall'altra parte — dal
+ * telefono, o perché è passato troppo tempo: il gestionale diceva «serve
+ * ricollegare il numero» e non dava nessun modo di farlo, perché il pulsante
+ * per scollegare compare solo a chi quel collegamento l'aveva fatto.
+ */
+export async function ricominciaWhatsapp(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce il collegamento.' };
+
+  await scollegaPonte();
+  // la rivendicazione non vale più: quel numero non è più collegato
+  await prisma.collegamentoWhatsapp.deleteMany({ where: { id: 'whatsapp' } });
+
+  aggiorna();
+  return { ok: 'Ponte azzerato: fra pochi secondi compare un codice nuovo da inquadrare.' };
+}
+
 /** Il gruppo su cui scrivere di solito. */
 export async function scegliGruppo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();

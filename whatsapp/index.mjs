@@ -18,6 +18,7 @@
 
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
+import { mkdir, rm } from 'node:fs/promises';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
 import QRCode from 'qrcode';
@@ -48,6 +49,24 @@ const stato = {
   ultimoErrore: null,
   riavvii: 0,
 };
+
+/**
+ * Butta via la sessione salvata e riparte da zero.
+ *
+ * È l'unico modo per tornare a vedere un codice QR quando WhatsApp ha chiuso
+ * la sessione dall'altra parte: finché nella cartella restano le credenziali
+ * morte, Baileys prova a riprendere quella connessione e un codice nuovo non
+ * lo emette mai. Da fuori sembra un ponte rotto che non mostra niente.
+ */
+async function azzeraSessione() {
+  await rm(CARTELLA_SESSIONE, { recursive: true, force: true });
+  await mkdir(CARTELLA_SESSIONE, { recursive: true });
+  stato.collegato = false;
+  stato.numero = null;
+  stato.qr = null;
+  stato.riavvii = 0;
+  log.warn('sessione azzerata: riparto per un codice nuovo');
+}
 
 async function avvia() {
   const { state, saveCreds } = await useMultiFileAuthState(CARTELLA_SESSIONE);
@@ -104,9 +123,22 @@ async function avvia() {
           ? 'Telefono agganciato: sto completando il collegamento.'
           : `Connessione caduta (${codice ?? 'motivo sconosciuto'}), riprovo.`;
 
-      // se l'hanno scollegato dal telefono non ha senso insistere: la sessione
-      // è morta e va rifatta a mano
-      if (!uscito && stato.riavvii < 20) {
+      // Scollegato dal telefono: quella sessione è morta e riprovarla non
+      // serve a niente. Si butta via e si riparte, così sulla pagina ricompare
+      // un codice da inquadrare invece del vicolo cieco in cui il ponte
+      // restava fermo a dire «serve ricollegare il numero» senza dare modo
+      // di farlo.
+      if (uscito) {
+        azzeraSessione()
+          .then(() => avvia())
+          .catch((e) => {
+            stato.ultimoErrore = `Non sono riuscito a ripartire: ${e.message}`;
+            log.error({ err: e }, 'azzeramento della sessione non riuscito');
+          });
+        return;
+      }
+
+      if (stato.riavvii < 20) {
         stato.riavvii++;
         // subito dopo la scansione non si fa aspettare: ogni secondo in più è
         // un secondo in cui chi ha appena inquadrato non vede succedere niente
@@ -198,11 +230,16 @@ const server = createServer(async (req, res) => {
       return rispondi(res, 200, { id: esito?.key?.id ?? 'inviato' });
     }
 
+    // Scollegare non è solo dire addio a WhatsApp: è anche buttare via le
+    // credenziali salvate qui. Senza, il ponte resterebbe a rimuginare su una
+    // sessione che non esiste più, e il codice nuovo non arriverebbe mai.
     if (req.method === 'POST' && url.pathname === '/scollega') {
       if (stato.socket) await stato.socket.logout().catch(() => null);
-      stato.collegato = false;
-      stato.numero = null;
-      stato.qr = null;
+      await azzeraSessione();
+      avvia().catch((e) => {
+        stato.ultimoErrore = `Non sono riuscito a ripartire: ${e.message}`;
+        log.error({ err: e }, 'riavvio dopo lo scollegamento non riuscito');
+      });
       return rispondi(res, 200, { ok: true });
     }
 
