@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.36.0 — 16 settembre 2026
+
+### Aggiunto
+
+- **Quando esce un'attività nuova, il telefono suona.** La notifica dice il
+  titolo, quando e dove — «sabato 20 settembre, 09:00 · Campo Dragon, Chivasso»
+  — e toccandola si apre la scheda dell'attività, non una pagina qualunque.
+- **La riceve chi quell'attività la può vedere**: aperta a tutti vuol dire
+  anche i nuovi, di squadra vuol dire chi è in rosa, e su invito non si avvisa
+  nessuno — al rilascio i partecipanti non ci sono ancora, e suonare per una
+  cosa che non si può nemmeno aprire è il modo migliore per far spegnere le
+  notifiche a tutti. Chi la rilascia non viene avvisato: lo sa già.
+- **Suona una volta sola**, alla prima uscita dalla bozza. Cambiare i
+  destinatari o riaprire un'attività conclusa non è una novità per nessuno.
+- Nella riga non ci sono nomi né conti: una notifica si legge sullo schermo
+  bloccato, spesso in mezzo ad altri.
+
 ## 2.35.1 — 16 settembre 2026
 
 ### Aggiunto

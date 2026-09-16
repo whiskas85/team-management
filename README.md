@@ -364,8 +364,17 @@ gestionale è stato installato dalla schermata iniziale — è una regola di App
 
 **Nel messaggio non finiscono dati di nessuno**: titolo, una riga e dove
 andare. Una notifica si legge sullo schermo bloccato, e lì la legge chiunque
-abbia in mano il telefono. Oggi ne parte una sola — una registrazione da
-approvare — e la riceve chi quelle richieste le può decidere.
+abbia in mano il telefono.
+
+Oggi ne partono due:
+
+- **una registrazione da approvare**, a chi quelle richieste le può decidere;
+- **un'attività appena rilasciata**, a chi la può vedere — aperta a tutti vuol
+  dire anche i nuovi, di squadra vuol dire chi è in rosa, su invito non
+  avvisa nessuno perché al rilascio i partecipanti non ci sono ancora. Dice
+  quando e dove, e toccandola si apre la scheda. Parte **solo alla prima
+  uscita dalla bozza**: ritoccare o riaprire un'attività non fa suonare di
+  nuovo niente.
 
 Servono le chiavi `VAPID_*` nell'ambiente, **una coppia per installazione**: si
 generano con `npx web-push generate-vapid-keys --json`. Senza, il gestionale

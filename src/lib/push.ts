@@ -76,6 +76,36 @@ export async function avvisa(userIds: string[], avviso: Avviso): Promise<void> {
   );
 }
 
+/**
+ * Chi può vedere un'attività appena rilasciata, e quindi a chi ha senso
+ * mandare l'avviso.
+ *
+ * Sono le stesse regole del calendario, dette per le notifiche: aperta a
+ * tutti vuol dire anche i nuovi, di squadra vuol dire chi è in rosa, e **su
+ * invito non si avvisa nessuno** — al momento del rilascio i partecipanti non
+ * ci sono ancora, e mandare a tutti un avviso per una cosa che non possono
+ * nemmeno aprire è il modo migliore per far spegnere le notifiche.
+ *
+ * Chi ha rilasciato l'attività resta fuori: lo sa già.
+ */
+export async function chiVedeAttivita(
+  visibilita: string | null,
+  escluso?: string,
+): Promise<string[]> {
+  if (visibilita === 'INVITO') return [];
+
+  const stati =
+    visibilita === 'TUTTI'
+      ? (['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'NUOVO'] as const)
+      : (['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] as const);
+
+  const utenti = await prisma.user.findMany({
+    where: { stato: { in: [...stati] }, id: escluso ? { not: escluso } : undefined },
+    select: { id: true },
+  });
+  return utenti.map((u) => u.id);
+}
+
 /** Chi tiene d'occhio le persone che bussano: a loro arrivano le registrazioni. */
 export async function chiSegueINuovi(): Promise<string[]> {
   const utenti = await prisma.user.findMany({

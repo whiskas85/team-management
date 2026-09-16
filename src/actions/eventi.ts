@@ -313,6 +313,33 @@ async function togliQuotaCassa(quota: { id: string; eventId: string; cassaId: st
  * Rilascio: qui la destinazione diventa obbligatoria, perché è il momento in
  * cui l'attività comincia a essere visibile a qualcuno.
  */
+/**
+ * La riga che si legge sullo schermo bloccato: quando, dove, e quanto costa.
+ *
+ * Tre informazioni e basta. Una notifica la legge chi ha il telefono in mano
+ * in quel momento — al bar, sul tram, in mezzo ad altri — quindi niente nomi
+ * di persone e niente conti: solo quello che serve a decidere se aprire.
+ */
+function descriviAttivita(e: {
+  inizio: Date;
+  luogo: string | null;
+  field: { nome: string; citta: string | null } | null;
+}): string {
+  const quando = new Intl.DateTimeFormat('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(e.inizio);
+
+  const dove = e.field
+    ? `${e.field.nome}${e.field.citta ? ` · ${e.field.citta}` : ''}`
+    : (e.luogo ?? null);
+
+  return dove ? `${quando} · ${dove}` : quando;
+}
+
 export async function rilasciaEvento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può rilasciare le attività.' };
@@ -332,7 +359,32 @@ export async function rilasciaEvento(_prev: StatoForm, fd: FormData): Promise<St
   const evento = await prisma.event.update({
     where: { id },
     data: { status: 'RILASCIATA', visibilita },
+    include: { field: { select: { nome: true, citta: true } } },
   });
+
+  /*
+   * L'avviso sul telefono parte **solo la prima volta**, cioè quando
+   * l'attività esce dalla bozza. Cambiare i destinatari di una già rilasciata,
+   * o riaprirla dopo, non è una novità per nessuno: suonare di nuovo
+   * insegnerebbe soltanto a spegnere le notifiche.
+   */
+  if (attuale.status === 'CREATA') {
+    const { avvisa, chiVedeAttivita } = await import('@/lib/push');
+    void chiVedeAttivita(visibilita, me.id)
+      .then((chi) =>
+        avvisa(chi, {
+          titolo: `Nuova attività: ${evento.titolo}`,
+          testo: descriviAttivita(evento),
+          url: `/calendario/${evento.id}`,
+          // una sola riga per attività: se si ritocca e si riavvisa, l'avviso
+          // vecchio viene sostituito invece di accumularsi
+          tag: `evento-${evento.id}`,
+        }),
+      )
+      .catch(() => {
+        /* un avviso mancato non deve far fallire un rilascio riuscito */
+      });
+  }
 
   aggiorna(id);
   return {
