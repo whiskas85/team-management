@@ -68,9 +68,9 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
   };
 
   return (
-    /* Larga quanto la colonna sotto: si allarga fino alla faccia in alto a
-       destra, così il suo bordo destro cade dove cade quello del contenuto. */
-    <div ref={contenitore} className="relative hidden w-full flex-1 md:block">
+    /* Larga quanto la colonna sotto: il contenitore intorno le dà la stessa
+       misura del contenuto, e lei la riempie tutta. */
+    <div ref={contenitore} className="relative hidden w-full md:block">
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
         <Icona nome="cerca" size={15} />
       </span>

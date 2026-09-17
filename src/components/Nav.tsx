@@ -259,10 +259,10 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
           className="pointer-events-none absolute inset-x-0 -bottom-6 top-0 -z-10 bg-gradient-to-b from-bg via-bg/92 to-transparent backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
         />
 
-        {/* Allineata alla colonna del contenuto: la riga di ricerca comincia e
-            finisce dove comincia e finisce quello che sta sotto, invece di
-            galleggiare in mezzo a caso. */}
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-2">
+        {/* La riga di ricerca si prende **tutta la colonna** del contenuto, e
+            la faccia se ne sta per conto suo all'estrema destra: appiccicata
+            alla barra sembrava parte della barra. */}
+        <div className="flex w-full items-center gap-3 md:gap-6">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
             <Logo size={30} />
             <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
@@ -273,13 +273,17 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
 
           {/* La riga per saltare a una voce senza cercarla nella colonna: solo
               sul computer — sul telefono la tastiera coprirebbe metà schermo
-              per arrivare dove il pollice arriva già da solo. */}
-          <Omnisearch voci={voci} />
+              per arrivare dove il pollice arriva già da solo. Sta dentro un
+              contenitore largo quanto il contenuto, così i due bordi cadono
+              nello stesso punto. */}
+          <div className="mx-auto w-full max-w-6xl">
+            <Omnisearch voci={voci} />
+          </div>
 
           {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
               La stellina non sta qui: è nella riga del titolo, dove si guarda
               già per sapere su che pagina si è. */}
-          <div className="ml-auto shrink-0">
+          <div className="ml-auto shrink-0 md:ml-0">
             <MenuUtente utente={utente} esci={esci} />
           </div>
         </div>

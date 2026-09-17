@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.39.2 — 17 settembre 2026
+
+### Cambiato
+
+- **La faccia torna all'estrema destra, staccata dalla barra.** Appiccicata al
+  bordo della ricerca sembrava parte della ricerca; ora c'è lo spazio che serve
+  a capire che sono due cose diverse, e la riga di ricerca si prende tutta la
+  colonna del contenuto.
+- **Il callsign non si tronca più.** Era tagliato a centodieci pixel e certi
+  nomi finivano a metà; essendo allineato a destra, adesso cresce verso
+  sinistra — dove lo spazio c'è — e si legge intero.
+
 ## 2.39.1 — 17 settembre 2026
 
 ### Cambiato

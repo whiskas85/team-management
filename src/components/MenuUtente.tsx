@@ -127,7 +127,10 @@ export function MenuUtente({
           aria-haspopup="menu"
           className="flex w-full items-center justify-end gap-2 py-0.5 pl-2.5 pr-0.5"
         >
-          <span className="num max-w-[110px] truncate text-[11px] font-semibold tracking-wide text-nvg">
+          {/* Il nick si legge intero, per lungo che sia: essendo allineato a
+              destra cresce verso sinistra, dove lo spazio c'è. Prima era
+              tagliato a centodieci pixel, e certi nomi finivano a metà. */}
+          <span className="num whitespace-nowrap text-right text-[11px] font-semibold tracking-wide text-nvg">
             {nick}
           </span>
           <Avatar iniziali={utente.iniziali} fotoDi={utente.foto ? utente.id : null} size="sm" />
