@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.39.1 — 17 settembre 2026
+
+### Cambiato
+
+- **La riga di ricerca è larga quanto la colonna sotto.** Comincia e finisce
+  dove comincia e finisce il contenuto, invece di galleggiare in mezzo con una
+  misura sua. Ed è un po' più alta, per non sembrare un ripensamento.
+- **Scorrendo non si vede più la riga fra la parte sfocata e il resto.** La
+  striscia in cima aveva un fondo pieno e un bordo sotto: il taglio fra sfocato
+  e nitido attraversava lo schermo a ogni scorrimento. Ora la sfocatura vive in
+  uno strato a sé che scende qualche pixel più in basso e si spegne sfumando —
+  il contenuto passa sotto e riemerge a fuoco senza che si capisca dove finisce
+  una cosa e comincia l'altra.
+
 ## 2.39.0 — 17 settembre 2026
 
 ### Aggiunto

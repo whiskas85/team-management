@@ -240,29 +240,48 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
            marchio e la versione finiscono dietro al notch — invisibili, come
            se la riga fosse tagliata. Dove la tacca non c'è, env() vale zero e
            non cambia niente. */
-        className={`sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/95 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur transition-transform duration-200 md:border-0 md:bg-transparent md:px-8 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top))] md:translate-y-0 ${
+        className={`sticky top-0 z-30 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] transition-transform duration-200 md:px-8 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top))] md:translate-y-0 ${
           nascoste ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
-        <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
-          <Logo size={30} />
-          <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
-          <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
-            v{VERSIONE}
-          </span>
-        </Link>
+        {/*
+          Lo sfondo sfocato **sfuma**, invece di finire di netto.
 
-        {/* La riga per saltare a una voce senza cercarla nella colonna: sta in
-            mezzo, dove c'era spazio vuoto, e solo sul computer — sul telefono
-            la tastiera coprirebbe metà schermo per arrivare dove il pollice
-            arriva già da solo. */}
-        <Omnisearch voci={voci} />
+          Prima era un fondo opaco con un bordo sotto: scorrendo, il taglio fra
+          la parte sfocata e il contenuto nitido si vedeva come una riga che
+          attraversava lo schermo. Qui la sfocatura vive in uno strato a sé, che
+          scende qualche pixel più in basso dell'intestazione e si spegne con una
+          maschera: il contenuto passa sotto e riemerge a fuoco senza che si
+          capisca dove finisce una cosa e comincia l'altra.
+        */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -bottom-6 top-0 -z-10 bg-gradient-to-b from-bg via-bg/92 to-transparent backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
+        />
 
-        {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
-            La stellina non sta qui: è nella riga del titolo, dove si guarda
-            già per sapere su che pagina si è. */}
-        <div className="ml-auto shrink-0">
-          <MenuUtente utente={utente} esci={esci} />
+        {/* Allineata alla colonna del contenuto: la riga di ricerca comincia e
+            finisce dove comincia e finisce quello che sta sotto, invece di
+            galleggiare in mezzo a caso. */}
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-2">
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
+            <Logo size={30} />
+            <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
+            <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
+              v{VERSIONE}
+            </span>
+          </Link>
+
+          {/* La riga per saltare a una voce senza cercarla nella colonna: solo
+              sul computer — sul telefono la tastiera coprirebbe metà schermo
+              per arrivare dove il pollice arriva già da solo. */}
+          <Omnisearch voci={voci} />
+
+          {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
+              La stellina non sta qui: è nella riga del titolo, dove si guarda
+              già per sapere su che pagina si è. */}
+          <div className="ml-auto shrink-0">
+            <MenuUtente utente={utente} esci={esci} />
+          </div>
         </div>
       </header>
 

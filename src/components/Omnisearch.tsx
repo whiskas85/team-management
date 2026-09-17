@@ -68,7 +68,9 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
   };
 
   return (
-    <div ref={contenitore} className="relative mx-auto hidden w-full max-w-sm md:block">
+    /* Larga quanto la colonna sotto: si allarga fino alla faccia in alto a
+       destra, così il suo bordo destro cade dove cade quello del contenuto. */
+    <div ref={contenitore} className="relative hidden w-full flex-1 md:block">
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
         <Icona nome="cerca" size={15} />
       </span>
@@ -99,7 +101,7 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
         }}
         placeholder="Vai a…"
         aria-label="Cerca nel menu"
-        className="input h-9 w-full pl-9 pr-12 text-sm"
+        className="input h-10 w-full pl-9 pr-16 text-sm"
       />
 
       {/* la scorciatoia si impara vedendola scritta, non leggendo un manuale */}
