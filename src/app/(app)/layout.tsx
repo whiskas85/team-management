@@ -30,6 +30,7 @@ import { puoVedereMerchandising } from '@/lib/mercatino';
 import { inTest } from '@/lib/ambiente';
 import { esci } from '@/actions/auth';
 import { Aggiornamento } from '@/components/Aggiornamento';
+import { InvitoNotifiche } from '@/components/InvitoNotifiche';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const utente = await requireUser();
@@ -519,6 +520,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Tiene fresco quello che si sta guardando: adesioni, incassi, polizze
           si muovono mentre la pagina è aperta, senza ricaricare a mano. */}
       <Aggiornamento />
+
+      {/* Chiede una volta sola, in un angolo, a chi non ha le notifiche: da
+          soli non si possono accendere — il browser vuole un gesto — e un
+          permesso chiesto all'apertura viene negato per riflesso. */}
+      <InvitoNotifiche />
 
       <main className="px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-12 md:pt-2">
         <div className="mx-auto max-w-6xl">

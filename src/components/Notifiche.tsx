@@ -5,6 +5,12 @@ import { mostraToast } from './Toast';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { provaNotifiche } from '@/actions/notifiche';
+import {
+  disiscriviDispositivo,
+  giaIscritto,
+  iscriviDispositivo,
+  supportate,
+} from '@/lib/push-browser';
 
 /**
  * «Avvisami sul telefono.»
@@ -26,8 +32,7 @@ export function Notifiche() {
   const [attesa, setAttesa] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!supportate()) {
       setStato('non-supportate');
       return;
     }
@@ -35,60 +40,28 @@ export function Notifiche() {
       setStato('negate');
       return;
     }
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((iscr) => setStato(iscr ? 'accese' : 'spente'))
-      .catch(() => setStato('non-supportate'));
+    void giaIscritto().then((c) => setStato(c ? 'accese' : 'spente'));
   }, []);
 
   async function accendi() {
     setAttesa(true);
-    try {
-      const permesso = await Notification.requestPermission();
-      if (permesso !== 'granted') {
-        setStato(permesso === 'denied' ? 'negate' : 'spente');
-        return;
-      }
+    const esito = await iscriviDispositivo();
+    setAttesa(false);
 
-      const risposta = await fetch('/api/push/chiave');
-      if (!risposta.ok) throw new Error('chiave non disponibile');
-      const { chiave } = await risposta.json();
-
-      const reg = await navigator.serviceWorker.ready;
-      const iscrizione = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: daBase64(chiave),
-      });
-
-      const salvata = await fetch('/api/push/iscrivi', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(iscrizione),
-      });
-      if (!salvata.ok) throw new Error('iscrizione non salvata');
-
+    if (esito === 'ok') {
       setStato('accese');
       mostraToast('Notifiche attive su questo dispositivo.', 'ok');
-    } catch {
+    } else if (esito === 'negato') {
+      setStato('negate');
+    } else {
       mostraToast('Non sono riuscito ad attivare le notifiche qui.', 'errore');
-    } finally {
-      setAttesa(false);
     }
   }
 
   async function spegni() {
     setAttesa(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const iscrizione = await reg.pushManager.getSubscription();
-      if (iscrizione) {
-        await fetch('/api/push/iscrivi', {
-          method: 'DELETE',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ endpoint: iscrizione.endpoint }),
-        });
-        await iscrizione.unsubscribe();
-      }
+      await disiscriviDispositivo();
       setStato('spente');
       mostraToast('Niente più notifiche su questo dispositivo.', 'ok');
     } finally {
@@ -147,22 +120,4 @@ export function Notifiche() {
       )}
     </div>
   );
-}
-
-/**
- * La chiave viaggia in base64url, il browser la vuole in byte.
- *
- * Il buffer si crea esplicitamente e non con `new Uint8Array(lunghezza)`:
- * quello, per i tipi, potrebbe stare su memoria condivisa, che qui non è
- * ammessa.
- */
-function daBase64(base64url: string): ArrayBuffer {
-  const base64 = (base64url + '='.repeat((4 - (base64url.length % 4)) % 4))
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-  const grezzo = atob(base64);
-  const buffer = new ArrayBuffer(grezzo.length);
-  const byte = new Uint8Array(buffer);
-  for (let i = 0; i < grezzo.length; i++) byte[i] = grezzo.charCodeAt(i);
-  return buffer;
 }

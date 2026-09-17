@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.45.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Chi non ha le notifiche se lo sente chiedere.** Dopo qualche secondo,
+  in un angolo e senza coprire niente, compare l'invito ad accenderle: un
+  pulsante *Attivale* e un *Non ora* che le rimanda di due settimane.
+  Attivarle d'ufficio non si può — il browser vuole che sia la persona a
+  premere, e un permesso chiesto appena si apre la pagina viene negato per
+  riflesso, per sempre — quindi si fa la cosa più vicina possibile.
+- **Chi il permesso l'ha già dato viene riscritto in silenzio.** Succede
+  svuotando la cache o quando l'iscrizione scade da sé: prima restava spento
+  senza che nessuno lo sapesse, ora si riscrive da solo senza chiedere niente.
+- A chi ha detto di no al browser l'invito non compare: non c'è più niente da
+  proporre, e insistere sarebbe solo fastidio.
+- La procedura di iscrizione adesso vive in un posto solo, usata dal riquadro
+  del profilo e dall'invito: due copie sarebbero due modi diversi di sbagliarla.
+
 ## 2.44.0 — 17 settembre 2026
 
 ### Aggiunto
