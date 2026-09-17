@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.37.0 — 17 settembre 2026
+
+### Corretto
+
+- **Nelle polizze comparivano anche i «forse», col pulsante per assicurarli.**
+  L'elenco prendeva tutti quelli che non avevano detto di no, e un forse non è
+  un sì: una polizza giornaliera consuma una polizza vera, non si annulla e la
+  paga il club. Farla a chi ancora non sa se viene vuol dire buttarla via ogni
+  volta che poi non si presenta. Ora si vede solo chi ha detto sì, e chi passa
+  da «forse» a «sì» compare in quel momento — che è esattamente quando la
+  polizza va fatta.
+- **E il rifiuto adesso è anche dalla parte del server.** L'elenco mostra le
+  persone giuste, ma la richiesta può arrivare da una pagina rimasta aperta da
+  ieri o da chi nel frattempo ha cambiato risposta: chi non ha confermato si
+  sente dire di no, con il motivo, invece di veder bruciare una polizza.
+
 ## 2.36.1 — 17 settembre 2026
 
 ### Corretto

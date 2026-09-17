@@ -163,8 +163,6 @@ export type NuovoDaCoprire = {
   /** Ha una foto del profilo: senza, l'avatar mostra le iniziali. */
   foto: boolean;
   stato: StatoOperatore;
-  /** Ha risposto "forse": conta comunque, ma non è ancora detto che venga. */
-  forse: boolean;
   /**
    * Un'attività di due giorni vuole due polizze: una voce per giorno, e
    * ognuna si fa per conto suo.
@@ -238,7 +236,15 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
         select: { cassaId: true, perEsterni: true, scelta: true, perPolizza: true },
       },
       rsvps: {
-        where: { status: { not: 'ASSENTE' } },
+        // Solo chi ha detto **sì**.
+        //
+        // Prima bastava non aver detto no, e così nell'elenco finivano anche i
+        // «forse», col loro pulsante «Assicura» accanto. Ma una polizza
+        // giornaliera consuma una polizza vera e non si annulla: farla a chi
+        // ancora non sa se viene vuol dire buttarla via ogni volta che poi non
+        // si presenta. Chi passa da «forse» a «sì» compare qui in quel
+        // momento, che è esattamente quando la polizza va fatta.
+        where: { status: 'PRESENTE' },
         include: {
           user: {
             select: {
@@ -288,7 +294,6 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
           iniziali: iniziali(r.user.nome, r.user.cognome),
           foto: !!r.user.fotoPath,
           stato: r.user.stato,
-          forse: r.status === 'FORSE',
           giorni: giorni.map((giorno) => {
             const g = coperture.get(`${r.userId}|${giorno}`);
             return {

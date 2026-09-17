@@ -109,11 +109,10 @@ export default async function PolizzePage() {
                         >
                           {n.nome}
                         </Link>
-                        {/* "forse" non è un no: la polizza vale per il giorno, e
-                            farla a chi poi non viene è una polizza buttata */}
-                        {n.forse && (
-                          <span className="block text-[11px] text-warn">ha risposto «forse»</span>
-                        )}
+                        {/* Qui ci sono solo quelli che hanno detto sì: i
+                            «forse» non compaiono più, perché la polizza vale
+                            per il giorno e farla a chi poi non viene è una
+                            polizza buttata. */}
                         {/* dei soldi qui si dice una cosa sola: se sono entrati.
                             Quanto siano è mestiere della segreteria */}
                         <div className="mt-1">

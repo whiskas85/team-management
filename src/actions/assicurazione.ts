@@ -277,6 +277,28 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
   const userId = str(fd, 'userId');
   const eventId = str(fd, 'eventId');
 
+  /*
+   * Si assicura chi ha detto sì, e nessun altro.
+   *
+   * L'elenco delle polizze mostra solo quelli, ma il controllo va fatto qui:
+   * la richiesta può arrivare da una pagina rimasta aperta da ieri, o da chi
+   * nel frattempo ha cambiato risposta. Una polizza attivata consuma una
+   * polizza vera e non si annulla — meglio un rifiuto spiegato che una
+   * bruciata per qualcuno che poi non viene.
+   */
+  const risposta = await prisma.eventRsvp.findUnique({
+    where: { eventId_userId: { eventId, userId } },
+    select: { status: true },
+  });
+  if (risposta?.status !== 'PRESENTE') {
+    return {
+      errore:
+        risposta?.status === 'FORSE'
+          ? 'Ha risposto «forse»: la polizza si fa quando conferma che viene.'
+          : 'Non risulta fra chi ha detto di venire a questa attività.',
+    };
+  }
+
   const [utente, evento, cred] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },

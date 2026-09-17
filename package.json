@@ -1,6 +1,6 @@
 {
   "name": "zero-dark-gestionale",
-  "version": "2.36.1",
+  "version": "2.37.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
@@ -14,6 +14,7 @@
     "@prisma/client": "^6.2.1",
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
+    "jszip": "^3.10.2",
     "next": "^15.1.6",
     "prisma": "^6.2.1",
     "react": "^19.0.0",
