@@ -169,6 +169,56 @@ export async function aggiornaPolizzeProva(
 }
 
 /**
+ * Il messaggio che arriva alla persona appena è coperta.
+ *
+ * Una polizza giornaliera è una cosa che riguarda **lei**: il giorno che
+ * copre, il numero che la identifica, fino a quando vale. Finora quei dati
+ * restavano qui dentro, e chi era stato assicurato lo sapeva solo perché
+ * qualcuno glielo diceva a voce — o non lo sapeva affatto e si presentava in
+ * campo con il dubbio.
+ *
+ * Parte dal ponte, cioè dal numero della squadra, e **non blocca niente**: se
+ * WhatsApp non è collegato, o quella persona non ha un numero, la polizza
+ * resta attivata lo stesso. Un avviso mancato non è un buon motivo per far
+ * fallire una cosa riuscita.
+ */
+async function avvisaAssicurato(dati: {
+  userId: string;
+  nome: string;
+  cognome: string;
+  titolo: string;
+  giorno: string;
+  codice: string;
+  valida?: string | null;
+}): Promise<boolean> {
+  const { perWhatsapp } = await import('@/lib/telefono');
+  const persona = await prisma.user.findUnique({
+    where: { id: dati.userId },
+    select: { telefono: true },
+  });
+  const numero = perWhatsapp(persona?.telefono);
+  if (!numero) return false;
+
+  const validita = dati.valida
+    ? `Valida fino al ${dati.valida}`
+    : 'Vale fino alle 24:00 del giorno indicato';
+
+  const testo = `Zero Dark Ops — sei coperto
+
+${dati.nome} ${dati.cognome}
+Attività: ${dati.titolo}
+Giorno: ${dati.giorno}
+Polizza giornaliera n. ${dati.codice}
+${validita}
+
+Tienila a portata: in campo può essere chiesta.`;
+
+  const { inviaWhatsapp } = await import('@/lib/whatsapp');
+  const esito = await inviaWhatsapp(numero, testo).catch(() => ({ ok: false }) as const);
+  return esito.ok;
+}
+
+/**
  * Emette la tessera giornaliera che copre chi gioca senza annuale.
  *
  * Il numero lo dà il portale federale, non noi. L'automazione verso
@@ -200,7 +250,7 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
     prisma.user.findUnique({ where: { id: userId }, select: { nome: true, cognome: true } }),
     prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, inizio: true, fine: true },
+      select: { id: true, inizio: true, fine: true, titolo: true },
     }),
   ]);
   if (!utente || !evento) return { errore: 'Partecipante o attività non trovati.' };
@@ -238,9 +288,20 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
   const cred = await prisma.credenzialeFigt.findUnique({ where: { id: 'figt' } });
   if (cred) await sincronizzaGiacenza(cred, 1).catch(() => null);
 
+  const avvisato = await avvisaAssicurato({
+    userId,
+    nome: utente.nome,
+    cognome: utente.cognome,
+    titolo: evento.titolo,
+    giorno: etichettaGiorno(giorno.chiave),
+    codice,
+  });
+
   aggiorna(eventId);
   return {
-    ok: `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: giornaliera ${codice}.`,
+    ok:
+      `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: giornaliera ${codice}.` +
+      (avvisato ? ' Gli ho mandato i dati su WhatsApp.' : ''),
   };
 }
 
@@ -402,11 +463,22 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
     // numero in cassa e in tessere è già giusto senza premere niente
     const residue = await sincronizzaGiacenza(cred, 1);
 
+    const avvisato = await avvisaAssicurato({
+      userId,
+      nome: utente.nome,
+      cognome: utente.cognome,
+      titolo: evento.titolo,
+      giorno: etichettaGiorno(giorno.chiave),
+      codice: polizza.numero,
+      valida: polizza.valida,
+    });
+
     aggiorna(eventId);
     return {
       ok:
         `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: polizza prova n. ${polizza.numero}.` +
-        (residue === null ? '' : ` Ne restano ${residue}.`),
+        (residue === null ? '' : ` Ne restano ${residue}.`) +
+        (avvisato ? ' Gli ho mandato i dati su WhatsApp.' : ''),
     };
   } catch (e) {
     const messaggio = (e as Error).message;

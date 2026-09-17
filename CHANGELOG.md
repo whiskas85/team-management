@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.42.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Chi viene assicurato riceve i dati su WhatsApp.** Appena la giornaliera è
+  attiva — sia quella presa dal portale sia quella registrata a mano — al suo
+  numero arriva un messaggio con l'attività, il giorno, il numero di polizza e
+  fino a quando vale. Prima quei dati restavano qui dentro e l'interessato lo
+  sapeva solo se qualcuno glielo diceva a voce.
+- **Parte dal numero della squadra e non blocca niente**: se il ponte WhatsApp
+  non è collegato, o di quella persona non abbiamo un numero, la polizza si
+  attiva lo stesso. Quando il messaggio parte, il gestionale lo scrive nella
+  conferma: «Gli ho mandato i dati su WhatsApp».
+
 ## 2.41.0 — 17 settembre 2026
 
 ### Aggiunto
