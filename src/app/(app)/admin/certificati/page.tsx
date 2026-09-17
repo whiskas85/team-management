@@ -159,6 +159,21 @@ export default async function CertificatiPage({
             )}
           </Link>
         ))}
+
+        {/* Lo scarico in blocco segue la vista: chi ha in mente una selezione
+            la fa con i filtri qui accanto, e il pulsante porta via esattamente
+            quello che sta guardando. Sui «senza certificato» non compare: non
+            c'è niente da portare via, è un elenco di persone, non di file. */}
+        {filtro !== 'mancanti' && certificati.length > 0 && (
+          <a
+            href={`/api/certificati/zip?filtro=${filtro}`}
+            className="btn-ghost btn-sm ml-auto"
+            download
+          >
+            <Icona nome="scarica" size={15} />
+            Scarica tutti ({certificati.length})
+          </a>
+        )}
       </div>
 
       {filtro === 'mancanti' ? (
@@ -327,6 +342,13 @@ function Azioni({
           className="btn-ghost btn-sm"
         >
           <Icona nome="apri" size={15} /> Apri allegato
+        </a>
+
+        {/* Aprire serve a guardare se è quello giusto — anche subito dopo
+            averlo approvato — scaricare serve a tenerselo: il file esce col
+            cognome, il nome e la scadenza nel titolo, non come IMG_4471. */}
+        <a href={`/api/certificati/${cert.id}?scarica=1`} className="btn-ghost btn-sm" download>
+          <Icona nome="scarica" size={15} /> Scarica
         </a>
 
         {/* Un doppione si toglie, non si boccia: rifiutarlo lascerebbe in

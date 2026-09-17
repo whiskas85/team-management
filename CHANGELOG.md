@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.38.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **I certificati medici si scaricano.** Accanto ad «Apri allegato» c'è
+  «Scarica»: aprire serve a guardare se è quello giusto — anche subito dopo
+  averlo approvato — scaricare serve a tenerselo.
+- **E si scaricano tutti insieme**, in uno zip, dal pulsante in cima
+  all'elenco. **Segue il filtro che stai guardando**: da «Da vagliare» escono
+  quelli, da «Validi» quelli. Chi ha in mente una selezione la fa con i filtri,
+  e il pulsante porta via esattamente quello che vede.
+- **Il file esce con un nome che si legge**:
+  `rossi-mario-certificato-scade-2027-03-14.pdf`. Quello che arriva è spesso
+  `IMG_4471.jpg`, e dentro una cartella di scaricati — o in uno zip di venti —
+  non dice niente a nessuno. Se due certificati della stessa persona scadessero
+  lo stesso giorno, il secondo prende un numero invece di sovrascrivere il primo.
+- Se un file risultasse in elenco ma non fosse più sul disco, lo zip si scarica
+  lo stesso e dentro trovi un `MANCANTI.txt` che dice quanti sono.
+
 ## 2.37.0 — 17 settembre 2026
 
 ### Corretto
