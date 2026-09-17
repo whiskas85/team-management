@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.41.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Un'attività può avere uno o più referenti.** Si spuntano nel modulo, fra
+  chi è in rosa, sia quando l'attività nasce sia modificandola dopo: è il nome
+  a cui chiedere, e cambia da un'uscita all'altra. Per questo sta attaccato
+  all'attività e non agli incarichi di chi la organizza — e per questo lo può
+  sistemare anche il team leader, insieme al punto di ritrovo, che è la roba
+  che cambia il sabato sera.
+- **Nella scheda si leggono in alto, fra i dati**, e li vedono tutti — **nuovi
+  compresi**: uno arrivato da poco che non conosce nessuno deve sapere a chi
+  scrivere per chiedere come ci si veste o a che ora si parte.
+- **Si legge il solo callsign.** Basta a cercarlo in chat e non mette in giro
+  il cognome di nessuno. Chi un callsign non ce l'ha compare come nome e
+  iniziale, che è come i nuovi lo vedono già in tutto il resto del gestionale.
+
 ## 2.40.2 — 17 settembre 2026
 
 ### Corretto

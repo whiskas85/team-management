@@ -92,6 +92,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       createdBy: { select: { nome: true, cognome: true } },
       // le squadre di fuori invitate, con il loro link
       ospiti: { orderBy: { creatoIl: 'asc' } },
+      // chi tiene in mano l'attività: di loro serve il solo callsign
+      referenti: {
+        include: { utente: { select: { id: true, nome: true, cognome: true, callsign: true } } },
+      },
       rsvps: {
         include: {
           user: {
@@ -497,6 +501,18 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         select: { id: true, nome: true },
       })
     : [];
+  // La rosa, per spuntare i referenti nel modulo: si scelgono fra chi è in
+  // squadra, perché è un nome a cui chiedere — non un incarico da dare a chi
+  // passa di qui una volta.
+  const rosa = tl
+    ? await prisma.user.findMany({
+        where: { stato: { in: ['SQUADRA', 'SOSPESO'] } },
+        orderBy: [{ callsign: 'asc' }, { cognome: 'asc' }],
+        select: { id: true, nome: true, cognome: true, callsign: true },
+      })
+    : [];
+  const referentiScelti = evento.referenti.map((r) => r.userId);
+
   const ospiti = evento.ospiti.map((o) => ({
     id: o.id,
     nome: o.nome,
@@ -623,7 +639,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 larga
               >
                 <FormAzione azione={salvaEvento}>
-                  <FormEvento giorni={giorniEvento.length}
+                  <FormEvento
+                    squadra={rosa}
+                    referenti={referentiScelti}
+                    giorni={giorniEvento.length}
                     campi={campi}
                     tipologie={tipologie}
                     listino={listino}
@@ -975,6 +994,29 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 etichetta="Chiusura adesioni"
                 valore={evento.chiusuraIscrizioni ? fmtDateTime(evento.chiusuraIscrizioni) : '—'}
               />
+              {/* Chi tiene in mano l'attività, e lo vedono tutti — **nuovi
+                  compresi**: uno arrivato da poco che non conosce nessuno deve
+                  sapere a chi scrivere per chiedere come ci si veste o a che
+                  ora si parte. Si legge il **solo callsign**: basta a cercarlo
+                  in chat e non mette in giro il cognome di nessuno. Chi un
+                  callsign non ce l'ha si presenta col nome e l'iniziale, che è
+                  come lo vedono già i nuovi in tutto il resto del gestionale. */}
+              {evento.referenti.length > 0 && (
+                <Dato
+                  etichetta={evento.referenti.length === 1 ? 'Referente' : 'Referenti'}
+                  valore={
+                    <span className="text-nvg">
+                      {evento.referenti
+                        .map((r) =>
+                          r.utente.callsign
+                            ? r.utente.callsign
+                            : `${r.utente.nome} ${r.utente.cognome[0] ?? ''}.`,
+                        )
+                        .join(' · ')}
+                    </span>
+                  }
+                />
+              )}
               <Dato
                 etichetta="Creato da"
                 valore={

@@ -169,6 +169,7 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     });
 
     if (quote) await salvaQuoteCasse(id, quote);
+    await salvaReferenti(id, fd);
 
     // Il costo può arrivare dopo che la gente si è già segnata: senza questo
     // giro le quote non nascevano più, e chi era titolare non vedeva niente
@@ -193,8 +194,45 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     },
   });
   if (quote) await salvaQuoteCasse(creato.id, quote);
+  await salvaReferenti(creato.id, fd);
   aggiorna(creato.id);
   return { ok: 'Attività creata in bozza. Rilasciala quando è pronta.' };
+}
+
+/**
+ * Chi tiene in mano l'attività.
+ *
+ * Arrivano dal modulo come elenco di id spuntati: si tengono solo quelli di
+ * chi è davvero in rosa — un referente che non c'è più in squadra è un numero
+ * che squilla a vuoto — e si riscrive la lista da capo. Riscriverla invece di
+ * confrontarla riga per riga vuol dire che togliere qualcuno funziona sempre,
+ * anche quando la spunta sparisce e non arriva niente.
+ */
+async function salvaReferenti(eventId: string, fd: FormData) {
+  // niente campo nel modulo (per esempio la modifica ridotta del team leader
+  // in un contesto che non lo mostra): non si tocca quello che c'è
+  if (!fd.has('referenti')) return;
+
+  const scelti = fd
+    .getAll('referenti')
+    .map((v) => v.toString())
+    .filter(Boolean);
+
+  const validi = scelti.length
+    ? (
+        await prisma.user.findMany({
+          where: { id: { in: scelti }, stato: { in: ['SQUADRA', 'SOSPESO'] } },
+          select: { id: true },
+        })
+      ).map((u) => u.id)
+    : [];
+
+  await prisma.$transaction([
+    prisma.referenteEvento.deleteMany({ where: { eventId } }),
+    ...(validi.length
+      ? [prisma.referenteEvento.createMany({ data: validi.map((userId) => ({ eventId, userId })) })]
+      : []),
+  ]);
 }
 
 /**

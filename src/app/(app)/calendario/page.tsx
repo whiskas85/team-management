@@ -144,6 +144,16 @@ export default async function CalendarioPage({
         })
       : [];
 
+  // La rosa, per spuntare i referenti già mentre l'attività nasce: metterli
+  // solo dopo vorrebbe dire rilasciarla senza un nome a cui chiedere.
+  const rosa = admin
+    ? await prisma.user.findMany({
+        where: { stato: { in: ['SQUADRA', 'SOSPESO'] } },
+        orderBy: [{ callsign: 'asc' }, { cognome: 'asc' }],
+        select: { id: true, nome: true, cognome: true, callsign: true },
+      })
+    : [];
+
   const VISTE = [
     { chiave: 'lista', href: '/calendario', testo: 'In programma' },
     { chiave: 'mese', href: '/calendario?vista=mese', testo: 'Mese' },

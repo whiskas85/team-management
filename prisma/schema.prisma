@@ -228,6 +228,7 @@ model User {
   erroriIncontrati      ErroreClient[]          @relation("ErroriIncontrati")
   casseGestite          Cassa[]                 @relation("GestoriCassa")
   rifiutiDecisi         RifiutoRegistrazione[]  @relation("RifiutiDecisi")
+  attivitaDaReferente   ReferenteEvento[]       @relation("ReferenteDi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
   gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
@@ -280,6 +281,26 @@ model SquadraEsterna {
   inviti SquadraOspite[] @relation("InvitiSquadra")
 
   @@index([attiva, nome])
+}
+
+/// Chi tiene in mano un'attività: il nome a cui chiedere, il giorno prima.
+///
+/// Non è un ruolo del gestionale e non dà poteri: è una **persona da
+/// chiamare**, e cambia da un'uscita all'altra. Per questo sta qui, attaccata
+/// all'attività, e non fra gli incarichi di chi la organizza.
+///
+/// Si vede anche da chi è appena arrivato, ed è tutto il punto: un nuovo che
+/// non conosce nessuno deve sapere a chi scrivere per sapere come vestirsi.
+/// Di lui si legge **il solo callsign**: basta a cercarlo in chat, e non mette
+/// in giro il cognome di nessuno.
+model ReferenteEvento {
+  eventId String
+  event   Event  @relation("ReferentiEvento", fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  utente  User   @relation("ReferenteDi", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
 }
 
 /// Una squadra invitata a un'attività, con il suo link da mandare fuori.
@@ -686,6 +707,8 @@ model Event {
   debriefing  Debriefing?
   /// Le quote che vanno ad altre casse, oltre a quella del club.
   quoteCasse  QuotaCassa[]
+  /// Chi tiene in mano questa attività: i nomi a cui chiedere.
+  referenti    ReferenteEvento[] @relation("ReferentiEvento")
   /// Le squadre di fuori invitate a giocare con noi, con il loro link.
   ospiti       SquadraOspite[] @relation("OspitiEvento")
   /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.
