@@ -302,6 +302,22 @@ export const etichettaAssegnazione: Record<string, string> = {
  */
 export const puoEssereReferente = (roles: Role[]) => ha(roles, 'ATLETA');
 
+/**
+ * Chi tiene in mano una singola attività.
+ *
+ * L'admin e i team leader perché è il loro mestiere ovunque, **e i referenti di
+ * quella attività**: sono i nomi scritti nella scheda come persone a cui
+ * chiedere, e chi riceve le domande deve poter fare le cose che le domande
+ * comportano — mandare il link a una squadra ospite, caricare il book.
+ *
+ * È un permesso che vale per un'attività sola: fuori di lì un referente non può
+ * niente di più degli altri.
+ */
+export const tieneInMano = (
+  me: { id: string; roles: Role[] },
+  referenti: { userId: string }[],
+) => isAdmin(me.roles) || puoSchierare(me.roles) || referenti.some((r) => r.userId === me.id);
+
 /** Chi gestisce il calendario vede anche le bozze. */
 export const puoGestireEventi = (roles: Role[]) => ha(roles, 'ADMIN');
 

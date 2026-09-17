@@ -1,5 +1,5 @@
 import type { Role } from '@prisma/client';
-import { isAdmin, puoSchierare } from './domain';
+import { tieneInMano } from './domain';
 import type { RegoleFile } from './storage';
 
 /**
@@ -75,7 +75,7 @@ export const etichettaGenere: Record<GenereAllegato, string> = {
 export const puoGestireAllegati = (
   me: { id: string; roles: Role[] },
   referenti: { userId: string }[],
-) => isAdmin(me.roles) || puoSchierare(me.roles) || referenti.some((r) => r.userId === me.id);
+) => tieneInMano(me, referenti);
 
 /** «1,4 MB»: a chi guarda serve sapere se è un foglio o una cartella intera. */
 export function peso(bytes: number) {

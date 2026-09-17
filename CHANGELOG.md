@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.51.0 — 18 settembre 2026
+
+### Cambiato
+
+- **Il pulsante del link è diventato il simbolo della condivisione, e condivide
+  davvero.** Sul telefono apre **il foglio di sistema** — quello da cui si
+  sceglie WhatsApp, Telegram, un messaggio — che è il gesto che uno ha in mente
+  quando vuole mandare un link a qualcuno. Dove quel foglio non c'è, sul
+  computer, copia negli appunti come prima. Non apre WhatsApp da solo: il link
+  a volte va nel gruppo, a volte a una persona, a volte in un promemoria, e
+  sceglierlo noi vorrebbe dire decidere per chi condivide.
+- Niente più scritta «Copia il link»: resta la sola icona, che accanto a un
+  nome di squadra si legge più in fretta di tre parole.
+
+### Aggiunto
+
+- **Un referente può rimandare il link di una squadra già invitata.** È il nome
+  scritto nella scheda come persona a cui chiedere, ed è lui che il giorno
+  prima si sente dire «a noi non è arrivato niente»: doverlo far passare da un
+  team leader per rimandare un link che esiste già era un giro buono solo a far
+  tardi. **Invitare una squadra o toglierla resta di chi schiera**: quella
+  decide chi si gioca con chi, ed è un'altra cosa.
+
 ## 2.50.2 — 18 settembre 2026
 
 ### Corretto

@@ -31,12 +31,24 @@ export function SquadreOspiti({
   ospiti,
   conosciute,
   puoGestire,
+  puoCondividere = false,
 }: {
   eventId: string;
   ospiti: Ospite[];
   /** Le squadre già in anagrafica, da scegliere invece di riscriverle. */
   conosciute: { id: string; nome: string }[];
   puoGestire: boolean;
+  /**
+   * Può mandare via il link di una squadra già invitata, ma non invitarne o
+   * toglierne.
+   *
+   * È il caso del **referente**: è il nome scritto nella scheda come persona a
+   * cui chiedere, e il giorno prima è lui che si sente dire «non ci è arrivato
+   * niente». Doverlo far chiedere a un team leader per rimandare un link che
+   * esiste già è un giro che serve solo a far tardi. Invitare una squadra o
+   * toglierla resta un'altra cosa: quella decide chi si gioca con chi.
+   */
+  puoCondividere?: boolean;
 }) {
   if (!puoGestire && ospiti.length === 0) return null;
 
@@ -77,6 +89,16 @@ export function SquadreOspiti({
                 </span>
               </span>
 
+              {/* Chi non gestisce ma tiene in mano l'attività può solo
+                  rimandare il link: è il gesto che gli tocca quando una
+                  squadra dice di non averlo ricevuto. */}
+              {!puoGestire && puoCondividere && (
+                <CondividiEvento
+                  indirizzo={o.link}
+                  etichetta={`Condividi il link di ${o.nome}`}
+                />
+              )}
+
               {puoGestire && (
                 <span className="flex flex-wrap items-center gap-2">
                   {/* Il numero si può scrivere anche da qui: il referente
@@ -101,9 +123,12 @@ export function SquadreOspiti({
                     </Invia>
                   </FormAzione>
 
-                  {/* il link è di quella squadra: copiarlo è il gesto per cui
+                  {/* il link è di quella squadra: mandarlo è il gesto per cui
                       questa riga esiste */}
-                  <CondividiEvento indirizzo={o.link} />
+                  <CondividiEvento
+                    indirizzo={o.link}
+                    etichetta={`Condividi il link di ${o.nome}`}
+                  />
                   <AzioneBottone
                     azione={togliSquadraOspite}
                     valori={{ id: o.id }}

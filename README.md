@@ -409,6 +409,12 @@ Sopra la casella del numero c'è un avviso: **il link è di quella squadra e non
 si gira fuori**. Chi ce l'ha può cambiare il numero di operatori che portano, e
 se ne accorgerebbero solo in campo.
 
+Il link si manda con il pulsante della condivisione accanto alla riga: sul
+telefono apre il foglio di sistema — WhatsApp, Telegram, un messaggio — e sul
+computer copia negli appunti. Lo vedono l'admin, i team leader **e i referenti
+dell'attività**: è il referente che il giorno prima si sente dire «a noi non è
+arrivato niente». Invitare una squadra o toglierla resta di chi schiera.
+
 **Un link per squadra e non uno per tutti**, perché il numero va attribuito a
 qualcuno: altrimenti non si saprebbe mai chi ha risposto, e il primo che scrive
 lo scriverebbe per gli altri. Nell'elenco *non ancora risposto* e *hanno detto

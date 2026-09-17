@@ -82,7 +82,7 @@ import { haIncarichi } from '@/lib/domain';
 import { Icona } from '@/components/Icona';
 import { faseAttivita, finestraAttivita } from '@/lib/giorni';
 import { quotaChiusa } from '@/lib/casse';
-import { puoGestireAllegati } from '@/lib/allegati';
+import { tieneInMano } from '@/lib/domain';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -583,7 +583,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     telefono: r.utente.telefono,
   }));
 
-  const gestisceAllegati = puoGestireAllegati(me, evento.referenti);
+  // Chi tiene in mano questa attività: l'admin, i team leader e **i referenti
+  // di questa**. Il book lo scrive chi ci va, e spesso lo finisce la sera
+  // prima; il link di una squadra ospite lo rimanda chi si sente dire che non
+  // è arrivato. Farglielo chiedere a qualcun altro è un giro che fa solo tardi.
+  const inMano = tieneInMano(me, evento.referenti);
   const allegati = evento.allegati.map((a) => ({
     id: a.id,
     titolo: a.titolo,
@@ -1122,10 +1126,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
-            {/* Il link si copia in fondo ai dati, dove uno arriva dopo aver
+            {/* Il link si manda in fondo ai dati, dove uno arriva dopo aver
                 letto quando e dove: è quello il momento in cui viene voglia di
-                mandarlo a qualcuno. Si copia e basta — dove incollarlo lo
-                decide chi condivide, non il gestionale. */}
+                mandarlo a qualcuno. Sul telefono si apre il foglio di
+                condivisione del sistema — dove va a finire lo decide chi
+                condivide, non il gestionale. */}
 {/* Una bozza non si condivide: chi riceve il link non vedrebbe niente, e
                 mandare un indirizzo che si apre solo per chi gestisce il calendario
                 è un modo per farsi richiamare. Da rilasciata in poi sì, anche a
@@ -1137,7 +1142,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
                     : 'Il link apre questa pagina: quello che c’è scritto resta.'}
                 </p>
-                <CondividiEvento indirizzo={indirizzoPagina} />
+                <CondividiEvento indirizzo={indirizzoPagina} etichetta="Condividi l’attività" />
               </div>
             )}
           </div>
@@ -1153,6 +1158,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               ospiti={ospiti}
               conosciute={conosciute}
               puoGestire={tl}
+              puoCondividere={inMano}
             />
           )}
 
@@ -1163,7 +1169,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           <AllegatiEvento
             eventId={evento.id}
             allegati={allegati}
-            puoGestire={gestisceAllegati}
+            puoGestire={inMano}
             conOspiti={evento.ospiti.length > 0}
           />
 
