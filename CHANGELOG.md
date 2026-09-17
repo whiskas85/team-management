@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.43.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Le pagine si aggiornano da sole.** Il gestionale disegna le pagine sul
+  server: quello che si vedeva era la fotografia del momento in cui era stata
+  aperta, e bastava che qualcuno si segnasse a un'attività — o che la segreteria
+  spuntasse un incasso — perché diventasse vecchia senza dirlo. Ora ogni pagina
+  si richiede al server ogni venticinque secondi e si aggiorna da sé.
+- **Non si aggiorna quando darebbe fastidio**: a scheda nascosta (aggiornare
+  una pagina che nessuno guarda è solo traffico), mentre si sta scrivendo in un
+  campo, e con una finestra aperta sopra — lì si sta decidendo qualcosa.
+- **Tornando sulla scheda si aggiorna subito**: è il momento in cui uno
+  riguarda, ed è lì che i numeri vecchi danno più fastidio.
+
 ## 2.42.0 — 17 settembre 2026
 
 ### Aggiunto

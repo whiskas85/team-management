@@ -29,6 +29,7 @@ import { ContenitoreToast } from '@/components/Toast';
 import { puoVedereMerchandising } from '@/lib/mercatino';
 import { inTest } from '@/lib/ambiente';
 import { esci } from '@/actions/auth';
+import { Aggiornamento } from '@/components/Aggiornamento';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const utente = await requireUser();
@@ -515,6 +516,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           o il titolo scende di due centimetri per niente */}
       {/* lo spazio in fondo tiene conto anche della barra gesti dell'iPhone:
           senza, l'ultima riga di ogni pagina finisce sotto il menu */}
+      {/* Tiene fresco quello che si sta guardando: adesioni, incassi, polizze
+          si muovono mentre la pagina è aperta, senza ricaricare a mano. */}
+      <Aggiornamento />
+
       <main className="px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-12 md:pt-2">
         <div className="mx-auto max-w-6xl">
           <ContestoMenu voci={voci}>{children}</ContestoMenu>
