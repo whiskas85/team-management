@@ -388,14 +388,19 @@ il nome di chi non c'è ancora, e nasce **un link per quella squadra**.
 
 Chi riceve il link apre una pagina sola, senza registrarsi, costruita attorno a
 quello che serve a chi arriva da fuori: **quando** — giorno per esteso e orario
-in grande, perché è il dato che fa sbagliare — **dove**, col nome del posto, la
-mappa e il ritrovo con il pulsante che apre la navigazione, **a chi chiedere**,
-col callsign e il numero dei referenti, i documenti pubblici (il book di
-missione) e **chi viene**: noi contati come una squadra, le altre squadre col
-loro numero. Verde per chi ha risposto — l'abbia scritto lui o l'abbiamo
-segnato noi per lui — grigio solo per il silenzio. L'unica cosa che può toccare
-è **quanti operatori porta**, e può cambiarla quante volte serve tornando sullo
-stesso indirizzo.
+in grande, perché è il dato che fa sbagliare — il **ritrovo**, che è la mappa
+col segnaposto e il pulsante che apre la navigazione, **a chi chiedere**, col
+callsign e il numero dei referenti, i documenti pubblici (il book di missione)
+e **chi viene**: noi contati come una squadra, tutte le altre col loro numero —
+**loro compresi**, marcati *voi* — e il totale degli operatori attesi. Verde per
+chi ha risposto, l'abbia scritto lui o l'abbiamo segnato noi per lui; grigio
+solo per il silenzio. L'unica cosa che può toccare è **quanti operatori porta**,
+e può cambiarla quante volte serve tornando sullo stesso indirizzo.
+
+Il nome del campo non si scrive: «Area Boschiva Nord · Bergamo» è come lo
+chiamiamo noi in anagrafica e non dice a nessuno dove mettere le ruote. Quello
+che porta la gente sul posto è il segnaposto sulla mappa, centrato sul ritrovo
+quando ha coordinate sue — l'autogrill, il parcheggio prima del bosco.
 
 Il tipo di attività non si scrive: che da noi sia un allenamento o un torneo, a
 chi viene a giocarci non cambia niente.

@@ -44,7 +44,10 @@ export default async function PaginaInvito({
         include: {
           field: { select: { nome: true, citta: true, indirizzo: true, lat: true, lng: true } },
           rsvps: { select: { status: true, user: { select: { stato: true } } } },
-          ospiti: { select: { id: true, nome: true, operatori: true } },
+          ospiti: {
+            orderBy: { creatoIl: 'asc' },
+            select: { id: true, nome: true, operatori: true },
+          },
           // Il nome e il numero di chi tiene in mano l'attività: da fuori una
           // domanda non ha altro modo di arrivare, e finora finiva nel vuoto
           // o passava per chi aveva mandato il link.
@@ -103,23 +106,43 @@ export default async function PaginaInvito({
   // Un numero, non un elenco.
   const nostri = e.rsvps.filter((r) => r.status === 'PRESENTE').length;
 
-  const altre = e.ospiti.filter((o) => o.id !== ospite.id);
+  /*
+   * L'elenco le comprende **tutte, loro compresi**.
+   *
+   * Prima chi leggeva si trovava davanti le altre squadre e non sé stesso, e
+   * l'elenco sembrava sbagliato: uno conta le righe, non torna, e si chiede se
+   * il numero che ha scritto sia arrivato. La riga loro ce l'hanno eccome — è
+   * il senso di questa pagina — e va vista dov'è, in mezzo alle altre, con
+   * accanto il numero che hanno detto.
+   */
+  const squadre = e.ospiti.map((o) => ({ ...o, loro: o.id === ospite.id }));
 
-  // Dove si gioca: il nome del posto e basta. L'indirizzo scritto sotto al
-  // nome non porta nessuno da nessuna parte — a quello servono la mappa e il
-  // pulsante che apre la navigazione.
-  const dove = e.field
-    ? `${e.field.nome}${e.field.citta ? ` · ${e.field.citta}` : ''}`
-    : e.luogo;
-  const lat = e.field?.lat ?? e.luogoLat;
-  const lng = e.field?.lng ?? e.luogoLng;
+  /*
+   * Quanti si presentano in campo, in tutto.
+   *
+   * È il numero per cui si organizza una giocata, e finora bisognava sommare
+   * le righe a mente. Chi non ha ancora risposto non ci può essere dentro, e
+   * il conto lo dice invece di far sembrare piccolo un campo che sarà pieno.
+   */
+  const attesi = nostri + e.ospiti.reduce((t, o) => t + (o.operatori ?? 0), 0);
+  const mancanti = e.ospiti.filter((o) => o.operatori === null).length;
 
-  // Il ritrovo ha spesso coordinate sue — un autogrill, un parcheggio prima
-  // del bosco — e sono quelle che deve aprire il navigatore. Dove non c'è, il
-  // ritrovo è il campo stesso.
-  const ritrovo = e.ritrovo ?? dove;
-  const ritrovoLat = e.ritrovoLat ?? lat;
-  const ritrovoLng = e.ritrovoLng ?? lng;
+  /*
+   * Il ritrovo, e basta.
+   *
+   * **Il nome del campo non c'è**, ed è voluto: «Area Boschiva Nord ·
+   * Bergamo» è come lo chiamiamo noi in anagrafica, non dice a nessuno dove
+   * mettere le ruote, e messo in cima si legge come se fosse l'informazione —
+   * mentre l'informazione è il punto sulla mappa e il pulsante che ci porta.
+   *
+   * Il ritrovo ha spesso coordinate sue — un autogrill, un parcheggio prima
+   * del bosco — e sono quelle che devono stare sulla mappa e aprirsi nel
+   * navigatore. Dove non ce ne sono, il ritrovo è il campo stesso: cambia il
+   * punto, non cambia il senso della riga.
+   */
+  const lat = e.ritrovoLat ?? e.field?.lat ?? e.luogoLat;
+  const lng = e.ritrovoLng ?? e.field?.lng ?? e.luogoLng;
+  const indirizzo = e.ritrovo ?? e.field?.indirizzo ?? e.luogo;
 
   const referenti = e.referenti.map((r) => ({
     id: r.userId,
@@ -173,30 +196,30 @@ export default async function PaginaInvito({
         <p className="mt-4 whitespace-pre-wrap text-sm text-ink/90">{e.descrizione}</p>
       )}
 
-      {/* Dove si gioca: la mappa col segnaposto, e sotto il ritrovo con il
-          pulsante che apre la navigazione. Un indirizzo scritto a mano non
-          porta nessuno da nessuna parte. */}
-      {dove && (
+      {/* Il ritrovo: il segnaposto sulla mappa e il pulsante che ci porta.
+          Niente nome del campo — quello è come lo chiamiamo noi, e non porta
+          nessuno da nessuna parte. */}
+      {(lat != null && lng != null) || indirizzo ? (
         <div className="card mt-4">
-          <p className="titolo-sezione">Dove si gioca</p>
-          <p className="mb-3 mt-1 text-lg font-semibold">{dove}</p>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="titolo-sezione">Ritrovo</p>
+            {e.oraRitrovo && (
+              <p className="num text-sm text-nvg">ore {fmtTime(e.oraRitrovo)}</p>
+            )}
+          </div>
 
-          {lat != null && lng != null && (
-            <Mappa lat={lat} lng={lng} nome={e.field?.nome ?? e.luogo ?? undefined} altezza={200} />
-          )}
+          {lat != null && lng != null && <Mappa lat={lat} lng={lng} altezza={200} />}
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-            <div className="min-w-0">
-              <p className="titolo-sezione">Ritrovo</p>
-              <p className="mt-0.5 font-medium">{ritrovo}</p>
-              {e.oraRitrovo && (
-                <p className="num text-sm text-nvg">ore {fmtTime(e.oraRitrovo)}</p>
-              )}
-            </div>
-            <Naviga lat={ritrovoLat} lng={ritrovoLng} indirizzo={e.ritrovo ?? e.field?.indirizzo ?? e.luogo} />
+          <div className="mt-3">
+            <Naviga
+              lat={lat}
+              lng={lng}
+              indirizzo={indirizzo}
+              className="btn-primary btn-sm w-full justify-center sm:w-auto"
+            />
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* A chi chiedere, col numero: da fuori una domanda non ha altro modo di
           arrivare. Si legge il callsign e il recapito, niente di più. */}
@@ -245,9 +268,19 @@ export default async function PaginaInvito({
             <span className="font-medium">Zero Dark Team</span>
             <span className="num font-semibold text-nvg">{nostri}</span>
           </li>
-          {altre.map((a) => (
-            <li key={a.id} className="flex items-baseline justify-between gap-3">
-              <span>{a.nome}</span>
+          {squadre.map((a) => (
+            <li
+              key={a.id}
+              className={`flex items-baseline justify-between gap-3 ${
+                a.loro ? '-mx-2 rounded-md bg-nvg/10 px-2 py-0.5' : ''
+              }`}
+            >
+              <span className={a.loro ? 'font-medium' : undefined}>
+                {a.nome}
+                {/* la riga loro si riconosce a colpo d'occhio: è quella che
+                    possono cambiare, ed è la prima che cercano */}
+                {a.loro && <span className="ml-1.5 text-[11px] text-nvg">voi</span>}
+              </span>
               {a.operatori === null ? (
                 <span className="text-muted">non ancora detto</span>
               ) : (
@@ -256,6 +289,20 @@ export default async function PaginaInvito({
             </li>
           ))}
         </ul>
+
+        <p className="mt-3 flex items-baseline justify-between gap-3 border-t border-line pt-2 text-sm">
+          <span className="text-muted">
+            In tutto
+            {mancanti > 0 && (
+              <span className="block text-[11px]">
+                {mancanti === 1
+                  ? 'una squadra non ha ancora risposto: non è contata'
+                  : `${mancanti} squadre non hanno ancora risposto: non sono contate`}
+              </span>
+            )}
+          </span>
+          <span className="num text-lg font-semibold text-nvg">{attesi}</span>
+        </p>
       </div>
 
       {/* L'unica cosa che si può toccare da qui — finché ha senso toccarla. */}

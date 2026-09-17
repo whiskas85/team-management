@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.50.2 — 18 settembre 2026
+
+### Corretto
+
+- **Nell'invito, la squadra che lo riceve adesso si vede nell'elenco di chi
+  viene.** Ne era esclusa, e l'elenco sembrava sbagliato: uno legge le altre
+  squadre, non trova la propria, conta le righe e si chiede se il numero che ha
+  scritto sia arrivato davvero. La riga loro ce l'hanno — è il senso di questa
+  pagina — e sta dov'è, in mezzo alle altre, marcata **voi** e in evidenza.
+
+### Aggiunto
+
+- **Il totale degli operatori attesi**, in fondo a «chi viene». È il numero per
+  cui si organizza una giocata, e finora bisognava sommare le righe a mente.
+  Chi non ha ancora risposto non ci può essere dentro, e il conto lo dice
+  invece di far sembrare piccolo un campo che sarà pieno.
+
+### Cambiato
+
+- **Via il nome del campo dall'invito: resta il ritrovo, la mappa e il pulsante
+  per farsi portare.** «Area Boschiva Nord · Bergamo» è come lo chiamiamo noi
+  in anagrafica: non dice a nessuno dove mettere le ruote, e scritto in cima si
+  leggeva come se fosse l'informazione, mentre l'informazione è il segnaposto e
+  il pulsante. La mappa ora si centra sul **ritrovo** quando ha coordinate sue —
+  l'autogrill, il parcheggio prima del bosco — e non più sul campo.
+
 ## 2.50.1 — 17 settembre 2026
 
 ### Cambiato
