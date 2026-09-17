@@ -322,8 +322,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
    *
    * Non è un assente: è la riga da cui nasce il messaggio nel gruppo il sabato
    * sera, e finora non si vedeva da nessuna parte — mancava semplicemente
-   * all'appello, senza che nessuno potesse contarlo. Si contano quelli in rosa
-   * senza una risposta su questa attività.
+   * all'appello, senza che nessuno potesse contarlo.
+   *
+   * **Si conta solo chi è in squadra** — stato SQUADRA o SOSPESO — senza una
+   * risposta su questa attività. Non i nuovi: da loro non si aspetta una
+   * risposta, uno che si affaccia a un'aperta viene se gli va, e contarlo fra
+   * i silenziosi gonfierebbe il numero con gente a cui nessuno ha intenzione
+   * di scrivere. Non chi è da riconfermare: quello il pulsante per segnarsi
+   * non ce l'ha nemmeno, e aspettarsi una risposta da lui sarebbe assurdo.
    *
    * Su un'attività su invito la domanda non ha senso — lì non è invitata la
    * squadra, sono invitate delle persone — e il numero resta fuori invece di

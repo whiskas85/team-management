@@ -190,6 +190,14 @@ card dell'attività, sia nell'elenco sia nella scheda. Accanto ai pulsanti di
 stato c'è sempre l'eliminazione definitiva. La modifica si apre dal pulsante
 **Modifica** in testata alla scheda.
 
+**Il conto delle risposte** — in testa ai partecipanti: presenti in verde, forse
+in giallo, assenti in rosso e, in grigio, **chi è in squadra e non ha risposto**.
+Quest'ultimo è la riga da cui nasce il messaggio nel gruppo il sabato sera. Si
+contano solo quelli in rosa: dai nuovi non si aspetta una risposta — uno che si
+affaccia a un'aperta viene se gli va — e chi è da riconfermare il pulsante per
+segnarsi non ce l'ha nemmeno. Sulle attività su invito il numero non compare: lì
+non è invitata la squadra, sono invitate delle persone.
+
 **Referenti dell'attività** — sono il nome a cui chiedere: come ci si veste, a
 che ora si parte davvero, dove si parcheggia. Si spuntano nel modulo, insieme al
 punto di ritrovo e non fra le cose che decide solo l'admin, perché cambiano da

@@ -11,6 +11,11 @@
  * non è un no: è la riga da cui nasce il messaggio nel gruppo il sabato sera,
  * e prima non si vedeva da nessuna parte — mancavano semplicemente all'appello,
  * senza che nessuno potesse contarli.
+ *
+ * Il silenzio si conta **solo in squadra**, e l'etichetta lo dice. Dai nuovi
+ * non si aspetta una risposta: uno che si affaccia a un'aperta viene se gli va,
+ * e metterlo fra quelli che «non si sono espressi» gonfierebbe il numero con
+ * gente a cui nessuno ha intenzione di scrivere.
  */
 export function ContaRisposte({
   presenti,
@@ -21,7 +26,12 @@ export function ContaRisposte({
   presenti: number;
   forse: number;
   assenti: number;
-  /** Chi è in rosa e non ha ancora risposto. Nullo dove la domanda non ha senso. */
+  /**
+   * Chi è **in squadra** e non ha ancora risposto. I nuovi non si contano: da
+   * loro non si aspetta una risposta, e sommarli darebbe un numero che non
+   * corrisponde a nessuna telefonata da fare. Nullo dove la domanda non ha
+   * senso.
+   */
   silenziosi: number | null;
 }) {
   const voci: { n: number; etichetta: string; classe: string }[] = [
@@ -30,7 +40,11 @@ export function ContaRisposte({
     { n: assenti, etichetta: assenti === 1 ? 'assente' : 'assenti', classe: 'text-danger' },
   ];
   if (silenziosi !== null) {
-    voci.push({ n: silenziosi, etichetta: 'non si sono espressi', classe: 'text-muted' });
+    // L'etichetta dice **di chi** si sta parlando, e non è pignoleria: «non si
+    // sono espressi» da solo fa pensare a tutti quelli che potevano venire,
+    // nuovi compresi, e quel numero vorrebbe dire un'altra cosa. Qui si
+    // contano quelli in squadra, che sono quelli a cui si scrive il sabato.
+    voci.push({ n: silenziosi, etichetta: 'in squadra, senza risposta', classe: 'text-muted' });
   }
 
   return (

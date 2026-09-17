@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.50.1 — 17 settembre 2026
+
+### Cambiato
+
+- **«Non si sono espressi» adesso dice di chi parla: «in squadra, senza
+  risposta».** Il conto era già solo di chi è in rosa — i nuovi non ci sono mai
+  entrati — ma l'etichetta da sola faceva pensare a tutti quelli che potevano
+  venire, e un numero che si può leggere in due modi è un numero su cui non ci
+  si fida. Dai nuovi non si aspetta una risposta: uno che si affaccia a
+  un'aperta viene se gli va, e contarlo fra i silenziosi gonfierebbe il numero
+  con gente a cui nessuno ha intenzione di scrivere.
+
 ## 2.50.0 — 17 settembre 2026
 
 ### Cambiato
