@@ -1157,7 +1157,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     vuole due, e ognuna si fa quando serve — non
                                     tutte insieme e non da sola: chi viene solo il
                                     sabato, la domenica non va coperto. */}
-                                {r.status !== 'ASSENTE' &&
+                                {/* Solo chi ha confermato di venire. Per un "forse" la
+                                    giornaliera non si fa: consuma una polizza vera, la paga
+                                    il club e non torna indietro. Il pulsante ricompare
+                                    quando passa a "ci sono". */}
+                                {r.status === 'PRESENTE' &&
                                   (() => {
                                     const giorniScoperti = giorniEvento.filter((giorno) =>
                                       serveGiornaliera(

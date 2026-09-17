@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.39.4 — 17 settembre 2026
+
+### Corretto
+
+- **Anche dentro la scheda dell'attività si potevano assicurare i «forse».** Il
+  riquadro della copertura compariva per chiunque non avesse detto di no, con il
+  suo «non assicurato» e il pulsante *Assicura* accanto: lo stesso difetto già
+  corretto nell'elenco delle polizze, ma dall'altra porta. Ora si vede solo per
+  chi ha confermato di venire, e ricompare appena un «forse» passa a «ci sono».
+- **L'appello resta com'era**, ed è voluto: chi aveva risposto «forse» e poi si
+  presenta va spuntato come tutti gli altri.
+
 ## 2.39.3 — 17 settembre 2026
 
 ### Corretto
