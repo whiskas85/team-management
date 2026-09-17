@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.52.0 — 18 settembre 2026
+
+### Cambiato
+
+- **L'avviso sul link, nell'invito, adesso è una barra in basso che non si può
+  non vedere.** Era un riquadro in mezzo alla pagina, e un riquadro in mezzo
+  alla pagina lo si scorre via senza leggerlo — che è esattamente quello che
+  non deve succedere: il link è una chiave, chi ce l'ha cambia il numero di
+  operatori di quella squadra, e loro se ne accorgerebbero solo in campo.
+- **Si toglie con «Ho capito», non con una crocetta.** Una crocetta la si preme
+  per far sparire un fastidio; un pulsante con scritto cosa si sta dicendo lo si
+  preme dopo aver letto. Confermato, l'avviso non sparisce: scende in fondo alle
+  card, dove resta da rileggere senza ingombrare lo schermo.
+- **Non ci si ricorda di chi l'ha già letto**, ed è voluto: chi apre quella
+  pagina non è sempre la stessa persona — il link gira dentro la squadra
+  ospite, ed è giusto che giri lì — quindi l'avviso torna a ogni apertura. Chi
+  l'ha capito lo toglie in un tocco; chi lo vede per la prima volta lo vede.
+
 ## 2.51.0 — 18 settembre 2026
 
 ### Cambiato

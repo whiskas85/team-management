@@ -405,9 +405,12 @@ quando ha coordinate sue — l'autogrill, il parcheggio prima del bosco.
 Il tipo di attività non si scrive: che da noi sia un allenamento o un torneo, a
 chi viene a giocarci non cambia niente.
 
-Sopra la casella del numero c'è un avviso: **il link è di quella squadra e non
-si gira fuori**. Chi ce l'ha può cambiare il numero di operatori che portano, e
-se ne accorgerebbero solo in campo.
+In basso, fissa e sempre in vista, c'è la barra dell'avviso: **il link è di
+quella squadra e non si gira fuori**. Chi ce l'ha può cambiare il numero di
+operatori che portano, e se ne accorgerebbero solo in campo. Si toglie con **«Ho
+capito»** — non con una crocetta, che la si preme per far sparire un fastidio —
+e da lì scende in fondo alle card, dove resta da rileggere. Non ci si ricorda di
+chi l'ha già letto: quella pagina non la apre sempre la stessa persona.
 
 Il link si manda con il pulsante della condivisione accanto alla riga: sul
 telefono apre il foglio di sistema — WhatsApp, Telegram, un messaggio — e sul

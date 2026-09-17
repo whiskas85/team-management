@@ -11,6 +11,7 @@ import { Campo } from '@/components/ui';
 import { rispondiInvito } from '@/actions/ospiti';
 import { Icona } from '@/components/Icona';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
+import { AvvisoLinkInvito } from '@/components/AvvisoLinkInvito';
 import { etichettaGenere, genereAllegato, peso } from '@/lib/allegati';
 
 export const dynamic = 'force-dynamic';
@@ -323,23 +324,6 @@ export default async function PaginaInvito({
         </div>
       ) : (
         <>
-          {/* L'avviso sta attaccato alla casella, non in fondo alla pagina:
-              va letto nel momento in cui si capisce cosa fa questo link, non
-              dopo averlo già inoltrato. Chi ce l'ha può cambiare il numero di
-              operatori — non è una password, è una chiave, e chi la gira la
-              dà a qualcun altro. */}
-          <div className="mt-4 rounded-md border border-warn/40 bg-warn/10 px-4 py-3">
-            <p className="flex items-center gap-2 font-medium text-warn">
-              <Icona nome="scudo" size={16} />
-              Questo link è di {ospite.nome}.
-            </p>
-            <p className="mt-1 text-sm text-ink/90">
-              Non giratelo fuori dalla vostra squadra: chi ce l’ha può cambiare il numero di
-              operatori che portate, e ve ne accorgereste solo in campo. Dentro la squadra
-              passatelo a chi deve: il numero si aggiorna quante volte serve.
-            </p>
-          </div>
-
           <div className="card mt-4">
             <FormAzione azione={rispondiInvito}>
               <input type="hidden" name="token" value={token} />
@@ -368,6 +352,12 @@ export default async function PaginaInvito({
           </div>
         </>
       )}
+
+      {/* L'avviso sta in basso e fisso finché non lo si conferma: un riquadro
+          in mezzo alla pagina lo si scorre via senza leggerlo, e questo è
+          esattamente quello che non deve succedere. Il link è una chiave: chi
+          ce l'ha cambia il numero di operatori di questa squadra. */}
+      {!chiuso && <AvvisoLinkInvito squadra={ospite.nome} />}
 
       <p className="mt-6 text-center text-[11px] text-muted">
         Questa pagina è solo per questa attività.{' '}
