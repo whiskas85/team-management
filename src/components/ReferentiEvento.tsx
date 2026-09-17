@@ -27,11 +27,18 @@ export type Referente = {
  * nome con l'iniziale, per chi non ce l'ha — perché il cognome non serve a
  * chiamarlo.
  */
-export function ReferentiEvento({ referenti }: { referenti: Referente[] }) {
+export function ReferentiEvento({
+  referenti,
+  riquadro = false,
+}: {
+  referenti: Referente[];
+  /** Card a sé, come nella pagina d'invito, invece di un blocco dentro un'altra. */
+  riquadro?: boolean;
+}) {
   if (referenti.length === 0) return null;
 
   return (
-    <div className="mt-5 border-t border-line pt-4">
+    <div className={riquadro ? 'card mt-4' : 'mt-5 border-t border-line pt-4'}>
       <p className="titolo-sezione mb-2">
         {referenti.length === 1 ? 'Referente' : 'Referenti'}
       </p>

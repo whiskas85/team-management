@@ -5,6 +5,48 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.50.0 — 17 settembre 2026
+
+### Cambiato
+
+- **La pagina d'invito rifatta attorno a quello che serve a chi arriva da
+  fuori.** Era un elenco di righe tutte della stessa misura, e la cosa più
+  importante era scritta in grigio piccolo come una didascalia.
+  - **Quando, in grande e per primo**: giorno per esteso e orario in evidenza.
+    È il dato che fa perdere le squadre — si sbaglia il giorno, si arriva
+    all'ora sbagliata — e stava in coda al tipo di attività.
+  - **Via il tipo di attività.** Che da noi sia un allenamento o un torneo, a
+    chi viene a giocarci non cambia niente.
+  - **Dove si gioca: il nome del posto, la mappa col segnaposto, e sotto il
+    ritrovo con il pulsante che apre la navigazione.** L'indirizzo ricopiato
+    sotto al nome non portava nessuno da nessuna parte. Il ritrovo ha spesso
+    coordinate sue — un autogrill, un parcheggio prima del bosco — e sono
+    quelle che ora apre il navigatore.
+  - **Chi viene: verde per tutti quelli che hanno risposto**, che l'abbiano
+    scritto loro o che l'abbiamo segnato noi per loro. Il grigio resta solo per
+    il silenzio, che è un'altra cosa.
+- **I referenti compaiono anche nell'invito, con il numero.** Da fuori una
+  domanda — a che ora si parte davvero, dove si parcheggia — non aveva altro
+  modo di arrivare che passare da chi aveva mandato il link. Si legge il
+  callsign e il recapito, niente di più: nessun cognome, come in tutto il resto
+  della pagina.
+- **Un avviso attaccato alla casella del numero: il link è di quella squadra e
+  non si gira fuori.** Chi ce l'ha può cambiare il numero di operatori che
+  portano, e se ne accorgerebbero solo in campo. Stava scritto in fondo alla
+  pagina, in grigio, dove lo si legge dopo averlo già inoltrato.
+- **Nella scheda dell'attività il conto delle risposte si legge da lontano**:
+  presenti in verde, forse in giallo, assenti in rosso, ognuno col suo numero
+  grande. Era una riga grigia piccola, e quattro numeri della stessa misura si
+  leggono uno per uno.
+
+### Aggiunto
+
+- **Quanti non si sono espressi**, accanto agli altri tre. Non è un assente: è
+  la riga da cui nasce il messaggio nel gruppo il sabato sera, e finora non si
+  vedeva da nessuna parte — mancavano all'appello senza che nessuno potesse
+  contarli. Sulle attività su invito non compare: lì non è invitata la squadra,
+  sono invitate delle persone, e il numero direbbe una cosa falsa.
+
 ## 2.49.0 — 17 settembre 2026
 
 ### Cambiato

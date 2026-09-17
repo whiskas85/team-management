@@ -40,6 +40,7 @@ import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
+import { ContaRisposte } from '@/components/ContaRisposte';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -316,6 +317,27 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const presenti = evento.rsvps.filter((r) => r.status === 'PRESENTE');
   const forse = evento.rsvps.filter((r) => r.status === 'FORSE');
   const assenti = evento.rsvps.filter((r) => r.status === 'ASSENTE');
+  /*
+   * Chi non ha detto niente.
+   *
+   * Non è un assente: è la riga da cui nasce il messaggio nel gruppo il sabato
+   * sera, e finora non si vedeva da nessuna parte — mancava semplicemente
+   * all'appello, senza che nessuno potesse contarlo. Si contano quelli in rosa
+   * senza una risposta su questa attività.
+   *
+   * Su un'attività su invito la domanda non ha senso — lì non è invitata la
+   * squadra, sono invitate delle persone — e il numero resta fuori invece di
+   * dire una cosa falsa.
+   */
+  const silenziosi =
+    evento.visibilita === 'INVITO'
+      ? null
+      : await prisma.user.count({
+          where: {
+            stato: { in: ['SQUADRA', 'SOSPESO'] },
+            rsvps: { none: { eventId: evento.id } },
+          },
+        });
   const titolari = presenti.filter((r) => r.assegnazione === 'TITOLARE');
   // i convocati tengono già il posto: mancano solo i soldi
   const convocati = presenti.filter((r) => r.assegnazione === 'CONVOCATO');
@@ -1142,10 +1164,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           {/* -------------------------------------------------- partecipanti */}
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="titolo-sezione">
-                Partecipanti · {presenti.length} presenti, {forse.length} forse, {assenti.length}{' '}
-                assenti
-              </h2>
+              {/* Il conto sta in cima e si legge da lontano: è il dato per cui
+                  si apre un'attività, e in grigio piccolo si leggeva come una
+                  didascalia. */}
+              <ContaRisposte
+                presenti={presenti.length}
+                forse={forse.length}
+                assenti={assenti.length}
+                silenziosi={silenziosi}
+              />
 
               {tl && (
                 <BottoneModale

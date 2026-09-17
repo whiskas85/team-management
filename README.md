@@ -378,11 +378,23 @@ account qui dentro. Nella scheda dell'attività, il riquadro **Squadre ospiti**
 serve a invitarle: si sceglie una squadra fra quelle in anagrafica o si scrive
 il nome di chi non c'è ancora, e nasce **un link per quella squadra**.
 
-Chi riceve il link apre una pagina sola, senza registrarsi. Ci trova titolo e
-descrizione, quando, dove — col pulsante che apre la navigazione — e chi viene:
-noi contati come una squadra, le altre squadre col loro numero. L'unica cosa
-che può toccare è **quanti operatori porta**, e può cambiarla quante volte
-serve tornando sullo stesso indirizzo.
+Chi riceve il link apre una pagina sola, senza registrarsi, costruita attorno a
+quello che serve a chi arriva da fuori: **quando** — giorno per esteso e orario
+in grande, perché è il dato che fa sbagliare — **dove**, col nome del posto, la
+mappa e il ritrovo con il pulsante che apre la navigazione, **a chi chiedere**,
+col callsign e il numero dei referenti, i documenti pubblici (il book di
+missione) e **chi viene**: noi contati come una squadra, le altre squadre col
+loro numero. Verde per chi ha risposto — l'abbia scritto lui o l'abbiamo
+segnato noi per lui — grigio solo per il silenzio. L'unica cosa che può toccare
+è **quanti operatori porta**, e può cambiarla quante volte serve tornando sullo
+stesso indirizzo.
+
+Il tipo di attività non si scrive: che da noi sia un allenamento o un torneo, a
+chi viene a giocarci non cambia niente.
+
+Sopra la casella del numero c'è un avviso: **il link è di quella squadra e non
+si gira fuori**. Chi ce l'ha può cambiare il numero di operatori che portano, e
+se ne accorgerebbero solo in campo.
 
 **Un link per squadra e non uno per tutti**, perché il numero va attribuito a
 qualcuno: altrimenti non si saprebbe mai chi ha risposto, e il primo che scrive
