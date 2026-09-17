@@ -9,6 +9,7 @@ import { Logo } from './Logo';
 import { Icona, type NomeIcona } from './Icona';
 import { ElencoPreferiti } from './Preferiti';
 import { MenuUtente } from './MenuUtente';
+import { Omnisearch } from './Omnisearch';
 import { VERSIONE } from '@/lib/versione';
 
 export type VoceMenu = {
@@ -250,6 +251,12 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
             v{VERSIONE}
           </span>
         </Link>
+
+        {/* La riga per saltare a una voce senza cercarla nella colonna: sta in
+            mezzo, dove c'era spazio vuoto, e solo sul computer — sul telefono
+            la tastiera coprirebbe metà schermo per arrivare dove il pollice
+            arriva già da solo. */}
+        <Omnisearch voci={voci} />
 
         {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
             La stellina non sta qui: è nella riga del titolo, dove si guarda

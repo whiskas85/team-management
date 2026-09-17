@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.39.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Una riga per saltare dove si vuole, in cima allo schermo.** Si scrive
+  «tar», compare *Tariffario*, si preme invio e ci si è. Cerca fra le voci del
+  menu, senza accenti e senza maiuscole — «attivita» trova *Tipologie
+  attività* — e quello che comincia con quelle lettere viene prima di quello
+  che le contiene in mezzo: chi scrive «tar» cerca il tariffario, non le
+  tessere. Si può cercare anche per reparto: «comando» tira su le sue voci.
+- **Si apre con ctrl+K** (cmd+K sul Mac) o con la sola `/`, e la scorciatoia è
+  scritta dentro la riga: si impara vedendola, non leggendo un manuale. Frecce
+  per scegliere, invio per andare, esc per chiudere.
+- **Solo sul computer**, ed è voluto: sul telefono la tastiera si mangia metà
+  schermo per arrivare dove il pollice arriva già da solo, con la barra in
+  basso. La colonna di sinistra invece è lunga, e chi ci lavora tutto il giorno
+  sa già dove vuole andare.
+- **Cerca solo fra le voci che quella persona può vedere**: il menu è già
+  filtrato dai permessi, e da qui non si scopre una pagina che non spetta.
+
 ## 2.38.0 — 17 settembre 2026
 
 ### Aggiunto
