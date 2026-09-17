@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.39.3 — 17 settembre 2026
+
+### Corretto
+
+- **La barra di ricerca cade esattamente sui bordi del contenuto.** Cominciava
+  un po' più a sinistra e finiva un po' prima delle card sotto: la faccia stava
+  dentro la stessa fila e le rubava larghezza, spostandole il centro. Ora la
+  faccia è agganciata al bordo destro e fuori dal flusso, e la barra usa la
+  stessa misura e la stessa centratura del contenitore delle pagine — i due
+  bordi coincidono al pixel.
+
 ## 2.39.2 — 17 settembre 2026
 
 ### Cambiato

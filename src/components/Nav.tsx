@@ -262,7 +262,7 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
         {/* La riga di ricerca si prende **tutta la colonna** del contenuto, e
             la faccia se ne sta per conto suo all'estrema destra: appiccicata
             alla barra sembrava parte della barra. */}
-        <div className="flex w-full items-center gap-3 md:gap-6">
+        <div className="flex w-full items-center gap-3">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
             <Logo size={30} />
             <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
@@ -276,14 +276,22 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
               per arrivare dove il pollice arriva già da solo. Sta dentro un
               contenitore largo quanto il contenuto, così i due bordi cadono
               nello stesso punto. */}
-          <div className="mx-auto w-full max-w-6xl">
+          {/* Stessa misura e stessa centratura del contenitore dentro <main>:
+              i due bordi della barra cadono esattamente sui due bordi delle
+              card sotto. Lo spazio a destra serve finché lo schermo è stretto
+              e la faccia starebbe sopra la barra; da xl in poi, che è dove la
+              colonna smette di allargarsi, non serve più e sparisce. */}
+          <div className="mx-auto w-full max-w-6xl pr-24 xl:pr-0">
             <Omnisearch voci={voci} />
           </div>
 
           {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
               La stellina non sta qui: è nella riga del titolo, dove si guarda
               già per sapere su che pagina si è. */}
-          <div className="ml-auto shrink-0 md:ml-0">
+          {/* Fuori dal flusso, agganciata al bordo destro: dentro alla fila
+              rubava larghezza alla colonna e le spostava il centro, così la
+              barra cadeva un po' più a sinistra del contenuto. */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 md:right-8">
             <MenuUtente utente={utente} esci={esci} />
           </div>
         </div>
