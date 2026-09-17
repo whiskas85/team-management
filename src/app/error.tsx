@@ -31,6 +31,19 @@ export default function Errore({
       `${error.name} ${error.message}`,
     );
 
+  /*
+   * La rete che non c'è non è un guasto del gestionale.
+   *
+   * «Failed to fetch», «NetworkError», «Load failed»: il telefono è passato
+   * sotto un ponte, il wifi è caduto, o il server si stava riavviando per un
+   * rilascio. La pagina va mostrata lo stesso — chi guarda deve sapere che
+   * qualcosa non è arrivato — ma nel registro dei guasti quelle righe non ci
+   * vanno: coprono quelle vere, e non c'è niente da correggere nel codice.
+   */
+  const daRete = /NetworkError|Failed to fetch|Load failed|fetch failed|network request failed/i.test(
+    `${error.name} ${error.message}`,
+  );
+
   useEffect(() => {
     if (!daAggiornamento) return;
     // una volta sola: se anche dopo il ricaricamento si rompe, è un difetto
@@ -58,7 +71,7 @@ export default function Errore({
    * riempirne il registro coprirebbe i guasti veri.
    */
   useEffect(() => {
-    if (daAggiornamento || spedito.current) return;
+    if (daAggiornamento || daRete || spedito.current) return;
     spedito.current = true;
     registraErrore({
       messaggio: error.message || 'errore senza messaggio',
@@ -74,7 +87,7 @@ export default function Errore({
         // niente rete, o server giù: chi guarda ha già i suoi problemi, non
         // gli si aggiunge un secondo messaggio d'errore sopra al primo
       });
-  }, [daAggiornamento, error]);
+  }, [daAggiornamento, daRete, error]);
 
   return (
     <div className="mx-auto max-w-lg py-16 text-center">

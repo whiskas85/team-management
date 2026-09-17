@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.46.0 — 17 settembre 2026
+
+### Cambiato
+
+- **Nel registro dei guasti non finisce più la rete che non c'è.**
+  «NetworkError», «Failed to fetch», «Load failed»: sono il telefono passato
+  sotto un ponte, il wifi caduto, o il gestionale che si stava riavviando per
+  un rilascio. Non c'è niente da correggere nel codice, e quelle righe
+  seppellivano quelle vere — otto guasti su nove erano di questa famiglia.
+- **Fuori anche «Script error.»**, che è quello che il browser dice quando
+  l'errore arriva da uno script di un'altra origine: quasi sempre
+  un'estensione di chi naviga. Non ha stack, non ha riga, non ha niente: non è
+  raccontabile nemmeno volendo.
+- **Restano nel diario di bordo**, che è il posto giusto: se poi qualcosa si
+  rompe davvero, lì si legge che in quel momento la rete non c'era.
+
 ## 2.45.0 — 17 settembre 2026
 
 ### Aggiunto

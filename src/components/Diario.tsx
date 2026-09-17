@@ -20,6 +20,36 @@ import { registraErrore } from '@/actions/errori';
  * disegnare, e fa tre cose: annota dove si va, annota cosa si rompe, e spedisce
  * quando si rompe qualcosa che nessun altro raccoglierebbe.
  */
+/**
+ * Quello che non è un guasto, e va lasciato fuori dal registro.
+ *
+ * Due famiglie, entrambe rumore puro:
+ *
+ * - **la rete che non c'è.** «NetworkError», «Failed to fetch», «Load
+ *   failed»: il telefono è passato sotto un ponte, il wifi è caduto, oppure
+ *   il gestionale si stava riavviando per un rilascio. Non c'è niente da
+ *   correggere nel codice, e queste righe seppelliscono quelle vere.
+ * - **«Script error.» senza altro.** È quello che il browser dice quando
+ *   l'errore arriva da uno script di un'altra origine — quasi sempre
+ *   un'estensione del browser di chi naviga. Non ha stack, non ha riga, non
+ *   ha niente: non è raccontabile nemmeno volendo.
+ *
+ * Restano nel diario di bordo, che è il posto giusto: se poi si rompe
+ * qualcosa davvero, lì si legge che quel momento la rete non c'era.
+ */
+const rumore = (messaggio: string) => {
+  const m = messaggio.toLowerCase();
+  return (
+    m.includes('networkerror') ||
+    m.includes('failed to fetch') ||
+    m.includes('load failed') ||
+    m.includes('fetch failed') ||
+    m.includes('network request failed') ||
+    m === 'script error.' ||
+    m === 'script error'
+  );
+};
+
 export function Diario() {
   const pathname = usePathname();
   // spedito in questa vita della pagina: si manda il primo, non i venti che
@@ -33,6 +63,7 @@ export function Diario() {
   useEffect(() => {
     const manda = (messaggio: string, origine: string, stack?: string, nome?: string) => {
       annota('errore', messaggio);
+      if (rumore(messaggio)) return;
       if (spedito.current) return;
       spedito.current = true;
       // non si aspetta la risposta e non si mostra niente: qui la pagina è
