@@ -351,6 +351,30 @@ ha un incarico che li richiede.
 **Ricerca** — le liste filtrano mentre digiti, senza premere invio: valgono
 anche per le tendine dei filtri.
 
+## Squadre ospiti
+
+Un'attività si gioca spesso con qualcun altro, e quel qualcun altro non ha un
+account qui dentro. Nella scheda dell'attività, il riquadro **Squadre ospiti**
+serve a invitarle: si sceglie una squadra fra quelle in anagrafica o si scrive
+il nome di chi non c'è ancora, e nasce **un link per quella squadra**.
+
+Chi riceve il link apre una pagina sola, senza registrarsi. Ci trova titolo e
+descrizione, quando, dove — col pulsante che apre la navigazione — e chi viene:
+noi contati come una squadra, le altre squadre col loro numero. L'unica cosa
+che può toccare è **quanti operatori porta**, e può cambiarla quante volte
+serve tornando sullo stesso indirizzo.
+
+**Un link per squadra e non uno per tutti**, perché il numero va attribuito a
+qualcuno: altrimenti non si saprebbe mai chi ha risposto, e il primo che scrive
+lo scriverebbe per gli altri. Nell'elenco *non ancora risposto* e *hanno detto
+che non vengono* restano due cose diverse: sono due telefonate diverse.
+
+**Di noi, da quella pagina, si vede un numero.** Niente nomi, niente recapiti,
+niente quote: il link è una chiave che può essere girata, e quello che apre
+deve essere poco. A cose fatte la pagina lo dice — attività conclusa, o
+annullata — e il numero non si cambia più. Togliendo la squadra dagli ospiti,
+il suo link non apre più niente.
+
 ## Notifiche sul telefono
 
 Arrivano anche col gestionale chiuso, e si accendono dal proprio **profilo**,

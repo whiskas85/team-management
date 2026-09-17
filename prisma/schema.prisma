@@ -276,9 +276,43 @@ model SquadraEsterna {
   attiva    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  campi Field[]
+  campi  Field[]
+  inviti SquadraOspite[] @relation("InvitiSquadra")
 
   @@index([attiva, nome])
+}
+
+/// Una squadra invitata a un'attività, con il suo link da mandare fuori.
+///
+/// Le altre squadre non hanno un account qui dentro, e non ha senso darglielo:
+/// di una giocata in comune a loro serve sapere quando, dove e quanti siamo, e
+/// a noi serve sapere **in quanti vengono**. Questo è tutto lo scambio.
+///
+/// Il `token` è la chiave di quella porta: chi ha il link apre la pagina
+/// dell'invito e può cambiare solo il proprio numero di operatori. Non è una
+/// password — chi lo riceve può girarlo — ed è il motivo per cui di là non si
+/// vede nessun nome, nessun recapito e nessuna quota: solo i numeri e il
+/// luogo. Ogni squadra ha il suo link, così si sa sempre chi ha risposto.
+model SquadraOspite {
+  id         String          @id @default(cuid())
+  eventId    String
+  event      Event           @relation("OspitiEvento", fields: [eventId], references: [id], onDelete: Cascade)
+  /// Quando è una delle squadre conosciute. Restando un collegamento, se
+  /// quella squadra viene cancellata dall'anagrafica l'invito non sparisce:
+  /// resta il nome com'era scritto quel giorno.
+  squadraId  String?
+  squadra    SquadraEsterna? @relation("InvitiSquadra", fields: [squadraId], references: [id], onDelete: SetNull)
+  /// Come si chiama qui: copiato dall'anagrafica o scritto a mano.
+  nome       String
+  /// Quanti ne porta. **Nullo** finché non risponde, ed è diverso da zero:
+  /// zero vuol dire «non veniamo», nullo vuol dire «non l'hanno ancora detto».
+  operatori  Int?
+  token      String          @unique
+  rispostoIl DateTime?
+  creatoIl   DateTime        @default(now())
+
+  @@unique([eventId, nome])
+  @@index([eventId])
 }
 
 // ---------------------------------------------------------------- campi da gioco
@@ -652,6 +686,8 @@ model Event {
   debriefing  Debriefing?
   /// Le quote che vanno ad altre casse, oltre a quella del club.
   quoteCasse  QuotaCassa[]
+  /// Le squadre di fuori invitate a giocare con noi, con il loro link.
+  ospiti       SquadraOspite[] @relation("OspitiEvento")
   /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.
   vociAttivita VoceAttivita[]
 

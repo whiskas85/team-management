@@ -37,6 +37,7 @@ import { FormEvento } from '@/components/FormEvento';
 import { FormRiunione } from '@/components/FormRiunione';
 import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
+import { SquadreOspiti } from '@/components/SquadreOspiti';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -89,6 +90,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       tipo: true,
       field: { include: { squadra: { select: { nome: true } } } },
       createdBy: { select: { nome: true, cognome: true } },
+      // le squadre di fuori invitate, con il loro link
+      ospiti: { orderBy: { creatoIl: 'asc' } },
       rsvps: {
         include: {
           user: {
@@ -480,9 +483,27 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // a mano nel codice vorrebbe dire cambiarlo il giorno che arriva un dominio.
   const intestazioni = await headers();
   const host = intestazioni.get('host');
-  const indirizzoPagina = host
-    ? `${intestazioni.get('x-forwarded-proto') ?? 'http'}://${host}/calendario/${evento.id}`
-    : `/calendario/${evento.id}`;
+  const origine = host
+    ? `${intestazioni.get('x-forwarded-proto') ?? 'http'}://${host}`
+    : '';
+  const indirizzoPagina = `${origine}/calendario/${evento.id}`;
+
+  // Le squadre di fuori: chi le invita ne sceglie una fra quelle conosciute o
+  // scrive il nome, e ognuna si porta dietro il proprio link.
+  const conosciute = tl
+    ? await prisma.squadraEsterna.findMany({
+        where: { attiva: true },
+        orderBy: { nome: 'asc' },
+        select: { id: true, nome: true },
+      })
+    : [];
+  const ospiti = evento.ospiti.map((o) => ({
+    id: o.id,
+    nome: o.nome,
+    operatori: o.operatori,
+    link: `${origine}/invito/${o.token}`,
+    rispostoIl: o.rispostoIl ? fmtDateTime(o.rispostoIl) : null,
+  }));
 
   // Le tipologie segnate come riunione: se non ce n'è nessuna il pulsante non
   // compare, invece di aprire un modulo che non può funzionare.
@@ -1015,6 +1036,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ------------------------------------------------ squadre ospiti */}
+          {/* Sta prima dei nostri partecipanti perché è la domanda che viene
+              subito dopo «quando e dove»: con chi si gioca. Una bozza non ha
+              ospiti da invitare — il link non aprirebbe niente — e si mostra
+              da rilasciata in poi. */}
+          {evento.status !== 'CREATA' && (
+            <SquadreOspiti
+              eventId={evento.id}
+              ospiti={ospiti}
+              conosciute={conosciute}
+              puoGestire={tl}
+            />
+          )}
 
           {/* -------------------------------------------------- partecipanti */}
           <div>

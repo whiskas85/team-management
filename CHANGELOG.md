@@ -5,6 +5,35 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.40.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Le squadre di fuori si invitano a un'attività, e ognuna ha il suo link.**
+  Nella scheda c'è il riquadro *Squadre ospiti*: si sceglie una squadra fra
+  quelle in anagrafica o si scrive il nome di chi non c'è ancora, e nasce un
+  link da mandare al loro referente. Un link per squadra, non uno per tutti:
+  così si sa sempre chi ha risposto cosa, e il primo che scrive un numero non
+  lo scrive per gli altri.
+- **Chi riceve il link non ha bisogno di un account.** Apre una pagina che
+  mostra titolo e descrizione, quando, dove — con il pulsante per farsi portare
+  da Google Maps — e chi viene: noi contati come una squadra, e le altre
+  squadre con il loro numero. In fondo c'è l'unica cosa che può toccare:
+  **quanti operatori porta**. Si cambia quante volte serve, tornando sullo
+  stesso link.
+- **Di noi si vede un numero, non un elenco.** Niente nomi, niente recapiti,
+  niente quote, niente adesioni una per una: un link girato nella chat
+  sbagliata non deve consegnare a nessuno l'anagrafica della squadra.
+- **«Non ancora» è diverso da zero.** Una squadra che non ha risposto e una che
+  ha detto «non veniamo» richiedono due telefonate diverse, e nell'elenco si
+  leggono diverse.
+- **A cose fatte il link lo dice.** Se l'attività è conclusa — o è passata la
+  sua ora — la pagina ringrazia e basta; se è stata annullata lo scrive in
+  rosso, senza raccontare il perché, che è cosa nostra. Il rifiuto vale anche
+  lato server: una scheda rimasta aperta dal venerdì non scrive il lunedì.
+- Togliendo una squadra dagli ospiti, il suo link smette di aprire qualsiasi
+  cosa.
+
 ## 2.39.4 — 17 settembre 2026
 
 ### Corretto
