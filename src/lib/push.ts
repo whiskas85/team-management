@@ -106,6 +106,67 @@ export async function chiVedeAttivita(
   return utenti.map((u) => u.id);
 }
 
+export type EsitoProva = {
+  dispositivi: number;
+  arrivati: number;
+  /** Il primo motivo di fallimento, se qualcosa è andato storto. */
+  motivo?: string;
+};
+
+/**
+ * Manda un avviso di prova ai dispositivi di una persona e **racconta com'è
+ * andata**.
+ *
+ * Serve a rispondere alla domanda che altrimenti non ha risposta: «le
+ * notifiche non mi arrivano — è il telefono, il permesso, o il gestionale?».
+ * Qui si vede subito quanti dispositivi risultano iscritti e, se l'invio
+ * fallisce, il motivo vero invece del silenzio.
+ *
+ * Un errore 403 vuol dire quasi sempre che quel dispositivo si era iscritto
+ * con chiavi diverse da quelle di adesso — capita se le chiavi VAPID
+ * dell'ambiente sono cambiate: l'iscrizione va rifatta.
+ */
+export async function provaAvviso(userId: string): Promise<EsitoProva> {
+  if (!configurata()) return { dispositivi: 0, arrivati: 0, motivo: 'notifiche non configurate' };
+
+  const iscrizioni = await prisma.iscrizionePush.findMany({ where: { userId } });
+  if (iscrizioni.length === 0) return { dispositivi: 0, arrivati: 0 };
+
+  preparaMittente();
+  const corpo = JSON.stringify({
+    titolo: 'Prova riuscita',
+    testo: 'Le notifiche su questo dispositivo funzionano.',
+    url: '/profilo',
+    tag: 'prova',
+  } satisfies Avviso);
+
+  let arrivati = 0;
+  let motivo: string | undefined;
+
+  for (const i of iscrizioni) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: i.endpoint, keys: { p256dh: i.p256dh, auth: i.auth } },
+        corpo,
+      );
+      arrivati++;
+    } catch (e) {
+      const stato = (e as { statusCode?: number }).statusCode;
+      motivo ??=
+        stato === 403
+          ? 'il dispositivo si era iscritto con chiavi diverse: disattiva e riattiva le notifiche'
+          : stato === 404 || stato === 410
+            ? 'quel dispositivo non esiste più: riattiva le notifiche'
+            : `errore ${stato ?? 'sconosciuto'}`;
+      if (stato === 404 || stato === 410) {
+        await prisma.iscrizionePush.delete({ where: { id: i.id } }).catch(() => {});
+      }
+    }
+  }
+
+  return { dispositivi: iscrizioni.length, arrivati, motivo };
+}
+
 /** Chi tiene d'occhio le persone che bussano: a loro arrivano le registrazioni. */
 export async function chiSegueINuovi(): Promise<string[]> {
   const utenti = await prisma.user.findMany({

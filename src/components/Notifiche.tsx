@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { mostraToast } from './Toast';
+import { FormAzione } from './Form';
+import { Invia } from './Bottone';
+import { provaNotifiche } from '@/actions/notifiche';
 
 /**
  * «Avvisami sul telefono.»
@@ -127,8 +130,16 @@ export function Notifiche() {
       )}
 
       {stato === 'accese' && (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-nvg">Attive su questo dispositivo.</span>
+          {/* «Mi arrivano?» è una domanda che senza questo pulsante ha come
+              unica risposta l'attesa di qualcosa di vero. Qui si prova subito,
+              e se non arriva si legge il motivo invece del silenzio. */}
+          <FormAzione azione={provaNotifiche} className="contents">
+            <Invia icona="whatsapp" className="btn-ghost btn-sm">
+              Mandami una prova
+            </Invia>
+          </FormAzione>
           <button type="button" onClick={spegni} disabled={attesa} className="btn-ghost btn-sm">
             Disattiva
           </button>

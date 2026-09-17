@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.44.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **«Mandami una prova» fra le notifiche del profilo.** Finora «le notifiche
+  non mi arrivano» era una frase senza risposta: si poteva solo aspettare che
+  succedesse qualcosa di vero per scoprire che non funzionavano. Ora si prova
+  subito, e se non arriva si legge **il motivo** — nessun dispositivo iscritto,
+  iscrizione fatta con chiavi vecchie, dispositivo che non esiste più — invece
+  del silenzio.
+- Un dispositivo che il servizio di push dichiara sparito viene tolto
+  dall'elenco durante la prova, così non resta a sporcare i conti.
+
 ## 2.43.0 — 17 settembre 2026
 
 ### Aggiunto
