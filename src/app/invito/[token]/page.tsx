@@ -1,12 +1,15 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { fmtDateTime } from '@/lib/format';
+import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Naviga } from '@/components/Naviga';
 import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { Campo } from '@/components/ui';
 import { rispondiInvito } from '@/actions/ospiti';
+import { Icona } from '@/components/Icona';
+import { etichettaGenere, genereAllegato, peso } from '@/lib/allegati';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +42,20 @@ export default async function PaginaInvito({
           field: { select: { nome: true, citta: true, indirizzo: true, lat: true, lng: true } },
           rsvps: { select: { status: true, user: { select: { stato: true } } } },
           ospiti: { select: { id: true, nome: true, operatori: true } },
+          // Solo quelli marcati «anche fuori». Il filtro sta nella query e
+          // non nella pagina: un allegato interno non deve nemmeno arrivare
+          // fin qui, e una riga dimenticata in un `.map` sarebbe il modo più
+          // facile per farlo uscire.
+          allegati: {
+            where: { pubblico: true },
+            orderBy: [{ ordine: 'asc' }, { creatoIl: 'asc' }],
+            select: {
+              id: true,
+              titolo: true,
+              mimeType: true,
+              fileSize: true,
+            },
+          },
         },
       },
     },
@@ -117,6 +134,38 @@ export default async function PaginaInvito({
               indirizzo={e.field?.indirizzo ?? e.luogo}
             />
           </div>
+        </div>
+      )}
+
+      {/* Il book di missione, e quello che ci sta intorno.
+          È la cosa per cui questo link vale la pena di essere aperto due
+          volte: si legge qui dentro, e se lo aggiorniamo il giorno prima chi
+          torna su questa pagina trova la versione nuova senza che nessuno
+          debba rimandare niente in chat. */}
+      {e.allegati.length > 0 && (
+        <div className="card mt-4">
+          <p className="text-[11px] uppercase tracking-[0.06em] text-muted">Documenti</p>
+          <ul className="mt-2 space-y-2">
+            {e.allegati.map((a) => (
+              <li key={a.id}>
+                <Link
+                  href={`/invito/${token}/allegati/${a.id}`}
+                  className="flex items-center gap-2.5 text-sm hover:text-nvg"
+                >
+                  <span className="text-muted">
+                    <Icona nome="allegato" size={16} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{a.titolo}</span>
+                    <span className="num text-[11px] text-muted">
+                      {etichettaGenere[genereAllegato(a.mimeType)]} · {peso(a.fileSize)}
+                    </span>
+                  </span>
+                  <Icona nome="freccia" size={15} />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

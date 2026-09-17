@@ -38,6 +38,7 @@ import { FormRiunione } from '@/components/FormRiunione';
 import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
+import { AllegatiEvento } from '@/components/AllegatiEvento';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -79,6 +80,7 @@ import { haIncarichi } from '@/lib/domain';
 import { Icona } from '@/components/Icona';
 import { faseAttivita, finestraAttivita } from '@/lib/giorni';
 import { quotaChiusa } from '@/lib/casse';
+import { puoGestireAllegati } from '@/lib/allegati';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -92,6 +94,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       createdBy: { select: { nome: true, cognome: true } },
       // le squadre di fuori invitate, con il loro link
       ospiti: { orderBy: { creatoIl: 'asc' } },
+      // il book di missione e quello che gli sta intorno
+      allegati: {
+        orderBy: [{ ordine: 'asc' }, { creatoIl: 'asc' }],
+        include: { caricatoDa: { select: { nome: true, cognome: true, callsign: true } } },
+      },
       // chi tiene in mano l'attività: di loro serve il solo callsign
       referenti: {
         include: { utente: { select: { id: true, nome: true, cognome: true, callsign: true } } },
@@ -520,6 +527,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     operatori: o.operatori,
     link: `${origine}/invito/${o.token}`,
     rispostoIl: o.rispostoIl ? fmtDateTime(o.rispostoIl) : null,
+  }));
+
+  // Gli allegati li carica chi tiene in mano l'attività: l'admin, i team
+  // leader e **i referenti di questa**. Il book lo scrive chi ci va, e spesso
+  // lo finisce la sera prima: farglielo caricare da qualcun altro vorrebbe
+  // dire che arriva su WhatsApp e il riquadro resta vuoto.
+  const gestisceAllegati = puoGestireAllegati(me, evento.referenti);
+  const allegati = evento.allegati.map((a) => ({
+    id: a.id,
+    titolo: a.titolo,
+    fileName: a.fileName,
+    mimeType: a.mimeType,
+    fileSize: a.fileSize,
+    pubblico: a.pubblico,
+    aggiornatoIl: fmtDateTime(a.aggiornatoIl),
+    // come i referenti: il callsign, o nome e iniziale. Basta a sapere a chi
+    // chiedere e non mette in giro il cognome di nessuno.
+    caricatoDa: a.caricatoDa
+      ? comeChiamare(a.caricatoDa, { incarico: false, diSquadra: false }).nome
+      : null,
   }));
 
   // Le tipologie segnate come riunione: se non ce n'è nessuna il pulsante non
@@ -1093,6 +1120,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               puoGestire={tl}
             />
           )}
+
+          {/* ----------------------------------------------------- allegati */}
+          {/* Il book di missione sta subito sotto: è la cosa che si apre
+              prima di partire, e cercarla in fondo alla pagina fra le quote e
+              i commenti vorrebbe dire non trovarla il giorno che serve. */}
+          <AllegatiEvento
+            eventId={evento.id}
+            allegati={allegati}
+            puoGestire={gestisceAllegati}
+            conOspiti={evento.ospiti.length > 0}
+          />
 
           {/* -------------------------------------------------- partecipanti */}
           <div>

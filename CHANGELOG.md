@@ -5,6 +5,45 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.48.0 — 17 settembre 2026
+
+### Aggiunto
+
+- **Il book di missione sta nell'attività.** Nella scheda, sotto le squadre
+  ospiti, c'è il riquadro **Allegati**: si caricano PDF, Markdown e HTML fino a
+  20 MB l'uno — i tre modi in cui un book arriva davvero — e **si leggono da
+  qui**, senza scaricarli. Finora il book girava per WhatsApp: il giorno della
+  giocata nessuno ritrovava il file, e chi lo ritrovava aveva quello di due
+  versioni prima.
+- **Si vede anche fuori, se si spunta.** Un allegato marcato *anche fuori*
+  compare nella pagina d'invito delle squadre ospiti, che lo aprono con il link
+  che hanno già. Se lo aggiorniamo il venerdì, chi torna su quella pagina trova
+  la versione nuova senza che nessuno rimandi niente in chat. La spunta è spenta
+  di suo: fra gli allegati finiscono anche i turni e i conti, e mandarne uno
+  fuori deve essere un gesto.
+- **Lo caricano l'admin, i team leader e i referenti di quella attività**: il
+  book lo scrive chi la tiene in mano, e spesso lo finisce la sera prima. Per un
+  referente è un permesso che vale su quell'attività e basta.
+- **Sostituire non è caricarne un altro accanto**: il file nuovo prende il posto
+  del vecchio sulla stessa riga, con lo stesso titolo e lo stesso indirizzo.
+  Nessuno la domenica mattina deve trovarsi davanti a un «book v2» chiedendosi
+  quale sia quello di oggi.
+- L'ordine si dà **trascinando dalla maniglia** — il book in cima, gli allegati
+  dopo — e ogni allegato si può scaricare: in campo la rete non c'è.
+
+### Sicurezza
+
+- **L'HTML caricato non gira dentro la nostra pagina.** È codice scritto da
+  qualcun altro servito dal nostro indirizzo: senza precauzioni potrebbe
+  leggersi la sessione di chi lo apre. Esce sotto `Content-Security-Policy:
+  sandbox`, che gli dà un'origine sua e gli spegne gli script, e la pagina che
+  lo mostra lo rinchiude una seconda volta nel proprio riquadro. Il Markdown non
+  ha bisogno di niente di tutto questo: lo disegniamo noi, e resta testo.
+- Il file non sta sotto `public/`: passa da una rotta che prima controlla chi
+  sta chiedendo. Da dentro valgono le stesse regole con cui si apre la scheda —
+  un indirizzo indovinato non apre quello che la pagina non mostra — da fuori
+  vale il token dell'invito, e solo sugli allegati pubblici.
+
 ## 2.47.0 — 17 settembre 2026
 
 ### Cambiato

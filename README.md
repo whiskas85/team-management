@@ -388,6 +388,43 @@ deve essere poco. A cose fatte la pagina lo dice — attività conclusa, o
 annullata — e il numero non si cambia più. Togliendo la squadra dagli ospiti,
 il suo link non apre più niente.
 
+## Allegati e book di missione
+
+Nella scheda dell'attività, sotto le squadre ospiti, c'è il riquadro
+**Allegati**: è il posto del **book di missione**. Si caricano **PDF**,
+**Markdown** (`.md`) e **HTML**, fino a 20 MB l'uno — sono i tre modi in cui un
+book arriva davvero: impaginato, scritto a mano, esportato da un altro
+programma. Niente immagini e niente archivi: quelli sono un'altra cosa, e
+aperto a tutto il riquadro diventerebbe il posto dove si butta qualsiasi cosa.
+
+**Si legge dentro il gestionale**, non si scarica e basta. Il Markdown lo disegna
+lo stesso componente di statuto e regolamenti, che produce elementi React e non
+HTML da iniettare: quello che è stato scritto resta testo e non può diventare
+codice. L'HTML sta in un riquadro chiuso a chiave — `sandbox` senza permessi, e
+una rotta che gli dà un'origine tutta sua — perché è codice scritto da qualcun
+altro e non deve girare dentro la nostra pagina. Il PDF lo apre il visore del
+browser. Scaricarlo si può, e serve: **in campo la rete non c'è**.
+
+Lo caricano l'**admin**, i **team leader** e **i referenti di quella attività**:
+il book lo scrive chi la tiene in mano, e spesso lo finisce la sera prima.
+Sostituire un file non è caricarne un altro accanto — il nuovo prende il posto
+del vecchio *sulla stessa riga*, con lo stesso titolo e lo stesso indirizzo. Chi
+quell'indirizzo l'ha mandato fuori non deve rimandarlo a ogni correzione, e
+nessuno la domenica mattina si trova davanti a un «book v2» chiedendosi quale
+sia quello di oggi. L'ordine si dà trascinando dalla maniglia: il book in cima,
+gli allegati dopo.
+
+**La spunta «anche fuori»** è il motivo per cui il riquadro esiste. Marcato
+così, l'allegato compare nella pagina d'invito delle squadre ospiti, che lo
+aprono con il link che hanno già: se lo aggiorniamo il venerdì, chi torna su
+quella pagina trova la versione nuova senza che nessuno debba rimandare niente
+in chat. È **spenta di suo**: fra gli allegati finiscono anche le cose nostre —
+i turni, i conti, le note per chi guida — e mandarne uno fuori deve essere un
+gesto, non quello che succede da solo caricando un file. Il file passa sempre da
+una rotta che controlla chi sta chiedendo: da dentro valgono le stesse regole
+con cui si apre la scheda, da fuori vale il token dell'invito e **solo sugli
+allegati pubblici**.
+
 ## Notifiche sul telefono
 
 Arrivano anche col gestionale chiuso, e si accendono dal proprio **profilo**,

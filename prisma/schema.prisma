@@ -232,6 +232,7 @@ model User {
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
   gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
+  allegatiCaricati      AllegatoEvento[]        @relation("AllegatiCaricati")
 
   @@index([stato])
 }
@@ -334,6 +335,50 @@ model SquadraOspite {
 
   @@unique([eventId, nome])
   @@index([eventId])
+}
+
+/// Gli allegati di un'attività: il book di missione, prima di tutto.
+///
+/// Un book non è una descrizione più lunga. È un documento che qualcuno ha
+/// impaginato — mappe, orari, regole d'ingaggio, colori delle squadre — e che
+/// si legge com'è stato scritto. Per questo qui dentro entrano tre formati e
+/// non uno: il **PDF** di chi l'ha fatto con l'impaginatore, il **Markdown** di
+/// chi l'ha scritto a mano, l'**HTML** di chi lo esporta da un altro programma.
+/// Niente immagini e niente archivi: quelli sono un'altra cosa e passerebbero
+/// di qui solo per comodità.
+///
+/// Il file sta fuori da `public/` come tutti gli altri caricamenti: si arriva
+/// solo passando da una rotta che prima controlla chi sta chiedendo.
+model AllegatoEvento {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        Event    @relation("AllegatiEvento", fields: [eventId], references: [id], onDelete: Cascade)
+  /// Come si chiama nell'elenco: «Book di missione», non «book_v3_def_ok.pdf».
+  /// Il nome del file lo ha scelto il computer di qualcun altro.
+  titolo       String
+  filePath     String
+  fileName     String
+  mimeType     String
+  fileSize     Int
+  /// La spunta che lo fa vedere **fuori**, nella pagina dell'invito delle
+  /// squadre ospiti.
+  ///
+  /// È spenta di suo, e non è pignoleria: fra gli allegati di un'attività
+  /// finiscono anche le cose nostre — i turni, i conti, le note per chi
+  /// guida — e mandarne uno fuori deve essere un gesto, non quello che
+  /// succede da solo caricando un file.
+  pubblico     Boolean  @default(false)
+  /// L'ordine in cui si leggono: il book in cima, gli allegati dopo. Lo
+  /// decide chi carica, trascinando.
+  ordine       Int      @default(0)
+  caricatoDaId String?
+  caricatoDa   User?    @relation("AllegatiCaricati", fields: [caricatoDaId], references: [id], onDelete: SetNull)
+  creatoIl     DateTime @default(now())
+  /// Cambia quando si sostituisce il file: è la data che dice se si sta
+  /// leggendo la versione di ieri o quella di stamattina.
+  aggiornatoIl DateTime @updatedAt
+
+  @@index([eventId, ordine])
 }
 
 // ---------------------------------------------------------------- campi da gioco
@@ -713,6 +758,8 @@ model Event {
   ospiti       SquadraOspite[] @relation("OspitiEvento")
   /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.
   vociAttivita VoceAttivita[]
+  /// Il book di missione e quello che gli sta intorno.
+  allegati     AllegatoEvento[] @relation("AllegatiEvento")
 
   @@index([inizio])
 }

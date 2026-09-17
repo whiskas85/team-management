@@ -40,6 +40,7 @@ export type NomeIcona =
   | 'chiave'
   | 'freccia'
   | 'maniglia'
+  | 'allegato'
   | 'carrello'
   | 'appello'
   | 'presente'
@@ -106,6 +107,8 @@ const PATHS: Record<NomeIcona, string> = {
   freccia: 'M5 12h14M13 6l6 6-6 6',
   // sei puntini: la presa per trascinare, e l'unico punto da cui si trascina
   maniglia: 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
+  allegato:
+    'M18.5 10.5 11 18a4 4 0 0 1-5.7-5.7l8-8a2.8 2.8 0 0 1 4 4l-8 8a1.6 1.6 0 0 1-2.2-2.2l7.1-7.1',
   carrello:
     'M3 4h2l2.2 10.2a1 1 0 0 0 1 .8h8.1a1 1 0 0 0 1-.8L19 8H6M10 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM18 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z',
   telefono:
