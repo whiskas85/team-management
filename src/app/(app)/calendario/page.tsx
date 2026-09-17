@@ -145,10 +145,12 @@ export default async function CalendarioPage({
       : [];
 
   // La rosa, per spuntare i referenti già mentre l'attività nasce: metterli
-  // solo dopo vorrebbe dire rilasciarla senza un nome a cui chiedere.
+  // solo dopo vorrebbe dire rilasciarla senza un nome a cui chiedere. Solo
+  // chi ha il ruolo atleta: il referente è il nome a cui si chiede com'è la
+  // giornata, e lo sa chi in campo ci va.
   const rosa = admin
     ? await prisma.user.findMany({
-        where: { stato: { in: ['SQUADRA', 'SOSPESO'] } },
+        where: { stato: { in: ['SQUADRA', 'SOSPESO'] }, roles: { has: 'ATLETA' } },
         orderBy: [{ callsign: 'asc' }, { cognome: 'asc' }],
         select: { id: true, nome: true, cognome: true, callsign: true },
       })

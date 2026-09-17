@@ -203,15 +203,26 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
  * Chi tiene in mano l'attività.
  *
  * Arrivano dal modulo come elenco di id spuntati: si tengono solo quelli di
- * chi è davvero in rosa — un referente che non c'è più in squadra è un numero
- * che squilla a vuoto — e si riscrive la lista da capo. Riscriverla invece di
- * confrontarla riga per riga vuol dire che togliere qualcuno funziona sempre,
- * anche quando la spunta sparisce e non arriva niente.
+ * chi è davvero in rosa **e ha il ruolo atleta** — un referente che non c'è
+ * più in squadra è un numero che squilla a vuoto, e uno che in campo non ci va
+ * non sa rispondere alle domande per cui lo si chiama — e si riscrive la lista
+ * da capo. Riscriverla invece di confrontarla riga per riga vuol dire che
+ * togliere qualcuno funziona sempre, anche quando la spunta sparisce e non
+ * arriva niente.
+ *
+ * Il controllo si rifà qui e non solo nel modulo: la spunta che arriva è una
+ * stringa mandata da un browser, e il posto dove si decide chi è candidabile
+ * non può essere la pagina che glielo chiede.
  */
 async function salvaReferenti(eventId: string, fd: FormData) {
-  // niente campo nel modulo (per esempio la modifica ridotta del team leader
-  // in un contesto che non lo mostra): non si tocca quello che c'è
-  if (!fd.has('referenti')) return;
+  // Niente scelta nel modulo (per esempio la modifica ridotta del team leader
+  // in un contesto che non la mostra): non si tocca quello che c'è.
+  //
+  // A dirlo è il campo nascosto e non le spunte: le caselle vuote non mandano
+  // niente, quindi «ho tolto tutti» e «di referenti non si parlava» arrivano
+  // identici. Senza questa distinzione togliere l'ultimo referente non
+  // funzionava, e il nome tornava al suo posto da solo.
+  if (!fd.has('referentiScelta') && !fd.has('referenti')) return;
 
   const scelti = fd
     .getAll('referenti')
@@ -221,7 +232,11 @@ async function salvaReferenti(eventId: string, fd: FormData) {
   const validi = scelti.length
     ? (
         await prisma.user.findMany({
-          where: { id: { in: scelti }, stato: { in: ['SQUADRA', 'SOSPESO'] } },
+          where: {
+            id: { in: scelti },
+            stato: { in: ['SQUADRA', 'SOSPESO'] },
+            roles: { has: 'ATLETA' },
+          },
           select: { id: true },
         })
       ).map((u) => u.id)

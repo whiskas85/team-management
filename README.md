@@ -190,6 +190,19 @@ card dell'attività, sia nell'elenco sia nella scheda. Accanto ai pulsanti di
 stato c'è sempre l'eliminazione definitiva. La modifica si apre dal pulsante
 **Modifica** in testata alla scheda.
 
+**Referenti dell'attività** — sono il nome a cui chiedere: come ci si veste, a
+che ora si parte davvero, dove si parcheggia. Si spuntano nel modulo, insieme al
+punto di ritrovo e non fra le cose che decide solo l'admin, perché cambiano da
+un'uscita all'altra e spesso si sistemano il giorno prima. Nella scheda si legge
+il loro **callsign** e lo vedono tutti, nuovi compresi: basta a cercarli in chat
+e non mette in giro il cognome di nessuno.
+
+Si scelgono **fra gli atleti in rosa**, e l'elenco ha la sua casella di ricerca:
+chi tiene i conti o le tessere è prezioso altrove ma non sa dire com'è quella
+domenica, e trovarsi messo come riferimento di una giocata vuol dire ricevere
+telefonate a cui non si sa rispondere. Chi gioca *e* amministra resta
+candidabile: i ruoli sono un insieme, e basta avere anche quello di atleta.
+
 **Tipologie di attività (dati di base)** — non sono cablate nel codice: stanno in
 `Comando → Tipologie attività` e ognuna definisce
 

@@ -502,11 +502,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       })
     : [];
   // La rosa, per spuntare i referenti nel modulo: si scelgono fra chi è in
-  // squadra, perché è un nome a cui chiedere — non un incarico da dare a chi
-  // passa di qui una volta.
+  // squadra **e ha il ruolo atleta**, perché è un nome a cui chiedere come si
+  // svolge quella giornata — non un incarico da dare a chi passa di qui una
+  // volta, né a chi il campo non lo vede.
   const rosa = tl
     ? await prisma.user.findMany({
-        where: { stato: { in: ['SQUADRA', 'SOSPESO'] } },
+        where: { stato: { in: ['SQUADRA', 'SOSPESO'] }, roles: { has: 'ATLETA' } },
         orderBy: [{ callsign: 'asc' }, { cognome: 'asc' }],
         select: { id: true, nome: true, cognome: true, callsign: true },
       })

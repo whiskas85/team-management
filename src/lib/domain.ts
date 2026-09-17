@@ -288,6 +288,20 @@ export const etichettaAssegnazione: Record<string, string> = {
   RISERVA: 'Riserva',
 };
 
+/**
+ * Chi può essere messo come referente di un'attività.
+ *
+ * **Solo chi ha il ruolo atleta.** Il referente è il nome a cui chiedere come
+ * ci si veste, a che ora si parte, dove si parcheggia: sono risposte che sa
+ * chi in campo ci va. Chi tiene i conti o le tessere è prezioso altrove e non
+ * ha niente da dire su quella domenica — e trovarsi messo come riferimento di
+ * una giocata vuol dire ricevere telefonate a cui non si sa rispondere.
+ *
+ * Chi gioca **e** amministra resta candidabile: i ruoli sono un insieme, e
+ * basta avere anche questo.
+ */
+export const puoEssereReferente = (roles: Role[]) => ha(roles, 'ATLETA');
+
 /** Chi gestisce il calendario vede anche le bozze. */
 export const puoGestireEventi = (roles: Role[]) => ha(roles, 'ADMIN');
 

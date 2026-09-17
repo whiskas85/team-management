@@ -3,6 +3,7 @@ import { Campo } from './ui';
 import { inputDateTime } from '@/lib/format';
 import { QuoteEvento } from './QuoteEvento';
 import { CercaLuogo } from './CercaLuogo';
+import { SceltaReferenti } from './SceltaReferenti';
 import { InizioFine } from './InizioFine';
 import type { VoceListino } from './CampiRichiesta';
 
@@ -131,7 +132,7 @@ export function FormEvento({
   conNuovi?: boolean;
   /** Le casse a cui l'attività può chiedere una quota, oltre al club. */
   casse?: { id: string; nome: string }[];
-  /** Chi è in rosa: fra loro si scelgono i referenti dell'attività. */
+  /** Gli atleti in rosa: fra loro si scelgono i referenti dell'attività. */
   squadra?: { id: string; nome: string; cognome: string; callsign: string | null }[];
   /** I referenti già scelti, per ritrovarli spuntati riaprendo il modulo. */
   referenti?: string[];
@@ -225,42 +226,7 @@ export function FormEvento({
           decide solo l'admin: sono il nome a cui chiedere, cambiano da
           un'uscita all'altra, e spesso li si sistema il giorno prima —
           esattamente come il punto di ritrovo. */}
-      {squadra.length > 0 && (
-        <Campo label="Referenti" span>
-          <p className="mb-1.5 text-xs text-muted">
-            Chi tiene in mano questa attività. Nella scheda si legge il loro callsign, e lo
-            vedono tutti — nuovi compresi.
-          </p>
-          <div className="max-h-44 space-y-1 overflow-y-auto rounded-md border border-line p-2">
-            {squadra.map((o) => (
-              <label key={o.id} className="flex items-center gap-2 px-1 py-0.5 text-sm">
-                <input
-                  type="checkbox"
-                  name="referenti"
-                  value={o.id}
-                  defaultChecked={referenti.includes(o.id)}
-                  className="accent-nvg"
-                />
-                <span className="truncate">
-                  {o.callsign ? (
-                    <>
-                      <span className="text-nvg">{o.callsign}</span>{' '}
-                      <span className="text-muted">
-                        · {o.nome} {o.cognome}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      {o.nome} {o.cognome}{' '}
-                      <span className="text-warn">· senza callsign</span>
-                    </>
-                  )}
-                </span>
-              </label>
-            ))}
-          </div>
-        </Campo>
-      )}
+      {squadra.length > 0 && <SceltaReferenti squadra={squadra} scelti={referenti} />}
     </Sezione>
   );
 

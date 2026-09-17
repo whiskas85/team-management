@@ -5,6 +5,40 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.47.0 — 17 settembre 2026
+
+### Cambiato
+
+- **Referente di un'attività lo può essere solo chi ha il ruolo atleta.** Il
+  referente è il nome a cui si chiede come ci si veste, a che ora si parte
+  davvero, dove si parcheggia: sono risposte che sa chi in campo ci va. Chi
+  tiene i conti o le tessere è prezioso altrove, e trovarsi messo come
+  riferimento di una giocata vuol dire ricevere telefonate a cui non si sa
+  rispondere. Chi gioca **e** amministra resta candidabile: i ruoli sono un
+  insieme, e basta avere anche quello.
+- Il controllo non sta solo nel modulo ma anche in chi salva: la spunta che
+  arriva è una stringa mandata da un browser, e il posto dove si decide chi è
+  candidabile non può essere la pagina che glielo chiede.
+
+### Aggiunto
+
+- **Una casella di ricerca sopra l'elenco dei referenti.** Una rosa cresce, e a
+  trenta nomi scorrere dentro un riquadro alto quattro righe è già un mestiere:
+  si scrivono tre lettere — callsign, nome o cognome, accenti compresi o no — e
+  si spunta. **Chi è già scelto resta in cima e non sparisce mai**, qualunque
+  cosa si stia cercando: un elenco in cui la ricerca nasconde una scelta già
+  fatta è un elenco che fa togliere i referenti per sbaglio.
+- Sotto l'elenco si legge quanti ne sono stati scelti, e se non ce n'è nessuno
+  lo dice: *chi ha una domanda non sa a chi farla*.
+
+### Corretto
+
+- **Togliere l'ultimo referente adesso funziona.** Le caselle non spuntate non
+  mandano niente, quindi «li ho tolti tutti» e «di referenti non si parlava»
+  arrivavano identici a chi salva, che nel dubbio non toccava niente: il nome
+  tolto tornava al suo posto da solo. Ora il modulo dice esplicitamente che di
+  referenti si stava parlando.
+
 ## 2.46.0 — 17 settembre 2026
 
 ### Cambiato
