@@ -196,6 +196,13 @@ export async function entraConGettone(fd: FormData): Promise<void> {
   const esito = await verificaGettone(testo(fd, 'gettone'));
   if (!esito.ok) redirect(`/login?accesso=${esito.motivo}`);
 
+  // Chi è già collegato come qualcun altro non entra al posto suo, e
+  // soprattutto non gli brucia il link: la pagina lo dice già, ma il pulsante
+  // può essere premuto da una scheda aperta prima dell'accesso.
+  const { getCurrentUser } = await import('@/lib/auth');
+  const chiSta = await getCurrentUser();
+  if (chiSta && chiSta.id !== esito.userId) redirect('/dashboard');
+
   // chi entra così deve comunque scegliersi una password: il link consegna le
   // chiavi, non tiene il posto di una password
   await prisma.user.update({

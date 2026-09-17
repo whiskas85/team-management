@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.40.2 — 17 settembre 2026
+
+### Corretto
+
+- **Chi apre il link di accesso di un altro non glielo brucia più.** Capita di
+  aprirlo per controllare che funzioni, subito dopo averlo creato: premendo si
+  entrava *al posto di quella persona*, il gettone si consumava e le si
+  impostava una password che conosceva solo chi aveva provato. Da fuori sembrava
+  un link rotto — in realtà aveva fatto il suo lavoro, alla persona sbagliata.
+  Ora, se chi apre è già collegato con un altro account, la pagina dice di chi è
+  il link e **non lo tocca**: resta buono da mandare.
+- Chi apre il proprio link mentre è già dentro si sente dire che non serve, e
+  viene mandato al cambio password.
+- Il rifiuto vale anche per il pulsante, non solo per la pagina: una scheda
+  aperta prima di collegarsi non può entrare al posto di qualcun altro.
+
 ## 2.40.1 — 17 settembre 2026
 
 ### Corretto

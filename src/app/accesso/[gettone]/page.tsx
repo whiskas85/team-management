@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { verificaGettone } from '@/lib/gettoni';
+import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { entraConGettone } from '@/actions/auth';
 import { Logo } from '@/components/Logo';
 
@@ -27,6 +29,51 @@ export default async function AccessoConGettone({
 }) {
   const { gettone } = await params;
   const esito = await verificaGettone(gettone);
+
+  /*
+   * Chi sta guardando è già qualcuno?
+   *
+   * Succede — ed è successo — che il link lo apra chi l'ha appena creato, per
+   * controllare che funzioni: premendo entrerebbe **al posto di quella
+   * persona**, brucerebbe il gettone e le imposterebbe una password che
+   * conosce solo lui. Da fuori sembra che il link sia rotto; in realtà ha
+   * fatto quello che gli era stato chiesto, alla persona sbagliata.
+   *
+   * Qui il gettone non si tocca: si dice di chi è, e resta buono.
+   */
+  const io = await getCurrentUser();
+  if (esito.ok && io) {
+    const suo = io.id === esito.userId;
+    const proprietario = suo
+      ? null
+      : await prisma.user.findUnique({
+          where: { id: esito.userId },
+          select: { nome: true, cognome: true },
+        });
+    const diChi = proprietario
+      ? `${proprietario.nome}${proprietario.cognome ? ' ' + proprietario.cognome[0] + '.' : ''}`
+      : 'un’altra persona';
+
+    return (
+      <Schermo
+        titolo={suo ? 'Sei già dentro' : 'Questo link non è tuo'}
+        testo={
+          suo
+            ? 'Stai già usando il gestionale con questo account: il link non serve, e resta buono.'
+            : `È il link di ${diChi}, e tu sei collegato come ${io.nome}. Non l’ho consumato: mandaglielo così com’è.`
+        }
+      >
+        <Link href={suo ? '/cambia-password' : '/dashboard'} className="btn-primary mt-6">
+          {suo ? 'Cambia la password' : 'Torna al gestionale'}
+        </Link>
+        {!suo && (
+          <p className="mt-4 text-xs text-muted">
+            Se invece devi entrare davvero al posto suo, esci dal tuo account e riapri il link.
+          </p>
+        )}
+      </Schermo>
+    );
+  }
 
   if (!esito.ok) {
     const spiegazione = {
