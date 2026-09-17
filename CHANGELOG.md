@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.49.0 — 17 settembre 2026
+
+### Cambiato
+
+- **I referenti dell'attività sono un elenco, uno per riga, con il numero
+  accanto.** Erano una riga di callsign separati da un puntino, in mezzo agli
+  altri dati: si leggeva a chi chiedere, ma non come raggiungerlo. Una domanda
+  arriva nel momento in cui serve una risposta — come ci si veste, a che ora si
+  parte davvero, dove si parcheggia — e se il numero bisogna andarselo a cercare
+  in un'altra pagina finisce che si scrive nel gruppo e si aspetta.
+- Il numero è un collegamento che apre il telefono, e accanto c'è **WhatsApp**,
+  che è dove questa squadra si parla davvero. Chi non ha un numero registrato lo
+  dice: una riga muta farebbe pensare a un guasto.
+- Si continua a leggere il **solo callsign** — o il nome con l'iniziale, per chi
+  non ce l'ha: il cognome non serve a chiamare nessuno.
+
 ## 2.48.0 — 17 settembre 2026
 
 ### Aggiunto

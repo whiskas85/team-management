@@ -193,9 +193,16 @@ stato c'è sempre l'eliminazione definitiva. La modifica si apre dal pulsante
 **Referenti dell'attività** — sono il nome a cui chiedere: come ci si veste, a
 che ora si parte davvero, dove si parcheggia. Si spuntano nel modulo, insieme al
 punto di ritrovo e non fra le cose che decide solo l'admin, perché cambiano da
-un'uscita all'altra e spesso si sistemano il giorno prima. Nella scheda si legge
-il loro **callsign** e lo vedono tutti, nuovi compresi: basta a cercarli in chat
-e non mette in giro il cognome di nessuno.
+un'uscita all'altra e spesso si sistemano il giorno prima.
+
+Nella scheda stanno **in elenco, uno per riga, con il proprio numero** e i
+pulsanti per chiamare o scrivere su WhatsApp: una domanda arriva nel momento in
+cui serve una risposta, e se il numero bisogna andarselo a cercare altrove
+finisce che si scrive nel gruppo e si aspetta. Si legge il **callsign** — o il
+nome con l'iniziale, per chi non ce l'ha — perché il cognome non serve a
+chiamare nessuno. Lo vedono tutti quelli che vedono l'attività, **nuovi
+compresi**: uno arrivato da poco che non conosce nessuno è esattamente la
+persona che quella telefonata deve poterla fare.
 
 Si scelgono **fra gli atleti in rosa**, e l'elenco ha la sua casella di ricerca:
 chi tiene i conti o le tessere è prezioso altrove ma non sa dire com'è quella

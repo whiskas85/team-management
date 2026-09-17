@@ -39,6 +39,7 @@ import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
+import { ReferentiEvento } from '@/components/ReferentiEvento';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
@@ -101,7 +102,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       },
       // chi tiene in mano l'attività: di loro serve il solo callsign
       referenti: {
-        include: { utente: { select: { id: true, nome: true, cognome: true, callsign: true } } },
+        include: {
+          // il numero sta qui perché il referente è il nome a cui si telefona:
+          // saperlo e non poterlo chiamare non serve a niente
+          utente: {
+            select: {
+              id: true,
+              nome: true,
+              cognome: true,
+              callsign: true,
+              telefono: true,
+            },
+          },
+        },
       },
       rsvps: {
         include: {
@@ -533,6 +546,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // leader e **i referenti di questa**. Il book lo scrive chi ci va, e spesso
   // lo finisce la sera prima: farglielo caricare da qualcun altro vorrebbe
   // dire che arriva su WhatsApp e il riquadro resta vuoto.
+  // Del referente si legge il **solo callsign** — o il nome con l'iniziale per
+  // chi non ce l'ha — perché il cognome non serve a chiamarlo. Il numero sì:
+  // è il motivo per cui quel nome sta scritto lì.
+  const referenti = evento.referenti.map((r) => ({
+    id: r.userId,
+    nome: r.utente.callsign ?? `${r.utente.nome} ${r.utente.cognome[0] ?? ''}.`,
+    telefono: r.utente.telefono,
+  }));
+
   const gestisceAllegati = puoGestireAllegati(me, evento.referenti);
   const allegati = evento.allegati.map((a) => ({
     id: a.id,
@@ -1022,29 +1044,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 etichetta="Chiusura adesioni"
                 valore={evento.chiusuraIscrizioni ? fmtDateTime(evento.chiusuraIscrizioni) : '—'}
               />
-              {/* Chi tiene in mano l'attività, e lo vedono tutti — **nuovi
-                  compresi**: uno arrivato da poco che non conosce nessuno deve
-                  sapere a chi scrivere per chiedere come ci si veste o a che
-                  ora si parte. Si legge il **solo callsign**: basta a cercarlo
-                  in chat e non mette in giro il cognome di nessuno. Chi un
-                  callsign non ce l'ha si presenta col nome e l'iniziale, che è
-                  come lo vedono già i nuovi in tutto il resto del gestionale. */}
-              {evento.referenti.length > 0 && (
-                <Dato
-                  etichetta={evento.referenti.length === 1 ? 'Referente' : 'Referenti'}
-                  valore={
-                    <span className="text-nvg">
-                      {evento.referenti
-                        .map((r) =>
-                          r.utente.callsign
-                            ? r.utente.callsign
-                            : `${r.utente.nome} ${r.utente.cognome[0] ?? ''}.`,
-                        )
-                        .join(' · ')}
-                    </span>
-                  }
-                />
-              )}
               <Dato
                 etichetta="Creato da"
                 valore={
@@ -1054,6 +1053,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 }
               />
             </div>
+
+            {/* Chi tiene in mano l'attività, e lo vedono tutti — **nuovi
+                compresi**: uno arrivato da poco che non conosce nessuno è
+                esattamente la persona che deve poter chiedere come ci si veste
+                o a che ora si parte. Sta fuori dalla griglia dei dati perché è
+                un elenco di persone da chiamare, non un numero da leggere:
+                una riga per uno, con il suo recapito accanto. */}
+            <ReferentiEvento referenti={referenti} />
 
             {evento.field?.lat !== null && evento.field?.lng != null && (
               <div className="mt-5 border-t border-line pt-4">
