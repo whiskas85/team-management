@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { inSquadra } from '@/lib/domain';
 import { fmtDateTime } from '@/lib/format';
 import { Logo } from '@/components/Logo';
 import { Naviga } from '@/components/Naviga';
@@ -69,11 +68,12 @@ export default async function PaginaInvito({
   const annullata = e.status === 'ANNULLATA';
   const chiuso = finita || annullata;
 
-  // Noi, contati come una squadra: chi ha detto sì ed è in rosa. Un numero,
-  // non un elenco — è quello che serve a chi organizza dall'altra parte.
-  const nostri = e.rsvps.filter(
-    (r) => r.status === 'PRESENTE' && inSquadra(r.user.stato),
-  ).length;
+  // Noi, contati come una squadra: **tutti quelli che hanno detto sì**, non i
+  // soli tesserati. Da fuori la differenza fra un atleta e un nuovo che viene
+  // alle aperte non esiste: chi organizza deve sapere quante persone si
+  // presentano in campo, e quel giorno sono lì tutte allo stesso modo.
+  // Un numero, non un elenco.
+  const nostri = e.rsvps.filter((r) => r.status === 'PRESENTE').length;
 
   const altre = e.ospiti.filter((o) => o.id !== ospite.id);
   const dove = e.field

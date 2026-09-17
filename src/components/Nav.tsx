@@ -281,7 +281,11 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
               card sotto. Lo spazio a destra serve finché lo schermo è stretto
               e la faccia starebbe sopra la barra; da xl in poi, che è dove la
               colonna smette di allargarsi, non serve più e sparisce. */}
-          <div className="mx-auto w-full max-w-6xl pr-24 xl:pr-0">
+          {/* hidden sul telefono, e non per nascondere la ricerca — quella è
+              già nascosta da sé: è questo contenitore largo quanto tutto lo
+              schermo che, restando in fila, schiacciava il logo e il nome fino
+              a ridurli a «ZE…». */}
+          <div className="mx-auto hidden w-full max-w-6xl pr-24 md:block xl:pr-0">
             <Omnisearch voci={voci} />
           </div>
 

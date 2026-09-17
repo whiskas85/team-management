@@ -4,7 +4,7 @@ import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { Campo } from './ui';
-import { aggiungiSquadraOspite, togliSquadraOspite } from '@/actions/ospiti';
+import { aggiungiSquadraOspite, segnaOperatoriOspite, togliSquadraOspite } from '@/actions/ospiti';
 
 export type Ospite = {
   id: string;
@@ -78,7 +78,29 @@ export function SquadreOspiti({
               </span>
 
               {puoGestire && (
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
+                  {/* Il numero si può scrivere anche da qui: il referente
+                      spesso lo dice in chat o al telefono, e pretendere che
+                      apra il link per forza lascerebbe il conteggio a metà
+                      per un formalismo. */}
+                  <FormAzione azione={segnaOperatoriOspite} className="flex items-center gap-1.5">
+                    <input type="hidden" name="id" value={o.id} />
+                    <input
+                      name="operatori"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={500}
+                      defaultValue={o.operatori ?? ''}
+                      placeholder="—"
+                      aria-label={`Operatori di ${o.nome}`}
+                      className="input num h-8 w-20 text-sm"
+                    />
+                    <Invia icona="salva" className="btn-ghost btn-sm">
+                      Segna
+                    </Invia>
+                  </FormAzione>
+
                   {/* il link è di quella squadra: copiarlo è il gesto per cui
                       questa riga esiste */}
                   <CondividiEvento indirizzo={o.link} />

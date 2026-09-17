@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.40.1 — 17 settembre 2026
+
+### Corretto
+
+- **Sul telefono il logo era tornato a farsi schiacciare.** Il contenitore
+  della barra di ricerca è invisibile sul telefono ma restava in fila, largo
+  quanto lo schermo: il marchio e il nome finivano compressi in «ZE…». Ora su
+  quel formato non c'è proprio.
+- **Il numero degli ospiti lo puoi scrivere anche tu.** Il referente spesso lo
+  dice in chat o al telefono, e pretendere che apra il link per forza lasciava
+  il conteggio a metà per un formalismo: accanto a ogni squadra c'è la
+  casella, e vale quanto il numero scritto da loro.
+- **Nel conteggio che vedono gli ospiti ci sono anche i nuovi.** Contava i soli
+  tesserati, ma da fuori quella differenza non esiste: chi organizza deve
+  sapere quante persone si presentano in campo, e quel giorno sono lì tutte
+  allo stesso modo.
+
 ## 2.40.0 — 17 settembre 2026
 
 ### Aggiunto

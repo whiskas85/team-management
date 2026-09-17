@@ -77,6 +77,35 @@ export async function togliSquadraOspite(_prev: StatoForm, fd: FormData): Promis
 }
 
 /**
+ * Il numero scritto da noi, al posto loro.
+ *
+ * Capita, ed è normale: il referente lo dice a voce, in chat o al telefono, e
+ * pretendere che apra il link per forza vorrebbe dire lasciare il conteggio a
+ * metà per un formalismo. Vale quanto quello scritto da loro — è lo stesso
+ * campo — e chi lo scrive vede la stessa riga aggiornarsi.
+ */
+export async function segnaOperatoriOspite(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoInvitare(me.roles)) return { errore: 'Non puoi toccare i numeri degli ospiti.' };
+
+  const id = str(fd, 'id');
+  const operatori = intOpt(fd, 'operatori');
+  if (operatori === null) return { errore: 'Scrivi quanti operatori portano.' };
+  if (operatori < 0 || operatori > 500) return { errore: 'Quel numero non sembra vero: controlla.' };
+
+  const ospite = await prisma.squadraOspite.findUnique({ where: { id } });
+  if (!ospite) return { errore: 'Invito non trovato.' };
+
+  await prisma.squadraOspite.update({
+    where: { id },
+    data: { operatori, rispostoIl: new Date() },
+  });
+
+  aggiorna(ospite.eventId);
+  return { ok: `${ospite.nome}: segnati ${operatori} operatori.` };
+}
+
+/**
  * «Veniamo in sette.»
  *
  * È l'unica cosa che si può fare da fuori, e si fa **senza account**: la
