@@ -1350,17 +1350,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
                                     // La polizza la paga il club e non torna indietro:
                                     // prima si incassa. Chi ha dichiarato il pagamento
-                                    // passa, ci ha messo la faccia. Il motivo si scrive
-                                    // una volta sola, non uguale sotto ogni giorno.
-                                    // contano le quote con le voci che pagano la polizza
+                                    // passa, ci ha messo la faccia. Contano le quote con
+                                    // le voci che pagano la polizza. Finché non si può,
+                                    // il pulsante non c'è e basta: una riga che spiega
+                                    // perché manca era una scritta in più su ogni card,
+                                    // e il pulsante compare da solo quando serve.
                                     const copribile = quotePerPolizza(
                                       quoteDi(r.userId),
                                       cassePolizza,
                                     ).every((q) => quotaOnorata(q));
-                                    const daFare = giorniScoperti.some(
-                                      (giorno) =>
-                                        giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',
-                                    );
 
                                     return (
                                       <span className="flex flex-wrap items-center gap-1.5">
@@ -1393,11 +1391,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                             </span>
                                           );
                                         })}
-                                        {tl && !copribile && daFare && (
-                                          <span className="text-[11px] text-muted">
-                                            si assicura dopo l’incasso
-                                          </span>
-                                        )}
                                       </span>
                                     );
                                   })()}
@@ -1450,14 +1443,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 );
                               })()}
 
-                            {/* fatto l'appello, il verdetto sostituisce la
-                                risposta: è l'unico che conta ancora */}
-                            {r.presente !== null ? (
+                            {/* La risposta non si ripete sulla card: la dice già il
+                                gruppo in cui sta — «Presenti», «Forse», «Non ci
+                                sono» — e un «Presente» sotto il titolo «Presenti»
+                                è solo una parola in più da leggere. Resta il
+                                verdetto dell'appello, che invece è un'informazione
+                                nuova: c'era davvero, o no. */}
+                            {r.presente !== null && (
                               <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
-                            ) : (
-                              !schieraQuesta && (
-                                <Badge tono={statoDiFatto(r).tono}>{statoDiFatto(r).testo}</Badge>
-                              )
                             )}
 
                             </div>

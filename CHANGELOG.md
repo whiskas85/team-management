@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.56.0 — 18 settembre 2026
+
+### Cambiato
+
+- **Nella card di un partecipante non si ripete più la sua risposta.** Stava
+  nel gruppo «Presenti» e sotto il nome c'era scritto «Presente»; stava fra i
+  «Non ci sono» e c'era scritto «Assente». Il gruppo lo dice già, e la
+  parola in più era solo una cosa da leggere per non imparare niente. Resta il
+  verdetto dell'appello — *c'era*, *non c'era* — che invece è un'informazione
+  nuova.
+- **Via «si assicura dopo l'incasso».** Il pulsante *Assicura* compare da solo
+  quando la quota è saldata o dichiarata; una riga che spiegava perché ancora
+  non c'era era una scritta in più su ogni card, e diceva quello che si
+  capisce già dalla quota da saldare accanto.
+
 ## 2.55.0 — 18 settembre 2026
 
 ### Aggiunto
