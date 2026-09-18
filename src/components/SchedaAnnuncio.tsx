@@ -539,7 +539,7 @@ function RigaVoce({
   const restano = magazzino?.conto.disponibili ?? null;
   const finita = restano !== null && restano <= 0;
   return (
-    <div className="rounded-lg border border-line bg-surface p-3">
+    <div className="rounded-lg border border-line bg-surface p-3 [--pad:0.75rem]">
       <div className="flex items-start gap-3">
         <p className="min-w-0 flex-1 break-words font-medium">
           {v.titolo}
@@ -626,7 +626,7 @@ function RigaVoce({
           sono due gesti diversi. Il cestino non è qui ma in alto a destra,
           lontano sia dal carrello sia da «Modifica». */}
       {mio && (
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">
+        <div className="piede">
           {magazzino && (
             <BottoneModale
               etichetta="Magazzino"

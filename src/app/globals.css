@@ -47,6 +47,28 @@ body {
 @layer components {
   .card {
     @apply rounded-lg border border-line bg-surface p-4;
+    /* il margine interno, detto una volta: il piede lo usa per allargarsi fino
+       ai bordi senza doverlo ripetere a mano in ogni card */
+    --pad: 1rem;
+  }
+
+  /*
+   * Il piede di una card: la fascia in fondo con i pulsanti.
+   *
+   * Un grigio appena più chiaro della card, a filo con i bordi, con la riga
+   * sopra: si legge come una parte a sé — «qui si fa», sopra «qui si legge» —
+   * invece di una fila di pulsanti appoggiata in fondo al testo. Si allarga
+   * fino ai bordi uscendo dal margine interno della card, qualunque sia: le
+   * card grandi ce l'hanno di 1rem, le righe dentro una card di 0.75rem, e lo
+   * dicono con `--pad`. Il bianco trasparente invece di un colore fisso fa sì
+   * che schiarisca qualunque fondo ci sia sotto, card o riga annidata.
+   */
+  .piede {
+    @apply flex flex-wrap items-center justify-end gap-2 border-t border-line bg-white/[0.045];
+    margin: 0.75rem calc(var(--pad, 1rem) * -1) calc(var(--pad, 1rem) * -1);
+    padding: 0.5rem var(--pad, 1rem);
+    border-bottom-left-radius: calc(0.5rem - 1px);
+    border-bottom-right-radius: calc(0.5rem - 1px);
   }
 
   .card-hover {

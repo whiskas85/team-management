@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.57.0 — 18 settembre 2026
+
+### Cambiato
+
+- **I pulsanti in fondo alle card stanno in un piede.** Una fascia di un grigio
+  appena più chiaro, a filo con i bordi della card e con la riga sopra: si
+  legge come una parte a sé — sopra quello che si legge, sotto quello che si fa
+  — invece di una fila di pulsanti appoggiata in fondo al testo.
+- È una classe sola, `.piede`, e la usano tutte le card: quelle fatte con
+  `CardRiga` la prendono da sé, le altre — casse, guasti, riordini, tipologie,
+  note, debriefing, nuovi, voci degli annunci, partecipanti, il proprio
+  certificato, la card di un’attività nel calendario, la scheda con i suoi
+  riquadri «Squadre ospiti» e «Allegati» — l’hanno
+  avuta una per una. Si allarga fino ai bordi qualunque sia il margine interno
+  della card, anche nelle righe annidate.
+
 ## 2.56.0 — 18 settembre 2026
 
 ### Cambiato

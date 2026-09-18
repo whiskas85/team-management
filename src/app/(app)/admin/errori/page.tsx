@@ -144,7 +144,7 @@ export default async function ErroriPage() {
                 </details>
               )}
 
-              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+              <div className="piede">
                 <AzioneBottone
                   azione={segnaErroreVisto}
                   valori={{ id: e.id, verso: e.visto ? 'no' : 'si' }}

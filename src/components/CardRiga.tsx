@@ -13,7 +13,9 @@ import type { StatoForm } from '@/lib/form';
  *   altri pulsanti, così non lo si preme cercandone un altro;
  * - **in mezzo** il contenuto, che va a capo invece di essere tagliato;
  * - **sotto, allineati a destra**, i pulsanti di azione, anche loro liberi di
- *   andare a capo.
+ *   andare a capo, nel **piede** della card: una fascia di un grigio appena più
+ *   chiaro, a filo con i bordi, che separa quello che si fa da quello che si
+ *   legge.
  *
  * Prima ogni riga metteva tutto su una linea sola, e sul telefono il primo a
  * farne le spese era il nome: «Decima Gladio» diventava «Decima …», cioè la
@@ -45,7 +47,7 @@ export function CardRiga({
   card?: boolean;
   className?: string;
 }) {
-  const cornice = card ? 'card' : 'rounded-lg border border-line bg-surface2/40 p-3';
+  const cornice = card ? 'card' : 'rounded-lg border border-line bg-surface2/40 p-3 [--pad:0.75rem]';
   return (
     <div className={`${cornice} ${className}`}>
       <div className="flex items-start gap-3">
@@ -61,7 +63,7 @@ export function CardRiga({
       {children && <div className="mt-2 min-w-0 break-words">{children}</div>}
 
       {azioni && (
-        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">{azioni}</div>
+        <div className="piede">{azioni}</div>
       )}
     </div>
   );

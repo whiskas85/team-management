@@ -145,7 +145,7 @@ export function SquadreOspiti({
       )}
 
       {puoGestire && (
-        <div className="mt-4 border-t border-line pt-3">
+        <div className="piede mt-4">
           <BottoneModale etichetta="Invita una squadra" icona="aggiungi" titolo="Invita una squadra">
             <FormAzione azione={aggiungiSquadraOspite}>
               <input type="hidden" name="eventId" value={eventId} />

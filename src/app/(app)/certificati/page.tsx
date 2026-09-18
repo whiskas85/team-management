@@ -151,7 +151,7 @@ export default async function MieiCertificatiPage() {
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+          <div className="piede mt-4 justify-between gap-3">
             <span className="text-xs text-muted">
               caricato il {fmtDate(valido.createdAt)}
               {valido.reviewedBy &&

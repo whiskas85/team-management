@@ -100,7 +100,7 @@ export function ElencoNuovi({
                   <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
                 </div>
                 {puoInvitare && !n.haIscrizione && (
-                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                  <div className="piede">
                     <Azioni
                       riga={n}
                       stagioni={stagioni}

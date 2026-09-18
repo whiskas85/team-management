@@ -145,7 +145,7 @@ export function Debriefing({
 
       {/* scrivere e correggere: sotto, a destra, come in tutte le card */}
       {scrive && (
-        <div className="mt-4 flex justify-end">
+        <div className="piede mt-4">
           <BottoneModale
             etichetta={debriefing ? 'Modifica' : 'Scrivi il debriefing'}
             icona={debriefing ? 'modifica' : 'bozza'}

@@ -139,7 +139,7 @@ export function Nota({
   const menzioni = Object.fromEntries(persone.map((p) => [p.maniglia, p.nome]));
 
   return (
-    <div className="rounded-lg border border-line bg-surface p-3">
+    <div className="rounded-lg border border-line bg-surface p-3 [--pad:0.75rem]">
       <div className="mb-1 flex items-start gap-3">
         {/* Il badge sta su ogni nota e non solo in cima all'elenco: una nota
             la si rilegge da sola, magari mesi dopo, e chi non ricorda la regola
@@ -202,7 +202,7 @@ export function Nota({
       </div>
 
       {/* la modifica sotto, a destra, come in tutte le card */}
-      <div className="mt-2 flex justify-end">
+      <div className="piede">
         <BottoneModale
           etichetta="Modifica"
           icona="modifica"

@@ -248,7 +248,7 @@ export default async function AltreCassePage() {
                 </div>
 
                 {/* le azioni della cassa: sotto, a destra, come in tutte le card */}
-                <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-line pt-3">
+                <div className="piede">
                   <BottoneModale
                     etichetta="Modifica"
                     icona="modifica"

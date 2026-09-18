@@ -1147,7 +1147,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 è un modo per farsi richiamare. Da rilasciata in poi sì, anche a
                 cose fatte — di una giocata finita si manda volentieri il racconto. */}
             {evento.status !== 'CREATA' && (
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+              <div className="piede mt-5 justify-between">
                 <p className="text-[11px] text-muted">
                   {evento.status === 'RILASCIATA'
                     ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
@@ -1245,7 +1245,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                rosso alla sua altezza a destra; sotto, a destra, quello
                                che si fa. Il nome non si stringe più per far posto ai
                                pulsanti: se è lungo va a capo. */
-                            className="rounded-lg border border-line bg-surface px-3 py-2.5"
+                            className="rounded-lg border border-line bg-surface p-3 [--pad:0.75rem]"
                           >
                             <div className="flex min-w-0 items-start gap-2">
                             <Avatar
@@ -1413,7 +1413,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 si tocca e ritocca finché la formazione non torna
                                 — su quello dopo. Il cestino non è qui ma in alto,
                                 lontano dal pollice che schiera. */}
-                            <div className="mt-2 flex flex-col items-end gap-2">
+                            <div className="piede flex-col items-end">
                             <div className="flex flex-wrap items-center justify-end gap-2">
                             {/* Nota al volo su questa persona in questa attività.
                                 Nasce già legata a tutte e due: è il momento in cui

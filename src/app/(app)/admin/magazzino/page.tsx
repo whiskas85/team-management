@@ -409,7 +409,7 @@ export default async function MagazzinoPage() {
                 </ul>
 
                 {/* le azioni sotto, a destra, come in tutte le card */}
-                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+                <div className="piede">
                   {r.stato === 'APERTO' && (
                     <>
                       <BottoneModale

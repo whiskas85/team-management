@@ -99,7 +99,7 @@ export default async function TipologiePage() {
                   {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
                   {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
                 </span>
-                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                <div className="piede">
                   <Azioni tipologia={t} />
                 </div>
               </>

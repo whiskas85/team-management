@@ -196,7 +196,7 @@ export function CardEvento({
 
       {/* le azioni sotto, allineate a destra, come in tutte le card */}
       {azioni && (
-        <div className="flex justify-end border-t border-line px-4 py-3 [&>div]:justify-end">
+        <div className="flex justify-end rounded-b-[calc(0.5rem-1px)] border-t border-line bg-white/[0.045] px-4 py-3 [&>div]:justify-end">
           {azioni}
         </div>
       )}

@@ -91,7 +91,7 @@ export function AllegatiEvento({
       )}
 
       {puoGestire && (
-        <div className="mt-4 border-t border-line pt-3">
+        <div className="piede mt-4">
           <BottoneModale
             etichetta="Allega un documento"
             icona="carica"

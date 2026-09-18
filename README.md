@@ -390,7 +390,11 @@ schema, ed è una regola, non un gusto:
   angolo, lontano dagli altri pulsanti;
 - **in mezzo il contenuto**, che va a capo e non si tronca mai: un nome
   lungo fa una riga più alta, non diventa «Decima …»;
-- **sotto, allineati a destra**, i pulsanti di azione.
+- **sotto, allineati a destra**, i pulsanti di azione, nel **piede** della
+  card: una fascia di un grigio appena più chiaro, a filo con i bordi, con la
+  riga sopra. È la classe `.piede` in `globals.css`; si allarga fino ai bordi
+  leggendo il margine interno della card da `--pad` (1rem nelle card, 0.75rem
+  nelle righe annidate).
 
 Lo schema vive in un componente solo, `CardRiga` con il suo `BottoneElimina`
 (in `src/components/CardRiga.tsx`): una card nuova si compone da lì invece di
