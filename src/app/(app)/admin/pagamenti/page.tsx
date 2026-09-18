@@ -18,6 +18,7 @@ import {
 } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 const FILTRI = {
   dagestire: 'Da gestire',
@@ -311,31 +312,35 @@ export default async function AdminPagamentiPage({
               <TitoloGruppo gruppo={g} />
         <Elenco
           cards={g.righe.map((p) => (
-            <div key={p.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="truncate font-medium">{nomeCompleto(p.user)}</h3>
-                  <p className="truncate text-xs text-muted">{p.descrizione}</p>
+            <CardRiga
+              key={p.id}
+              card
+              titolo={nomeCompleto(p.user)}
+              sottotitolo={
+                <>
+                  <span className="block">{p.descrizione}</span>
                   {/* di cosa è fatta la quota, quando è composta da più voci */}
-                  {p.note && <p className="truncate text-[11px] text-muted">{p.note}</p>}
-                  <p className="text-xs text-muted">
+                  {p.note && <span className="block">{p.note}</span>}
+                  <span className="block">
                     {umanizza(p.tipo)}
                     {p.scadenza && ` · scadenza ${fmtDate(p.scadenza)}`}
-                  </p>
-                </div>
+                  </span>
+                </>
+              }
+              elimina={<EliminaPagamento pagamento={p} />}
+              azioni={<AzioniPagamento pagamento={p} metodi={metodi} />}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 {p.status !== 'PAGATO' && p.dichiaratoIl ? (
                   <Badge tono="info">Da confermare</Badge>
                 ) : (
                   <Badge tono={tonoPagamento[p.status] ?? 'neutro'}>{umanizza(p.status)}</Badge>
                 )}
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
                 <span className="num text-sm">
                   {fmtEuro(Number(p.pagato))} / {fmtEuro(Number(p.importo))}
                 </span>
-                <AzioniPagamento pagamento={p} metodi={metodi} />
               </div>
-            </div>
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -394,7 +399,10 @@ export default async function AdminPagamentiPage({
                       )}
                     </td>
                     <td className="whitespace-nowrap">
-                      <AzioniPagamento pagamento={p} metodi={metodi} />
+                      <div className="flex items-center gap-2">
+                        <AzioniPagamento pagamento={p} metodi={metodi} />
+                        <EliminaPagamento pagamento={p} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -422,7 +430,7 @@ type Riga = {
 };
 
 /**
- * Incasso e cancellazione. L'incasso apre una finestra dove si conferma
+ * L'incasso, e quello che succede fuori dal gestionale. L'incasso apre una finestra dove si conferma
  * importo, data e metodo: se l'operatore ha segnalato il pagamento i campi
  * arrivano già compilati con quello che ha dichiarato.
  */
@@ -509,18 +517,19 @@ function AzioniPagamento({
       )}
 
       <FuoriGestionale pagamento={pagamento} />
-
-      <FormAzione azione={eliminaPagamento} className="">
-        <input type="hidden" name="id" value={pagamento.id} />
-        <Conferma
-          messaggio="Eliminare questo movimento?"
-          className="text-xs text-muted hover:text-danger"
-          icona="elimina"
-        >
-          elimina
-        </Conferma>
-      </FormAzione>
     </div>
+  );
+}
+
+/** Il cestino di un movimento: in alto a destra della sua card. */
+function EliminaPagamento({ pagamento }: { pagamento: Riga }) {
+  return (
+    <BottoneElimina
+      azione={eliminaPagamento}
+      valori={{ id: pagamento.id }}
+      conferma="Eliminare questo movimento?"
+      etichetta={`Elimina ${pagamento.descrizione}`}
+    />
   );
 }
 

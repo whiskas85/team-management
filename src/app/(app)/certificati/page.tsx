@@ -11,7 +11,7 @@ import { fmtDate, giorniA, umanizza } from '@/lib/format';
 import { Avviso, Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 import { Invia } from '@/components/Bottone';
 import { DateCertificato } from '@/components/DateCertificato';
 import { LineaCertificato } from '@/components/LineaCertificato';
@@ -106,8 +106,8 @@ export default async function MieiCertificatiPage() {
       {/* --------------------------------------------- quello che vale adesso */}
       {valido ? (
         <div className={`card mb-6 ${inScadenza ? 'border-l-2 border-l-warn' : ''}`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
               <p className="titolo-sezione">Certificato in corso</p>
               <p className="mt-1 flex items-center gap-2 text-2xl font-semibold">
                 {valido.tipo === 'AGONISTICO' ? 'Agonistico' : 'Non agonistico'}
@@ -119,18 +119,25 @@ export default async function MieiCertificatiPage() {
                   : 'Vale per allenamenti e partite ordinarie. Dove serve l’agonistico non basta.'}
               </p>
             </div>
-            <div className="text-right">
-              <p
-                className={`num text-3xl font-semibold ${
-                  inScadenza ? 'text-warn' : 'text-nvg'
-                }`}
-              >
-                {giorni}
-              </p>
-              <p className="text-[11px] text-muted">
-                {giorni === 1 ? 'giorno alla scadenza' : 'giorni alla scadenza'}
-              </p>
+            <div className="-mr-1 -mt-1 shrink-0">
+              <BottoneElimina
+                azione={eliminaCertificato}
+                valori={{ id: valido.id }}
+                conferma="Eliminare il certificato? Senza, per il gestionale non sei più in regola."
+                etichetta="Elimina il certificato in corso"
+              />
             </div>
+          </div>
+
+          <div className="mt-4 flex items-baseline gap-2">
+            <p
+              className={`num text-3xl font-semibold ${inScadenza ? 'text-warn' : 'text-nvg'}`}
+            >
+              {giorni}
+            </p>
+            <p className="text-[11px] text-muted">
+              {giorni === 1 ? 'giorno alla scadenza' : 'giorni alla scadenza'}
+            </p>
           </div>
 
           <div className="mt-5">
@@ -144,28 +151,20 @@ export default async function MieiCertificatiPage() {
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-3">
-            <a
-              href={`/api/certificati/${valido.id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost btn-sm"
-            >
-              <Icona nome="apri" size={15} /> Apri l’allegato
-            </a>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <span className="text-xs text-muted">
               caricato il {fmtDate(valido.createdAt)}
               {valido.reviewedBy &&
                 ` · approvato da ${valido.reviewedBy.nome} ${valido.reviewedBy.cognome}`}
             </span>
-            <AzioneBottone
-              azione={eliminaCertificato}
-              valori={{ id: valido.id }}
-              conferma="Eliminare il certificato? Senza, per il gestionale non sei più in regola."
-              className="ml-auto text-[11px] text-muted transition-colors hover:text-danger"
+            <a
+              href={`/api/certificati/${valido.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-ghost btn-sm ml-auto"
             >
-              elimina
-            </AzioneBottone>
+              <Icona nome="apri" size={15} /> Apri l’allegato
+            </a>
           </div>
         </div>
       ) : (
@@ -210,41 +209,41 @@ export default async function MieiCertificatiPage() {
       ) : (
         <div className="space-y-2">
           {altri.map((c) => (
-            <div
+            <CardRiga
               key={c.id}
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium">{umanizza(c.tipo)}</p>
-                <p className="num text-[11px] text-muted">
-                  {fmtDate(c.rilasciatoIl)} → {fmtDate(c.scadeIl)} · caricato il{' '}
-                  {fmtDate(c.createdAt)}
-                </p>
-                {c.motivoRifiuto && (
-                  <p className="mt-1 text-[11px] text-danger">Rifiutato: {c.motivoRifiuto}</p>
-                )}
-              </div>
-
-              <span className="ml-auto flex flex-wrap items-center gap-2">
-                <Badge tono={tonoCertificato[c.stato]}>{umanizza(c.stato)}</Badge>
+              titolo={<span className="text-sm">{umanizza(c.tipo)}</span>}
+              sottotitolo={
+                <>
+                  <span className="num">
+                    {fmtDate(c.rilasciatoIl)} → {fmtDate(c.scadeIl)} · caricato il{' '}
+                    {fmtDate(c.createdAt)}
+                  </span>
+                  {c.motivoRifiuto && (
+                    <span className="mt-1 block text-danger">Rifiutato: {c.motivoRifiuto}</span>
+                  )}
+                </>
+              }
+              elimina={
+                <BottoneElimina
+                  azione={eliminaCertificato}
+                  valori={{ id: c.id }}
+                  conferma="Eliminare questo caricamento?"
+                  etichetta={`Elimina il certificato ${umanizza(c.tipo).toLowerCase()} caricato il ${fmtDate(c.createdAt)}`}
+                />
+              }
+              azioni={
                 <a
                   href={`/api/certificati/${c.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[11px] text-muted transition-colors hover:text-nvg"
+                  className="btn-ghost btn-sm"
                 >
-                  apri
+                  <Icona nome="apri" size={15} /> Apri
                 </a>
-                <AzioneBottone
-                  azione={eliminaCertificato}
-                  valori={{ id: c.id }}
-                  conferma="Eliminare questo caricamento?"
-                  className="text-[11px] text-muted transition-colors hover:text-danger"
-                >
-                  elimina
-                </AzioneBottone>
-              </span>
-            </div>
+              }
+            >
+              <Badge tono={tonoCertificato[c.stato]}>{umanizza(c.stato)}</Badge>
+            </CardRiga>
           ))}
         </div>
       )}

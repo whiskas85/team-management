@@ -35,7 +35,7 @@ function Dato({
   return (
     <div className="min-w-0">
       <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{etichetta}</p>
-      <p className={`truncate text-sm ${tono === 'warn' ? 'text-warn' : 'text-ink'}`}>{valore}</p>
+      <p className={`break-all text-sm ${tono === 'warn' ? 'text-warn' : 'text-ink'}`}>{valore}</p>
     </div>
   );
 }

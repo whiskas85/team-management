@@ -5,6 +5,7 @@ import { fmtDateTime, nomeCompleto } from '@/lib/format';
 import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { eliminaErrore, pulisciErroriVisti, segnaErroreVisto } from '@/actions/errori';
+import { BottoneElimina } from '@/components/CardRiga';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,14 +86,24 @@ export default async function ErroriPage() {
               key={e.id}
               className={`card ${e.visto ? 'opacity-60' : 'border-warn/40'}`}
             >
-              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <code className="num text-[11px] text-nvg">{e.id.slice(-6)}</code>
-                  <span className="font-medium">{e.messaggio}</span>
-                  {e.nome && <Badge tono="neutro">{e.nome}</Badge>}
-                  {!e.visto && <Badge tono="warn">da guardare</Badge>}
-                </span>
-                <span className="num text-[11px] text-muted">{fmtDateTime(e.quando)}</span>
+              <div className="mb-2 flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words font-medium">{e.messaggio}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                    <code className="num text-nvg">{e.id.slice(-6)}</code>
+                    <span className="num">{fmtDateTime(e.quando)}</span>
+                    {e.nome && <Badge tono="neutro">{e.nome}</Badge>}
+                    {!e.visto && <Badge tono="warn">da guardare</Badge>}
+                  </p>
+                </div>
+                <div className="-mr-1 -mt-1 shrink-0">
+                  <BottoneElimina
+                    azione={eliminaErrore}
+                    valori={{ id: e.id }}
+                    conferma="Eliminare questa riga?"
+                    etichetta="Elimina questo guasto"
+                  />
+                </div>
               </div>
 
               <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
@@ -133,21 +144,13 @@ export default async function ErroriPage() {
                 </details>
               )}
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
                 <AzioneBottone
                   azione={segnaErroreVisto}
                   valori={{ id: e.id, verso: e.visto ? 'no' : 'si' }}
                   className="btn-ghost btn-sm"
                 >
                   {e.visto ? 'Rimetti fra i da guardare' : 'Segna guardato'}
-                </AzioneBottone>
-                <AzioneBottone
-                  azione={eliminaErrore}
-                  valori={{ id: e.id }}
-                  conferma="Eliminare questa riga?"
-                  className="ml-auto text-[11px] text-muted transition-colors hover:text-danger"
-                >
-                  elimina
                 </AzioneBottone>
               </div>
             </div>

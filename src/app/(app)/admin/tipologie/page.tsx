@@ -5,11 +5,11 @@ import { umanizza } from '@/lib/format';
 import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { SelettoreColore } from '@/components/SelettoreColore';
 import { OrdinaTipologie } from '@/components/OrdinaTipologie';
 import { eliminaTipologia, riordinaTipologie, salvaTipologia } from '@/actions/tipologie';
+import { BottoneElimina } from '@/components/CardRiga';
 
 const QUOTE = [
   'EVENTO',
@@ -67,33 +67,39 @@ export default async function TipologiePage() {
           righe={tipologie.map((t) => ({
             id: t.id,
             attivo: t.attivo,
+            // la card la disegna OrdinaTipologie, con la maniglia in testa:
+            // qui dentro c'è lo schema di sempre, senza una seconda cornice
             card: (
               <>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="flex items-center gap-2">
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="flex items-start gap-2">
                       <span
-                        className={`h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
+                        className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
                         title={`Colore nel calendario: ${t.colore}`}
                       />
-                      <span className="font-medium">{t.nome}</span>
+                      <span className="break-words font-medium">{t.nome}</span>
                     </span>
-                    {t.descrizione && <p className="mt-1 text-xs text-muted">{t.descrizione}</p>}
-                    <p className="mt-1 text-xs text-muted num">
-                      Quote come {umanizza(t.tipoQuota)} · {t._count.events} attività
-                    </p>
-                    <span className="mt-1 flex flex-wrap gap-1.5">
-                      {t.riserve && <Badge tono="warn">Titolari e riserve</Badge>}
-                    {t.riunione && <Badge tono="info">Riunione</Badge>}
-                      {t.riunione && <Badge tono="info">Riunione</Badge>}
-                      {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
-                      {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
-                      {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
-                    </span>
+                    {t.descrizione && (
+                      <p className="mt-0.5 break-words text-[11px] text-muted">{t.descrizione}</p>
+                    )}
                   </div>
-                  {!t.attivo && <Badge tono="neutro">Disattivata</Badge>}
+                  <div className="-mr-1 -mt-1 shrink-0">
+                    <EliminaTipologia tipologia={t} />
+                  </div>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                <p className="num mt-2 text-xs text-muted">
+                  Quote come {umanizza(t.tipoQuota)} · {t._count.events} attività
+                </p>
+                <span className="mt-1 flex flex-wrap gap-1.5">
+                  {!t.attivo && <Badge tono="neutro">Disattivata</Badge>}
+                  {t.riserve && <Badge tono="warn">Titolari e riserve</Badge>}
+                  {t.riunione && <Badge tono="info">Riunione</Badge>}
+                  {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
+                  {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
+                  {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
+                </span>
+                <div className="mt-3 flex flex-wrap justify-end gap-2">
                   <Azioni tipologia={t} />
                 </div>
               </>
@@ -129,8 +135,9 @@ export default async function TipologiePage() {
                   </Badge>
                 </td>
                 <td className="whitespace-nowrap">
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <Azioni tipologia={t} />
+                    <EliminaTipologia tipologia={t} />
                   </div>
                 </td>
               </>
@@ -157,17 +164,19 @@ function Azioni({ tipologia }: { tipologia: Tipologia }) {
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
       </BottoneModale>
-
-      <AzioneBottone
-        azione={eliminaTipologia}
-        valori={{ id: tipologia.id }}
-        icona="elimina"
-        conferma={`Eliminare la tipologia "${tipologia.nome}"? Se è già usata verrà solo disattivata.`}
-        className="btn-danger btn-sm"
-      >
-        Elimina
-      </AzioneBottone>
     </>
+  );
+}
+
+/** Il cestino di una tipologia: in alto a destra della sua card. */
+function EliminaTipologia({ tipologia }: { tipologia: Tipologia }) {
+  return (
+    <BottoneElimina
+      azione={eliminaTipologia}
+      valori={{ id: tipologia.id }}
+      conferma={`Eliminare la tipologia "${tipologia.nome}"? Se è già usata verrà solo disattivata.`}
+      etichetta={`Elimina ${tipologia.nome}`}
+    />
   );
 }
 

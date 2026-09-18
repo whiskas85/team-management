@@ -5,6 +5,48 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.54.0 — 18 settembre 2026
+
+### Cambiato
+
+- **Tutte le card del gestionale seguono lo stesso schema**, quello nato con le
+  squadre ospiti: in alto il titolo, col sottotitolo sotto, e **alla sua
+  altezza, a destra, il cestino** — solo l'icona, rossa, senza scritta. Il
+  contenuto in mezzo va a capo; i pulsanti stanno sotto, allineati a destra.
+  Convertite le card di cassa, casse e loro metodi e gestori, certificati
+  (quelli da vagliare e i propri), messaggi (coda, modelli, testi), metodi di
+  pagamento, squadre esterne, stagioni, tariffario, tipologie, tessere,
+  pagamenti, richieste d'iscrizione, magazzino e riordini, guasti, chiavi
+  dell'assistente, carrello, note, debriefing, commenti, foto e voci degli
+  annunci, operatori e nuovi, e il calendario.
+- **Il cestino non si confonde più con i pulsanti accanto.** Prima era una
+  parola fra le altre — «elimina», «togli», «cancella per errore», a volte in
+  grigio piccolo, a volte in rosso pieno — e stava in fila con «Modifica» o
+  «Incassa», a un centimetro dal gesto che si voleva fare davvero. Ora è
+  sempre lo stesso simbolo, nello stesso angolo, lontano dagli altri.
+- **Nel calendario** «Elimina» non sta più fra i cambi di stato della card:
+  quelli sono passi avanti e indietro, questa è una cancellazione con tutte le
+  adesioni raccolte, e in fila con «Riapri» la si premeva cercando altro.
+- **I partecipanti di un'attività** hanno il cestino in alto accanto al nome,
+  rosso, e nota, stato e schieramento sotto a destra: prima il cestino era
+  grigio, in fondo alla fila, proprio sotto il pollice che schierava.
+- **Nomi, titoli ed email non si troncano più con i «…»** nelle card e negli
+  elenchi: vanno a capo. Restano tagliati solo dove è giusto che lo siano — il
+  menu, la griglia del mese, i grafici, i suggerimenti mentre si scrive.
+
+### Non cambiato, di proposito
+
+- I pulsanti rossi che **non tolgono la card** tengono la loro scritta:
+  «Pulisci i guardati» nei guasti e «Svuota» nel carrello agiscono su tutto
+  l'elenco, «Scollega» dimentica le credenziali del portale, «Togli il
+  messaggio» nelle segnalazioni è un esito della moderazione — la segnalazione
+  resta. Un cestino lì farebbe pensare di cancellare la card, ed è un'altra
+  cosa.
+
+### Corretto
+
+- Nella card di una tipologia il badge «Riunione» compariva due volte.
+
 ## 2.53.0 — 18 settembre 2026
 
 ### Cambiato

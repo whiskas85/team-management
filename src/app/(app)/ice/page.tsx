@@ -101,7 +101,7 @@ export default async function IcePage() {
                   fotoDi={o.fotoPath ? o.id : null}
                 />
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-medium">{nomeCompleto(o)}</h3>
+                  <h3 className="break-words font-medium">{nomeCompleto(o)}</h3>
                   <p className="num text-xs text-muted">
                     {o.dataNascita ? `nato il ${fmtDate(o.dataNascita)}` : 'data di nascita non indicata'}
                   </p>

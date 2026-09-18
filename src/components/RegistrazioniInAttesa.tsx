@@ -54,7 +54,7 @@ function Card({ r }: { r: RegistrazioneInAttesa }) {
     <div className="card space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-medium">
+          <h3 className="break-words font-medium">
             {r.nome} {r.cognome}
             {r.callsign && <span className="ml-2 text-sm text-nvg">«{r.callsign}»</span>}
           </h3>
@@ -111,7 +111,7 @@ function Dato({ etichetta, valore }: { etichetta: string; valore: string | null 
   return (
     <div className="min-w-0">
       <dt className="text-[11px] uppercase tracking-[0.06em] text-muted">{etichetta}</dt>
-      <dd className="truncate">{valore || '—'}</dd>
+      <dd className="break-all">{valore || '—'}</dd>
     </div>
   );
 }

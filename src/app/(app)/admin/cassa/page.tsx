@@ -6,10 +6,10 @@ import { fmtDate, fmtEuro, inputDate, umanizza } from '@/lib/format';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { eliminaMovimento, salvaMovimento } from '@/actions/cassa';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 type Movimento = {
   id: string;
@@ -287,45 +287,48 @@ export default async function CassaPage({
       ) : (
         <Elenco
           cards={voci.map((v) => (
-            <div key={v.chiave} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="truncate font-medium">
-                    {v.link ? (
-                      <Link href={v.link} className="hover:text-nvg">
-                        {v.descrizione}
-                      </Link>
-                    ) : (
-                      v.descrizione
-                    )}
-                  </h3>
-                  {v.dettaglio && <p className="truncate text-xs text-muted">{v.dettaglio}</p>}
-                  <p className="num text-xs text-muted">
+            <CardRiga
+              key={v.chiave}
+              card
+              titolo={
+                v.link ? (
+                  <Link href={v.link} className="hover:text-nvg">
+                    {v.descrizione}
+                  </Link>
+                ) : (
+                  v.descrizione
+                )
+              }
+              sottotitolo={
+                <>
+                  {v.dettaglio && <span className="block">{v.dettaglio}</span>}
+                  <span className="num">
                     {fmtDate(v.data)}
                     {v.categoria && ` · ${v.categoria}`}
                     {v.metodo && ` · ${v.metodo}`}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span
-                    className={`num whitespace-nowrap text-sm font-semibold ${
-                      v.entrata ? 'text-nvg' : 'text-danger'
-                    }`}
-                  >
-                    {v.entrata ? '+' : '−'}
-                    {fmtEuro(v.importo)}
                   </span>
-                  <Badge tono={v.movimento ? 'neutro' : 'info'}>
-                    {v.movimento ? 'a mano' : 'attività'}
-                  </Badge>
-                </div>
+                </>
+              }
+              elimina={admin && v.movimento && <EliminaMovimento movimento={v.movimento} />}
+              azioni={
+                admin &&
+                v.movimento && (
+                  <ModificaMovimento movimento={v.movimento} metodi={metodi} merci={merci} />
+                )
+              }
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Badge tono={v.movimento ? 'neutro' : 'info'}>
+                  {v.movimento ? 'a mano' : 'attività'}
+                </Badge>
+                <span
+                  className={`num text-sm font-semibold ${v.entrata ? 'text-nvg' : 'text-danger'}`}
+                >
+                  {v.entrata ? '+' : '−'}
+                  {fmtEuro(v.importo)}
+                </span>
               </div>
-              {admin && v.movimento && (
-                <div className="mt-3 flex gap-2 border-t border-line pt-3">
-                  <Azioni movimento={v.movimento} metodi={metodi} merci={merci} />
-                </div>
-              )}
-            </div>
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -376,8 +379,13 @@ export default async function CassaPage({
                     {admin && (
                       <td className="whitespace-nowrap">
                         {v.movimento ? (
-                          <div className="flex gap-2">
-                            <Azioni movimento={v.movimento} metodi={metodi} merci={merci} />
+                          <div className="flex items-center gap-2">
+                            <ModificaMovimento
+                              movimento={v.movimento}
+                              metodi={metodi}
+                              merci={merci}
+                            />
+                            <EliminaMovimento movimento={v.movimento} />
                           </div>
                         ) : (
                           <span className="text-[11px] text-muted">dal pagamento</span>
@@ -395,7 +403,7 @@ export default async function CassaPage({
   );
 }
 
-function Azioni({
+function ModificaMovimento({
   movimento,
   metodi,
   merci,
@@ -423,17 +431,19 @@ function Azioni({
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
       </BottoneModale>
-
-      <AzioneBottone
-        azione={eliminaMovimento}
-        valori={{ id: movimento.id }}
-        icona="elimina"
-        conferma={`Eliminare "${movimento.descrizione}" dalla cassa?`}
-        className="btn-danger btn-sm"
-      >
-        Elimina
-      </AzioneBottone>
     </>
+  );
+}
+
+/** Il cestino di un movimento: in alto a destra della sua card. */
+function EliminaMovimento({ movimento }: { movimento: Movimento }) {
+  return (
+    <BottoneElimina
+      azione={eliminaMovimento}
+      valori={{ id: movimento.id }}
+      conferma={`Eliminare "${movimento.descrizione}" dalla cassa?`}
+      etichetta={`Elimina ${movimento.descrizione}`}
+    />
   );
 }
 

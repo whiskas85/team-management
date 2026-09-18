@@ -113,7 +113,7 @@ export function RosaStorica({
                 onChange={() => commuta(o.id)}
                 className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
               />
-              <span className="min-w-0 flex-1 truncate text-sm">
+              <span className="min-w-0 flex-1 break-words text-sm">
                 {o.cognome} {o.nome}
                 {o.callsign && <span className="text-nvg"> &middot; {o.callsign}</span>}
               </span>

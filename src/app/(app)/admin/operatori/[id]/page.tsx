@@ -37,6 +37,7 @@ import {
 import { haIncarichi } from '@/lib/domain';
 import { citabili } from '@/lib/note';
 import { BloccoNote, type NotaLetta } from '@/components/Note';
+import { BottoneElimina } from '@/components/CardRiga';
 
 export default async function SchedaOperatorePage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requirePermesso(puoVedereOperatori);
@@ -354,7 +355,7 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
               {utente.payments.slice(0, 8).map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="min-w-0">
-                    <span className="block truncate">{p.descrizione}</span>
+                    <span className="block break-words">{p.descrizione}</span>
                     <span className="text-xs text-muted num">
                       {umanizza(p.tipo)} · {fmtEuro(Number(p.importo))}
                     </span>
@@ -416,23 +417,27 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
                   </Conferma>
                 </FormAzione>
 
-                <FormAzione azione={eliminaOperatore} className="border-t border-line pt-4">
-                  <input type="hidden" name="userId" value={utente.id} />
-                  <input
-                    type="hidden"
-                    name="ritorno"
-                    value={contatto ? '/admin/nuovi' : '/admin/operatori'}
-                  />
-                  <p className="mb-2 text-xs text-muted">
+                {/* La cancellazione resta qui, in fondo a una sezione chiusa:
+                    è l'ultima cosa che si fa a una persona. Il cestino è quello
+                    di tutte le card — rosso, senza scritta — e la scritta la fa
+                    la frase accanto, che dice cosa si perde. */}
+                <div className="flex items-start justify-between gap-3 border-t border-line pt-4">
+                  <p className="text-xs text-muted">
                     Cancellazione definitiva: rimuove anagrafica, allegati e storico. Usala per il
                     diritto all’oblio o per i contatti che non tornano.
                   </p>
-                  <Conferma
-                    messaggio={`Eliminare definitivamente ${utente.nome} ${utente.cognome} e tutti i suoi dati?`}
-                   icona="elimina">
-            Elimina operatore
-          </Conferma>
-                </FormAzione>
+                  <div className="shrink-0">
+                    <BottoneElimina
+                      azione={eliminaOperatore}
+                      valori={{
+                        userId: utente.id,
+                        ritorno: contatto ? '/admin/nuovi' : '/admin/operatori',
+                      }}
+                      conferma={`Eliminare definitivamente ${utente.nome} ${utente.cognome} e tutti i suoi dati?`}
+                      etichetta={`Elimina ${utente.nome} ${utente.cognome}`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </Fisarmonica>

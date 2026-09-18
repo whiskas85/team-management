@@ -54,7 +54,7 @@ export function ReferentiEvento({
               className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line pb-2 last:border-0 last:pb-0"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium text-nvg">{r.nome}</span>
+                <span className="block break-words font-medium text-nvg">{r.nome}</span>
                 {tel ? (
                   <a href={tel} className="num text-xs text-muted hover:text-nvg">
                     {r.telefono}

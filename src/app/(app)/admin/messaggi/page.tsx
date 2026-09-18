@@ -27,6 +27,7 @@ import {
   scegliGruppo,
   scollegaWhatsapp,
 } from '@/actions/messaggi';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 const ORDINE: ScatenanteMessaggio[] = [
   'COMPLEANNO',
@@ -220,23 +221,21 @@ export default async function MessaggiPage() {
           <>
             <div className="space-y-2">
               {coda.map((m) => (
-                <div key={m.id} className="rounded-lg border border-line bg-surface p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-muted">
-                      <Badge tono="info">{SCATENANTI[m.scatenante].titolo}</Badge>{' '}
-                      <span className="ml-1">a {m.aChi}</span>
-                    </span>
-                    <AzioneBottone
+                <CardRiga
+                  key={m.id}
+                  titolo={<span className="text-sm">a {m.aChi}</span>}
+                  sottotitolo={<Badge tono="info">{SCATENANTI[m.scatenante].titolo}</Badge>}
+                  elimina={
+                    /* una bozza si rifà con un clic: buttarla non chiede conferma */
+                    <BottoneElimina
                       azione={eliminaBozza}
                       valori={{ id: m.id }}
-                      icona="elimina"
-                      className="btn-ghost btn-sm"
-                    >
-                      Scarta
-                    </AzioneBottone>
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm">{m.testo}</p>
-                </div>
+                      etichetta={`Scarta il messaggio a ${m.aChi}`}
+                    />
+                  }
+                >
+                  <p className="whitespace-pre-wrap text-sm">{m.testo}</p>
+                </CardRiga>
               ))}
             </div>
 
@@ -286,18 +285,31 @@ export default async function MessaggiPage() {
                   {suoi.map((m) => {
                     const accesi = m.testi.filter((t) => t.attivo).length;
                     return (
-                      <div key={m.id} className="rounded-lg border border-line bg-surface p-3">
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold">{m.titolo}</span>
-                          <Badge tono={m.destinazione === 'GRUPPO' ? 'info' : 'neutro'}>
-                            {m.destinazione === 'GRUPPO' ? 'nel gruppo' : 'in privato'}
-                          </Badge>
-                          {!m.attivo && <Badge tono="neutro">spento</Badge>}
-                          <span className="num text-[11px] text-muted">
-                            {accesi === 1 ? '1 testo in rotazione' : `${accesi} testi in rotazione`}
-                            {m.testi.length > accesi ? ` · ${m.testi.length - accesi} spenti` : ''}
+                      <CardRiga
+                        key={m.id}
+                        titolo={m.titolo}
+                        sottotitolo={
+                          <span className="flex flex-wrap items-center gap-2">
+                            <Badge tono={m.destinazione === 'GRUPPO' ? 'info' : 'neutro'}>
+                              {m.destinazione === 'GRUPPO' ? 'nel gruppo' : 'in privato'}
+                            </Badge>
+                            {!m.attivo && <Badge tono="neutro">spento</Badge>}
+                            <span className="num">
+                              {accesi === 1 ? '1 testo in rotazione' : `${accesi} testi in rotazione`}
+                              {m.testi.length > accesi ? ` · ${m.testi.length - accesi} spenti` : ''}
+                            </span>
                           </span>
-                          <span className="ml-auto flex gap-2">
+                        }
+                        elimina={
+                          <BottoneElimina
+                            azione={eliminaModello}
+                            valori={{ id: m.id }}
+                            conferma={`Eliminare «${m.titolo}» e i suoi ${m.testi.length} testi?`}
+                            etichetta={`Elimina ${m.titolo}`}
+                          />
+                        }
+                        azioni={
+                          <>
                             <BottoneModale
                               etichetta="Aggiungi testi"
                               icona="aggiungi"
@@ -324,39 +336,43 @@ export default async function MessaggiPage() {
                                 <Invia icona="salva">Salva</Invia>
                               </FormAzione>
                             </BottoneModale>
-                            <AzioneBottone
-                              azione={eliminaModello}
-                              valori={{ id: m.id }}
-                              icona="elimina"
-                              conferma={`Eliminare «${m.titolo}» e i suoi ${m.testi.length} testi?`}
-                              className="btn-danger btn-sm"
-                            >
-                              Elimina
-                            </AzioneBottone>
-                          </span>
-                        </div>
-
+                          </>
+                        }
+                      >
                         {m.testi.length === 0 ? (
                           <p className="rounded-lg border border-dashed border-line px-3 py-2 text-xs text-muted">
                             Nessun testo: il modello c’è ma non ha niente da dire.
                           </p>
                         ) : (
-                          <div className="space-y-1.5">
+                          <div className="space-y-2">
                             {m.testi.map((t) => (
-                              <div
+                              <CardRiga
                                 key={t.id}
-                                className={`rounded-lg border border-line bg-bg px-3 py-2 ${
-                                  t.attivo ? '' : 'opacity-60'
-                                }`}
-                              >
-                                <p className="whitespace-pre-wrap text-sm">{t.testo}</p>
-                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                  {!t.attivo && <Badge tono="neutro">spento</Badge>}
-                                  <span className="num text-[11px] text-muted">
-                                    {t.volte === 1 ? 'usato una volta' : `usato ${t.volte} volte`}
-                                    {t.usatoIl ? ` · ultima ${fmtDateTime(t.usatoIl)}` : ''}
+                                className={t.attivo ? '' : 'opacity-60'}
+                                titolo={
+                                  <span className="whitespace-pre-wrap text-sm font-normal">
+                                    {t.testo}
                                   </span>
-                                  <span className="ml-auto flex gap-2">
+                                }
+                                sottotitolo={
+                                  <span className="flex flex-wrap items-center gap-2">
+                                    {!t.attivo && <Badge tono="neutro">spento</Badge>}
+                                    <span className="num">
+                                      {t.volte === 1 ? 'usato una volta' : `usato ${t.volte} volte`}
+                                      {t.usatoIl ? ` · ultima ${fmtDateTime(t.usatoIl)}` : ''}
+                                    </span>
+                                  </span>
+                                }
+                                elimina={
+                                  <BottoneElimina
+                                    azione={eliminaTesto}
+                                    valori={{ id: t.id }}
+                                    conferma="Eliminare questo testo?"
+                                    etichetta="Elimina il testo"
+                                  />
+                                }
+                                azioni={
+                                  <>
                                     <AzioneBottone
                                       azione={accendiTesto}
                                       valori={{ id: t.id }}
@@ -377,22 +393,13 @@ export default async function MessaggiPage() {
                                         <Invia icona="salva">Salva</Invia>
                                       </FormAzione>
                                     </BottoneModale>
-                                    <AzioneBottone
-                                      azione={eliminaTesto}
-                                      valori={{ id: t.id }}
-                                      icona="elimina"
-                                      conferma="Eliminare questo testo?"
-                                      className="btn-danger btn-sm"
-                                    >
-                                      Elimina
-                                    </AzioneBottone>
-                                  </span>
-                                </div>
-                              </div>
+                                  </>
+                                }
+                              />
                             ))}
                           </div>
                         )}
-                      </div>
+                      </CardRiga>
                     );
                   })}
                 </div>
@@ -416,7 +423,7 @@ export default async function MessaggiPage() {
                   {m.stato === 'INVIATO' ? 'inviato' : 'errore'}
                 </Badge>
                 <span className="text-muted">{m.aChi}</span>
-                <span className="min-w-0 flex-1 truncate">{m.testo}</span>
+                <span className="min-w-0 flex-1 break-words">{m.testo}</span>
                 <span className="num text-muted">
                   {fmtDateTime(m.inviatoIl ?? m.creatoIl)}
                 </span>

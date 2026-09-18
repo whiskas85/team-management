@@ -72,7 +72,7 @@ export default async function MieiPagamentiPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
                     {umanizza(p.tipo)}
                   </p>
-                  <h3 className="mt-1 truncate font-medium">{p.descrizione}</h3>
+                  <h3 className="mt-1 break-words font-medium">{p.descrizione}</h3>
                   {/* non tutto si paga al club: il corso si paga a chi lo tiene */}
                   {p.cassa && (
                     <p className="text-xs text-nvg/80">da pagare a {p.cassa.nome}</p>

@@ -136,7 +136,7 @@ export default async function SchedaCompagnoPage({
               className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-2.5"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm">{r.event.titolo}</p>
+                <p className="break-words text-sm">{r.event.titolo}</p>
                 <p className="text-xs text-muted num">
                   {r.event.tipo?.nome ?? 'Senza tipologia'} · {fmtDate(r.event.inizio)}
                 </p>

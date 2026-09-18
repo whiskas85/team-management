@@ -231,8 +231,8 @@ export default async function CassaPage({
             <div key={p.id} className="card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate font-medium">{nomeCompleto(p.user)}</h3>
-                  <p className="truncate text-xs text-muted">{p.descrizione}</p>
+                  <h3 className="break-words font-medium">{nomeCompleto(p.user)}</h3>
+                  <p className="break-words text-xs text-muted">{p.descrizione}</p>
                 </div>
                 <Stato pagamento={p} />
               </div>

@@ -5,10 +5,10 @@ import { Markdown } from '@/components/Markdown';
 import { Badge, Campo } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { EditoreMarkdown } from '@/components/EditoreMarkdown';
 import { eliminaNota, salvaNota } from '@/actions/note';
+import { BottoneElimina } from './CardRiga';
 
 /**
  * Le note e il modo di scriverle.
@@ -140,35 +140,23 @@ export function Nota({
 
   return (
     <div className="rounded-lg border border-line bg-surface p-3">
-      <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
+      <div className="mb-1 flex items-start gap-3">
         {/* Il badge sta su ogni nota e non solo in cima all'elenco: una nota
             la si rilegge da sola, magari mesi dopo, e chi non ricorda la regola
             deve trovarla lì. Scrivere di qualcuno credendo che sia privato
             quando non lo è, è il modo peggiore di scoprirlo. */}
-        <p className="flex flex-wrap items-center gap-2 font-medium">
+        <p className="flex min-w-0 flex-1 flex-wrap items-center gap-2 break-words font-medium">
           {nota.titolo}
           <Badge tono="info">privato</Badge>
         </p>
-        <span className="flex shrink-0 gap-2">
-          <BottoneModale
-            etichetta="Modifica"
-            icona="modifica"
-            titolo="Modifica la nota"
-            className="btn-ghost btn-sm"
-            larga
-          >
-            <FormNota persone={persone} nota={nota} />
-          </BottoneModale>
-          <AzioneBottone
+        <div className="-mr-1 -mt-1 shrink-0">
+          <BottoneElimina
             azione={eliminaNota}
             valori={{ id: nota.id }}
-            icona="elimina"
             conferma="Eliminare la nota? Non la può recuperare nessuno."
-            className="btn-danger btn-sm"
-          >
-            Elimina
-          </AzioneBottone>
-        </span>
+            etichetta={`Elimina la nota ${nota.titolo}`}
+          />
+        </div>
       </div>
 
       {contesto && (nota.persona || nota.evento) && (
@@ -211,6 +199,19 @@ export function Nota({
             ))}
           </span>
         )}
+      </div>
+
+      {/* la modifica sotto, a destra, come in tutte le card */}
+      <div className="mt-2 flex justify-end">
+        <BottoneModale
+          etichetta="Modifica"
+          icona="modifica"
+          titolo="Modifica la nota"
+          className="btn-ghost btn-sm"
+          larga
+        >
+          <FormNota persone={persone} nota={nota} />
+        </BottoneModale>
       </div>
     </div>
   );

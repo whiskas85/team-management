@@ -7,10 +7,10 @@ import { ETICHETTA_VOCE, NOMI_SUGGERITI, SPIEGA_VOCE } from '@/lib/stagioni';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { eliminaTariffa, salvaTariffa } from '@/actions/stagioni';
 import type { VoceTariffa } from '@prisma/client';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 const VOCI = Object.keys(ETICHETTA_VOCE) as VoceTariffa[];
 
@@ -115,42 +115,44 @@ export default async function TariffePage() {
       ) : (
         <Elenco
           cards={tariffe.map((t) => (
-            <div key={t.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="font-medium">{t.nome}</h3>
-                  <p className="text-xs text-muted">
+            <CardRiga
+              key={t.id}
+              card
+              titolo={t.nome}
+              sottotitolo={
+                <>
+                  <span className="block">
                     {t.stagione ? `solo ${t.stagione.nome}` : 'vale per tutte le stagioni'}
-                  </p>
-                  {t.cassa && <p className="text-[11px] text-warn">va a {t.cassa.nome}</p>}
-                  {t.perPolizza && (
-                    <p className="mt-1">
-                      <Badge tono="info">paga la polizza giornaliera</Badge>
-                    </p>
-                  )}
-                  {t.usi.length > 0 && (
-                    <p className="mt-1 text-[11px] text-nvg">
-                      auto: {t.usi.map((u) => ETICHETTA_VOCE[u]).join(', ')}
-                    </p>
-                  )}
-                  {t.note && <p className="mt-1 text-xs text-muted">{t.note}</p>}
-                </div>
-                <span className="num shrink-0 font-semibold text-nvg">
+                  </span>
+                  {t.cassa && <span className="block text-warn">va a {t.cassa.nome}</span>}
+                </>
+              }
+              elimina={<EliminaTariffa tariffa={t} />}
+              azioni={
+                <AzioniTariffa
+                  tariffa={t}
+                  stagioni={stagioni}
+                  casse={casse}
+                  suggerimenti={suggerimenti}
+                />
+              }
+            >
+              <div className="space-y-1">
+                <p className="num font-semibold text-nvg">
                   {fmtEuro(Number(t.importo))}
                   {t.perGiorno && (
                     <span className="text-[11px] font-normal text-muted"> /giorno</span>
                   )}
-                </span>
+                </p>
+                {t.perPolizza && <Badge tono="info">paga la polizza giornaliera</Badge>}
+                {t.usi.length > 0 && (
+                  <p className="text-[11px] text-nvg">
+                    auto: {t.usi.map((u) => ETICHETTA_VOCE[u]).join(', ')}
+                  </p>
+                )}
+                {t.note && <p className="text-xs text-muted">{t.note}</p>}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-                <AzioniTariffa
-                          tariffa={t}
-                          stagioni={stagioni}
-                          casse={casse}
-                          suggerimenti={suggerimenti}
-                        />
-              </div>
-            </div>
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -208,13 +210,14 @@ export default async function TariffePage() {
                     </td>
                     <td className="text-xs text-muted">{t.note ?? '-'}</td>
                     <td className="whitespace-nowrap">
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <AzioniTariffa
                           tariffa={t}
                           stagioni={stagioni}
                           casse={casse}
                           suggerimenti={suggerimenti}
                         />
+                        <EliminaTariffa tariffa={t} />
                       </div>
                     </td>
                   </tr>
@@ -258,17 +261,19 @@ function AzioniTariffa({
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
       </BottoneModale>
-
-      <AzioneBottone
-        azione={eliminaTariffa}
-        valori={{ id: tariffa.id }}
-        icona="elimina"
-        conferma="Eliminare questa tariffa?"
-        className="btn-danger btn-sm"
-      >
-        Elimina
-      </AzioneBottone>
     </>
+  );
+}
+
+/** Il cestino di una voce di tariffario: in alto a destra della sua card. */
+function EliminaTariffa({ tariffa }: { tariffa: RigaTariffa }) {
+  return (
+    <BottoneElimina
+      azione={eliminaTariffa}
+      valori={{ id: tariffa.id }}
+      conferma="Eliminare questa tariffa?"
+      etichetta={`Elimina ${tariffa.nome}`}
+    />
   );
 }
 

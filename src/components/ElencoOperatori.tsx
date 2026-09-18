@@ -7,8 +7,8 @@ import { Avatar, Badge, Elenco, Vuoto } from './ui';
 import { ListaFiltrata } from './Filtri';
 import { etichettaRuolo, etichettaStato, tonoCertificato, tonoRuolo, tonoStato } from '@/lib/domain';
 import { umanizza } from '@/lib/format';
-import { AzioneBottone } from './AzioneBottone';
 import { assegnaRuolo, eliminaOperatore } from '@/actions/operatori';
+import { BottoneElimina } from './CardRiga';
 
 export type RigaOperatore = {
   id: string;
@@ -150,15 +150,12 @@ export function ElencoOperatori({
     />
   );
   const elimina = (o: RigaOperatore) => (
-    <AzioneBottone
+    <BottoneElimina
       azione={eliminaOperatore}
       valori={{ userId: o.id, ritorno: '/admin/operatori' }}
-      icona="elimina"
       conferma={`Eliminare definitivamente ${o.nome} ${o.cognome} e tutti i suoi dati? L'operazione non è reversibile.`}
-      className="btn-danger btn-sm"
-    >
-      Elimina
-    </AzioneBottone>
+      etichetta={`Elimina ${o.nome} ${o.cognome}`}
+    />
   );
   // Sta in fondo alla riga dei filtri, non in una colonna a fianco: lì non
   // toglie larghezza alla tabella, che ne ha bisogno tutta, e si vede sempre —
@@ -269,21 +266,27 @@ export function ElencoOperatori({
         ) : (
           <Elenco
             cards={ordinati(lista).map((o) => (
-              <div key={o.id} className={`card ${scelti.has(o.id) ? 'border-nvg' : ''}`}>
+              <div
+                key={o.id}
+                className={`card relative ${scelti.has(o.id) ? 'border-nvg' : ''}`}
+              >
+              {/* il cestino in alto a destra, fuori dal link della scheda: un
+                  pulsante dentro un link si preme aprendo la scheda */}
+              {puoEliminare && <div className="absolute right-3 top-3 z-10">{elimina(o)}</div>}
               {puoAssegnareRuoli && (
                 <label className="mb-2 flex items-center gap-2 text-xs text-muted">
                   {spunta(o)} seleziona
                 </label>
               )}
               <Link href={`/admin/operatori/${o.id}`} className="block">
-                <div className="flex items-start gap-3">
+                <div className={`flex items-start gap-3 ${puoEliminare ? 'pr-10' : ''}`}>
                   <Avatar iniziali={`${o.nome[0] ?? ''}${o.cognome[0] ?? ''}`.toUpperCase()} />
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-medium">
+                    <h3 className="break-words font-medium">
                       {o.cognome} {o.nome}
                       {o.callsign && <span className="text-nvg"> · {o.callsign}</span>}
                     </h3>
-                    <p className="truncate text-xs text-muted">{o.email}</p>
+                    <p className="break-all text-xs text-muted">{o.email}</p>
                     <p className="text-xs text-muted num">
                       {o.presenze} presenze su {o.adesioni} adesioni
                     </p>
@@ -313,9 +316,6 @@ export function ElencoOperatori({
                     ))}
                 </div>
               </Link>
-              {puoEliminare && (
-                <div className="mt-3 border-t border-line pt-3">{elimina(o)}</div>
-              )}
               </div>
             ))}
             tabella={

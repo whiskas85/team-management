@@ -7,10 +7,11 @@ import { fmtDateTime } from '@/lib/format';
 import { Intestazione } from '@/components/ui';
 import { Mappa } from '@/components/Mappa';
 import { AzioniContatto } from '@/components/AzioniContatto';
-import { Conferma, FormAzione } from '@/components/Form';
+import { FormAzione } from '@/components/Form';
 import { FormCampo } from '@/components/FormCampo';
 import { Invia } from '@/components/Bottone';
 import { eliminaCampo, salvaCampo } from '@/actions/campi';
+import { BottoneElimina } from '@/components/CardRiga';
 
 export default async function CampoPage({ params }: { params: Promise<{ id: string }> }) {
   await requirePermesso(isAdmin);
@@ -48,18 +49,24 @@ export default async function CampoPage({ params }: { params: Promise<{ id: stri
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card">
+            {/* in alto il titolo e, alla sua altezza, il cestino: lo schema di
+                tutte le card, anche quando dentro c'è un modulo intero */}
+            <div className="mb-4 flex items-start gap-3">
+              <p className="titolo-sezione min-w-0 flex-1">Scheda campo</p>
+              <div className="-mr-1 -mt-1 shrink-0">
+                <BottoneElimina
+                  azione={eliminaCampo}
+                  valori={{ id: campo.id }}
+                  conferma="Eliminare il campo? Se è collegato a eventi verrà solo archiviato."
+                  etichetta={`Elimina il campo ${campo.nome}`}
+                />
+              </div>
+            </div>
             <FormAzione azione={salvaCampo}>
               <FormCampo campo={campo} squadre={squadre} />
-              <Invia icona="salva">
-            Salva
-          </Invia>
-            </FormAzione>
-
-            <FormAzione azione={eliminaCampo} className="mt-4 border-t border-line pt-4">
-              <input type="hidden" name="id" value={campo.id} />
-              <Conferma messaggio="Eliminare il campo? Se è collegato a eventi verrà solo archiviato." icona="elimina">
-            Elimina campo
-          </Conferma>
+              <div className="flex justify-end">
+                <Invia icona="salva">Salva</Invia>
+              </div>
             </FormAzione>
           </div>
         </div>

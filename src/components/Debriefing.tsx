@@ -4,10 +4,10 @@ import { Campo } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { EditoreMarkdown } from '@/components/EditoreMarkdown';
 import { Invia } from '@/components/Bottone';
 import { eliminaDebriefing, salvaDebriefing } from '@/actions/debriefing';
+import { BottoneElimina } from './CardRiga';
 
 export type DebriefingLetto = {
   titolo: string | null;
@@ -102,8 +102,8 @@ export function Debriefing({
 
   return (
     <div className="card">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
+      <div className="mb-3 flex items-start gap-3">
+        <div className="min-w-0 flex-1">
           <p className="titolo-sezione">Debriefing</p>
           {debriefing && (
             <p className="mt-0.5 text-[11px] text-muted">
@@ -113,31 +113,23 @@ export function Debriefing({
           )}
         </div>
 
-        <span className="flex flex-wrap items-center gap-2">
-          {debriefing && !debriefing.pubblicato && <Badge tono="warn">bozza · la vedi solo tu</Badge>}
-          {scrive && (
-            <BottoneModale
-              etichetta={debriefing ? 'Modifica' : 'Scrivi il debriefing'}
-              icona={debriefing ? 'modifica' : 'bozza'}
-              titolo="Debriefing"
-              className={debriefing ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}
-              larga
-            >
-              <FormDebriefing eventId={eventId} debriefing={debriefing} />
-            </BottoneModale>
-          )}
-          {scrive && debriefing && (
-            <AzioneBottone
+        {scrive && debriefing && (
+          <div className="-mr-1 -mt-1 shrink-0">
+            <BottoneElimina
               azione={eliminaDebriefing}
               valori={{ eventId }}
               conferma="Eliminare il debriefing? Il testo non si recupera."
-              className="text-[11px] text-muted transition-colors hover:text-danger"
-            >
-              elimina
-            </AzioneBottone>
-          )}
-        </span>
+              etichetta="Elimina il debriefing"
+            />
+          </div>
+        )}
       </div>
+
+      {debriefing && !debriefing.pubblicato && (
+        <div className="mb-3">
+          <Badge tono="warn">bozza · la vedi solo tu</Badge>
+        </div>
+      )}
 
       {debriefing ? (
         <>
@@ -149,6 +141,21 @@ export function Debriefing({
           Non c’è ancora. Scrivi com’è andata finché ce l’hai in testa: fra un mese resta solo
           quello che è scritto.
         </p>
+      )}
+
+      {/* scrivere e correggere: sotto, a destra, come in tutte le card */}
+      {scrive && (
+        <div className="mt-4 flex justify-end">
+          <BottoneModale
+            etichetta={debriefing ? 'Modifica' : 'Scrivi il debriefing'}
+            icona={debriefing ? 'modifica' : 'bozza'}
+            titolo="Debriefing"
+            className={debriefing ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}
+            larga
+          >
+            <FormDebriefing eventId={eventId} debriefing={debriefing} />
+          </BottoneModale>
+        </div>
       )}
     </div>
   );

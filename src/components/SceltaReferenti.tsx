@@ -136,7 +136,7 @@ function Voce({
         onChange={(e) => onCambia(o.id, e.target.checked)}
         className="accent-nvg"
       />
-      <span className="truncate">
+      <span className="break-words">
         {o.callsign ? (
           <>
             <span className="text-nvg">{o.callsign}</span>{' '}

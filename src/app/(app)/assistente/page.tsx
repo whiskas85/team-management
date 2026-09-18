@@ -7,9 +7,9 @@ import { etichettaRuolo } from '@/lib/domain';
 import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { creaChiaveMcp, revocaChiaveMcp } from '@/actions/mcp';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,32 +90,34 @@ export default async function AssistentePage() {
             {chiavi.map((c) => {
               const scaduta = c.scadeIl != null && c.scadeIl < new Date();
               return (
-                <div
+                <CardRiga
                   key={c.id}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3 py-2"
-                >
-                  <span className="font-medium">{c.nome}</span>
-                  <code className="num rounded bg-surface2 px-1.5 py-0.5 text-[11px] text-muted">
-                    {c.prefisso}…
-                  </code>
-                  {scaduta && <Badge tono="danger">scaduta</Badge>}
-                  <span className="num text-[11px] text-muted">
-                    creata {fmtDate(c.creatoIl)}
-                    {c.scadeIl ? ` · scade ${fmtDate(c.scadeIl)}` : ''}
-                    {c.ultimoUsoIl ? ` · usata ${fmtDateTime(c.ultimoUsoIl)}` : ' · mai usata'}
-                  </span>
-                  <span className="ml-auto">
-                    <AzioneBottone
+                  titolo={
+                    <span className="flex flex-wrap items-center gap-2">
+                      {c.nome}
+                      <code className="num rounded bg-surface2 px-1.5 py-0.5 text-[11px] font-normal text-muted">
+                        {c.prefisso}…
+                      </code>
+                    </span>
+                  }
+                  sottotitolo={
+                    <span className="num">
+                      creata {fmtDate(c.creatoIl)}
+                      {c.scadeIl ? ` · scade ${fmtDate(c.scadeIl)}` : ''}
+                      {c.ultimoUsoIl ? ` · usata ${fmtDateTime(c.ultimoUsoIl)}` : ' · mai usata'}
+                    </span>
+                  }
+                  elimina={
+                    <BottoneElimina
                       azione={revocaChiaveMcp}
                       valori={{ id: c.id }}
-                      icona="elimina"
                       conferma="Revocare questa chiave? L’assistente che la usa smetterà subito di funzionare."
-                      className="btn-danger btn-sm"
-                    >
-                      Revoca
-                    </AzioneBottone>
-                  </span>
-                </div>
+                      etichetta={`Revoca la chiave ${c.nome}`}
+                    />
+                  }
+                >
+                  {scaduta && <Badge tono="danger">scaduta</Badge>}
+                </CardRiga>
               );
             })}
           </div>

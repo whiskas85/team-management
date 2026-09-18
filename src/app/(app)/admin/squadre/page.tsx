@@ -5,10 +5,10 @@ import { isAdmin } from '@/lib/domain';
 import { Badge, Campo, Elenco, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { AzioniContatto } from '@/components/AzioniContatto';
 import { Invia } from '@/components/Bottone';
 import { eliminaSquadra, salvaSquadra } from '@/actions/squadre';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 type Squadra = {
   id: string;
@@ -51,24 +51,27 @@ export default async function SquadrePage() {
       ) : (
         <Elenco
           cards={squadre.map((s) => (
-            <div key={s.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="font-medium">{s.nome}</h3>
-                  <p className="text-xs text-muted">
+            <CardRiga
+              key={s.id}
+              card
+              className={s.attiva ? '' : 'opacity-60'}
+              titolo={s.nome}
+              sottotitolo={
+                <>
+                  <span className="block">
                     {[s.citta, s.provincia].filter(Boolean).join(' · ') || 'Località non indicata'}
-                  </p>
-                  {s.referente && <p className="text-xs text-muted">Referente: {s.referente}</p>}
+                  </span>
+                  {s.referente && <span className="block">Referente: {s.referente}</span>}
                   {s.campi.length > 0 && (
-                    <p className="mt-1 text-xs text-muted">
-                      Campi: {s.campi.map((c) => c.nome).join(', ')}
-                    </p>
+                    <span className="block">Campi: {s.campi.map((c) => c.nome).join(', ')}</span>
                   )}
-                </div>
+                </>
+              }
+              elimina={<EliminaSquadra squadra={s} />}
+              azioni={<Azioni squadra={s} />}
+            >
+              <div className="space-y-2">
                 {!s.attiva && <Badge tono="neutro">Disattivata</Badge>}
-              </div>
-
-              <div className="mt-3 border-t border-line pt-3">
                 <AzioniContatto
                   telefono={s.telefono}
                   email={s.email}
@@ -76,11 +79,7 @@ export default async function SquadrePage() {
                   compatto
                 />
               </div>
-
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-                <Azioni squadra={s} />
-              </div>
-            </div>
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -146,8 +145,9 @@ export default async function SquadrePage() {
                       </Badge>
                     </td>
                     <td className="whitespace-nowrap">
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <Azioni squadra={s} />
+                        <EliminaSquadra squadra={s} />
                       </div>
                     </td>
                   </tr>
@@ -177,17 +177,19 @@ function Azioni({ squadra }: { squadra: Squadra }) {
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
       </BottoneModale>
-
-      <AzioneBottone
-        azione={eliminaSquadra}
-        valori={{ id: squadra.id }}
-        icona="elimina"
-        conferma={`Eliminare "${squadra.nome}"? Se è collegata a dei campi verrà solo disattivata.`}
-        className="btn-danger btn-sm"
-      >
-        Elimina
-      </AzioneBottone>
     </>
+  );
+}
+
+/** Il cestino di una squadra: in alto a destra della sua card. */
+function EliminaSquadra({ squadra }: { squadra: Squadra }) {
+  return (
+    <BottoneElimina
+      azione={eliminaSquadra}
+      valori={{ id: squadra.id }}
+      conferma={`Eliminare "${squadra.nome}"? Se è collegata a dei campi verrà solo disattivata.`}
+      etichetta={`Elimina ${squadra.nome}`}
+    />
   );
 }
 

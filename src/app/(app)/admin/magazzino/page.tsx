@@ -23,6 +23,7 @@ import {
   salvaArticolo,
   scollegaDaMagazzino,
 } from '@/actions/magazzino-riordini';
+import { BottoneElimina } from '@/components/CardRiga';
 
 export const dynamic = 'force-dynamic';
 
@@ -325,14 +326,12 @@ export default async function MagazzinoPage() {
                             stacca
                           </AzioneBottone>
                         ))}
-                        <AzioneBottone
+                        <BottoneElimina
                           azione={eliminaArticolo}
                           valori={{ id: a.id }}
                           conferma={`Eliminare "${a.nome}" dal magazzino? Se ne vanno anche i suoi carichi.`}
-                          className="text-[11px] text-muted transition-colors hover:text-danger"
-                        >
-                          elimina
-                        </AzioneBottone>
+                          etichetta={`Elimina ${a.nome}`}
+                        />
                       </span>
                     </td>
                   </tr>
@@ -359,12 +358,28 @@ export default async function MagazzinoPage() {
             const totale = totaleRiordino(r.righe);
             return (
               <div key={r.id} className="card">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="num font-medium">Riordino {r.numero}</span>
-                    <Badge tono={TONO[r.stato]}>{ETICHETTA[r.stato]}</Badge>
-                    {r.fornitore && <span className="text-xs text-muted">{r.fornitore}</span>}
-                  </span>
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="num font-medium">Riordino {r.numero}</p>
+                    <p className="mt-0.5 break-words text-[11px] text-muted">
+                      aperto il {fmtDate(r.creatoIl)}
+                      {r.creatoDa ? ` da ${nomeCompleto(r.creatoDa)}` : ''}
+                      {r.fornitore ? ` · ${r.fornitore}` : ''}
+                    </p>
+                  </div>
+                  {r.stato !== 'RICEVUTO' && !r.movimentoId && (
+                    <div className="-mr-1 -mt-1 shrink-0">
+                      <BottoneElimina
+                        azione={eliminaRiordino}
+                        valori={{ id: r.id }}
+                        conferma="Eliminare il riordino?"
+                        etichetta={`Elimina il riordino ${r.numero}`}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="my-2 flex flex-wrap items-center justify-between gap-2">
+                  <Badge tono={TONO[r.stato]}>{ETICHETTA[r.stato]}</Badge>
                   <span className="num text-sm">{fmtEuro(totale)}</span>
                 </div>
 
@@ -379,13 +394,12 @@ export default async function MagazzinoPage() {
                         </span>
                       </span>
                       {r.stato === 'APERTO' && (
-                        <AzioneBottone
+                        <BottoneElimina
+                          piccolo
                           azione={eliminaRigaRiordino}
                           valori={{ id: riga.id }}
-                          className="text-[11px] text-muted transition-colors hover:text-danger"
-                        >
-                          togli
-                        </AzioneBottone>
+                          etichetta={`Togli ${riga.articolo.nome} dal riordino`}
+                        />
                       )}
                     </li>
                   ))}
@@ -394,7 +408,8 @@ export default async function MagazzinoPage() {
                   )}
                 </ul>
 
-                <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                {/* le azioni sotto, a destra, come in tutte le card */}
+                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
                   {r.stato === 'APERTO' && (
                     <>
                       <BottoneModale
@@ -431,25 +446,12 @@ export default async function MagazzinoPage() {
                       azione={annullaRiordino}
                       valori={{ id: r.id }}
                       conferma="Annullare il riordino? Se era pagato se ne va anche l’uscita di cassa."
-                      className="text-[11px] text-muted transition-colors hover:text-danger"
+                      icona="annulla"
+                      className="btn-ghost btn-sm"
                     >
-                      annulla
+                      Annulla
                     </AzioneBottone>
                   )}
-                  {r.stato !== 'RICEVUTO' && !r.movimentoId && (
-                    <AzioneBottone
-                      azione={eliminaRiordino}
-                      valori={{ id: r.id }}
-                      conferma="Eliminare il riordino?"
-                      className="text-[11px] text-muted transition-colors hover:text-danger"
-                    >
-                      elimina
-                    </AzioneBottone>
-                  )}
-                  <span className="ml-auto text-[11px] text-muted">
-                    aperto il {fmtDate(r.creatoIl)}
-                    {r.creatoDa ? ` da ${nomeCompleto(r.creatoDa)}` : ''}
-                  </span>
                 </div>
               </div>
             );
@@ -489,7 +491,8 @@ export default async function MagazzinoPage() {
                   <td className="text-muted">{m.da}</td>
                   <td className="text-right">
                     {m.caricoId && (
-                      <AzioneBottone
+                      <BottoneElimina
+                        piccolo
                         azione={eliminaCarico}
                         valori={{ id: m.caricoId }}
                         conferma={
@@ -497,10 +500,8 @@ export default async function MagazzinoPage() {
                             ? `Annullare questa entrata? Il riordino ${m.daRiordino} torna in attesa della merce.`
                             : 'Eliminare la riga? La giacenza si ricalcola.'
                         }
-                        className="text-[11px] text-muted transition-colors hover:text-danger"
-                      >
-                        elimina
-                      </AzioneBottone>
+                        etichetta={`Elimina la riga ${m.cosa}`}
+                      />
                     )}
                   </td>
                 </tr>

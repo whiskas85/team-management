@@ -200,7 +200,7 @@ export default async function SchedaStagionePage({
                     <div className="min-w-0">
                       <Link
                         href={`/admin/operatori/${m.user.id}`}
-                        className="block truncate font-medium hover:text-nvg"
+                        className="block break-words font-medium hover:text-nvg"
                       >
                         {nomeCompleto(m.user)}
                       </Link>
@@ -299,7 +299,7 @@ export default async function SchedaStagionePage({
                   <div className="min-w-0">
                     <Link
                       href={`/calendario/${e.id}`}
-                      className="block truncate font-medium hover:text-nvg"
+                      className="block break-words font-medium hover:text-nvg"
                     >
                       {e.titolo}
                     </Link>

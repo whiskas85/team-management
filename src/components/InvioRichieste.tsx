@@ -153,10 +153,10 @@ export function InvioRichieste({
                     />
                     <Avatar iniziali={`${c.nome[0] ?? ''}${c.cognome[0] ?? ''}`.toUpperCase()} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">
+                      <p className="break-words font-medium">
                         {c.cognome} {c.nome}
                       </p>
-                      <p className="truncate text-xs text-muted">{c.email}</p>
+                      <p className="break-all text-xs text-muted">{c.email}</p>
                       <p className="mt-1 flex flex-wrap gap-1.5">
                         <Badge tono={c.origine === 'VECCHIO' ? 'ok' : 'info'}>
                           {c.origine === 'VECCHIO' ? `Tesserato ${c.ultimaStagione}` : 'Nuovo'}

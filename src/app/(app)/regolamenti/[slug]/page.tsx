@@ -4,9 +4,9 @@ import { requireUser } from '@/lib/auth';
 import { documentoDa, puoScrivere } from '@/lib/documenti';
 import { Intestazione } from '@/components/ui';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { FormDocumento, LeggiDocumento, type DocumentoLetto } from '@/components/Documento';
 import { eliminaDocumento } from '@/actions/documenti';
+import { BottoneElimina } from '@/components/CardRiga';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,15 +45,12 @@ export default async function RegolamentoPage({
               >
                 <FormDocumento documento={documento} />
               </BottoneModale>
-              <AzioneBottone
+              <BottoneElimina
                 azione={eliminaDocumento}
                 valori={{ id: documento.id }}
-                icona="elimina"
                 conferma={`Eliminare "${documento.titolo}"? Il testo non si recupera.`}
-                className="btn-danger"
-              >
-                Elimina
-              </AzioneBottone>
+                etichetta="Elimina"
+              />
             </>
           ) : undefined
         }

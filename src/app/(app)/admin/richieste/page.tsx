@@ -5,9 +5,10 @@ import { stagioneAttiva } from '@/lib/stagioni';
 import { puoAmministrare, tonoIscrizione } from '@/lib/domain';
 import { fmtDate, fmtEuro, nomeCompleto, umanizza } from '@/lib/format';
 import { Badge, Dato, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
-import { Conferma, FormAzione } from '@/components/Form';
+import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { approvaIscrizione, cancellaIscrizione, rifiutaIscrizione } from '@/actions/iscrizioni';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 export default async function RichiestePage() {
   await requirePermesso(puoAmministrare);
@@ -91,11 +92,11 @@ export default async function RichiestePage() {
         <div className="space-y-3">
           {daValutare.map((r) => (
             <div key={r.id} className="card">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
                   <Link
                     href={`/admin/operatori/${r.user.id}`}
-                    className="font-medium hover:text-nvg"
+                    className="break-words font-medium hover:text-nvg"
                   >
                     {nomeCompleto(r.user)}
                   </Link>
@@ -108,10 +109,20 @@ export default async function RichiestePage() {
                     {fmtDate(r.compilataIl)}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Badge tono="warn">Da valutare</Badge>
-                  {r.quota && <Badge tono="info">{fmtEuro(Number(r.quota))}</Badge>}
+                {/* «per errore»: un doppione, un invio sbagliato. Sparisce
+                    senza lasciare traccia di un rifiuto che non c'è stato. */}
+                <div className="-mr-1 -mt-1 shrink-0">
+                  <BottoneElimina
+                    azione={cancellaIscrizione}
+                    valori={{ id: r.id }}
+                    conferma="Cancellare la richiesta? Sparisce senza lasciare traccia di un rifiuto."
+                    etichetta={`Cancella per errore la richiesta di ${nomeCompleto(r.user)}`}
+                  />
                 </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge tono="warn">Da valutare</Badge>
+                {r.quota && <Badge tono="info">{fmtEuro(Number(r.quota))}</Badge>}
               </div>
 
               {/* dati dichiarati nel modulo */}
@@ -186,15 +197,6 @@ export default async function RichiestePage() {
           </Invia>
                   </FormAzione>
 
-                  <FormAzione azione={cancellaIscrizione} className="">
-                    <input type="hidden" name="id" value={r.id} />
-                    <Conferma
-                      messaggio="Cancellare la richiesta? Sparisce senza lasciare traccia di un rifiuto."
-                      className="text-xs text-muted hover:text-danger"
-                     icona="elimina">
-            cancella per errore
-          </Conferma>
-                  </FormAzione>
                 </div>
               </div>
             </div>
@@ -209,28 +211,26 @@ export default async function RichiestePage() {
       ) : (
         <Elenco
           cards={altre.map((i) => (
-            <div key={i.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">{nomeCompleto(i.user)}</h3>
-                  <p className="text-xs text-muted num">
-                    {umanizza(i.tipo)} · {i.stagione.nome} · {fmtEuro(i.quota ? Number(i.quota) : null)}
-                  </p>
-                </div>
-                <Badge tono={tonoIscrizione[i.status] ?? 'neutro'}>{umanizza(i.status)}</Badge>
-              </div>
-              <div className="mt-3 border-t border-line pt-3">
-                <FormAzione azione={cancellaIscrizione} className="">
-                  <input type="hidden" name="id" value={i.id} />
-                  <Conferma
-                    messaggio="Cancellare questa iscrizione?"
-                    className="text-xs text-muted hover:text-danger"
-                   icona="elimina">
-            cancella
-          </Conferma>
-                </FormAzione>
-              </div>
-            </div>
+            <CardRiga
+              key={i.id}
+              card
+              titolo={nomeCompleto(i.user)}
+              sottotitolo={
+                <span className="num">
+                  {umanizza(i.tipo)} · {i.stagione.nome} · {fmtEuro(i.quota ? Number(i.quota) : null)}
+                </span>
+              }
+              elimina={
+                <BottoneElimina
+                  azione={cancellaIscrizione}
+                  valori={{ id: i.id }}
+                  conferma="Cancellare questa iscrizione?"
+                  etichetta={`Cancella l’iscrizione di ${nomeCompleto(i.user)}`}
+                />
+              }
+            >
+              <Badge tono={tonoIscrizione[i.status] ?? 'neutro'}>{umanizza(i.status)}</Badge>
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -268,15 +268,12 @@ export default async function RichiestePage() {
                       <Badge tono={tonoIscrizione[i.status] ?? 'neutro'}>{umanizza(i.status)}</Badge>
                     </td>
                     <td className="text-right">
-                      <FormAzione azione={cancellaIscrizione} className="">
-                        <input type="hidden" name="id" value={i.id} />
-                        <Conferma
-                          messaggio="Cancellare questa iscrizione? Non resta traccia di un rifiuto."
-                          className="text-xs text-muted hover:text-danger"
-                         icona="elimina">
-            cancella
-          </Conferma>
-                      </FormAzione>
+                      <BottoneElimina
+                        azione={cancellaIscrizione}
+                        valori={{ id: i.id }}
+                        conferma="Cancellare questa iscrizione? Non resta traccia di un rifiuto."
+                        etichetta={`Cancella l’iscrizione di ${nomeCompleto(i.user)}`}
+                      />
                     </td>
                   </tr>
                 ))}

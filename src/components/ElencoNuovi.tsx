@@ -7,11 +7,11 @@ import { ListaFiltrata } from './Filtri';
 import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
-import { AzioneBottone } from './AzioneBottone';
 import { STATI_CONTATTO, etichettaStato, tonoStato } from '@/lib/domain';
 import { inviaRichiesta } from '@/actions/iscrizioni';
 import { CampiRichiesta, type VoceListino } from './CampiRichiesta';
 import { eliminaOperatore } from '@/actions/operatori';
+import { BottoneElimina } from './CardRiga';
 
 export type RigaNuovo = {
   id: string;
@@ -75,7 +75,7 @@ export function ElencoNuovi({
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/admin/operatori/${n.id}`}
-                      className="block truncate font-medium hover:text-nvg"
+                      className="block break-words font-medium hover:text-nvg"
                     >
                       {n.daLeggere && (
                         <span
@@ -85,23 +85,31 @@ export function ElencoNuovi({
                       )}
                       {n.cognome} {n.nome}
                     </Link>
-                    <p className="truncate text-xs text-muted">{n.email}</p>
+                    <p className="break-all text-xs text-muted">{n.email}</p>
                     <p className="text-xs text-muted num">
                       {n.presenze} presenze · ultima {n.ultimaPresenza ?? 'mai'}
                     </p>
                   </div>
+                  {puoEliminare && (
+                    <div className="-mr-1 -mt-1 shrink-0">
+                      <EliminaNuovo riga={n} />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2">
                   <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-                  <Azioni
-                    riga={n}
-                    stagioni={stagioni}
-                    stagioneId={stagioneId}
-                    listino={listino}
-                    puoInvitare={puoInvitare}
-                    puoEliminare={puoEliminare}
-                  />
-                </div>
+                {puoInvitare && !n.haIscrizione && (
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <Azioni
+                      riga={n}
+                      stagioni={stagioni}
+                      stagioneId={stagioneId}
+                      listino={listino}
+                      puoInvitare={puoInvitare}
+                    />
+                  </div>
+                )}
               </div>
             ))}
             tabella={
@@ -167,8 +175,8 @@ export function ElencoNuovi({
                             stagioneId={stagioneId}
                             listino={listino}
                             puoInvitare={puoInvitare}
-                            puoEliminare={puoEliminare}
                           />
+                          {puoEliminare && <EliminaNuovo riga={n} />}
                         </div>
                       </td>
                     </tr>
@@ -189,14 +197,12 @@ function Azioni({
   stagioneId,
   listino,
   puoInvitare,
-  puoEliminare,
 }: {
   riga: RigaNuovo;
   stagioni: { id: string; nome: string }[];
   stagioneId: string;
   listino: VoceListino[];
   puoInvitare: boolean;
-  puoEliminare: boolean;
 }) {
   return (
     <>
@@ -238,17 +244,18 @@ function Azioni({
         </BottoneModale>
       )}
 
-      {puoEliminare && (
-        <AzioneBottone
-          azione={eliminaOperatore}
-          valori={{ userId: riga.id, ritorno: '/admin/nuovi' }}
-          icona="elimina"
-          conferma={`Eliminare definitivamente ${riga.nome} ${riga.cognome}? L'operazione non è reversibile.`}
-          className="btn-danger btn-sm"
-        >
-          Elimina
-        </AzioneBottone>
-      )}
     </>
+  );
+}
+
+/** Il cestino di un contatto: in alto a destra della sua card. */
+function EliminaNuovo({ riga }: { riga: RigaNuovo }) {
+  return (
+    <BottoneElimina
+      azione={eliminaOperatore}
+      valori={{ userId: riga.id, ritorno: '/admin/nuovi' }}
+      conferma={`Eliminare definitivamente ${riga.nome} ${riga.cognome}? L'operazione non è reversibile.`}
+      etichetta={`Elimina ${riga.nome} ${riga.cognome}`}
+    />
   );
 }

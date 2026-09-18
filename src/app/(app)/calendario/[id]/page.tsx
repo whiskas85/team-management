@@ -83,6 +83,7 @@ import { Icona } from '@/components/Icona';
 import { faseAttivita, finestraAttivita } from '@/lib/giorni';
 import { quotaChiusa } from '@/lib/casse';
 import { tieneInMano } from '@/lib/domain';
+import { BottoneElimina } from '@/components/CardRiga';
 
 export default async function EventoPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -748,15 +749,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     <p className="text-xs text-muted">
                       Cancella l’attività con tutte le adesioni raccolte. Non si torna indietro.
                     </p>
-                    <AzioneBottone
+                    <BottoneElimina
                       azione={eliminaEvento}
                       valori={{ id: evento.id }}
                       conferma={`Eliminare definitivamente "${evento.titolo}" e tutte le adesioni raccolte?`}
-                      icona="elimina"
-                      className="btn-danger btn-sm shrink-0"
-                    >
-                      Elimina attività
-                    </AzioneBottone>
+                      etichetta="Elimina attività"
+                    />
                   </div>
                 )}
               </BottoneModale>
@@ -805,7 +803,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       status={evento.status}
                       visibilita={evento.visibilita}
                       soloInterno={evento.tipo?.soloInterno ?? false}
-                      conElimina={false}
                     />
                   </BottoneModale>
                 ) : (
@@ -1229,12 +1226,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                         {g.righe.map((r) => (
                           <div
                             key={r.id}
-                            /* su telefono il nome sta su una riga sua e i comandi vanno
-                               a capo: prima il nome aveva flex-1 e si stringeva fino a
-                               sparire, mentre badge e pulsanti non cedono un pixel */
-                            className="flex flex-col gap-2 rounded-lg border border-line bg-surface px-3 py-2.5 sm:flex-row sm:items-center"
+                            /* Lo schema di tutte le card: in alto chi è, col cestino
+                               rosso alla sua altezza a destra; sotto, a destra, quello
+                               che si fa. Il nome non si stringe più per far posto ai
+                               pulsanti: se è lungo va a capo. */
+                            className="rounded-lg border border-line bg-surface px-3 py-2.5"
                           >
-                            <div className="flex min-w-0 items-center gap-2 sm:flex-1">
+                            <div className="flex min-w-0 items-start gap-2">
                             <Avatar
                               iniziali={chiamato(r.user).iniziali}
                               size="sm"
@@ -1251,21 +1249,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               {profiloDi(r.user) ? (
                                 <Link
                                   href={profiloDi(r.user)!}
-                                  className="block truncate text-sm hover:text-nvg"
+                                  className="block break-words text-sm hover:text-nvg"
                                 >
                                   {nomeDi(r.user)}
                                 </Link>
                               ) : (
-                                <p className="truncate text-sm">{nomeDi(r.user)}</p>
+                                <p className="break-words text-sm">{nomeDi(r.user)}</p>
                               )}
                               {/* una riga sola sotto il nome, così l'elenco resta
                                   regolare: la nota riguarda questa attività e
                                   viene prima del motto, che è sempre lì */}
                               {r.note ? (
-                                <p className="truncate text-xs text-muted">{r.note}</p>
+                                <p className="break-words text-xs text-muted">{r.note}</p>
                               ) : (
                                 r.user.frase && (
-                                  <p className="truncate text-xs italic text-muted/80">
+                                  <p className="break-words text-xs italic text-muted/80">
                                     {r.user.frase}
                                   </p>
                                 )
@@ -1390,16 +1388,25 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   })()}
                               </div>
                             </div>
+                            {tl && (
+                              <div className="-mr-1 -mt-0.5 shrink-0">
+                                <BottoneElimina
+                                  azione={rimuoviPartecipante}
+                                  valori={{ rsvpId: r.id }}
+                                  conferma={`Rimuovere ${r.user.nome} dall’attività?`}
+                                  etichetta={`Rimuovi ${nomeDi(r.user)} dall’attività`}
+                                />
+                              </div>
+                            )}
                             </div>
 
-                            {/* Due piani: sopra quello che si legge e le cose
-                                che si fanno una volta — nota, quota, polizza,
-                                rimuovi — sotto lo schieramento, che invece si
-                                tocca e ritocca finché la formazione non torna.
-                                In fila unica i pulsanti si allungavano oltre la
-                                riga e il "rimuovi" finiva sotto il pollice. */}
-                            <div className="flex flex-col gap-2 sm:items-end">
-                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                            {/* Sotto, allineato a destra, quello che si fa: la
+                                nota e lo stato su un piano, lo schieramento — che
+                                si tocca e ritocca finché la formazione non torna
+                                — su quello dopo. Il cestino non è qui ma in alto,
+                                lontano dal pollice che schiera. */}
+                            <div className="mt-2 flex flex-col items-end gap-2">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
                             {/* Nota al volo su questa persona in questa attività.
                                 Nasce già legata a tutte e due: è il momento in cui
                                 ci si ricorda cos'è successo, e chiederlo dopo dalla
@@ -1438,22 +1445,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               )
                             )}
 
-                            {tl && (
-                              <AzioneBottone
-                                azione={rimuoviPartecipante}
-                                valori={{ rsvpId: r.id }}
-                                icona="elimina"
-                                conferma={`Rimuovere ${r.user.nome} dall’attività?`}
-                                className="rounded border border-line p-1.5 text-muted transition-colors hover:border-danger hover:text-danger"
-                              >
-                                <span className="sr-only">Rimuovi</span>
-                              </AzioneBottone>
-                            )}
                             </div>
 
                             {/* lo schieramento, su una riga sua */}
                             {r.presente === null && tl && schieraQuesta && r.status === 'PRESENTE' && (
-                              <div className="flex flex-wrap items-center gap-1 sm:justify-end">
+                              <div className="flex flex-wrap items-center justify-end gap-1">
 
                                 {/* Chi è dentro si può scambiare con una riserva:
 
@@ -1495,7 +1491,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
                                           >
 
-                                            <span className="min-w-0 truncate text-sm">
+                                            <span className="min-w-0 break-words text-sm">
 
                                               {nomeDi(s.user)}
 
@@ -1859,7 +1855,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       defaultChecked={r.presente ?? r.status === 'PRESENTE'}
                                       className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
                                     />
-                                    <span className="truncate">{nomeDi(r.user)}</span>
+                                    <span className="break-words">{nomeDi(r.user)}</span>
                                   </label>
                                 ))}
                               </div>

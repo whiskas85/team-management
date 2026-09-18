@@ -147,7 +147,7 @@ export function ElencoRegolarita({ righe }: { righe: RigaRegolarita[] }) {
                 <div className="flex items-center gap-3">
                   <Avatar iniziali={r.iniziali} fotoDi={r.foto ? r.id : null} size="sm" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{r.nome}</span>
+                    <span className="block break-words font-medium">{r.nome}</span>
                     <span className="text-[11px] text-muted">{etichettaStato[r.stato]}</span>
                   </span>
                   {verdetto(r)}

@@ -245,7 +245,7 @@ export default async function PaginaInvito({
                     <Icona nome="allegato" size={16} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{a.titolo}</span>
+                    <span className="block break-words font-medium">{a.titolo}</span>
                     <span className="num text-[11px] text-muted">
                       {etichettaGenere[genereAllegato(a.mimeType)]} · {peso(a.fileSize)}
                     </span>

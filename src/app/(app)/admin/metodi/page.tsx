@@ -4,9 +4,9 @@ import { isAdmin } from '@/lib/domain';
 import { Badge, Campo, Elenco, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { eliminaMetodo, salvaMetodo } from '@/actions/metodi';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 type Metodo = {
   id: string;
@@ -48,22 +48,27 @@ export default async function MetodiPage() {
       ) : (
         <Elenco
           cards={metodi.map((m) => (
-            <div key={m.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="font-medium">{m.nome}</h3>
-                  {m.descrizione && <p className="text-xs text-muted">{m.descrizione}</p>}
-                  <p className="mt-1 text-xs text-muted num">{m._count.payments} movimenti</p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
+            <CardRiga
+              key={m.id}
+              card
+              className={m.attivo ? '' : 'opacity-60'}
+              titolo={m.nome}
+              sottotitolo={
+                <>
+                  {m.descrizione && <span className="block">{m.descrizione}</span>}
+                  <span className="num">{m._count.payments} movimenti</span>
+                </>
+              }
+              elimina={<EliminaMetodo metodo={m} />}
+              azioni={<Azioni metodo={m} />}
+            >
+              {(m.selfService || !m.attivo) && (
+                <span className="flex flex-wrap gap-2">
                   {m.selfService && <Badge tono="ok">Dichiarabile</Badge>}
                   {!m.attivo && <Badge tono="neutro">Disattivato</Badge>}
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-                <Azioni metodo={m} />
-              </div>
-            </div>
+                </span>
+              )}
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -98,8 +103,9 @@ export default async function MetodiPage() {
                       </Badge>
                     </td>
                     <td className="whitespace-nowrap">
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <Azioni metodo={m} />
+                        <EliminaMetodo metodo={m} />
                       </div>
                     </td>
                   </tr>
@@ -128,17 +134,19 @@ function Azioni({ metodo }: { metodo: Metodo }) {
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
       </BottoneModale>
-
-      <AzioneBottone
-        azione={eliminaMetodo}
-        valori={{ id: metodo.id }}
-        icona="elimina"
-        conferma={`Eliminare "${metodo.nome}"? Se è già usato verrà solo disattivato.`}
-        className="btn-danger btn-sm"
-      >
-        Elimina
-      </AzioneBottone>
     </>
+  );
+}
+
+/** Il cestino di un metodo: in alto a destra della sua card. */
+function EliminaMetodo({ metodo }: { metodo: Metodo }) {
+  return (
+    <BottoneElimina
+      azione={eliminaMetodo}
+      valori={{ id: metodo.id }}
+      conferma={`Eliminare "${metodo.nome}"? Se è già usato verrà solo disattivato.`}
+      etichetta={`Elimina ${metodo.nome}`}
+    />
   );
 }
 

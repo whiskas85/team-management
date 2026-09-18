@@ -11,6 +11,7 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { RosaStorica } from '@/components/RosaStorica';
 import { Invia } from '@/components/Bottone';
 import { apriStagione, chiudiStagione, eliminaStagione, salvaStagione } from '@/actions/stagioni';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 type Stagione = {
   id: string;
@@ -104,28 +105,30 @@ export default async function StagioniPage() {
           cards={stagioni.map((s) => {
             const stato = statoStagione(s, ora);
             return (
-              <div key={s.id} className="card">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-medium">
-                      <Link href={`/admin/stagioni/${s.id}`} className="hover:text-nvg">
-                        {s.nome}
-                      </Link>
-                    </h3>
-                    <p className="num text-xs text-muted">
+              <CardRiga
+                key={s.id}
+                card
+                titolo={
+                  <Link href={`/admin/stagioni/${s.id}`} className="hover:text-nvg">
+                    {s.nome}
+                  </Link>
+                }
+                sottotitolo={
+                  <>
+                    <span className="num block">
                       {fmtDate(s.inizio)} - {fmtDate(s.fine)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted">
+                    </span>
+                    <span className="block">
                       {s._count.memberships} iscrizioni &middot; {s._count.figtCards} tessere
                       &middot; {s._count.eventi} attivit&agrave;
-                    </p>
-                  </div>
-                  <Badge tono={stato.tono}>{stato.testo}</Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-                  <Azioni stagione={s} operatori={operatori} />
-                </div>
-              </div>
+                    </span>
+                  </>
+                }
+                elimina={<EliminaStagione stagione={s} />}
+                azioni={<Azioni stagione={s} operatori={operatori} />}
+              >
+                <Badge tono={stato.tono}>{stato.testo}</Badge>
+              </CardRiga>
             );
           })}
           tabella={
@@ -164,8 +167,9 @@ export default async function StagioniPage() {
                         <Badge tono={stato.tono}>{stato.testo}</Badge>
                       </td>
                       <td className="whitespace-nowrap">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Azioni stagione={s} operatori={operatori} />
+                          <EliminaStagione stagione={s} />
                         </div>
                       </td>
                     </tr>
@@ -252,18 +256,23 @@ function Azioni({ stagione, operatori }: { stagione: Stagione; operatori: Operat
         </FormAzione>
       </BottoneModale>
 
-      {!stagione.corrente && (
-        <AzioneBottone
-          azione={eliminaStagione}
-          valori={{ id: stagione.id }}
-          icona="elimina"
-          conferma={`Eliminare la stagione ${stagione.nome}? Se ha iscrizioni o attivita verra solo chiusa.`}
-          className="btn-danger btn-sm"
-        >
-          Elimina
-        </AzioneBottone>
-      )}
     </>
+  );
+}
+
+/**
+ * Il cestino di una stagione. Quella in corso non ce l'ha: si chiude aprendone
+ * un'altra, non buttandola via.
+ */
+function EliminaStagione({ stagione }: { stagione: Stagione }) {
+  if (stagione.corrente) return null;
+  return (
+    <BottoneElimina
+      azione={eliminaStagione}
+      valori={{ id: stagione.id }}
+      conferma={`Eliminare la stagione ${stagione.nome}? Se ha iscrizioni o attivita verra solo chiusa.`}
+      etichetta={`Elimina la stagione ${stagione.nome}`}
+    />
   );
 }
 

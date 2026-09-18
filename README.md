@@ -379,6 +379,29 @@ ha un incarico che li richiede.
 **Ricerca** — le liste filtrano mentre digiti, senza premere invio: valgono
 anche per le tendine dei filtri.
 
+## Come sono fatte le card
+
+Tutte le card — e le righe di un elenco dentro una card — hanno lo stesso
+schema, ed è una regola, non un gusto:
+
+- **in alto il titolo**, con sotto lo spazio per un sottotitolo se serve, e
+  **alla sua altezza, a destra, il cestino**: solo l'icona, rossa, nessuna
+  scritta. È il gesto più pericoloso della card e sta sempre nello stesso
+  angolo, lontano dagli altri pulsanti;
+- **in mezzo il contenuto**, che va a capo e non si tronca mai: un nome
+  lungo fa una riga più alta, non diventa «Decima …»;
+- **sotto, allineati a destra**, i pulsanti di azione.
+
+Lo schema vive in un componente solo, `CardRiga` con il suo `BottoneElimina`
+(in `src/components/CardRiga.tsx`): una card nuova si compone da lì invece di
+rifare la riga a mano. Per le sotto-righe dentro una card — un gestore di una
+cassa, una riga di un riordino, un commento — c'è la versione piccola dello
+stesso cestino.
+
+I pulsanti rossi che **non tolgono la card** tengono la loro scritta: «Svuota»
+il carrello, «Pulisci i guardati», «Scollega» il portale federale, «Togli il
+messaggio» segnalato. Un cestino lì farebbe pensare di cancellare la card.
+
 ## Squadre ospiti
 
 Un'attività si gioca spesso con qualcun altro, e quel qualcun altro non ha un

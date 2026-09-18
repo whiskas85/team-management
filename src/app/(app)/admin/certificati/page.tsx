@@ -16,13 +16,13 @@ import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { DateCertificato } from '@/components/DateCertificato';
 import { Icona } from '@/components/Icona';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import {
   approvaCertificato,
   caricaCertificato,
   eliminaCertificato,
   rifiutaCertificato,
 } from '@/actions/certificati';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 const FILTRI = {
   attesa: 'Da vagliare',
@@ -196,7 +196,7 @@ export default async function CertificatiPage({
                 <div key={o.id} className="card">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="truncate font-medium">{nomeCompleto(o)}</h3>
+                      <h3 className="break-words font-medium">{nomeCompleto(o)}</h3>
                       <p className="text-xs text-muted">{umanizza(o.stato)}</p>
                     </div>
                     <Badge tono="danger">mancante</Badge>
@@ -254,18 +254,23 @@ export default async function CertificatiPage({
           cards={certificati.map((c) => {
             const stato = statoEffettivo(c);
             return (
-              <div key={c.id} className="card">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-medium">{nomeCompleto(c.user)}</h3>
-                    <p className="text-xs text-muted num">
-                      {umanizza(c.tipo)} · scade {fmtDate(c.scadeIl)}
-                    </p>
-                  </div>
+              <CardRiga
+                key={c.id}
+                card
+                titolo={nomeCompleto(c.user)}
+                sottotitolo={
+                  <span className="num">
+                    {umanizza(c.tipo)} · scade {fmtDate(c.scadeIl)}
+                  </span>
+                }
+                elimina={<EliminaCertificato cert={c} stato={stato} />}
+                azioni={<Allegato cert={c} />}
+              >
+                <div className="space-y-2">
                   <Badge tono={tonoCertificato[stato]}>{umanizza(stato)}</Badge>
+                  <Vaglio cert={c} stato={stato} />
                 </div>
-                <Azioni cert={c} stato={stato} />
-              </div>
+              </CardRiga>
             );
           })}
           tabella={
@@ -320,54 +325,71 @@ export default async function CertificatiPage({
   );
 }
 
-function Azioni({
-  cert,
-  stato,
-}: {
-  cert: {
-    id: string;
-    rilasciatoIl: Date | null;
-    scadeIl: Date | null;
-    motivoRifiuto: string | null;
-  };
-  stato: string;
-}) {
+type CertInAzione = {
+  id: string;
+  rilasciatoIl: Date | null;
+  scadeIl: Date | null;
+  motivoRifiuto: string | null;
+};
+
+/** Nella tabella, su desktop: tutto in una cella, cestino compreso. */
+function Azioni({ cert, stato }: { cert: CertInAzione; stato: string }) {
   return (
-    <div className="mt-3 space-y-2 border-t border-line pt-3 md:mt-0 md:border-0 md:pt-0">
+    <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <a
-          href={`/api/certificati/${cert.id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-ghost btn-sm"
-        >
-          <Icona nome="apri" size={15} /> Apri allegato
-        </a>
-
-        {/* Aprire serve a guardare se è quello giusto — anche subito dopo
-            averlo approvato — scaricare serve a tenerselo: il file esce col
-            cognome, il nome e la scadenza nel titolo, non come IMG_4471. */}
-        <a href={`/api/certificati/${cert.id}?scarica=1`} className="btn-ghost btn-sm" download>
-          <Icona nome="scarica" size={15} /> Scarica
-        </a>
-
-        {/* Un doppione si toglie, non si boccia: rifiutarlo lascerebbe in
-            elenco una riga rossa che racconta una bocciatura mai avvenuta. */}
-        <AzioneBottone
-          azione={eliminaCertificato}
-          valori={{ id: cert.id }}
-          icona="elimina"
-          conferma={
-            stato === 'VALIDO'
-              ? 'Eliminare questo certificato? Era valido: se è l’unico, la persona risulterà scoperta.'
-              : 'Eliminare questo certificato? Sparisce anche il file allegato.'
-          }
-          className="btn-danger btn-sm"
-        >
-          Elimina
-        </AzioneBottone>
+        <Allegato cert={cert} />
+        <EliminaCertificato cert={cert} stato={stato} />
       </div>
+      <Vaglio cert={cert} stato={stato} />
+    </div>
+  );
+}
 
+function Allegato({ cert }: { cert: CertInAzione }) {
+  return (
+    <>
+      <a
+        href={`/api/certificati/${cert.id}`}
+        target="_blank"
+        rel="noreferrer"
+        className="btn-ghost btn-sm"
+      >
+        <Icona nome="apri" size={15} /> Apri allegato
+      </a>
+
+      {/* Aprire serve a guardare se è quello giusto — anche subito dopo
+          averlo approvato — scaricare serve a tenerselo: il file esce col
+          cognome, il nome e la scadenza nel titolo, non come IMG_4471. */}
+      <a href={`/api/certificati/${cert.id}?scarica=1`} className="btn-ghost btn-sm" download>
+        <Icona nome="scarica" size={15} /> Scarica
+      </a>
+    </>
+  );
+}
+
+/**
+ * Un doppione si toglie, non si boccia: rifiutarlo lascerebbe in elenco una
+ * riga rossa che racconta una bocciatura mai avvenuta.
+ */
+function EliminaCertificato({ cert, stato }: { cert: CertInAzione; stato: string }) {
+  return (
+    <BottoneElimina
+      azione={eliminaCertificato}
+      valori={{ id: cert.id }}
+      conferma={
+        stato === 'VALIDO'
+          ? 'Eliminare questo certificato? Era valido: se è l’unico, la persona risulterà scoperta.'
+          : 'Eliminare questo certificato? Sparisce anche il file allegato.'
+      }
+      etichetta="Elimina il certificato"
+    />
+  );
+}
+
+/** Il motivo di un rifiuto, e — finché è da vagliare — approva o rifiuta. */
+function Vaglio({ cert, stato }: { cert: CertInAzione; stato: string }) {
+  return (
+    <>
       {cert.motivoRifiuto && <p className="text-xs text-danger">Rifiutato: {cert.motivoRifiuto}</p>}
 
       {stato === 'IN_ATTESA' && (
@@ -388,12 +410,12 @@ function Azioni({
               placeholder="Motivo del rifiuto"
             />
             <Invia className="btn-danger btn-sm" icona="rifiuta">
-            Rifiuta
-          </Invia>
+              Rifiuta
+            </Invia>
           </FormAzione>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

@@ -343,7 +343,7 @@ function Gruppo({
               />
               <Avatar iniziali={c.iniziali} size="sm" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{c.etichetta}</span>
+                <span className="block break-words text-sm">{c.etichetta}</span>
                 {c.motivo && <span className="block text-[11px] text-danger">{c.motivo}</span>}
               </span>
               {c.certificatoOk ? (

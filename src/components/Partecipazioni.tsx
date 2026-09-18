@@ -52,7 +52,7 @@ function Riga({ p }: { p: Partecipazione }) {
       className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 transition-colors hover:border-nvgdim"
     >
       <div className="min-w-0">
-        <p className="truncate text-sm">{p.event.titolo}</p>
+        <p className="break-words text-sm">{p.event.titolo}</p>
         <p className="num text-xs text-muted">
           {p.event.tipo?.nome ?? 'Senza tipologia'} · {fmtDate(p.event.inizio)}
         </p>

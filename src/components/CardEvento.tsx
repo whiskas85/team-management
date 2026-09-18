@@ -88,7 +88,20 @@ export function ContoAdesioni({
   );
 }
 
-export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }) {
+export function CardEvento({
+  e,
+  azioni,
+  elimina,
+}: {
+  e: EventoLista;
+  azioni?: ReactNode;
+  /**
+   * Il cestino, in alto a destra all'altezza del titolo. Sta fuori dal link
+   * della card — un pulsante dentro un link si preme aprendo la scheda — e ci
+   * si appoggia sopra, con lo spazio lasciato libero apposta.
+   */
+  elimina?: ReactNode;
+}) {
   const puoNavigare = (e.lat != null && e.lng != null) || !!e.indirizzo;
   // Una quota va vista **mentre si risponde**, non due righe più su in grigio:
   // uno preme "ci sono" e in quel momento deve sapere che sta prendendo un
@@ -97,12 +110,13 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
   const quota = e.costo !== null && e.costo > 0 ? fmtEuro(e.costo) : null;
 
   return (
-    <div className="rounded-lg border border-line bg-surface">
+    <div className="relative rounded-lg border border-line bg-surface">
+      {elimina && <div className="absolute right-3 top-3 z-10">{elimina}</div>}
       <Link
         href={`/calendario/${e.id}`}
         className="block rounded-t-lg p-4 transition-colors hover:bg-surface2"
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className={`flex items-start justify-between gap-3 ${elimina ? 'pr-11' : ''}`}>
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
               {e.tipo}
@@ -113,14 +127,14 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
             {/* Il pallino sta attaccato al titolo e non in un angolo: si
                 legge insieme al nome dell'attività, che è quello che si guarda
                 per decidere se aprirla. */}
-            <h3 className="mt-1 flex items-center gap-2 font-medium">
+            <h3 className="mt-1 flex items-start gap-2 font-medium">
               {e.nuovo && (
                 <span
                   title="Non l'hai ancora aperta"
-                  className="h-2 w-2 shrink-0 rounded-full bg-nvg"
+                  className="mt-2 h-2 w-2 shrink-0 rounded-full bg-nvg"
                 />
               )}
-              <span className="truncate">{e.titolo}</span>
+              <span className="break-words">{e.titolo}</span>
             </h3>
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
             {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
@@ -180,7 +194,12 @@ export function CardEvento({ e, azioni }: { e: EventoLista; azioni?: ReactNode }
         </div>
       )}
 
-      {azioni && <div className="border-t border-line px-4 py-3">{azioni}</div>}
+      {/* le azioni sotto, allineate a destra, come in tutte le card */}
+      {azioni && (
+        <div className="flex justify-end border-t border-line px-4 py-3 [&>div]:justify-end">
+          {azioni}
+        </div>
+      )}
     </div>
   );
 }
@@ -255,7 +274,7 @@ export function CardStorico({ e }: { e: EventoLista }) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
             {e.tipo}
           </p>
-          <h3 className="mt-1 truncate font-medium">{e.titolo}</h3>
+          <h3 className="mt-1 break-words font-medium">{e.titolo}</h3>
           <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
           {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
           {e.motivoAnnullamento && (

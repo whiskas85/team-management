@@ -27,6 +27,7 @@ export function CardRiga({
   elimina,
   children,
   azioni,
+  card = false,
   className = '',
 }: {
   titolo: ReactNode;
@@ -37,10 +38,16 @@ export function CardRiga({
   children?: ReactNode;
   /** I pulsanti, sotto e a destra. */
   azioni?: ReactNode;
+  /**
+   * Card a sé, al primo livello della pagina, invece di una riga dentro un
+   * elenco. Lo schema è lo stesso: cambia solo la cornice.
+   */
+  card?: boolean;
   className?: string;
 }) {
+  const cornice = card ? 'card' : 'rounded-lg border border-line bg-surface2/40 p-3';
   return (
-    <div className={`rounded-lg border border-line bg-surface2/40 p-3 ${className}`}>
+    <div className={`${cornice} ${className}`}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="break-words font-medium leading-snug">{titolo}</div>
@@ -73,13 +80,24 @@ export function BottoneElimina({
   valori,
   conferma,
   etichetta,
+  piccolo = false,
 }: {
   azione: (prev: StatoForm, fd: FormData) => Promise<StatoForm>;
   valori: Record<string, string>;
-  /** La domanda prima di procedere: togliere qualcosa non si fa per sbaglio. */
-  conferma: string;
+  /**
+   * La domanda prima di procedere: togliere qualcosa non si fa per sbaglio.
+   * Si omette solo dove buttare via non costa niente — una bozza che si rifà
+   * con un clic — e chiedere sarebbe solo un passaggio in più.
+   */
+  conferma?: string;
   /** Cosa legge chi non vede l'icona, per esempio «Togli BK Army». */
   etichetta: string;
+  /**
+   * Senza cornice, per una riga **dentro** una card — un gestore di una cassa,
+   * una riga di un riordino. Stesso colore, stessa icona: cambia solo la
+   * misura, perché un pulsante pieno su ogni sotto-riga schiaccerebbe il testo.
+   */
+  piccolo?: boolean;
 }) {
   return (
     <AzioneBottone
@@ -87,7 +105,15 @@ export function BottoneElimina({
       valori={valori}
       icona="elimina"
       conferma={conferma}
-      className="btn-danger btn-sm px-2"
+      // `relative` non è estetica: il nome nascosto per i lettori di schermo
+      // è posizionato in assoluto, e senza un riferimento vicino scappa dal
+      // pulsante. Dentro una tabella che scorre finiva oltre il bordo destro e
+      // il telefono apriva la pagina rimpicciolita per farcela stare.
+      className={
+        piccolo
+          ? 'relative inline-flex shrink-0 items-center rounded p-1 text-danger transition-colors hover:bg-danger/10'
+          : 'btn-danger btn-sm relative px-2'
+      }
     >
       <span className="sr-only">{etichetta}</span>
     </AzioneBottone>

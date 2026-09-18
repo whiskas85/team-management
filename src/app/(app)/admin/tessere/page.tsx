@@ -6,7 +6,7 @@ import { URL_ASNWG, puoAmministrare, tonoFigt, vedeAreaTesseramento } from '@/li
 import { fmtDate, giorniA, nomeCompleto, umanizza } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
-import { Conferma, FormAzione } from '@/components/Form';
+import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
@@ -21,6 +21,7 @@ import {
 } from '@/actions/figt';
 import { AbbinaTessere } from '@/components/AbbinaTessere';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 export default async function TesserePage() {
   await requirePermesso(puoAmministrare);
@@ -303,21 +304,23 @@ export default async function TesserePage() {
       ) : (
         <Elenco
           cards={tessere.map((t) => (
-            <div key={t.id} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">{nomeCompleto(t.user)}</h3>
-                  <p className="text-xs text-muted num">
-                    {t.codice ?? 'codice da recuperare'} · {t.stagione.nome}
-                  </p>
-                  {t.scadeIl && (
-                    <p className="text-xs text-muted num">scade {fmtDate(t.scadeIl)}</p>
-                  )}
-                </div>
+            <CardRiga
+              key={t.id}
+              card
+              titolo={nomeCompleto(t.user)}
+              sottotitolo={
+                <span className="num">
+                  {t.codice ?? 'codice da recuperare'} · {t.stagione.nome}
+                  {t.scadeIl && ` · scade ${fmtDate(t.scadeIl)}`}
+                </span>
+              }
+              elimina={<EliminaTessera id={t.id} />}
+            >
+              <div className="space-y-1.5">
                 <Badge tono={tonoFigt[t.status] ?? 'neutro'}>{umanizza(t.status)}</Badge>
+                <Riga tessera={t} />
               </div>
-              <Riga tessera={t} />
-            </div>
+            </CardRiga>
           ))}
           tabella={
             <table className="tabella">
@@ -353,7 +356,10 @@ export default async function TesserePage() {
                       <Badge tono={tonoFigt[t.status] ?? 'neutro'}>{umanizza(t.status)}</Badge>
                     </td>
                     <td className="min-w-[300px]">
-                      <Riga tessera={t} />
+                      <div className="flex items-start justify-between gap-3">
+                        <Riga tessera={t} />
+                        <EliminaTessera id={t.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -383,7 +389,7 @@ function Riga({
   };
 }) {
   return (
-    <div className="mt-3 border-t border-line pt-3 md:mt-0 md:border-0 md:pt-0">
+    <div>
       <p className="text-[11px] text-muted">
         {tessera.nominativo ? `${tessera.nominativo} · ` : ''}
         {tessera.verificatoIl
@@ -391,16 +397,21 @@ function Riga({
           : 'non ancora verificata sul portale'}
       </p>
 
-      <FormAzione azione={eliminaTessera} className="mt-2">
-        <input type="hidden" name="id" value={tessera.id} />
-        <Conferma
-          messaggio="Eliminare questa tessera? Serve solo per sciogliere un abbinamento sbagliato: alla prossima importazione tornerà dal portale."
-          className="text-xs text-muted hover:text-danger"
-          icona="elimina"
-        >
-          elimina
-        </Conferma>
-      </FormAzione>
     </div>
+  );
+}
+
+/**
+ * Il cestino di una tessera. Serve solo per sciogliere un abbinamento
+ * sbagliato: alla prossima importazione tornerà dal portale.
+ */
+function EliminaTessera({ id }: { id: string }) {
+  return (
+    <BottoneElimina
+      azione={eliminaTessera}
+      valori={{ id }}
+      conferma="Eliminare questa tessera? Serve solo per sciogliere un abbinamento sbagliato: alla prossima importazione tornerà dal portale."
+      etichetta="Elimina la tessera"
+    />
   );
 }

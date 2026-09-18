@@ -150,13 +150,13 @@ export function AbbinaTessere({
                       : 'border-line bg-surface2 hover:border-nvgdim'
                   }`}
                 >
-                  <span className="block truncate text-sm font-medium">{t.nominativo}</span>
-                  <span className="num block truncate text-[11px] text-muted">
+                  <span className="block break-words text-sm font-medium">{t.nominativo}</span>
+                  <span className="num block break-words text-[11px] text-muted">
                     {t.numero} · {t.anno} · {t.stato}
                     {t.comune ? ` · ${t.comune}` : ''}
                   </span>
                   {t.email && (
-                    <span className="block truncate text-[11px] text-muted">{t.email}</span>
+                    <span className="block break-all text-[11px] text-muted">{t.email}</span>
                   )}
                 </button>
               );
@@ -209,11 +209,11 @@ export function AbbinaTessere({
                         : 'border-line bg-surface2 opacity-70'
                   }`}
                 >
-                  <span className="block truncate text-sm font-medium">
+                  <span className="block break-words text-sm font-medium">
                     {o.cognome} {o.nome}
                     {o.callsign && <span className="text-nvg"> · {o.callsign}</span>}
                   </span>
-                  <span className="block truncate text-[11px] text-muted">{o.email}</span>
+                  <span className="block break-all text-[11px] text-muted">{o.email}</span>
                 </button>
               );
             })}

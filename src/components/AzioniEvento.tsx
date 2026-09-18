@@ -1,5 +1,6 @@
 import { AzioneBottone } from './AzioneBottone';
 import { AnnullaEvento } from './AnnullaEvento';
+import { BottoneElimina } from './CardRiga';
 import { cambiaStatoEvento, eliminaEvento, rilasciaEvento } from '@/actions/eventi';
 
 /**
@@ -14,7 +15,6 @@ export function AzioniEvento({
   visibilita,
   soloInterno = false,
   compatto = false,
-  conElimina = true,
 }: {
   id: string;
   titolo: string;
@@ -24,8 +24,6 @@ export function AzioniEvento({
   soloInterno?: boolean;
   /** Versione ridotta per le card e le righe di elenco. */
   compatto?: boolean;
-  /** Nella scheda l'eliminazione sta in «Modifica»: fra i cambi di stato no. */
-  conElimina?: boolean;
 }) {
   const dim = compatto ? 'btn-sm' : '';
 
@@ -152,17 +150,24 @@ export function AzioniEvento({
         </>
       )}
 
-      {conElimina && (
-        <AzioneBottone
-          azione={eliminaEvento}
-          valori={{ id }}
-          conferma={`Eliminare definitivamente "${titolo}" e tutte le adesioni raccolte?`}
-          icona="elimina"
-          className={`btn-danger ${dim}`}
-        >
-          {compatto ? 'Elimina' : 'Elimina attività'}
-        </AzioneBottone>
-      )}
     </div>
+  );
+}
+
+/**
+ * Il cestino di un'attività, in alto a destra della sua card.
+ *
+ * Non sta fra i cambi di stato: quelli sono passi avanti e indietro, questa è
+ * una cancellazione — con tutte le adesioni raccolte — e messa in fila con
+ * «Riapri» e «Riporta in bozza» la si premeva cercando un'altra cosa.
+ */
+export function EliminaEvento({ id, titolo }: { id: string; titolo: string }) {
+  return (
+    <BottoneElimina
+      azione={eliminaEvento}
+      valori={{ id }}
+      conferma={`Eliminare definitivamente "${titolo}" e tutte le adesioni raccolte?`}
+      etichetta={`Elimina ${titolo}`}
+    />
   );
 }

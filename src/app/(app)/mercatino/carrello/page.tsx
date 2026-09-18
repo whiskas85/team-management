@@ -14,6 +14,7 @@ import {
 import { Badge, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { AzioneBottone } from '@/components/AzioneBottone';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 import { Invia } from '@/components/Bottone';
 import {
   annullaOrdine,
@@ -106,33 +107,25 @@ export default async function CarrelloPage() {
                 r.voce.annuncio.stato === 'PUBBLICATO' &&
                 ordinabile(r.voce);
               return (
-                <div
+                <CardRiga
                   key={r.id}
-                  className={`rounded-lg border bg-surface p-3 ${
-                    vivo ? 'border-line' : 'border-warn/40'
-                  }`}
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-medium">{r.voce.titolo}</p>
-                      <Link
-                        href={stradaAnnuncio(r.voce.annuncio)}
-                        className="text-xs text-muted hover:text-nvg"
-                      >
-                        {r.voce.annuncio.titolo}
-                      </Link>
-                    </div>
-                    <p className="num font-semibold text-nvg">
-                      {fmtEuro(Number(r.voce.prezzo) * r.quantita)}
-                      <span className="ml-1 text-[11px] font-normal text-muted">
-                        {fmtEuro(Number(r.voce.prezzo))} l’uno
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {!vivo && <Badge tono="warn">non più in vendita</Badge>}
-
+                  className={vivo ? '' : 'border-warn/40'}
+                  titolo={r.voce.titolo}
+                  sottotitolo={
+                    <Link href={stradaAnnuncio(r.voce.annuncio)} className="hover:text-nvg">
+                      {r.voce.annuncio.titolo}
+                    </Link>
+                  }
+                  elimina={
+                    /* togliere dal carrello non costa niente: si rimette con un
+                       tocco, e chiedere conferma sarebbe solo un passaggio in più */
+                    <BottoneElimina
+                      azione={cambiaRigaCarrello}
+                      valori={{ id: r.id, quantita: '0' }}
+                      etichetta={`Togli ${r.voce.titolo} dal carrello`}
+                    />
+                  }
+                  azioni={
                     <span className="flex items-center gap-1">
                       <AzioneBottone
                         azione={cambiaRigaCarrello}
@@ -150,16 +143,18 @@ export default async function CarrelloPage() {
                         +
                       </AzioneBottone>
                     </span>
-
-                    <AzioneBottone
-                      azione={cambiaRigaCarrello}
-                      valori={{ id: r.id, quantita: '0' }}
-                      className="ml-auto text-[11px] text-muted transition-colors hover:text-danger"
-                    >
-                      togli
-                    </AzioneBottone>
+                  }
+                >
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <p className="num font-semibold text-nvg">
+                      {fmtEuro(Number(r.voce.prezzo) * r.quantita)}
+                      <span className="ml-1 text-[11px] font-normal text-muted">
+                        {fmtEuro(Number(r.voce.prezzo))} l’uno
+                      </span>
+                    </p>
+                    {!vivo && <Badge tono="warn">non più in vendita</Badge>}
                   </div>
-                </div>
+                </CardRiga>
               );
             })}
           </div>

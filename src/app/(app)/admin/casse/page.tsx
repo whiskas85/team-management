@@ -6,10 +6,10 @@ import { fmtEuro, nomeCompleto } from '@/lib/format';
 import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { abilitaGestore, eliminaCassa, salvaCassa, togliGestore } from '@/actions/casse';
 import { eliminaMetodo, salvaMetodo } from '@/actions/metodi';
+import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,9 +110,9 @@ export default async function AltreCassePage() {
             const dichiarabili = c.metodi.filter((m) => m.attivo && m.selfService).length;
             return (
               <div key={c.id} className={`card ${c.attiva ? '' : 'opacity-70'}`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="flex flex-wrap items-center gap-2 font-medium">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="flex flex-wrap items-center gap-2 break-words font-medium">
                       {c.nome}
                       {!c.attiva && <Badge tono="neutro">spenta</Badge>}
                     </h2>
@@ -124,46 +124,12 @@ export default async function AltreCassePage() {
                       {` · incassati ${fmtEuro(n.incassato)}`}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <BottoneModale
-                      etichetta="Modifica"
-                      icona="modifica"
-                      titolo={`Modifica «${c.nome}»`}
-                      className="btn-ghost btn-sm"
-                    >
-                      <FormAzione azione={salvaCassa}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <Campo label="Nome *">
-                          <input name="nome" required defaultValue={c.nome} className="input" />
-                        </Campo>
-                        <label className="flex items-start gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            name="attiva"
-                            defaultChecked={c.attiva}
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
-                          />
-                          <span>
-                            Attiva
-                            <span className="block text-[11px] text-muted">
-                              Spenta non riceve quote nuove; chi la gestisce continua a vedere
-                              quelle che ci sono.
-                            </span>
-                          </span>
-                        </label>
-                        <Invia icona="salva">Salva</Invia>
-                      </FormAzione>
-                    </BottoneModale>
-                    <AzioneBottone
-                      azione={eliminaCassa}
-                      valori={{ id: c.id }}
-                      icona="elimina"
-                      conferma={`Eliminare «${c.nome}»? Se ha dei pagamenti verrà solo spenta.`}
-                      className="btn-danger btn-sm"
-                    >
-                      Elimina
-                    </AzioneBottone>
-                  </div>
+                  <BottoneElimina
+                    azione={eliminaCassa}
+                    valori={{ id: c.id }}
+                    conferma={`Eliminare «${c.nome}»? Se ha dei pagamenti verrà solo spenta.`}
+                    etichetta={`Elimina ${c.nome}`}
+                  />
                 </div>
 
                 {/* ------------------------------------------ chi la gestisce */}
@@ -178,17 +144,16 @@ export default async function AltreCassePage() {
                       {c.gestori.map((g) => (
                         <span
                           key={g.id}
-                          className="flex items-center gap-2 rounded-md border border-line bg-surface2 px-2.5 py-1 text-sm"
+                          className="flex items-center gap-1 rounded-md border border-line bg-surface2 py-0.5 pl-2.5 pr-1 text-sm"
                         >
                           {nomeCompleto(g)}
-                          <AzioneBottone
+                          <BottoneElimina
+                            piccolo
                             azione={togliGestore}
                             valori={{ cassaId: c.id, userId: g.id }}
                             conferma={`Togliere a ${g.nome} la gestione di «${c.nome}»?`}
-                            className="text-xs text-muted hover:text-danger"
-                          >
-                            togli
-                          </AzioneBottone>
+                            etichetta={`Togli ${nomeCompleto(g)} dai gestori`}
+                          />
                         </span>
                       ))}
                     </div>
@@ -235,23 +200,22 @@ export default async function AltreCassePage() {
                       Nessun metodo: chi paga una quota di questa cassa non sa come farlo.
                     </p>
                   ) : (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {c.metodi.map((m) => (
-                        <div
+                        <CardRiga
                           key={m.id}
-                          className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-line bg-surface2 px-3 py-2 ${
-                            m.attivo ? '' : 'opacity-50'
-                          }`}
-                        >
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm">{m.nome}</span>
-                            {m.istruzioni && (
-                              <span className="block text-[11px] text-muted">{m.istruzioni}</span>
-                            )}
-                          </span>
-                          {m.selfService && <Badge tono="ok">dichiarabile</Badge>}
-                          {!m.attivo && <Badge tono="neutro">spento</Badge>}
-                          <span className="flex gap-2">
+                          className={m.attivo ? '' : 'opacity-50'}
+                          titolo={<span className="text-sm">{m.nome}</span>}
+                          sottotitolo={m.istruzioni}
+                          elimina={
+                            <BottoneElimina
+                              azione={eliminaMetodo}
+                              valori={{ id: m.id }}
+                              conferma={`Eliminare «${m.nome}»? Se è già stato usato verrà solo spento.`}
+                              etichetta={`Elimina ${m.nome}`}
+                            />
+                          }
+                          azioni={
                             <BottoneModale
                               etichetta="Modifica"
                               icona="modifica"
@@ -264,17 +228,15 @@ export default async function AltreCassePage() {
                                 <Invia icona="salva">Salva</Invia>
                               </FormAzione>
                             </BottoneModale>
-                            <AzioneBottone
-                              azione={eliminaMetodo}
-                              valori={{ id: m.id }}
-                              icona="elimina"
-                              conferma={`Eliminare «${m.nome}»? Se è già stato usato verrà solo spento.`}
-                              className="btn-danger btn-sm"
-                            >
-                              Elimina
-                            </AzioneBottone>
-                          </span>
-                        </div>
+                          }
+                        >
+                          {(m.selfService || !m.attivo) && (
+                            <span className="flex flex-wrap gap-2">
+                              {m.selfService && <Badge tono="ok">dichiarabile</Badge>}
+                              {!m.attivo && <Badge tono="neutro">spento</Badge>}
+                            </span>
+                          )}
+                        </CardRiga>
                       ))}
                     </div>
                   )}
@@ -283,6 +245,39 @@ export default async function AltreCassePage() {
                       Nessun metodo dichiarabile: chi paga non può segnalare il pagamento da solo.
                     </p>
                   )}
+                </div>
+
+                {/* le azioni della cassa: sotto, a destra, come in tutte le card */}
+                <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-line pt-3">
+                  <BottoneModale
+                    etichetta="Modifica"
+                    icona="modifica"
+                    titolo={`Modifica «${c.nome}»`}
+                    className="btn-ghost btn-sm"
+                  >
+                    <FormAzione azione={salvaCassa}>
+                      <input type="hidden" name="id" value={c.id} />
+                      <Campo label="Nome *">
+                        <input name="nome" required defaultValue={c.nome} className="input" />
+                      </Campo>
+                      <label className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name="attiva"
+                          defaultChecked={c.attiva}
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+                        />
+                        <span>
+                          Attiva
+                          <span className="block text-[11px] text-muted">
+                            Spenta non riceve quote nuove; chi la gestisce continua a vedere
+                            quelle che ci sono.
+                          </span>
+                        </span>
+                      </label>
+                      <Invia icona="salva">Salva</Invia>
+                    </FormAzione>
+                  </BottoneModale>
                 </div>
               </div>
             );

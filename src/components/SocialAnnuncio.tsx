@@ -3,7 +3,6 @@ import { comeChiamare, fmtDateTime } from '@/lib/format';
 import { isContatto } from '@/lib/domain';
 import { Avatar } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
-import { AzioneBottone } from '@/components/AzioneBottone';
 import { Invia } from '@/components/Bottone';
 import { ScriviCommento } from '@/components/ScriviCommento';
 import { Segnala } from '@/components/Segnala';
@@ -12,6 +11,7 @@ import {
   eliminaCommentoAnnuncio,
   miPiaceAnnuncio,
 } from '@/actions/mercatino-social';
+import { BottoneElimina } from './CardRiga';
 
 /**
  * Commenti e "mi piace" sotto un annuncio.
@@ -145,23 +145,26 @@ export function SocialAnnuncio({
                 />
                 <div className="min-w-0 flex-1">
                   <div className="rounded-lg bg-surface2 px-3 py-2">
-                    <p className="text-sm font-medium">{chi.nome}</p>
+                    <div className="flex items-start gap-2">
+                      <p className="min-w-0 flex-1 break-words text-sm font-medium">
+                        {chi.nome}
+                      </p>
+                      {(c.userId === ioSono || puoModerare) && (
+                        <BottoneElimina
+                          piccolo
+                          azione={eliminaCommentoAnnuncio}
+                          valori={{ id: c.id }}
+                          conferma="Eliminare il commento?"
+                          etichetta="Elimina il commento"
+                        />
+                      )}
+                    </div>
                     <p className="whitespace-pre-wrap break-words text-sm">
                       {conChiocciole(c.testo, voci)}
                     </p>
                   </div>
                   <div className="mt-1 flex items-center gap-2 pl-1">
                     <span className="num text-[11px] text-muted">{fmtDateTime(c.createdAt)}</span>
-                    {(c.userId === ioSono || puoModerare) && (
-                      <AzioneBottone
-                        azione={eliminaCommentoAnnuncio}
-                        valori={{ id: c.id }}
-                        conferma="Eliminare il commento?"
-                        className="text-[11px] text-muted transition-colors hover:text-danger"
-                      >
-                        elimina
-                      </AzioneBottone>
-                    )}
                     {/* di chi lo subisce, non di chi lo possiede */}
                     {c.userId !== ioSono && <Segnala tipo="annuncio" id={c.id} />}
                   </div>

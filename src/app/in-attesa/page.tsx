@@ -104,7 +104,7 @@ function Riga({ etichetta, valore }: { etichetta: string; valore: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-line pb-2 last:border-0 last:pb-0">
       <span className="text-xs text-muted">{etichetta}</span>
-      <span className="min-w-0 truncate text-sm">{valore}</span>
+      <span className="min-w-0 break-all text-sm">{valore}</span>
     </div>
   );
 }

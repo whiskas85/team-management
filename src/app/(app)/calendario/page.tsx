@@ -11,7 +11,7 @@ import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { FormAzione, Fisarmonica } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
-import { AzioniEvento } from '@/components/AzioniEvento';
+import { AzioniEvento, EliminaEvento } from '@/components/AzioniEvento';
 import { CalendarioMese, type GiornoEvento } from '@/components/CalendarioMese';
 import { InProgramma } from '@/components/InProgramma';
 import { salvaEvento } from '@/actions/eventi';
@@ -298,6 +298,7 @@ export default async function CalendarioPage({
                     card: (
                       <CardEvento
                         e={e}
+                        elimina={admin ? <EliminaEvento id={e.id} titolo={e.titolo} /> : undefined}
                         azioni={
                           admin ? (
                             <AzioniEvento
@@ -375,7 +376,7 @@ export default async function CalendarioPage({
                             className="h-2 w-2 shrink-0 rounded-full bg-nvg"
                           />
                         )}
-                        <span className="truncate">{e.titolo}</span>
+                        <span className="break-words">{e.titolo}</span>
                       </p>
                       {e.status !== 'RILASCIATA' && (
                         <Badge tono={tonoEvento[e.status] ?? 'neutro'}>

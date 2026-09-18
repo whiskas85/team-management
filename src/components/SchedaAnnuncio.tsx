@@ -36,6 +36,7 @@ import {
   scegliCopertina,
   statoVoce,
 } from '@/actions/mercatino';
+import { BottoneElimina } from './CardRiga';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -282,15 +283,12 @@ export async function SchedaAnnuncio({
             )}
 
             {mio && (
-              <AzioneBottone
+              <BottoneElimina
                 azione={eliminaAnnuncio}
                 valori={{ id: annuncio.id }}
-                icona="elimina"
                 conferma="Eliminare l’annuncio e le sue foto? Non si recupera."
-                className="btn-danger"
-              >
-                Elimina
-              </AzioneBottone>
+                etichetta="Elimina"
+              />
             )}
           </>
         }
@@ -321,10 +319,23 @@ export async function SchedaAnnuncio({
                 {annuncio.foto.map((f) => (
                   <div
                     key={f.id}
-                    className={`overflow-hidden rounded-lg border ${
+                    className={`relative overflow-hidden rounded-lg border ${
                       annuncio.copertinaId === f.id ? 'border-nvg' : 'border-line'
                     }`}
                   >
+                    {/* il cestino sulla foto, in alto a destra: su un'immagine
+                        chiara non si vedrebbe, e il fondo scuro lo tiene leggibile */}
+                    {mio && (
+                      <div className="absolute right-1.5 top-1.5 z-10 rounded bg-black/70">
+                        <BottoneElimina
+                          piccolo
+                          azione={eliminaFoto}
+                          valori={{ id: f.id }}
+                          conferma="Eliminare la foto?"
+                          etichetta="Elimina la foto"
+                        />
+                      </div>
+                    )}
                     <a href={`/api/mercatino/foto/${f.id}`} target="_blank" rel="noreferrer">
                       <img
                         src={`/api/mercatino/foto/${f.id}?m`}
@@ -334,7 +345,7 @@ export async function SchedaAnnuncio({
                       />
                     </a>
                     {mio && (
-                      <div className="flex items-center justify-between gap-1 px-1.5 py-1">
+                      <div className="flex items-center justify-end gap-1 px-1.5 py-1">
                         {annuncio.copertinaId === f.id ? (
                           <span className="text-[11px] text-nvg">copertina</span>
                         ) : (
@@ -346,14 +357,6 @@ export async function SchedaAnnuncio({
                             usa come copertina
                           </AzioneBottone>
                         )}
-                        <AzioneBottone
-                          azione={eliminaFoto}
-                          valori={{ id: f.id }}
-                          conferma="Eliminare la foto?"
-                          className="text-[11px] text-muted hover:text-danger"
-                        >
-                          elimina
-                        </AzioneBottone>
                       </div>
                     )}
                   </div>
@@ -452,7 +455,7 @@ export async function SchedaAnnuncio({
                 size="md"
               />
               <div className="min-w-0">
-                <p className="truncate font-medium">{chi.nome}</p>
+                <p className="break-words font-medium">{chi.nome}</p>
                 {annuncio.ufficiale && (
                   <p className="text-[11px] text-muted">a nome del team</p>
                 )}
@@ -537,16 +540,26 @@ function RigaVoce({
   const finita = restano !== null && restano <= 0;
   return (
     <div className="rounded-lg border border-line bg-surface p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-medium">
+      <div className="flex items-start gap-3">
+        <p className="min-w-0 flex-1 break-words font-medium">
           {v.titolo}
           <code className="num ml-2 text-[11px] text-muted">@{v.maniglia}</code>
         </p>
-        <p className="num font-semibold text-nvg">
-          {fmtEuro(Number(v.prezzo))}
-          {v.trattabile && <span className="ml-1 text-[11px] font-normal text-muted">trattabili</span>}
-        </p>
+        {mio && (
+          <div className="-mr-1 -mt-1 shrink-0">
+            <BottoneElimina
+              azione={eliminaVoce}
+              valori={{ id: v.id }}
+              conferma={`Eliminare "${v.titolo}"?`}
+              etichetta={`Elimina ${v.titolo}`}
+            />
+          </div>
+        )}
       </div>
+      <p className="num mt-1 font-semibold text-nvg">
+        {fmtEuro(Number(v.prezzo))}
+        {v.trattabile && <span className="ml-1 text-[11px] font-normal text-muted">trattabili</span>}
+      </p>
 
       {v.descrizione && <p className="mt-1 text-sm text-muted">{v.descrizione}</p>}
 
@@ -610,8 +623,8 @@ function RigaVoce({
       </div>
 
       {/* Chi vende ha la sua riga, sotto e staccata: comprare e amministrare
-          sono due gesti diversi, e in mezzo a Aggiungi ci finiva un Elimina
-          rosso a un centimetro dal carrello. */}
+          sono due gesti diversi. Il cestino non è qui ma in alto a destra,
+          lontano sia dal carrello sia da «Modifica». */}
       {mio && (
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">
           {magazzino && (
@@ -639,14 +652,6 @@ function RigaVoce({
               scaffali={scaffali}
             />
           </BottoneModale>
-          <AzioneBottone
-            azione={eliminaVoce}
-            valori={{ id: v.id }}
-            conferma={`Eliminare "${v.titolo}"?`}
-            className="btn-danger btn-sm"
-          >
-            Elimina
-          </AzioneBottone>
         </div>
       )}
     </div>
@@ -710,7 +715,7 @@ function FormCarico({ voce, scorta }: { voce: VoceInRiga; scorta: Scorta }) {
         </Campo>
         <p className="text-xs text-muted">
           Un numero negativo toglie: −12 se ne sono spariti dodici. Per disfare una riga
-          sbagliata, c’è <em>elimina</em> nell’elenco dei carichi.
+          sbagliata, c’è il cestino nell’elenco dei carichi.
         </p>
         <Invia icona="carica">Carica</Invia>
       </FormAzione>
@@ -730,14 +735,15 @@ function FormCarico({ voce, scorta }: { voce: VoceInRiga; scorta: Scorta }) {
                   {fmtDate(c.compratoIl)}
                   {c.fornitore && ` · ${c.fornitore}`}
                 </span>
-                <AzioneBottone
-                  azione={eliminaCarico}
-                  valori={{ id: c.id }}
-                  conferma="Eliminare il carico? La giacenza si ricalcola."
-                  className="ml-auto text-[11px] text-muted transition-colors hover:text-danger"
-                >
-                  elimina
-                </AzioneBottone>
+                <span className="ml-auto">
+                  <BottoneElimina
+                    piccolo
+                    azione={eliminaCarico}
+                    valori={{ id: c.id }}
+                    conferma="Eliminare il carico? La giacenza si ricalcola."
+                    etichetta="Elimina il carico"
+                  />
+                </span>
               </div>
             ))}
           </div>
