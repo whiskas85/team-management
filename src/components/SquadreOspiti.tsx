@@ -1,4 +1,4 @@
-import { AzioneBottone } from './AzioneBottone';
+import { BottoneElimina, CardRiga } from './CardRiga';
 import { CondividiEvento } from './CondividiEvento';
 import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
@@ -72,77 +72,76 @@ export function SquadreOspiti({
           referente: vedrà quando, dove e in quanti siamo, e dirà in quanti vengono.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <div className="space-y-2">
           {ospiti.map((o) => (
-            <li
+            <CardRiga
               key={o.id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line pb-2 last:border-0 last:pb-0"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{o.nome}</span>
-                <span className="text-[11px] text-muted">
-                  {o.operatori === null
-                    ? 'non ha ancora risposto'
-                    : o.operatori === 0
-                      ? `ha detto che non vengono · ${o.rispostoIl}`
-                      : `${o.operatori} operatori · ${o.rispostoIl}`}
-                </span>
-              </span>
+              titolo={o.nome}
+              sottotitolo={
+                o.operatori === null
+                  ? 'non ha ancora risposto'
+                  : o.operatori === 0
+                    ? `ha detto che non vengono · ${o.rispostoIl}`
+                    : `${o.operatori} operatori · ${o.rispostoIl}`
+              }
+              elimina={
+                puoGestire && (
+                  <BottoneElimina
+                    azione={togliSquadraOspite}
+                    valori={{ id: o.id }}
+                    conferma={`Togliere "${o.nome}" dagli ospiti? Il loro link smette di funzionare.`}
+                    etichetta={`Togli ${o.nome} dagli ospiti`}
+                  />
+                )
+              }
+              azioni={
+                puoGestire ? (
+                  <>
+                    {/* Il numero si può scrivere anche da qui: il referente
+                        spesso lo dice in chat o al telefono, e pretendere che
+                        apra il link per forza lascerebbe il conteggio a metà
+                        per un formalismo. */}
+                    <FormAzione
+                      azione={segnaOperatoriOspite}
+                      className="flex items-center gap-1.5"
+                    >
+                      <input type="hidden" name="id" value={o.id} />
+                      <input
+                        name="operatori"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={500}
+                        defaultValue={o.operatori ?? ''}
+                        placeholder="—"
+                        aria-label={`Operatori di ${o.nome}`}
+                        className="input num h-8 w-20 text-sm"
+                      />
+                      <Invia icona="salva" className="btn-ghost btn-sm">
+                        Segna
+                      </Invia>
+                    </FormAzione>
 
-              {/* Chi non gestisce ma tiene in mano l'attività può solo
-                  rimandare il link: è il gesto che gli tocca quando una
-                  squadra dice di non averlo ricevuto. */}
-              {!puoGestire && puoCondividere && (
-                <CondividiEvento
-                  indirizzo={o.link}
-                  etichetta={`Condividi il link di ${o.nome}`}
-                />
-              )}
-
-              {puoGestire && (
-                <span className="flex flex-wrap items-center gap-2">
-                  {/* Il numero si può scrivere anche da qui: il referente
-                      spesso lo dice in chat o al telefono, e pretendere che
-                      apra il link per forza lascerebbe il conteggio a metà
-                      per un formalismo. */}
-                  <FormAzione azione={segnaOperatoriOspite} className="flex items-center gap-1.5">
-                    <input type="hidden" name="id" value={o.id} />
-                    <input
-                      name="operatori"
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={500}
-                      defaultValue={o.operatori ?? ''}
-                      placeholder="—"
-                      aria-label={`Operatori di ${o.nome}`}
-                      className="input num h-8 w-20 text-sm"
+                    {/* il link è di quella squadra: mandarlo è il gesto per cui
+                        questa riga esiste */}
+                    <CondividiEvento
+                      indirizzo={o.link}
+                      etichetta={`Condividi il link di ${o.nome}`}
                     />
-                    <Invia icona="salva" className="btn-ghost btn-sm">
-                      Segna
-                    </Invia>
-                  </FormAzione>
-
-                  {/* il link è di quella squadra: mandarlo è il gesto per cui
-                      questa riga esiste */}
+                  </>
+                ) : puoCondividere ? (
+                  /* Chi non gestisce ma tiene in mano l'attività può solo
+                     rimandare il link: è il gesto che gli tocca quando una
+                     squadra dice di non averlo ricevuto. */
                   <CondividiEvento
                     indirizzo={o.link}
                     etichetta={`Condividi il link di ${o.nome}`}
                   />
-                  <AzioneBottone
-                    azione={togliSquadraOspite}
-                    valori={{ id: o.id }}
-                    icona="elimina"
-                    conferma={`Togliere "${o.nome}" dagli ospiti? Il loro link smette di funzionare.`}
-                    className="btn-danger btn-sm"
-                  >
-                    Togli
-                  </AzioneBottone>
-                </span>
-              )}
-            </li>
+                ) : undefined
+              }
+            />
           ))}
-        </ul>
+        </div>
       )}
 
       {puoGestire && (

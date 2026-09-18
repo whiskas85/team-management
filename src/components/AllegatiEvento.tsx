@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AzioneBottone } from './AzioneBottone';
+import { BottoneElimina, CardRiga } from './CardRiga';
 import { BottoneModale } from './Modale';
 import { ElencoOrdinabile } from './ElencoOrdinabile';
 import { FormAzione } from './Form';
@@ -119,37 +119,46 @@ function Riga({
   const indirizzo = `/calendario/${eventId}/allegati/${a.id}`;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line pb-2 last:border-0 last:pb-0">
-      <span className="text-muted">
-        <Icona nome="allegato" size={18} />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <Link href={indirizzo} className="block truncate font-medium hover:text-nvg">
-          {a.titolo}
+    <CardRiga
+      titolo={
+        <Link href={indirizzo} className="inline-flex items-start gap-2 hover:text-nvg">
+          <span className="mt-0.5 shrink-0 text-muted">
+            <Icona nome="allegato" size={16} />
+          </span>
+          <span>{a.titolo}</span>
         </Link>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+      }
+      sottotitolo={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="num">{etichettaGenere[genere]}</span>
           <span className="num">{peso(a.fileSize)}</span>
           <span>agg. {a.aggiornatoIl}</span>
           {a.caricatoDa && <span>· {a.caricatoDa}</span>}
           {a.pubblico && <Badge tono="info">anche fuori</Badge>}
         </span>
-      </span>
-
-      <span className="flex flex-wrap items-center gap-2">
-        <Link href={indirizzo} className="btn-ghost btn-sm">
-          <Icona nome="apri" size={15} />
-          Apri
-        </Link>
-        {/* in campo la rete non c'è: il book portato via serve */}
-        <a href={`/api/allegati/${a.id}?scarica=1`} className="btn-ghost btn-sm" download>
-          <Icona nome="scarica" size={15} />
-          Scarica
-        </a>
-
-        {puoGestire && (
-          <>
+      }
+      elimina={
+        puoGestire && (
+          <BottoneElimina
+            azione={togliAllegato}
+            valori={{ id: a.id }}
+            conferma={`Togliere «${a.titolo}»? Il file non si recupera.`}
+            etichetta={`Togli ${a.titolo}`}
+          />
+        )
+      }
+      azioni={
+        <>
+          <Link href={indirizzo} className="btn-ghost btn-sm">
+            <Icona nome="apri" size={15} />
+            Apri
+          </Link>
+          {/* in campo la rete non c'è: il book portato via serve */}
+          <a href={`/api/allegati/${a.id}?scarica=1`} className="btn-ghost btn-sm" download>
+            <Icona nome="scarica" size={15} />
+            Scarica
+          </a>
+          {puoGestire && (
             <BottoneModale
               etichetta="Modifica"
               icona="modifica"
@@ -159,19 +168,10 @@ function Riga({
             >
               <FormAllegato allegato={a} />
             </BottoneModale>
-            <AzioneBottone
-              azione={togliAllegato}
-              valori={{ id: a.id }}
-              icona="elimina"
-              conferma={`Togliere «${a.titolo}»? Il file non si recupera.`}
-              className="btn-danger btn-sm"
-            >
-              Togli
-            </AzioneBottone>
-          </>
-        )}
-      </span>
-    </div>
+          )}
+        </>
+      }
+    />
   );
 }
 

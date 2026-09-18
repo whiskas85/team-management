@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.53.0 — 18 settembre 2026
+
+### Cambiato
+
+- **Le righe delle squadre ospiti e degli allegati sono card fatte per il
+  telefono.** Tutto stava su una linea sola, e sul telefono il primo a farne le
+  spese era il nome: «Decima Gladio» diventava «Decima …», cioè l'unica cosa da
+  leggere spariva per far posto ai pulsanti. Ora ogni riga ha lo stesso schema:
+  - **in alto il titolo**, con sotto il sottotitolo, e **alla sua altezza, a
+    destra, il cestino**: solo l'icona, rossa. È il gesto più pericoloso della
+    riga e sta sempre nello stesso posto, lontano dagli altri pulsanti, così non
+    lo si preme cercandone un altro;
+  - **il contenuto va a capo** invece di essere tagliato: una riga più alta si
+    legge, una parola mozzata no;
+  - **i pulsanti sotto, allineati a destra**, liberi di andare a capo anche
+    loro.
+- Lo schema vive in un componente solo, `CardRiga`, e da qui in avanti è la
+  regola per le card del gestionale.
+
 ## 2.52.0 — 18 settembre 2026
 
 ### Cambiato
