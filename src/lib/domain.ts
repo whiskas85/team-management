@@ -318,6 +318,20 @@ export const tieneInMano = (
   referenti: { userId: string }[],
 ) => isAdmin(me.roles) || puoSchierare(me.roles) || referenti.some((r) => r.userId === me.id);
 
+/**
+ * A chi si chiede il certificato medico: **a chi ha il ruolo atleta**.
+ *
+ * Il certificato serve a scendere in campo. Chi tiene i conti, le tessere o la
+ * segreteria e in campo non ci va non ne ha bisogno, e metterlo fra i «senza
+ * certificato» gonfiava un elenco che si guarda per sapere chi non può giocare
+ * — con nomi di gente che non ha mai chiesto di farlo. Chi gioca **e**
+ * amministra resta dentro: i ruoli sono un insieme, e basta avere anche questo.
+ *
+ * Non vieta niente: un non atleta che il certificato lo carica lo stesso se lo
+ * vede gestito come tutti. Dice solo a chi va **chiesto**.
+ */
+export const devePortareCertificato = (roles: Role[]) => ha(roles, 'ATLETA');
+
 /** Chi gestisce il calendario vede anche le bozze. */
 export const puoGestireEventi = (roles: Role[]) => ha(roles, 'ADMIN');
 

@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import type { Role, StatoOperatore } from '@prisma/client';
 import { Avatar, Badge, Elenco, Vuoto } from './ui';
 import { ListaFiltrata } from './Filtri';
-import { etichettaRuolo, etichettaStato, tonoCertificato, tonoRuolo, tonoStato } from '@/lib/domain';
+import { etichettaRuolo, etichettaStato, tonoCertificato, tonoRuolo, tonoStato, devePortareCertificato } from '@/lib/domain';
 import { umanizza } from '@/lib/format';
 import { assegnaRuolo, eliminaOperatore } from '@/actions/operatori';
 import { BottoneElimina } from './CardRiga';
@@ -312,7 +312,9 @@ export function ElencoOperatori({
                         Cert. {umanizza(o.certStato)}
                       </Badge>
                     ) : (
-                      <Badge tono="danger">Nessun cert.</Badge>
+                      // a chi non è atleta il certificato non si chiede: il
+                      // badge rosso gli segnerebbe una mancanza che non ha
+                      devePortareCertificato(o.roles) && <Badge tono="danger">Nessun cert.</Badge>
                     ))}
                 </div>
               </Link>
@@ -384,8 +386,10 @@ export function ElencoOperatori({
                                 </span>
                               )}
                             </>
-                          ) : (
+                          ) : devePortareCertificato(o.roles) ? (
                             <Badge tono="danger">Assente</Badge>
+                          ) : (
+                            <span className="text-[11px] text-muted">non serve</span>
                           )}
                         </td>
                       )}

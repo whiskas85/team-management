@@ -30,6 +30,11 @@ export type RigaRegolarita = {
   certScade: string | null;
   /** Valido, ma per poco: chi lo rinnova ha bisogno di saperlo prima. */
   certInScadenza: boolean;
+  /**
+   * Se il certificato gli va chiesto: solo agli atleti. A chi non gioca non si
+   * segna «mancante» — non manca niente, non gli serve.
+   */
+  serveCertificato: boolean;
   tessera: string | null;
   /** Iscrizione attiva e certificato valido: è questa la domanda della pagina. */
   aPosto: boolean;
@@ -63,7 +68,11 @@ export function ElencoRegolarita({ righe }: { righe: RigaRegolarita[] }) {
 
   const badgeCertificato = (r: RigaRegolarita) =>
     r.certStato === null ? (
-      <Badge tono="danger">mancante</Badge>
+      r.serveCertificato ? (
+        <Badge tono="danger">mancante</Badge>
+      ) : (
+        <Badge tono="neutro">non serve</Badge>
+      )
     ) : (
       <span className="flex flex-wrap items-center gap-1.5">
         <Badge tono={(tonoCertificato as Record<string, Tono>)[r.certStato] ?? 'neutro'}>
@@ -126,6 +135,7 @@ export function ElencoRegolarita({ righe }: { righe: RigaRegolarita[] }) {
             { valore: 'SCADUTO', testo: 'Scaduto' },
             { valore: 'AGONISTICO', testo: 'Agonistico' },
             { valore: 'mancante', testo: 'Mancante' },
+            { valore: 'nonserve', testo: 'Non serve (non atleti)' },
           ],
         },
       ]}
@@ -134,7 +144,7 @@ export function ElencoRegolarita({ righe }: { righe: RigaRegolarita[] }) {
         if (nome === 'iscrizione') return r.iscrizione ?? 'nessuna';
         // il tipo sta nello stesso filtro dello stato: «agonistico» risponde a
         // «com’è messo il certificato» quanto «scaduto»
-        return [r.certStato ?? 'mancante', r.certTipo ?? ''];
+        return [r.certStato ?? (r.serveCertificato ? 'mancante' : 'nonserve'), r.certTipo ?? ''];
       }}
     >
       {(filtrate) =>

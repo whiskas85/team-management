@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.58.0 — 18 settembre 2026
+
+### Cambiato
+
+- **Il certificato medico si chiede solo agli atleti.** Serve a scendere in
+  campo, e chi tiene i conti, le tessere o la segreteria in campo non ci va:
+  metterlo fra i «senza certificato» gonfiava un elenco che si guarda per
+  sapere chi non può giocare, con nomi di gente che non ha mai chiesto di
+  farlo. Chi gioca **e** amministra resta dentro: basta avere anche il ruolo di
+  atleta.
+  - In **Certificati**, il filtro «Senza certificato» elenca solo gli atleti.
+  - In **Operatori** — sia nella vista dell'admin sia in quella di
+    amministrazione, segreteria e team leader — il riquadro diventa «Atleti
+    senza certificato valido» e conta solo loro.
+  - Negli elenchi, accanto a un non atleta senza certificato non c'è più il
+    badge rosso «Nessun cert.» o «mancante»: dove serve una risposta c'è un
+    grigio «non serve», e il filtro dei certificati ha la sua voce per
+    trovarli. Un non atleta con l'iscrizione attiva risulta **a posto**.
+  - Nel **cruscotto** di un non atleta non compare più «Non hai ancora
+    caricato un certificato medico», né il riquadro rosso «Assente».
+- Non vieta niente: un non atleta che il certificato lo carica lo stesso lo
+  vede gestito come tutti, scadenze comprese.
+
 ## 2.57.0 — 18 settembre 2026
 
 ### Cambiato

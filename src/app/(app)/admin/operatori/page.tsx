@@ -6,6 +6,7 @@ import {
   inRegola,
   puoVedereOperatori,
   statoEffettivo,
+  devePortareCertificato,
 } from '@/lib/domain';
 import { fmtDate, fmtDateTime, iniziali, nomeCompleto } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
@@ -89,7 +90,10 @@ async function Gestione() {
 
   const inSquadra = righe.filter((r) => r.stato === 'SQUADRA').length;
   const daRiconfermare = righe.filter((r) => r.stato === 'DA_RICONFERMARE').length;
-  const senzaCertificato = righe.filter((r) => r.certStato !== 'VALIDO').length;
+  // solo chi deve portarlo: a chi non è atleta il certificato non si chiede
+  const senzaCertificato = righe.filter(
+    (r) => devePortareCertificato(r.roles) && r.certStato !== 'VALIDO',
+  ).length;
   const conDebito = righe.filter((r) => r.daSaldare > 0).length;
   const teamLeader = righe.filter((r) => r.roles.includes('TL')).length;
 
@@ -110,7 +114,7 @@ async function Gestione() {
         />
         <Statistica etichetta="Team leader" valore={teamLeader} tono="warn" />
         <Statistica
-          etichetta="Senza certificato valido"
+          etichetta="Atleti senza certificato valido"
           valore={senzaCertificato}
           tono={senzaCertificato ? 'danger' : 'ok'}
         />
@@ -186,6 +190,8 @@ async function Regolarita() {
     const cert = validi[0] ?? ripiego ?? null;
 
     const iscrizione = o.memberships[0]?.status ?? null;
+    // a chi non è atleta il certificato non si chiede: senza, è a posto lo stesso
+    const serveCertificato = devePortareCertificato(o.roles);
 
     return {
       id: o.id,
@@ -198,15 +204,18 @@ async function Regolarita() {
       certTipo: cert?.tipo ?? null,
       certScade: cert?.scadeIl ? fmtDate(cert.scadeIl) : null,
       certInScadenza: cert?.effettivo === 'VALIDO' && certificatoInScadenza(cert.scadeIl),
+      serveCertificato,
       tessera: o.figtCards[0]?.status ?? null,
       // «a posto» sono le due cose che questa pagina esiste per sapere:
       // iscrizione della stagione attiva e un certificato valido oggi
-      aPosto: iscrizione === 'ATTIVA' && inRegola(o.certificates),
+      aPosto: iscrizione === 'ATTIVA' && (!serveCertificato || inRegola(o.certificates)),
     };
   });
 
   const daSistemare = righe.filter((r) => !r.aPosto).length;
-  const senzaCertificato = righe.filter((r) => r.certStato !== 'VALIDO').length;
+  const senzaCertificato = righe.filter(
+    (r) => r.serveCertificato && r.certStato !== 'VALIDO',
+  ).length;
   const senzaIscrizione = righe.filter((r) => r.iscrizione !== 'ATTIVA').length;
 
   return (
@@ -224,7 +233,7 @@ async function Regolarita() {
           tono={daSistemare > 0 ? 'warn' : 'ok'}
         />
         <Statistica
-          etichetta="Senza certificato valido"
+          etichetta="Atleti senza certificato valido"
           valore={senzaCertificato}
           tono={senzaCertificato > 0 ? 'danger' : 'ok'}
           href="/admin/certificati"

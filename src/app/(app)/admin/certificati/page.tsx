@@ -70,9 +70,12 @@ export default async function CertificatiPage({
 
   // Chi in rosa non ha **nessun** certificato caricato. Si conta sempre, anche
   // guardando un'altra vista: è il numero che nessuno andrebbe a cercare, e
-  // messo sul filtro si vede senza doverci pensare.
+  // messo sul filtro si vede senza doverci pensare. Solo gli atleti: agli
+  // altri il certificato non si chiede, e in questo elenco sarebbero nomi da
+  // saltare ogni volta (è la regola di `devePortareCertificato`).
   const senzaCertificato = {
     stato: { in: ['SQUADRA', 'SOSPESO'] as StatoOperatore[] },
+    roles: { has: 'ATLETA' as const },
     certificates: { none: {} },
   };
 
@@ -178,14 +181,14 @@ export default async function CertificatiPage({
 
       {filtro === 'mancanti' ? (
         mancanti.length === 0 ? (
-          <Vuoto testo="Sono tutti coperti: in rosa non c'è nessuno senza certificato caricato." />
+          <Vuoto testo="Sono tutti coperti: fra gli atleti in rosa non c'è nessuno senza certificato caricato." />
         ) : (
           <>
             <div className="mb-4 rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
               <strong>
                 {mancanti.length === 1
-                  ? 'Una persona in rosa non ha mai caricato un certificato'
-                  : `${mancanti.length} persone in rosa non hanno mai caricato un certificato`}
+                  ? 'Un atleta in rosa non ha mai caricato un certificato'
+                  : `${mancanti.length} atleti in rosa non hanno mai caricato un certificato`}
               </strong>
               . Senza, non si segnano alle attività che lo richiedono: se ne accorgono la domenica
               mattina, ed è tardi.

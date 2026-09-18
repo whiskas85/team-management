@@ -12,6 +12,7 @@ import {
   statoEffettivo,
   tonoCertificato,
   vedeAreaTesseramento,
+  devePortareCertificato,
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, giorniA, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
@@ -77,6 +78,9 @@ export default async function DashboardPage({
 
   const certAttuale = certificati[0];
   const statoCert = certAttuale ? statoEffettivo(certAttuale) : null;
+  // Chi non è atleta il certificato non lo deve portare: se non ce l'ha, non
+  // gli si dice che manca. Se l'ha caricato lo stesso, lo vede come tutti.
+  const chiediCertificato = devePortareCertificato(me.roles) || !!certAttuale;
   const daPagare = pagamenti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
 
   // riquadri di back office, in base agli incarichi
@@ -174,7 +178,7 @@ export default async function DashboardPage({
           />
         )}
 
-        {tesserato && !certAttuale && (
+        {tesserato && !certAttuale && chiediCertificato && (
           <Avviso
             tono="warn"
             testo="Non hai ancora caricato un certificato medico."
@@ -222,15 +226,17 @@ export default async function DashboardPage({
       <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tesserato && (
           <>
-            <Statistica
-              etichetta="Certificato"
-              valore={statoCert ? umanizza(statoCert) : 'Assente'}
-              dettaglio={
-                certAttuale?.scadeIl ? `scade il ${fmtDate(certAttuale.scadeIl)}` : undefined
-              }
-              tono={statoCert ? tonoCertificato[statoCert] : 'danger'}
-              href="/certificati"
-            />
+            {chiediCertificato && (
+              <Statistica
+                etichetta="Certificato"
+                valore={statoCert ? umanizza(statoCert) : 'Assente'}
+                dettaglio={
+                  certAttuale?.scadeIl ? `scade il ${fmtDate(certAttuale.scadeIl)}` : undefined
+                }
+                tono={statoCert ? tonoCertificato[statoCert] : 'danger'}
+                href="/certificati"
+              />
+            )}
             <Statistica
               etichetta="Iscrizione"
               valore={iscrizione ? umanizza(iscrizione.status) : 'Nessuna'}
