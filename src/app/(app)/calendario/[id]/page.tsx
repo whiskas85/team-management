@@ -684,6 +684,23 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const giorniEvento = giorniDi(evento.inizio, evento.fine);
   const piuGiorni = giorniEvento.length > 1;
 
+  /*
+   * Chi oggi non può giocare perché non è coperto.
+   *
+   * Un nuovo senza tessera annuale gioca solo con la giornaliera di quel
+   * giorno; se anche un solo giorno dell'attività gli manca, in campo non ci
+   * va — assicurazione a parte, è la regola del campo e dell'assicuratore.
+   * Nell'appello va visto **prima di tutto il resto**, anche se ha detto «ci
+   * sono»: è l'ultimo momento in cui qualcuno lo può fermare, e in una lista
+   * di spunte tutte uguali passerebbe come gli altri.
+   */
+  const scoperto = (r: Riga) =>
+    giorniEvento.some(
+      (giorno) =>
+        serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, dataLocale(giorno)) &&
+        giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',
+    );
+
   // Un nuovo paga il prezzo per gli esterni, o quello della squadra se il primo
   // non c'è. Se non c'è nessuno dei due, aggiungerlo vorrebbe dire farlo giocare
   // gratis senza averlo deciso — e poterlo assicurare senza che abbia pagato:
@@ -1819,6 +1836,42 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     </p>
                   ) : (
                     <>
+                      {/* Chi non è assicurato sta a parte, in rosso e in cima,
+                          fuori dalla lista che scorre: deve saltare all'occhio
+                          anche se ha detto «ci sono». La spunta resta sua — chi
+                          fa l'appello registra chi c'era — ma la frase dice
+                          chiaro che in campo non ci va. */}
+                      {daAppello.some(scoperto) && (
+                        <div className="rounded-lg border-2 border-danger/70 bg-danger/10 p-3">
+                          <p className="flex items-center gap-2 text-sm font-semibold text-danger">
+                            <Icona nome="scudo" size={16} />
+                            Non assicurati · non possono giocare
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {daAppello.filter(scoperto).map((r) => (
+                              <label key={r.id} className="flex items-start gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  name="presenti"
+                                  value={r.id}
+                                  defaultChecked={r.presente ?? r.status === 'PRESENTE'}
+                                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+                                />
+                                <span className="min-w-0">
+                                  <span className="block break-words font-medium">
+                                    {nomeDi(r.user)}
+                                  </span>
+                                  <span className="block text-xs text-danger">
+                                    Non può giocare: manca l’assicurazione giornaliera
+                                    {piuGiorni ? ' per almeno un giorno' : ''}.
+                                  </span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* squadra e nuovi separati anche qui: hanno adempimenti
                           diversi — i nuovi vanno assicurati con la giornaliera —
                           e in una lista sola non si vede più chi è chi */}
@@ -1833,7 +1886,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           {
                             titolo: 'Nuovi',
                             righe: daAppello.filter(
-                              (r) => r.assegnazione !== 'TOC' && !diSquadra(r),
+                              (r) => r.assegnazione !== 'TOC' && !diSquadra(r) && !scoperto(r),
                             ),
                           },
                           {
@@ -1841,7 +1894,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                             // evita di contarlo fra chi ha giocato mentre si
                             // spunta l'elenco
                             titolo: 'TOC · sala controllo',
-                            righe: daAppello.filter((r) => r.assegnazione === 'TOC'),
+                            righe: daAppello.filter(
+                              (r) => r.assegnazione === 'TOC' && !scoperto(r),
+                            ),
                           },
                         ]
                           .filter((g) => g.righe.length > 0)

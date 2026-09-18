@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.59.0 — 18 settembre 2026
+
+### Aggiunto
+
+- **Nell'appello, i nuovi non assicurati stanno a parte, in rosso e in cima:
+  «Non assicurati · non possono giocare».** Accanto a ciascuno la frase *Non
+  può giocare: manca l'assicurazione giornaliera*. Prima erano una spunta come
+  le altre nel gruppo dei nuovi, e se avevano detto «ci sono» passavano
+  l'appello senza che nessuno se ne accorgesse — che è esattamente il momento
+  in cui qualcuno li deve fermare.
+- Il riquadro sta fuori dalla lista che scorre, così si vede anche quando
+  l'appello è lungo. La spunta resta: chi fa l'appello registra chi c'era, e
+  decide lui; la frase dice chiaro che in campo non ci va.
+- Conta ogni giorno dell'attività: su una due giorni basta che manchi la
+  giornaliera di uno per finire nel riquadro.
+
 ## 2.58.0 — 18 settembre 2026
 
 ### Cambiato
