@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.55.0 — 18 settembre 2026
+
+### Aggiunto
+
+- **Quanti siamo in giocata, da dove.** Sotto il conto delle risposte, nella
+  scheda dell'attività, una riga dice quanti **interni**, quanti **nuovi** e
+  quanti operatori arrivano dalle **squadre esterne**, con il totale. Le
+  risposte dicono chi ha alzato la mano; questa riga dice com'è fatta la
+  giornata — quanti nuovi da seguire, quanta gente sul campo — e prima andava
+  ricostruita contando i gruppi e sommando gli ospiti a mente.
+- Si contano quelli che hanno detto «ci sono», come nel numero che leggono le
+  squadre ospiti dal loro invito. Le squadre esterne che non hanno ancora
+  risposto non possono stare nel conto, e la riga dice quante sono invece di
+  far sembrare il campo più vuoto di come sarà.
+
 ## 2.54.0 — 18 settembre 2026
 
 ### Cambiato

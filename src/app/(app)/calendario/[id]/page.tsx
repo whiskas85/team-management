@@ -628,6 +628,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   type Riga = (typeof evento.rsvps)[number];
   const diSquadra = (r: Riga) => inSquadra(r.user.stato) || r.user.stato === 'DA_RICONFERMARE';
 
+  // Quanti siamo in campo, da dove: si contano quelli che hanno detto «ci
+  // sono» — come nel numero che leggono le squadre ospiti — e gli operatori
+  // che le squadre di fuori hanno annunciato. Chi non ha ancora risposto non
+  // può stare nel conto, ma si dice che manca.
+  const interniInGiocata = presenti.filter(diSquadra).length;
+  const inGiocata = {
+    interni: interniInGiocata,
+    nuovi: presenti.length - interniInGiocata,
+    esterni: evento.ospiti.reduce((t, o) => t + (o.operatori ?? 0), 0),
+    squadre: evento.ospiti.filter((o) => (o.operatori ?? 0) > 0).length,
+    mancanti: evento.ospiti.filter((o) => o.operatori === null).length,
+    conOspiti: evento.ospiti.length > 0,
+  };
+
   // squadra e ospiti restano separati: hanno adempimenti diversi (i nuovi vanno
   // assicurati con la giornaliera) e mescolarli nasconde chi manca di cosa
   const dividi = (
@@ -1181,6 +1195,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 forse={forse.length}
                 assenti={assenti.length}
                 silenziosi={silenziosi}
+                inGiocata={inGiocata}
               />
 
               {tl && (
