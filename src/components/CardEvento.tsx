@@ -109,12 +109,29 @@ export function CardEvento({
   // c'è il resto dei dati.
   const quota = e.costo !== null && e.costo > 0 ? fmtEuro(e.costo) : null;
 
+  /*
+   * Il piede sta in fondo, anche quando la card è più corta delle sue vicine.
+   *
+   * Le card stanno in una griglia, e in una griglia le celle di una riga sono
+   * alte tutte quanto la più alta: una card senza campo e senza quota si
+   * allunga per pareggiare quella accanto. Lo spazio in più cadeva **sotto** al
+   * piede — una fascia di fondo card, più scura, larga quanto la riga dei
+   * pulsanti: sembrava un secondo piede, vuoto.
+   *
+   * Si risolve dicendo che a crescere è il **corpo**: la card è una colonna, e
+   * il corpo si prende lo spazio che avanza. Il piede torna appoggiato al
+   * fondo, e l'aria in più finisce sotto al testo — dove per giunta è ancora
+   * area cliccabile, perché il corpo è tutto un link all'attività.
+   */
+  const striscia = puoNavigare || (quota && e.adesioniAperte);
+  const piede = e.adesioniAperte || azioni;
+
   return (
-    <div className="relative rounded-lg border border-line bg-surface">
+    <div className="relative flex h-full flex-col rounded-lg border border-line bg-surface">
       {elimina && <div className="absolute right-3 top-3 z-10">{elimina}</div>}
       <Link
         href={`/calendario/${e.id}`}
-        className="block rounded-t-lg p-4 transition-colors hover:bg-surface2"
+        className="block flex-1 rounded-t-lg p-4 transition-colors hover:bg-surface2"
       >
         <div className={`flex items-start justify-between gap-3 ${elimina ? 'pr-11' : ''}`}>
           <div className="min-w-0">
@@ -171,7 +188,7 @@ export function CardEvento({
           fascia loro. Il «Ci sei?» non c'è più — i tre pulsanti qui sotto la
           domanda la fanno da soli, e quello scelto resta acceso: scriverlo
           anche a parole era dire due volte la stessa cosa. */}
-      {(puoNavigare || (quota && e.adesioniAperte)) && (
+      {striscia && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
           <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
           {quota && e.adesioniAperte && (
@@ -184,7 +201,7 @@ export function CardEvento({
 
       {/* Il piede: qui si fa. La risposta e — per chi gestisce — il rilascio
           di una bozza, tutto allineato a destra come in tutte le card. */}
-      {(e.adesioniAperte || azioni) && (
+      {piede && (
         <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-[calc(0.5rem-1px)] border-t border-line bg-white/[0.045] px-4 py-3 [&>div]:justify-end">
           {e.adesioniAperte && (
             <AdesioneEvento

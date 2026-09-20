@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.62.2 — 20 settembre 2026
+
+### Corretto
+
+- **Nelle card del calendario spariva un «secondo piede» vuoto.** Le card
+  stanno in una griglia, e in una griglia le celle di una riga sono alte tutte
+  quanto la più alta: da quando i pulsanti di gestione non stanno più nelle
+  card, quelle senza campo e senza quota sono diventate più corte e si
+  allungavano per pareggiare la vicina. Lo spazio in più cadeva **sotto** al
+  piede — una fascia più scura, larga quanto la riga dei pulsanti, che sembrava
+  un piede vuoto. Adesso a crescere è il corpo della card: il piede torna
+  appoggiato al fondo e l'aria in più finisce sotto al testo, dove per giunta
+  resta cliccabile, perché il corpo è tutto un link all'attività.
+
 ## 2.62.1 — 20 settembre 2026
 
 ### Corretto
