@@ -5,6 +5,34 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.62.1 — 20 settembre 2026
+
+### Corretto
+
+- **`deploy/DEPLOY.md` raccontava un server che non esiste.** Era la guida del
+  trasloco scritta *prima* di farlo: parlava di Hetzner, di ZeroTier e di una
+  cartella `gestionale/` nella home. Il server vero è un VPS Aruba, il codice
+  sta in `/opt/gestionale` e la porta 22 risponde sul nome pubblico, senza VPN.
+  Chi ci andava a cercare l'indirizzo lo trovava scritto con le x. Adesso in
+  cima c'è la macchina com'è davvero, e i capitoli numerati restano sotto per
+  quello che sono: il ragionamento di allora, non le istruzioni di oggi.
+- **Nella procedura di rilascio mancava `zd restart proxy`.** Il `Caddyfile` è
+  montato come file dentro il container e `up -d` non ricrea il proxy se il suo
+  compose non è cambiato: senza quel passo le modifiche al proxy non entrano in
+  vigore, e i sintomi che ne vengono sembrano difetti dell'applicazione — è
+  successo davvero, con il tetto dei caricamenti.
+- **E mancava la pulizia.** Ogni ricostruzione lascia l'immagine vecchia senza
+  tag e la sua cache: in quattro giorni di rilasci erano 41 immagini e 57 GB di
+  cache, l'80% del disco del server. In coda al rilascio ora ci sono
+  `docker image prune` e un `builder prune` che tiene l'ultima settimana e butta
+  il resto.
+- Il backup pre-rilascio legge utente e database **dalle variabili del
+  container** invece che scritti a mano: se cambiano in `.env.prod`, il comando
+  non fa più un backup vuoto credendo di averlo fatto. E il nome del file porta
+  l'ora, per distinguere due rilasci nello stesso giorno.
+- Detto che il TAK non è stato installato e perché: la macchina ha 4 GB, lui ne
+  vuole 8 suoi.
+
 ## 2.62.0 — 20 settembre 2026
 
 ### Cambiato
