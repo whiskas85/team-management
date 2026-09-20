@@ -6,6 +6,7 @@ import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { Icona } from './Icona';
 import { Badge, Campo } from './ui';
+import { CampoFile } from './CampoFile';
 import {
   ESTENSIONI_ALLEGATO,
   MAX_ALLEGATO_BYTES,
@@ -218,25 +219,27 @@ function FormAllegato({
         </p>
       </Campo>
 
-      <Campo label={modifica ? 'Sostituisci il file' : 'Il file'} span>
-        <input
-          type="file"
-          name="file"
-          accept={ACCETTA}
-          required={!modifica}
-          className="input file:mr-3 file:rounded file:border-0 file:bg-surface2 file:px-3 file:py-1 file:text-ink"
-        />
-        <p className="mt-1 text-xs text-muted">
-          PDF, Markdown (.md) o HTML, fino a {MEGA} MB.
-          {allegato && (
-            <>
-              {' '}
-              Lasciandolo vuoto resta <span className="text-ink">{allegato.fileName}</span>: si
-              cambiano solo il nome e la spunta.
-            </>
-          )}
-        </p>
-      </Campo>
+      <CampoFile
+        label={modifica ? 'Sostituisci il file' : 'Il file'}
+        span
+        accept={ACCETTA}
+        estensioni={ESTENSIONI_ALLEGATO}
+        maxBytes={MAX_ALLEGATO_BYTES}
+        required={!modifica}
+        className="input file:mr-3 file:rounded file:border-0 file:bg-surface2 file:px-3 file:py-1 file:text-ink"
+        aiuto={
+          <>
+            PDF, Markdown (.md) o HTML, fino a {MEGA} MB.
+            {allegato && (
+              <>
+                {' '}
+                Lasciandolo vuoto resta <span className="text-ink">{allegato.fileName}</span>: si
+                cambiano solo il nome e la spunta.
+              </>
+            )}
+          </>
+        }
+      />
 
       <Campo label="Chi lo vede" span>
         <label className="flex items-start gap-2 text-sm">

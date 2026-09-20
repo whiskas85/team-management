@@ -25,13 +25,13 @@ const FORMATI: Record<string, { genere: GenereAllegato; tipo: string; etichetta:
 export const ESTENSIONI_ALLEGATO = Object.keys(FORMATI);
 
 /**
- * Venti mega e non dieci.
+ * Venti mega.
  *
- * Il tetto di sempre è tarato su un certificato medico fotografato col
- * telefono. Un book di missione è un'altra bestia: mappe, planimetrie, foto
- * del campo — venti mega li fa senza fare niente di strano, e farlo rimbalzare
- * vorrebbe dire mandarlo per WhatsApp, che è esattamente il posto dove si
- * perde.
+ * Un book di missione non è un foglio: mappe, planimetrie, foto del campo —
+ * venti mega li fa senza fare niente di strano, e farlo rimbalzare vorrebbe
+ * dire mandarlo per WhatsApp, che è esattamente il posto dove si perde. È lo
+ * stesso tetto del certificato medico (`lib/certificato.ts`), arrivato lì per
+ * la strada opposta: la scansione dello studio pesa quanto un book.
  */
 export const MAX_ALLEGATO_BYTES = 20 * 1024 * 1024;
 

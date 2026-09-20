@@ -10,9 +10,12 @@ server {
   ssl_certificate_key /etc/nginx/certificati/chiave.pem;
   ssl_protocols       TLSv1.2 TLSv1.3;
 
-  # i certificati medici sono PDF o foto da telefono: il limite di default
-  # (1 MB) li rifiuterebbe a metà caricamento, senza spiegare perché
-  client_max_body_size 12m;
+  # I certificati medici arrivano come li dà il medico, e una scansione a
+  # colori fa quindici mega senza fatica. Il tetto vero è quello del gestionale
+  # (20 MB) ed è lui che deve dirlo con parole sue: qui si sta più larghi,
+  # perché un caricamento fermato da nginx torna una pagina d'errore che il
+  # browser non sa leggere e lascia lo schermo rotto.
+  client_max_body_size 25m;
 
   # Il DNS di Docker, e l'indirizzo dell'applicazione tenuto in una variabile.
   # Senza questi due, nginx risolve "app" una volta sola all'avvio e si tiene

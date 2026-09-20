@@ -5,6 +5,42 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.60.0 — 20 settembre 2026
+
+### Corretto
+
+- **Il certificato medico in PDF non si riusciva più a caricare: lo schermo
+  andava in errore.** Con un file oltre i dodici mega — la scansione a colori
+  dello studio, il PDF con dentro l'elettrocardiogramma — la richiesta veniva
+  fermata *prima* di arrivare al gestionale, dal proxy o dal tetto interno di
+  Next. Quello che tornava al browser non era una risposta leggibile, e la
+  pagina finiva su «Qualcosa si è rotto» dopo aver aspettato tutto il
+  caricamento. Le foto scattate col telefono, che pesano due o tre mega,
+  passavano: per questo sembrava un problema dei PDF.
+- **Adesso il file si controlla nel browser, prima di partire.** Se è troppo
+  grande resta sul telefono e il messaggio arriva subito, con dentro cosa fare:
+  «*certificato.pdf* pesa 22,9 MB, il massimo è 20 MB. Se è una scansione,
+  rifalla in bianco e nero o a qualità più bassa; una foto del foglio col
+  telefono va benissimo».
+- **Un PDF non viene più rifiutato per come l'ha chiamato il computer di
+  qualcun altro.** Il formato si riconosce dall'estensione del nome, non dal
+  tipo dichiarato dal browser: un file passato da WhatsApp o da una chiavetta
+  arriva col tipo vuoto o `application/octet-stream`, e prima si beccava
+  «Formato non ammesso» pur essendo un PDF buono. Quando è il nome a non dire
+  niente, si guarda il tipo: uno dei due parla sempre.
+
+### Cambiato
+
+- **Il certificato può pesare fino a 20 MB**, dieci prima. Il certificato lo
+  consegna il medico e arriva com'è: chi lo riceve non sa alleggerirlo, e non è
+  il suo mestiere. È lo stesso tetto del book di missione.
+- I muri davanti al gestionale — Caddy sul server, nginx in casa, il tetto
+  delle server action — stanno tutti **più in là** del tetto vero: a dire «è
+  troppo grande» dev'essere sempre il gestionale, con parole sue, e mai una
+  pagina rotta.
+- Stesso controllo anche sugli allegati dell'attività: il book di missione da
+  venti mega si fermava allo stesso muro.
+
 ## 2.59.0 — 18 settembre 2026
 
 ### Aggiunto

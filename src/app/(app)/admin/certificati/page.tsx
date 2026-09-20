@@ -23,6 +23,13 @@ import {
   rifiutaCertificato,
 } from '@/actions/certificati';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
+import { CampoFile } from '@/components/CampoFile';
+import {
+  ACCETTA_CERTIFICATO,
+  ESTENSIONI_CERTIFICATO,
+  MAX_CERTIFICATO_BYTES,
+  MEGA_CERTIFICATO,
+} from '@/lib/certificato';
 
 const FILTRI = {
   attesa: 'Da vagliare',
@@ -126,15 +133,14 @@ export default async function CertificatiPage({
                 </Campo>
                 <DateCertificato />
               </div>
-              <Campo label="File *">
-                <input
-                  type="file"
-                  name="file"
-                  required
-                  accept="application/pdf,image/*"
-                  className="input file:mr-3 file:rounded file:border-0 file:bg-nvg/15 file:px-3 file:py-1 file:text-nvg"
-                />
-              </Campo>
+              <CampoFile
+                label="File *"
+                required
+                accept={ACCETTA_CERTIFICATO}
+                estensioni={ESTENSIONI_CERTIFICATO}
+                maxBytes={MAX_CERTIFICATO_BYTES}
+                aiuto={`PDF o foto, fino a ${MEGA_CERTIFICATO} MB.`}
+              />
               <Invia icona="carica">
             Carica
           </Invia>
@@ -454,15 +460,14 @@ function AzioniMancante({
             </Campo>
             <DateCertificato />
           </div>
-          <Campo label="File *">
-            <input
-              type="file"
-              name="file"
-              required
-              accept="application/pdf,image/*"
-              className="input file:mr-3 file:rounded file:border-0 file:bg-nvg/15 file:px-3 file:py-1 file:text-nvg"
-            />
-          </Campo>
+          <CampoFile
+            label="File *"
+            required
+            accept={ACCETTA_CERTIFICATO}
+            estensioni={ESTENSIONI_CERTIFICATO}
+            maxBytes={MAX_CERTIFICATO_BYTES}
+            aiuto={`PDF o foto, fino a ${MEGA_CERTIFICATO} MB.`}
+          />
           <Invia icona="carica">Carica</Invia>
         </FormAzione>
       </BottoneModale>

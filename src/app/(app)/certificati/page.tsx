@@ -12,11 +12,18 @@ import { Avviso, Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
+import { CampoFile } from '@/components/CampoFile';
 import { Invia } from '@/components/Bottone';
 import { DateCertificato } from '@/components/DateCertificato';
 import { LineaCertificato } from '@/components/LineaCertificato';
 import { Icona } from '@/components/Icona';
 import { caricaCertificato, eliminaCertificato } from '@/actions/certificati';
+import {
+  ACCETTA_CERTIFICATO,
+  ESTENSIONI_CERTIFICATO,
+  MAX_CERTIFICATO_BYTES,
+  MEGA_CERTIFICATO,
+} from '@/lib/certificato';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,15 +70,13 @@ export default async function MieiCertificatiPage() {
 
       <DateCertificato />
 
-      <Campo label="File (PDF o foto) *">
-        <input
-          type="file"
-          name="file"
-          required
-          accept="application/pdf,image/*"
-          className="input file:mr-3 file:rounded file:border-0 file:bg-nvg/15 file:px-3 file:py-1 file:text-nvg"
-        />
-      </Campo>
+      <CampoFile
+        label="File (PDF o foto) *"
+        required
+        accept={ACCETTA_CERTIFICATO}
+        estensioni={ESTENSIONI_CERTIFICATO}
+        maxBytes={MAX_CERTIFICATO_BYTES}
+      />
 
       <Campo label="Note">
         <textarea name="note" rows={2} className="input" />
@@ -81,8 +86,8 @@ export default async function MieiCertificatiPage() {
         Carica certificato
       </Invia>
       <p className="text-xs text-muted">
-        Massimo 10 MB · PDF, JPG, PNG o WEBP. Resta in attesa finché l’amministrazione non lo
-        approva.
+        Massimo {MEGA_CERTIFICATO} MB · PDF, JPG, PNG o WEBP. Resta in attesa finché
+        l’amministrazione non lo approva.
       </p>
     </FormAzione>
   );

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoAmministrare, scadenzaCertificato } from '@/lib/domain';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
+import { REGOLE_CERTIFICATO } from '@/lib/certificato';
 import { data, str, strOpt, enumVal, type StatoForm } from '@/lib/form';
 
 const TIPI = ['NON_AGONISTICO', 'AGONISTICO'] as const;
@@ -39,7 +40,7 @@ export async function caricaCertificato(_prev: StatoForm, fd: FormData): Promise
 
   let salvato;
   try {
-    salvato = await salvaAllegato(file, 'certificati');
+    salvato = await salvaAllegato(file, 'certificati', REGOLE_CERTIFICATO);
   } catch (e) {
     return { errore: e instanceof Error ? e.message : 'Caricamento non riuscito.' };
   }

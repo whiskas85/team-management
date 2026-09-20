@@ -12,10 +12,13 @@
 {$DOMINIO} {
 	encode zstd gzip
 
-	# i certificati medici sono PDF o foto da telefono: stesso tetto di casa,
-	# altrimenti un caricamento grosso si interrompe senza spiegare perché
+	# I certificati medici arrivano come li dà il medico: la scansione a colori
+	# dello studio fa quindici mega senza fatica. Il tetto vero è quello del
+	# gestionale (20 MB) ed è lui che deve dirlo, con parole sue: qui si sta più
+	# larghi, perché un caricamento fermato dal proxy si interrompe e basta, e
+	# a chi guarda resta una pagina rotta senza spiegazione.
 	request_body {
-		max_size 12MB
+		max_size 25MB
 	}
 
 	# chi è arrivato una volta in HTTPS non torna più in chiaro, nemmeno

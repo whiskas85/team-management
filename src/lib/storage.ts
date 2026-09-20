@@ -37,6 +37,16 @@ export type RegoleFile = {
   estensioni: string[];
   /** Il tipo con cui salvarlo, deciso da noi a partire dall'estensione. */
   tipoDa: (estensione: string) => string;
+  /**
+   * Il contrario, per quando il nome non dice niente.
+   *
+   * Capita: la fotocamera di certi telefoni consegna `image.jpg` ma certe
+   * applicazioni consegnano un nome senza estensione, e allora l'unica cosa
+   * che resta è il tipo dichiarato. Si usa **solo** in quel caso — quando il
+   * nome parla, comanda il nome — e serve a non bocciare un file giusto per
+   * come l'ha chiamato il computer di qualcun altro.
+   */
+  estensioneDa?: (tipo: string) => string | null;
   maxBytes?: number;
   /** Cosa si dice a chi sbaglia formato, con parole sue. */
   spiegazione: string;
@@ -55,9 +65,14 @@ export async function salvaAllegato(
     throw new Error(`File troppo grande: massimo ${Math.round(tetto / 1024 / 1024)} MB.`);
   }
 
-  const estensione = path.extname(file.name).toLowerCase();
+  let estensione = path.extname(file.name).toLowerCase();
   if (regole) {
-    if (!regole.estensioni.includes(estensione)) throw new Error(regole.spiegazione);
+    if (!regole.estensioni.includes(estensione)) {
+      // il nome non dice niente: prima di bocciarlo si prova a chiedere al tipo
+      const ripiego = estensione ? null : regole.estensioneDa?.(file.type) ?? null;
+      if (!ripiego) throw new Error(regole.spiegazione);
+      estensione = ripiego;
+    }
   } else if (!TIPI_AMMESSI.has(file.type)) {
     throw new Error('Formato non ammesso. Usa PDF, JPG, PNG o WEBP.');
   }
