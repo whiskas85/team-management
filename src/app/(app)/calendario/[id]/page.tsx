@@ -31,7 +31,7 @@ import {
 import { comeChiamare, fmtDate, fmtDateTime, fmtEuro, fmtTime, umanizza } from '@/lib/format';
 import { listinoAttivo, quotaPer } from '@/lib/quote';
 import { stagioniAperte } from '@/lib/stagioni';
-import { Avatar, Badge, Campo, Dato, Intestazione, Vuoto } from '@/components/ui';
+import { Avatar, Badge, Blocco, Campo, Dato, Intestazione, Vuoto } from '@/components/ui';
 import { Conferma, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
@@ -685,6 +685,80 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     ...(campo?.meta ? [{ etichetta: 'Campo', testo: campo.testo, meta: campo.meta }] : []),
   ];
 
+  /**
+   * Dove si gioca, detto in tre righe: il nome, l'indirizzo, e chi lo tiene.
+   *
+   * Un campo in anagrafica ha un nome nostro — «Area Boschiva Nord» — che non
+   * porta nessuno da nessuna parte: l'indirizzo va detto sotto, non al posto
+   * suo. Una riunione un posto non ce l'ha, e dirlo «—» sarebbe far cercare
+   * qualcosa che non esiste: si gioca online, e il collegamento è lì sotto.
+   */
+  const dove = evento.field
+    ? {
+        nome: evento.field.nome,
+        indirizzo:
+          [evento.field.indirizzo, evento.field.citta].filter(Boolean).join(', ') || null,
+        nota: evento.field.squadra ? `gestito da ${evento.field.squadra.nome}` : null,
+      }
+    : evento.luogo
+      ? { nome: evento.luogo, indirizzo: null, nota: null }
+      : evento.linkRiunione
+        ? { nome: 'Online', indirizzo: null, nota: 'ci si trova sul collegamento qui sotto' }
+        : { nome: '—', indirizzo: null, nota: 'il posto non è ancora deciso' };
+
+  /** Quante persone si presentano in campo, i nostri e quelli di fuori. */
+  const attesi = inGiocata.interni + inGiocata.nuovi + inGiocata.esterni;
+
+  /**
+   * Da dove vengono, e **solo quelli che ci sono**.
+   *
+   * «2 del club · 0 nuovi» fa leggere uno zero per scoprire che non c'è niente
+   * da sapere: i numeri che contano sono quelli diversi da zero, e una riga
+   * corta si legge in un colpo d'occhio invece che parola per parola.
+   */
+  const pezziGiocata = [
+    inGiocata.interni > 0
+      ? { chiave: 'interni', n: inGiocata.interni, classe: 'text-ink', testo: 'del club' }
+      : null,
+    inGiocata.nuovi > 0
+      ? {
+          chiave: 'nuovi',
+          n: inGiocata.nuovi,
+          classe: 'text-sky-300',
+          testo: inGiocata.nuovi === 1 ? 'nuovo' : 'nuovi',
+        }
+      : null,
+    inGiocata.esterni > 0
+      ? {
+          chiave: 'esterni',
+          n: inGiocata.esterni,
+          classe: 'text-warn',
+          testo: `da ${inGiocata.squadre} ${
+            inGiocata.squadre === 1 ? 'squadra esterna' : 'squadre esterne'
+          }`,
+        }
+      : null,
+  ].filter((p): p is { chiave: string; n: number; classe: string; testo: string } => p !== null);
+
+  /**
+   * Com'è fatta la quota, quando dirlo aggiunge qualcosa.
+   *
+   * Una voce sola e senza dettaglio ripeterebbe il numero grande scritto sopra;
+   * due voci, o una che si paga a una cassa diversa, no — lì cambia **a chi**
+   * si paga, e chi deve saldare deve saperlo.
+   */
+  const gratuita = costo === 0 && evento.quoteCasse.length === 0;
+  const vociQuota = [
+    ...(mioCosto > 0
+      ? [`${fmtEuro(mioCosto)} alla squadra${mioDettaglio ? ` (${mioDettaglio})` : ''}`]
+      : []),
+    ...mieAltreVoci.map(
+      (v) => `${fmtEuro(v.importo)} a ${v.cassa}${v.descrizione ? ` (${v.descrizione})` : ''}`,
+    ),
+  ];
+  const composizione =
+    vociQuota.length > 1 || mioDettaglio || mieAltreVoci.length > 0 ? vociQuota : [];
+
   // squadra e ospiti restano separati: hanno adempimenti diversi (i nuovi vanno
   // assicurati con la giornaliera) e mescolarli nasconde chi manca di cosa
   const dividi = (
@@ -955,219 +1029,204 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 caselle grigie della griglia si leggevano come un dettaglio
                 anagrafico. A quelli di casa non c'era ragione di dirlo peggio
                 che a quelli di fuori. */}
-            <Quando
-              inizio={evento.inizio}
-              fine={evento.fine}
-              durataOre={evento.durataOre}
-              className="mb-4 border-b border-line pb-4"
-            />
+            <Quando inizio={evento.inizio} fine={evento.fine} durataOre={evento.durataOre} />
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Dato
-                etichetta="Quota"
-                valore={
-                  <>
-                    {mioTotale > 0 ? (
+            {/* ------------------------------------------------ dove si gioca */}
+            {/* Un posto solo. Il campo, il ritrovo, la mappa e i pulsanti per
+                farsi portare stavano in quattro punti diversi della pagina, e
+                chi doveva arrivarci li raccoglieva scorrendo avanti e indietro. */}
+            <div className="mt-5 border-t border-line pt-4">
+              <Blocco
+                etichetta="Dove si gioca"
+                valore={dove.nome}
+                sotto={dove.indirizzo}
+                nota={dove.nota}
+              />
+
+              {/* Il ritrovo è un'altra cosa dal campo: è dove ci si trova
+                  prima, spesso a chilometri di distanza, e con un'ora sua. */}
+              {(evento.ritrovo || evento.oraRitrovo) && (
+                <p className="mt-3 text-sm">
+                  <span className="titolo-sezione">Ritrovo</span>{' '}
+                  <span className="ml-1">{evento.ritrovo ?? 'sul posto'}</span>
+                  {evento.oraRitrovo && (
+                    <span className="num text-nvg"> &middot; ore {fmtTime(evento.oraRitrovo)}</span>
+                  )}
+                </p>
+              )}
+
+              {evento.linkRiunione && (
+                <p className="mt-3">
+                  <a
+                    href={evento.linkRiunione}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="btn-primary btn-sm"
+                  >
+                    <Icona nome="apri" size={15} />
+                    Entra nella riunione
+                  </a>
+                </p>
+              )}
+
+              {evento.field?.lat != null && evento.field?.lng != null && (
+                <div className="mt-3">
+                  <Mappa
+                    lat={evento.field.lat}
+                    lng={evento.field.lng}
+                    nome={evento.field.nome}
+                    altezza={200}
+                  />
+                </div>
+              )}
+
+              {tappe.length > 0 && (
+                <div className="mt-3">
+                  <ComeArrivare tappe={tappe} />
+                </div>
+              )}
+            </div>
+
+            {/* ------------------------------------------------- referenti */}
+            {/* Chi tiene in mano l'attività, e lo vedono tutti — nuovi
+                compresi: uno arrivato da poco che non conosce nessuno è
+                esattamente la persona che deve poter chiedere come ci si veste
+                o a che ora si parte. È un elenco di persone da chiamare, non
+                un numero da leggere: una riga per uno, col recapito accanto. */}
+            <ReferentiEvento referenti={referenti} />
+
+            {/* --------------------------------------------- tutto il resto */}
+            {/* Una linea sola sopra, e nessuna dentro. Le righe orizzontali
+                separano i tre discorsi grossi — quando, dove, a chi si chiede —
+                e usarle anche qui spezzettava la pagina in dieci riquadri, dove
+                non si capiva più cosa fosse importante. */}
+            <div className="mt-5 space-y-4 border-t border-line pt-4">
+              {/* Quanti saremo, per intero.
+                  La domanda per cui si apre un'attività non è «quante
+                  adesioni ci sono fra i nostri»: è quanta gente ci sarà in
+                  campo, e quel numero comprende i nuovi e chi arriva con le
+                  altre squadre. Si tocca e si finisce fra i partecipanti, dove
+                  ci sono i nomi. */}
+              <a
+                href="#partecipanti"
+                className="-mx-2 block rounded-md px-2 py-1 transition-colors hover:bg-surface2/60"
+              >
+                <Blocco
+                  etichetta="In giocata"
+                  valore={
+                    <>
+                      <span className="num">{attesi}</span>{' '}
+                      <span className="text-base font-normal text-muted">
+                        {attesi === 1 ? 'persona attesa' : 'persone attese'}
+                      </span>
+                    </>
+                  }
+                  sotto={
+                    pezziGiocata.length > 0 ? (
                       <>
-                        {mioCosto > 0 && fmtEuro(mioCosto)}
-                        {/* di cosa è fatta: si paga in una volta sola */}
-                        {mioCosto > 0 && mioDettaglio && (
-                          <span className="block text-[11px] text-muted">{mioDettaglio}</span>
-                        )}
-                        {/* le altre casse: ognuna si paga a chi la tiene */}
-                        {mieAltreVoci.map((v) => (
-                          <span key={v.id} className="block">
-                            {mioCosto > 0 ? '+ ' : ''}
-                            {fmtEuro(v.importo)}{' '}
-                            <span className="text-[11px] text-muted">
-                              a {v.cassa} · {v.descrizione}
-                            </span>
+                        {pezziGiocata.map((p, i) => (
+                          <span key={p.chiave}>
+                            {i > 0 && <span className="text-muted"> · </span>}
+                            <span className={p.classe}>{p.n}</span>{' '}
+                            <span className="text-sm text-muted">{p.testo}</span>
                           </span>
                         ))}
-                        <span className="block text-[11px] text-warn">
-                          {mioConvocato
-                            ? 'sei convocato: il posto è tuo, diventa tuo davvero al saldo'
-                            : schieraQuesta && !mioTitolare
-                              ? 'si paga solo se il TL ti schiera titolare'
-                              : 'presenza confermata a quota saldata'}
-                        </span>
                       </>
-                    ) : (
-                      '—'
+                    ) : null
+                  }
+                  nota={
+                    <>
+                      {/* i posti non chiudono le adesioni: alzare la mano si
+                          può sempre, e chi avanza va in riserva */}
+                      {evento.maxPartecipanti !== null && (
+                        <p>
+                          {evento.maxPartecipanti} posti in formazione
+                          {pieno && presenti.length > evento.maxPartecipanti
+                            ? ` · ${presenti.length - evento.maxPartecipanti} in più`
+                            : ''}
+                        </p>
+                      )}
+                      {inGiocata.mancanti > 0 && (
+                        <p>
+                          {inGiocata.mancanti}{' '}
+                          {inGiocata.mancanti === 1 ? 'squadra non ha' : 'squadre non hanno'} ancora
+                          detto in quanti vengono
+                        </p>
+                      )}
+                    </>
+                  }
+                />
+              </a>
+
+              {/* La quota: quanto tocca a me, e basta. Le due tariffe —
+                  squadra ed esterni — le vede chi le decide: a chi deve pagare
+                  non serve sapere quanto paga un altro, e messe in fila
+                  facevano sembrare che ci fosse da scegliere. */}
+              <Blocco
+                etichetta="Quota"
+                valore={mioTotale > 0 ? fmtEuro(mioTotale) : gratuita ? 'Gratis' : '—'}
+                nota={
+                  <>
+                    {mioTotale > 0 && composizione.length > 0 && (
+                      <p>{composizione.join(' · ')}</p>
                     )}
-                    {/* chi gestisce vede tutte e due le quote: è lui a deciderle */}
+                    {mioTotale > 0 && (
+                      <p className="text-warn">
+                        {mioConvocato
+                          ? 'sei convocato: il posto è tuo, diventa tuo davvero al saldo'
+                          : schieraQuesta && !mioTitolare
+                            ? "si paga solo se il TL ti schiera titolare"
+                            : 'presenza confermata a quota saldata'}
+                      </p>
+                    )}
                     {gestisce && (
-                      <span className="block text-[11px] text-muted">
-                        squadra {fmtEuro(costo)}
-                        {evento.dettaglioCosto ? ` (${evento.dettaglioCosto})` : ''} · esterni{' '}
+                      <p>
+                        tariffe &middot; squadra {fmtEuro(costo)} &middot; esterni{' '}
                         {quotaEsterni === null ? 'come la squadra' : fmtEuro(quotaEsterni)}
-                        {evento.dettaglioCostoEsterni ? ` (${evento.dettaglioCostoEsterni})` : ''}
-                      </span>
+                        {evento.quoteCasse.map((q) => (
+                          <span key={q.id} className="block">
+                            {q.cassa.nome} &middot; squadra {fmtEuro(Number(q.importo))} &middot;{' '}
+                            esterni{' '}
+                            {q.importoEsterni === null
+                              ? 'come la squadra'
+                              : fmtEuro(Number(q.importoEsterni))}
+                          </span>
+                        ))}
+                      </p>
                     )}
-                    {gestisce &&
-                      evento.quoteCasse.map((q) => (
-                        <span key={q.id} className="block text-[11px] text-muted">
-                          {q.cassa.nome}: squadra {fmtEuro(Number(q.importo))} · esterni{' '}
-                          {q.importoEsterni === null
-                            ? 'come la squadra'
-                            : fmtEuro(Number(q.importoEsterni))}
-                        </span>
-                      ))}
                   </>
                 }
               />
-<Dato
-                etichetta="Dove"
-                valore={
-                  evento.field ? (
-                    <>
-                      {evento.field.nome}
-                      {evento.field.squadra && (
-                        <span className="block text-[11px] text-muted">
-                          gestito da {evento.field.squadra.nome}
-                        </span>
-                      )}
-                    </>
-                  ) : evento.luogo ? (
-                    <>{evento.luogo}</>
-                  ) : (
-                    '—'
-                  )
-                }
-              />
-              {evento.linkRiunione && (
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Dato
-                  etichetta="Collegamento"
+                  etichetta="Chiusura adesioni"
+                  valore={evento.chiusuraIscrizioni ? fmtDateTime(evento.chiusuraIscrizioni) : '—'}
+                />
+                <Dato
+                  etichetta="Creato da"
                   valore={
-                    <a
-                      href={evento.linkRiunione}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="text-nvg underline underline-offset-2"
-                    >
-                      Entra nella riunione
-                    </a>
+                    evento.createdBy
+                      ? `${evento.createdBy.nome} ${evento.createdBy.cognome}`
+                      : 'sistema'
                   }
                 />
+              </div>
+
+              {evento.descrizione && (
+                <div>
+                  <p className="titolo-sezione mb-2">Briefing</p>
+                  <p className="whitespace-pre-wrap text-sm text-ink/90">{evento.descrizione}</p>
+                </div>
               )}
-              <Dato
-                etichetta="Ritrovo"
-                valore={
-                  /* Il navigatore non sta più qui: portare da qualche parte è
-                     un gesto, e i gesti stanno insieme più in basso, in «Come
-                     ci si arriva». Qui si legge e basta. */
-                  evento.ritrovo ?? '—'
-                }
-              />
-              <Dato
-                etichetta="Ora ritrovo"
-                valore={evento.oraRitrovo ? fmtTime(evento.oraRitrovo) : '—'}
-              />
-              {/* Quanti saremo, per intero e su una riga sua.
-                  La domanda per cui si apre un'attività non è «quante adesioni
-                  ci sono fra i nostri»: è **quanta gente ci sarà in campo**, e
-                  quel numero comprende i nuovi e chi arriva con le altre
-                  squadre. Stava spezzato fra una casella della griglia e il
-                  riquadro dei partecipanti, e nessuno dei due lo diceva
-                  intero. Si tocca e si finisce fra i partecipanti, dove ci
-                  sono i nomi. */}
-              <a
-                href="#partecipanti"
-                className="col-span-2 block rounded-md border border-line bg-surface2/60 px-3 py-2 transition-colors hover:border-nvgdim sm:col-span-3"
-              >
-                <p className="titolo-sezione">In giocata</p>
-                <p className="mt-1 flex items-baseline gap-2">
-                  <span className="num text-2xl font-semibold leading-none text-nvg">
-                    {inGiocata.interni + inGiocata.nuovi + inGiocata.esterni}
-                  </span>
-                  <span className="text-sm text-muted">
-                    {inGiocata.interni + inGiocata.nuovi + inGiocata.esterni === 1
-                      ? 'persona attesa'
-                      : 'persone attese'}
-                  </span>
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  <span className="num text-ink">{inGiocata.interni}</span> del club ·{' '}
-                  <span className="num text-sky-300">{inGiocata.nuovi}</span>{' '}
-                  {inGiocata.nuovi === 1 ? 'nuovo' : 'nuovi'}
-                  {inGiocata.conOspiti && (
-                    <>
-                      {' '}
-                      · <span className="num text-warn">{inGiocata.esterni}</span> da{' '}
-                      {inGiocata.squadre}{' '}
-                      {inGiocata.squadre === 1 ? 'squadra esterna' : 'squadre esterne'}
-                      {inGiocata.mancanti > 0 &&
-                        ` · ${inGiocata.mancanti} ${inGiocata.mancanti === 1 ? 'non ha' : 'non hanno'} ancora risposto`}
-                    </>
-                  )}
-                </p>
-                {/* i posti non chiudono le adesioni: alzare la mano si può
-                    sempre, e chi avanza va in riserva */}
-                {evento.maxPartecipanti !== null && (
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {evento.maxPartecipanti} posti in formazione
-                    {pieno && presenti.length > evento.maxPartecipanti
-                      ? ` · ${presenti.length - evento.maxPartecipanti} in più`
-                      : ''}
-                  </p>
-                )}
-              </a>
-              <Dato
-                etichetta="Chiusura adesioni"
-                valore={evento.chiusuraIscrizioni ? fmtDateTime(evento.chiusuraIscrizioni) : '—'}
-              />
-              <Dato
-                etichetta="Creato da"
-                valore={
-                  evento.createdBy
-                    ? `${evento.createdBy.nome} ${evento.createdBy.cognome}`
-                    : 'sistema'
-                }
-              />
+
+              {tl && evento.note && (
+                <div>
+                  <p className="titolo-sezione mb-2">Note interne</p>
+                  <p className="whitespace-pre-wrap text-sm text-muted">{evento.note}</p>
+                </div>
+              )}
             </div>
-
-            {/* Chi tiene in mano l'attività, e lo vedono tutti — **nuovi
-                compresi**: uno arrivato da poco che non conosce nessuno è
-                esattamente la persona che deve poter chiedere come ci si veste
-                o a che ora si parte. Sta fuori dalla griglia dei dati perché è
-                un elenco di persone da chiamare, non un numero da leggere:
-                una riga per uno, con il suo recapito accanto. */}
-            <ReferentiEvento referenti={referenti} />
-
-            {evento.field?.lat !== null && evento.field?.lng != null && (
-              <div className="mt-5 border-t border-line pt-4">
-                <p className="titolo-sezione mb-2">Dove si gioca</p>
-                <Mappa
-                  lat={evento.field.lat as number}
-                  lng={evento.field.lng}
-                  nome={evento.field.nome}
-                  altezza={200}
-                />
-              </div>
-            )}
-
-            {/* Come ci si arriva: il ritrovo e il campo, ognuno col suo
-                pulsante, e il viaggio intero quando sono tutti e due. */}
-            {tappe.length > 0 && (
-              <div className="mt-5 border-t border-line pt-4">
-                <p className="titolo-sezione mb-2">Come ci si arriva</p>
-                <ComeArrivare tappe={tappe} />
-              </div>
-            )}
-
-            {evento.descrizione && (
-              <div className="mt-5 border-t border-line pt-4">
-                <p className="titolo-sezione mb-2">Briefing</p>
-                <p className="whitespace-pre-wrap text-sm text-ink/90">{evento.descrizione}</p>
-              </div>
-            )}
-
-            {tl && evento.note && (
-              <div className="mt-5 border-t border-line pt-4">
-                <p className="titolo-sezione mb-2">Note interne</p>
-                <p className="whitespace-pre-wrap text-sm text-muted">{evento.note}</p>
-              </div>
-            )}
 
             {/* Il link si manda in fondo ai dati, dove uno arriva dopo aver
                 letto quando e dove: è quello il momento in cui viene voglia di

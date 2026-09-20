@@ -5,6 +5,34 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.63.0 — 20 settembre 2026
+
+### Cambiato
+
+- **Dentro l'attivita' i numeri si leggono tutti allo stesso modo.** Il
+  riquadro del «Quando» e' diventato la forma di tutti: etichetta piccola
+  sopra, il valore in grande, e sotto in verde la riga che si legge insieme al
+  valore. Adesso hanno quella forma anche **In giocata** e **Quota**, e si
+  trovano a colpo d'occhio senza rileggere le etichette.
+- **«In giocata» non e' piu' un riquadro dentro al riquadro**: e' un gruppo
+  come gli altri, con il totale in grande e sotto quanti del club, quanti
+  nuovi e quanti dalle squadre esterne, ognuno col suo colore. Si tocca e si
+  scende ai partecipanti.
+- **La quota dice quanto tocca a te, e basta.** Le due tariffe — squadra ed
+  esterni — le vede solo chi le decide, in grigio sotto: a chi deve pagare non
+  serve sapere quanto paga un altro, e messe in fila facevano sembrare che ci
+  fosse da scegliere. Com'e' fatta la somma si dice solo quando aggiunge
+  qualcosa: due voci, o una cassa diversa a cui va pagata.
+- **«Dove si gioca» sta in un posto solo.** Campo, indirizzo, ritrovo con la
+  sua ora, mappa e pulsanti per farsi portare erano sparsi in quattro punti
+  della pagina: adesso sono un blocco unico, nell'ordine in cui servono. Una
+  riunione online lo dice — «Online» — invece di lasciare un trattino, e il
+  collegamento sta li'.
+- **Le righe orizzontali separano solo i tre discorsi grossi**: quando, dove,
+  a chi si chiede. Tutto il resto — in giocata, quota, chiusura adesioni,
+  briefing, note interne — sta in un gruppo solo, senza linee dentro: erano
+  diventate dieci strisce in cui non si capiva piu' cosa contasse.
+
 ## 2.62.3 — 20 settembre 2026
 
 ### Corretto

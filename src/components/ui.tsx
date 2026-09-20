@@ -115,6 +115,46 @@ export function Campo({
   );
 }
 
+/**
+ * Un dato che conta, scritto in grande.
+ *
+ * Tre righe e nient'altro: **l'etichetta** minuscola sopra, che dice di cosa
+ * si parla; **il valore** grande, che è la risposta; e sotto, in verde, la
+ * riga che si legge insieme al valore — l'orario dentro il giorno, la città
+ * dentro il campo, com'è fatto il conto dentro la quota. Quello che resta —
+ * le precisazioni, i «però» — va nella nota, in grigio piccolo, dove non
+ * disturba chi cercava solo la risposta.
+ *
+ * Nato per il «Quando» della pagina di un'attività, che in due caselle grigie
+ * di una griglia non si leggeva. Funziona per lo stesso motivo ovunque: chi
+ * apre una pagina cerca **tre o quattro numeri**, e se stanno tutti nello
+ * stesso formato li trova senza rileggere le etichette una per una.
+ */
+export function Blocco({
+  etichetta,
+  valore,
+  sotto,
+  nota,
+  className,
+}: {
+  etichetta: string;
+  valore: ReactNode;
+  /** La riga verde: si legge insieme al valore, non dopo. */
+  sotto?: ReactNode;
+  /** In grigio piccolo: le precisazioni, i dettagli, i «però». */
+  nota?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <p className="titolo-sezione">{etichetta}</p>
+      <p className="mt-1 text-xl font-semibold leading-tight first-letter:uppercase">{valore}</p>
+      {sotto && <div className="num mt-1 text-lg text-nvg">{sotto}</div>}
+      {nota && <div className="mt-1.5 space-y-0.5 text-xs text-muted">{nota}</div>}
+    </div>
+  );
+}
+
 export function Dato({ etichetta, valore }: { etichetta: string; valore: ReactNode }) {
   return (
     <div>
