@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.65.1 — 20 settembre 2026
+
+### Aggiunto
+
+- **La sveglia dei lavori automatici e' uno script versionato**
+  (`deploy/lavori.sh`), non una riga scritta a mano nel crontab: legge la
+  chiave da `.env.prod`, bussa alla porta dei lavori e scrive nel registro
+  **solo quando succede qualcosa** — un giro a vuoto non lascia righe,
+  altrimenti il registro sarebbe illeggibile proprio il giorno che serve. Il
+  registro si tiene da solo entro mille righe. In `deploy/DEPLOY.md` c'e' come
+  si accende, chiave compresa.
+
 ## 2.65.0 — 20 settembre 2026
 
 ### Aggiunto

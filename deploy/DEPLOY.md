@@ -185,6 +185,38 @@ si collega inquadrando il codice, come la prima volta.
 Poi, a casa, `.\zd.ps1 down prod`: i volumi restano lì come copia di
 riserva, ma il gestionale vero è uno solo. Il test resta a casa com'è.
 
+## I lavori automatici
+
+Il gestionale, per tutto il resto, fa qualcosa perche' qualcuno ha premuto un
+pulsante. Le polizze giornaliere che si attivano da sole no: serve qualcosa che
+si svegli quando non c'e' nessuno — la domenica mattina alle otto, quando si e'
+gia' in viaggio.
+
+Lo fa il `cron` della macchina, con una riga sola:
+
+```bash
+# la chiave, una volta sola: finisce in .env.prod, che ha i permessi 600
+printf '
+SEGRETO_LAVORI=%s
+' "$(openssl rand -hex 24)" >> /opt/gestionale/.env.prod
+zd up -d   # perche' il container la legga
+
+chmod +x /opt/gestionale/deploy/lavori.sh
+( crontab -l 2>/dev/null; echo '*/5 * * * * /opt/gestionale/deploy/lavori.sh' ) | crontab -
+```
+
+Lo script sta nel repository (`deploy/lavori.sh`): legge la chiave da
+`.env.prod`, bussa a `/api/lavori` e scrive in `/var/log/zd-lavori.log` **solo
+quando succede qualcosa**. Un giro a vuoto non lascia righe, altrimenti il
+registro sarebbe illeggibile proprio il giorno che serve.
+
+La porta risponde **404** a chi non ha la chiave — non «non autorizzato»: a chi
+bussa a caso non si dice nemmeno che c'e' una porta. Ed e' un POST, cosi' non
+parte per un link aperto per sbaglio.
+
+Senza `SEGRETO_LAVORI` non esiste niente di tutto questo: e' la condizione
+normale del test, dove attivare una polizza ne consumerebbe una vera.
+
 ## Il TAK a fianco
 
 > **Non è stato fatto.** Sulla macchina in affitto ci sono 4 GB e il TAK ne
