@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { elencoOperatori } from '@/lib/query';
 import {
+  NOTA_AGGIUNTO_STAFF,
   etichettaEvento,
   etichettaRisposta,
   etichettaVisibilita,
@@ -629,6 +630,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   type Riga = (typeof evento.rsvps)[number];
   const diSquadra = (r: Riga) => inSquadra(r.user.stato) || r.user.stato === 'DA_RICONFERMARE';
+
+  /** Questa riga l'ha aperta lo staff segnando qualcuno, non la persona. */
+  const aggiuntoDalloStaff = (r: Riga) => r.note === NOTA_AGGIUNTO_STAFF;
 
   // Quanti siamo in campo, da dove: si contano quelli che hanno detto «ci
   // sono» — come nel numero che leggono le squadre ospiti — e gli operatori
@@ -1325,10 +1329,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               ) : (
                                 <p className="break-words text-sm">{nomeDi(r.user)}</p>
                               )}
-                              {/* una riga sola sotto il nome, così l'elenco resta
+                              {/* Una riga sola sotto il nome, così l'elenco resta
                                   regolare: la nota riguarda questa attività e
-                                  viene prima del motto, che è sempre lì */}
-                              {r.note ? (
+                                  viene prima del motto, che è sempre lì.
+                                  «Aggiunto dallo staff» invece non è una nota di
+                                  nessuno — è il modo in cui quella riga è nata —
+                                  e sta in fondo con la data, dove si racconta da
+                                  dove viene la risposta. */}
+                              {r.note && !aggiuntoDalloStaff(r) ? (
                                 <p className="break-words text-xs text-muted">{r.note}</p>
                               ) : (
                                 r.user.frase && (
@@ -1468,7 +1476,29 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 — su quello dopo. Il cestino non è qui ma in alto,
                                 lontano dal pollice che schiera. */}
                             <div className="piede flex-col items-end">
-                            <div className="flex flex-wrap items-center justify-end gap-2">
+                            <div className="flex w-full flex-wrap items-center justify-end gap-2">
+                            {/* Da dove viene questa riga, e di quando è.
+                                «Ha risposto il 18 set, 14:32» è la domanda che
+                                si fa chi organizza il sabato sera: uno che ha
+                                detto «ci sono» a luglio e non si è più fatto
+                                vivo non è come uno che ha confermato stamattina.
+                                La data è sempre quella dell'ultima volta che ha
+                                toccato la risposta — se l'ha cambiata, è quando
+                                l'ha cambiata. */}
+                            <span className="mr-auto text-[11px] text-muted">
+                              {aggiuntoDalloStaff(r) ? (
+                                <>
+                                  aggiunto dallo staff ·{' '}
+                                  <span className="num">{fmtDateTime(r.respondedAt)}</span>
+                                </>
+                              ) : (
+                                <>
+                                  ha risposto il{' '}
+                                  <span className="num">{fmtDateTime(r.respondedAt)}</span>
+                                </>
+                              )}
+                            </span>
+
                             {/* Nota al volo su questa persona in questa attività.
                                 Nasce già legata a tutte e due: è il momento in cui
                                 ci si ricorda cos'è successo, e chiederlo dopo dalla

@@ -19,6 +19,7 @@ import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
 import {
   MOTIVO_NON_IDONEO,
+  NOTA_AGGIUNTO_STAFF,
   conFormazione,
   idoneoPer,
   inSquadra,
@@ -1113,7 +1114,7 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   for (const u of ammessi) {
     await prisma.eventRsvp.upsert({
       where: { eventId_userId: { eventId, userId: u.id } },
-      create: { eventId, userId: u.id, status: 'PRESENTE', note: 'Aggiunto dallo staff' },
+      create: { eventId, userId: u.id, status: 'PRESENTE', note: NOTA_AGGIUNTO_STAFF },
       update: { status: 'PRESENTE' },
     });
     await allineaQuota(evento.id, u.id);

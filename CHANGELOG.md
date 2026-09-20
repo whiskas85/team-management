@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.62.0 — 20 settembre 2026
+
+### Cambiato
+
+- **Nella card del partecipante, il piede racconta da dove viene la risposta.**
+  «Ha risposto il 18 set 2026, 14:32»: è la domanda che si fa chi organizza il
+  sabato sera, perché uno che ha detto «ci sono» a luglio e non si è più fatto
+  vivo non è come uno che ha confermato stamattina. La data è sempre quella
+  dell'ultima volta che ha toccato la risposta: se l'ha cambiata, è quando l'ha
+  cambiata.
+- **«Aggiunto dallo staff» è sceso lì accanto**, al posto di stare sotto al nome
+  travestito da nota. Non è una nota di nessuno — è il modo in cui quella riga è
+  nata — e stando in mezzo alle note vere si leggeva come una frase scritta
+  dalla persona. Adesso la riga sotto il nome resta libera per la nota vera, o
+  per il motto.
+
 ## 2.61.0 — 20 settembre 2026
 
 ### Cambiato

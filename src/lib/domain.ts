@@ -335,6 +335,17 @@ export const devePortareCertificato = (roles: Role[]) => ha(roles, 'ATLETA');
 /** Chi gestisce il calendario vede anche le bozze. */
 export const puoGestireEventi = (roles: Role[]) => ha(roles, 'ADMIN');
 
+/**
+ * La nota che lo staff lascia quando è lui a segnare qualcuno.
+ *
+ * Sta qui e non scritta a mano in due punti perché è insieme quello che si
+ * **scrive** aggiungendo un partecipante e quello che si **riconosce**
+ * mostrandolo: se le due stringhe divergono, la riga resta ma nessuno la vede
+ * più per quello che è — e torna a mescolarsi con le note vere, che le persone
+ * scrivono di loro pugno.
+ */
+export const NOTA_AGGIUNTO_STAFF = 'Aggiunto dallo staff';
+
 export const tonoRsvp: Record<string, Tono> = {
   PRESENTE: 'ok',
   FORSE: 'warn',
