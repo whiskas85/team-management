@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.63.1 — 20 settembre 2026
+
+### Corretto
+
+- **La quota diceva «—» proprio a chi doveva decidere il prezzo.** Il numero
+  grande era la quota *personale* di chi guarda: per un admin interno spesso
+  zero, e allora usciva un trattino, mentre il prezzo vero della giocata stava
+  in una riga grigia in fondo. Adesso chi governa il calendario legge in
+  grande i due numeri che gli servono — **interni** e, sotto in ambra,
+  **esterni** — e sono totali: la quota dell'attività più tutte le casse
+  attaccate, cioè quello che esce davvero dal portafoglio di chi viene. Il
+  dettaglio cassa per cassa resta sotto in grigio, dove va.
+- **A chi non amministra, quando non deve niente, adesso c'è scritto
+  «Gratis».** Prima, se l'attività aveva un costo per i soli esterni, a un
+  interno compariva un trattino: sembrava un dato mancante e invece era la
+  risposta.
+
 ## 2.63.0 — 20 settembre 2026
 
 ### Cambiato

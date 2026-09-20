@@ -747,7 +747,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
    * due voci, o una che si paga a una cassa diversa, no — lì cambia **a chi**
    * si paga, e chi deve saldare deve saperlo.
    */
-  const gratuita = costo === 0 && evento.quoteCasse.length === 0;
+  /**
+   * Quanto costa la giocata, per chi la governa: **due numeri, non uno**.
+   *
+   * A chi deve pagare interessa la propria cifra e basta. A chi tiene il
+   * calendario interessa il prezzo com'è fatto — quanto ai nostri, quanto a
+   * quelli di fuori — perché è la cosa che decide, e che gli chiedono al
+   * telefono. Finiva in una riga grigia in fondo, sotto un trattino: il
+   * trattino era la sua quota personale, zero, e il prezzo vero non si vedeva.
+   *
+   * Sono **totali**: la quota dell'attività più tutte le casse che ci sono
+   * attaccate, perché è quello che esce dal portafoglio di chi viene.
+   */
+  const tariffaInterni =
+    costo + evento.quoteCasse.reduce((t, q) => t + Number(q.importo), 0);
+  const tariffaEsterni =
+    (quotaEsterni ?? costo) +
+    evento.quoteCasse.reduce(
+      (t, q) => t + Number(q.importoEsterni === null ? q.importo : q.importoEsterni),
+      0,
+    );
   const vociQuota = [
     ...(mioCosto > 0
       ? [`${fmtEuro(mioCosto)} alla squadra${mioDettaglio ? ` (${mioDettaglio})` : ''}`]
@@ -1164,34 +1183,65 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   facevano sembrare che ci fosse da scegliere. */}
               <Blocco
                 etichetta="Quota"
-                valore={mioTotale > 0 ? fmtEuro(mioTotale) : gratuita ? 'Gratis' : '—'}
+                valore={
+                  gestisce ? (
+                    <>
+                      <span className="num">{fmtEuro(tariffaInterni)}</span>{' '}
+                      <span className="text-base font-normal text-muted">interni</span>
+                    </>
+                  ) : mioTotale > 0 ? (
+                    fmtEuro(mioTotale)
+                  ) : (
+                    'Gratis'
+                  )
+                }
+                sotto={
+                  gestisce ? (
+                    <>
+                      <span className="text-warn">{fmtEuro(tariffaEsterni)}</span>{' '}
+                      <span className="text-sm text-muted">esterni</span>
+                    </>
+                  ) : null
+                }
                 nota={
                   <>
-                    {mioTotale > 0 && composizione.length > 0 && (
+                    {/* come si arriva a quella cifra: solo quando aggiunge
+                        qualcosa, cioè quando le voci sono più d'una o vanno
+                        pagate a una cassa diversa */}
+                    {!gestisce && mioTotale > 0 && composizione.length > 0 && (
                       <p>{composizione.join(' · ')}</p>
                     )}
+
+                    {/* a chi governa: di cosa sono fatti i due totali, cassa
+                        per cassa. Il numero grande dice quanto, questo dice a
+                        chi va. */}
+                    {gestisce && evento.quoteCasse.length > 0 && (
+                      <p>
+                        attività &middot; interni {fmtEuro(costo)} &middot; esterni{' '}
+                        {quotaEsterni === null ? fmtEuro(costo) : fmtEuro(quotaEsterni)}
+                        {evento.quoteCasse.map((q) => (
+                          <span key={q.id} className="block">
+                            {q.cassa.nome} &middot; interni {fmtEuro(Number(q.importo))} &middot;{' '}
+                            esterni{' '}
+                            {fmtEuro(Number(q.importoEsterni === null ? q.importo : q.importoEsterni))}
+                          </span>
+                        ))}
+                      </p>
+                    )}
+
+                    {/* Quanto tocca a chi sta guardando: il numero grande qui
+                        sopra è il listino, non la sua quota. Senza la
+                        composizione fra parentesi — dove va, l'ha appena
+                        letto riga per riga. */}
+                    {gestisce && mioTotale > 0 && <p>la tua &middot; {fmtEuro(mioTotale)}</p>}
+
                     {mioTotale > 0 && (
                       <p className="text-warn">
                         {mioConvocato
                           ? 'sei convocato: il posto è tuo, diventa tuo davvero al saldo'
                           : schieraQuesta && !mioTitolare
-                            ? "si paga solo se il TL ti schiera titolare"
+                            ? 'si paga solo se il TL ti schiera titolare'
                             : 'presenza confermata a quota saldata'}
-                      </p>
-                    )}
-                    {gestisce && (
-                      <p>
-                        tariffe &middot; squadra {fmtEuro(costo)} &middot; esterni{' '}
-                        {quotaEsterni === null ? 'come la squadra' : fmtEuro(quotaEsterni)}
-                        {evento.quoteCasse.map((q) => (
-                          <span key={q.id} className="block">
-                            {q.cassa.nome} &middot; squadra {fmtEuro(Number(q.importo))} &middot;{' '}
-                            esterni{' '}
-                            {q.importoEsterni === null
-                              ? 'come la squadra'
-                              : fmtEuro(Number(q.importoEsterni))}
-                          </span>
-                        ))}
                       </p>
                     )}
                   </>
