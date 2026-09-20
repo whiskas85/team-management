@@ -160,6 +160,9 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     ...composizione,
     maxPartecipanti: intOpt(fd, 'maxPartecipanti'),
     chiusuraIscrizioni: data(fd, 'chiusuraIscrizioni'),
+    // le polizze automatiche su questa attività: vuoto resta vuoto, cioè
+    // «come dice l'impostazione generale»
+    assicuraAuto: { si: true, no: false }[str(fd, 'assicuraAuto')] ?? null,
     note: strOpt(fd, 'note'),
   };
 

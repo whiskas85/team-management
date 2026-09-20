@@ -47,6 +47,8 @@ type Evento = {
   stagioneId: string | null;
   maxPartecipanti: number | null;
   chiusuraIscrizioni: Date | null;
+  /** Le polizze automatiche su questa attività: null segue l'impostazione generale. */
+  assicuraAuto: boolean | null;
   note: string | null;
   linkRiunione: string | null;
   /** Riservata alla squadra o aperta a tutti: decide se serve la quota esterni. */
@@ -371,6 +373,32 @@ export function FormEvento({
                   defaultValue={inputDateTime(evento?.chiusuraIscrizioni)}
                   className="input"
                 />
+              </Campo>
+
+              {/* Le polizze automatiche, per questa sola giocata. Sta qui, fra
+                  le cose che dicono come si comporta l'attivita', e non fra i
+                  pulsanti: e' una decisione che si prende scrivendola, non
+                  passando. */}
+              <Campo label="Polizze dei nuovi" span>
+                <select
+                  name="assicuraAuto"
+                  className="input"
+                  defaultValue={
+                    evento?.assicuraAuto === null || evento?.assicuraAuto === undefined
+                      ? ''
+                      : evento.assicuraAuto
+                        ? 'si'
+                        : 'no'
+                  }
+                >
+                  <option value="">Come dice l&rsquo;impostazione generale</option>
+                  <option value="si">Assicura da sola, poco prima</option>
+                  <option value="no">Solo a mano, su questa attivit&agrave;</option>
+                </select>
+                <p className="mt-1 text-xs text-muted">
+                  L&rsquo;interruttore generale sta nelle polizze giornaliere e vale per tutte.
+                  Qui si decide per questa: vince su quello, in tutti e due i versi.
+                </p>
               </Campo>
             </Sezione>
             )}

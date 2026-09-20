@@ -14,6 +14,8 @@ import { Intestazione, Statistica } from '@/components/ui';
 import { ElencoOperatori, type RigaOperatore } from '@/components/ElencoOperatori';
 import { ElencoRegolarita, type RigaRegolarita } from '@/components/ElencoRegolarita';
 import { BottoneCreaOperatore } from '@/components/FormOperatore';
+import { ElencoNotifiche, type RigaNotifiche } from '@/components/ElencoNotifiche';
+import { ScegliVista } from '@/components/ScegliVista';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,9 +33,106 @@ export const dynamic = 'force-dynamic';
  * sembra un guasto. Un indirizzo solo, due pagine: il menu non mente e nessuno
  * si trova davanti pulsanti che non gli competono.
  */
-export default async function OperatoriPage() {
+export default async function OperatoriPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string }>;
+}) {
   const me = await requirePermesso(puoVedereOperatori);
-  return isAdmin(me.roles) ? <Gestione /> : <Regolarita />;
+  const { vista } = await searchParams;
+  if (!isAdmin(me.roles)) return <Regolarita />;
+  return vista === 'notifiche' ? <Notifiche /> : <Gestione />;
+}
+
+/**
+ * Le viste dell'admin sulle persone.
+ *
+ * Stesso indirizzo, domande diverse: l'anagrafica — chi c'è, che ruoli ha,
+ * com'è messo — e gli avvisi, cioè su chi si può contare quando si manda
+ * una notifica. Tenerle in una pagina sola vorrebbe dire una tabella con
+ * dodici colonne in cui non si legge più niente.
+ */
+const VISTE_OPERATORI = [
+  { chiave: 'elenco', href: '/admin/operatori', testo: 'Elenco' },
+  { chiave: 'notifiche', href: '/admin/operatori?vista=notifiche', testo: 'Avvisi' },
+];
+
+/**
+ * Chi riceve gli avvisi sul telefono.
+ *
+ * La domanda nasce il giorno che si manda qualcosa di importante: **a quante
+ * persone è arrivato davvero?** Il permesso lo dà il telefono, una volta
+ * sola, e chi ha detto no quel giorno non lo sa più nessuno — il gestionale
+ * manda, il servizio accetta, e il messaggio non arriva. Qui si vede prima.
+ */
+async function Notifiche() {
+  const operatori = await prisma.user.findMany({
+    where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] } },
+    orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+    select: {
+      id: true,
+      nome: true,
+      cognome: true,
+      callsign: true,
+      ultimaAttivita: true,
+      iscrizioniPush: {
+        orderBy: { creatoIl: 'asc' },
+        select: { id: true, dispositivo: true, creatoIl: true },
+      },
+    },
+  });
+
+  const righe: RigaNotifiche[] = operatori.map((o) => ({
+    id: o.id,
+    nome: o.nome,
+    cognome: o.cognome,
+    callsign: o.callsign,
+    // il dispositivo lo racconta il browser e a volte non lo dice: allora si
+    // scrive almeno da quando e' iscritto, che e' meglio di una riga vuota
+    dispositivi: o.iscrizioniPush.map(
+      (i) => `${i.dispositivo ?? 'dispositivo sconosciuto'} \u00b7 dal ${fmtDate(i.creatoIl)}`,
+    ),
+    ultimaAttivita: o.ultimaAttivita ? fmtDateTime(o.ultimaAttivita) : null,
+    maiEntrato: o.ultimaAttivita === null,
+  }));
+
+  const raggiunti = righe.filter((r) => r.dispositivi.length > 0).length;
+  const dispositivi = righe.reduce((t, r) => t + r.dispositivi.length, 0);
+  const scoperti = righe.length - raggiunti;
+
+  return (
+    <>
+      <Intestazione
+        titolo="Operatori"
+        sottotitolo="Chi riceve gli avvisi sul telefono, e chi va cercato in un altro modo"
+        azioni={<ScegliVista viste={VISTE_OPERATORI} attuale="notifiche" />}
+      />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Statistica
+          etichetta="Li ricevono"
+          valore={raggiunti}
+          dettaglio={`su ${righe.length} in squadra`}
+          tono={raggiunti > 0 ? 'ok' : 'neutro'}
+        />
+        <Statistica
+          etichetta="Non li ricevono"
+          valore={scoperti}
+          dettaglio="vanno avvisati in altro modo"
+          tono={scoperti > 0 ? 'warn' : 'ok'}
+        />
+        <Statistica etichetta="Dispositivi" valore={dispositivi} dettaglio="telefoni e computer" />
+      </div>
+
+      <ElencoNotifiche righe={righe} />
+
+      <p className="mt-4 text-xs text-muted">
+        Il permesso lo concede il telefono, e da qui non si può né darlo né
+        togliere: ognuno lo accende dal proprio profilo. Chi non compare fra i raggiunti non ha
+        fatto niente di male: ha solo detto di no a una finestra, magari mesi fa.
+      </p>
+    </>
+  );
 }
 
 /** Quello che l'admin fa con le persone: crearle, dare ruoli, toglierle. */
@@ -102,7 +201,12 @@ async function Gestione() {
       <Intestazione
         titolo="Operatori"
         sottotitolo="Atleti registrati del team · anagrafica completa"
-        azioni={<BottoneCreaOperatore />}
+        azioni={
+          <>
+            <ScegliVista viste={VISTE_OPERATORI} attuale="elenco" />
+            <BottoneCreaOperatore />
+          </>
+        }
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

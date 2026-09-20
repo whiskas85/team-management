@@ -51,6 +51,15 @@ export default async function PolizzePage() {
     where: { id: 'figt' },
     select: { polizzeResidue: true, polizzeLetteIl: true },
   });
+
+  // L'interruttore generale, per dire su ogni card se quell'attività si
+  // assicura da sola: la regola è la stessa del lavoro automatico — l'attività
+  // comanda se ha detto la sua, altrimenti segue il grande.
+  const conf = await prisma.impostazioni.findUnique({
+    where: { id: 'app' },
+    select: { assicuraAuto: true },
+  });
+  const daSola = (a: (typeof attivita)[number]) => a.assicuraAuto ?? conf?.assicuraAuto ?? false;
   // un'attività di soli soci non ha niente da assicurare: tenerla in elenco
   // vorrebbe dire far scorrere dieci card vuote per trovarne una che serve
   const conOspiti = attivita.filter((a) => a.nuovi.length > 0);
@@ -94,9 +103,19 @@ export default async function PolizzePage() {
                 <Link href={`/calendario/${a.id}`} className="font-medium hover:text-nvg">
                   {a.titolo}
                 </Link>
-                <span className="num text-xs text-muted">
-                  {fmtDateTime(a.quando)}
-                  {a.dove ? ` · ${a.dove}` : ''}
+                <span className="flex flex-wrap items-center gap-2">
+                  {/* Si dice solo quando c'e' una decisione da sapere: il caso
+                      normale — segue l'interruttore, che e' spento — non
+                      merita un'etichetta su ogni card. */}
+                  {daSola(a) ? (
+                    <Badge tono="ok">polizze da sola</Badge>
+                  ) : (
+                    a.assicuraAuto === false && <Badge tono="neutro">solo a mano</Badge>
+                  )}
+                  <span className="num text-xs text-muted">
+                    {fmtDateTime(a.quando)}
+                    {a.dove ? ` · ${a.dove}` : ''}
+                  </span>
                 </span>
               </div>
 

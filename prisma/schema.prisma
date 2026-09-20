@@ -256,6 +256,15 @@ model MedicalCertificate {
   reviewedById  String?
   reviewedBy    User?      @relation("CertReviewer", fields: [reviewedById], references: [id])
   reviewedAt    DateTime?
+  /// A quanti giorni dalla scadenza è già partito l'avviso.
+  ///
+  /// Gli avvisi sono a tappe — un mese, due settimane, una settimana, tre
+  /// giorni, il giorno prima, il giorno stesso — e questo dice a che tappa
+  /// siamo arrivati. Senza, il lavoro che gira ogni cinque minuti manderebbe
+  /// la stessa notifica trecento volte al giorno; con una data sola non si
+  /// distinguerebbe «già avvisato oggi» da «siamo passati alla tappa dopo, che
+  /// è più urgente». Meno zero è la scadenza passata, che si dice una volta.
+  avvisoScadenzaA Int?
   createdAt     DateTime   @default(now())
 
   @@index([userId, status])
@@ -689,6 +698,18 @@ model Event {
   /// per far tacere un avviso, ed è il modo migliore per rendere inaffidabile
   /// il calendario.
   durataOre             Int?
+  /// Le polizze automatiche, per questa sola attività.
+  ///
+  /// **Tre stati e non due.** Vuoto vuol dire «come dice l'impostazione
+  /// generale», e resta vuoto per sempre se nessuno la tocca: è il caso di
+  /// tutte le attività, e segue l'interruttore grande senza che nessuno debba
+  /// ricordarsene. Acceso o spento invece sono una decisione presa **su questa
+  /// giocata** — il corso dove i nuovi si tesserano in giornata, la gara dove
+  /// si vuole guardare in faccia chi si assicura — e vince sull'impostazione
+  /// generale, in tutte e due i versi: si può accendere per una sola attività
+  /// con l'interruttore grande spento, e spegnerla per una sola con
+  /// l'interruttore grande acceso.
+  assicuraAuto          Boolean?
   visibilita            EventVisibility? // obbligatoria solo al rilascio
   status                EventStatus      @default(CREATA)
   /// Perché è stata annullata, con le parole di chi l'ha annullata.

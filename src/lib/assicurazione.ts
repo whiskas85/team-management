@@ -198,6 +198,11 @@ export type AttivitaDaCoprire = {
   dove: string | null;
   /** I giorni ancora da giocare: quelli passati non si coprono più. */
   giorni: string[];
+  /**
+   * Le polizze automatiche per questa attività: vuoto è «come dice
+   * l'impostazione generale», acceso e spento sono una decisione presa qui.
+   */
+  assicuraAuto: boolean | null;
   nuovi: NuovoDaCoprire[];
   /**
    * Quante polizze aspettano davvero: una per ospite e per giorno, con la
@@ -332,6 +337,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       tipo: e.tipo?.nome ?? null,
       dove: e.field?.nome ?? e.luogo ?? null,
       giorni,
+      assicuraAuto: e.assicuraAuto,
       nuovi,
       // per giorno, e con la stessa condizione del pulsante: saldata o
       // dichiarata. Contare solo le saldate faceva dire al pallino meno di

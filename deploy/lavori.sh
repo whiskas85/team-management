@@ -33,12 +33,17 @@ RISPOSTA=$(curl -fsS --max-time 120 -X POST \
   "https://$DOMINIO/api/lavori" 2>&1)
 ESITO=$?
 
-# Si scrive solo quando c'e' qualcosa da raccontare: un giro a vuoto — ed e' la
-# quasi totalita' — non lascia una riga, altrimenti il registro diventa
-# illeggibile proprio il giorno che serve.
+# Si scrive solo quando c'e' qualcosa da raccontare, e un giro a vuoto -- che
+# e' la quasi totalita' -- non lascia una riga: altrimenti il registro sarebbe
+# illeggibile proprio il giorno che serve. A vuoto vuol dire che non e' stato
+# assicurato nessuno e non e' stato avvisato nessuno.
 case "$RISPOSTA" in
-  *'"spento":true'*) exit 0 ;;
-  *'"fatte":0,"rifiutate":[],"inAttesa":0'*) exit 0 ;;
+  *'"avvisati":0'*)
+    case "$RISPOSTA" in
+      *'"spento":true'*) exit 0 ;;
+      *'"fatte":0,"rifiutate":[],"inAttesa":0'*) exit 0 ;;
+    esac
+    ;;
 esac
 
 echo "$(date '+%F %T') esito=$ESITO $RISPOSTA" >> "$REGISTRO"

@@ -1,0 +1,13 @@
+-- A che punto è arrivato l'avviso di scadenza di un certificato.
+--
+-- Il gestionale lo sapeva già, che un certificato stava per scadere: lo
+-- diceva la pagina, a chi la apriva. Ma chi ha il certificato in scadenza è
+-- esattamente la persona che non apre quella pagina -- se la aprisse, se ne
+-- sarebbe gia' accorta. La notifica va mandata, e per mandarla una volta sola
+-- per tappa serve ricordarsi a che tappa si e' arrivati: un mese, due
+-- settimane, una settimana, tre giorni, il giorno prima, il giorno stesso.
+--
+-- Senza questa colonna il lavoro che gira ogni cinque minuti manderebbe la
+-- stessa notifica trecento volte al giorno. Meno zero e' la scadenza ormai
+-- passata, che si dice una volta e basta.
+ALTER TABLE "MedicalCertificate" ADD COLUMN "avvisoScadenzaA" INTEGER;

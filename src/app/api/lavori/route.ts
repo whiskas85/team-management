@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { assicuraInAnticipo } from '@/lib/lavori';
+import { assicuraInAnticipo, avvisaCertificatiInScadenza } from '@/lib/lavori';
 
 /**
  * La porta da cui si sveglia il gestionale.
@@ -24,12 +24,31 @@ export async function POST(req: Request) {
   }
 
   try {
-    const esito = await assicuraInAnticipo();
-    return NextResponse.json({ ok: true, assicurazioni: esito });
+    /*
+     * I lavori non si fermano a vicenda.
+     *
+     * Sono due cose senza rapporto fra loro — le polizze da attivare e i
+     * certificati che scadono — e se il portale federale fosse irraggiungibile
+     * non sarebbe un buon motivo per non avvisare nessuno della sua visita
+     * medica.
+     */
+    const [assicurazioni, certificati] = await Promise.allSettled([
+      assicuraInAnticipo(),
+      avvisaCertificatiInScadenza(),
+    ]);
+
+    const letto = <T,>(r: PromiseSettledResult<T>) =>
+      r.status === 'fulfilled' ? r.value : { errore: String(r.reason) };
+
+    return NextResponse.json({
+      ok: true,
+      assicurazioni: letto(assicurazioni),
+      certificati: letto(certificati),
+    });
   } catch (e) {
     // il cron non legge, ma il log della macchina sì: se qualcosa si rompe qui
     // dentro deve restarne traccia da qualche parte
-    console.error('[lavori] assicurazione automatica', e);
+    console.error('[lavori]', e);
     return NextResponse.json({ ok: false, errore: (e as Error).message }, { status: 500 });
   }
 }

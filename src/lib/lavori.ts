@@ -3,6 +3,8 @@ import { conIdentita } from './identita';
 import { attivitaDaCoprire, dataLocale } from './assicurazione';
 import { attivaGiornaliera } from '@/actions/assicurazione';
 import type { SessionUser } from './auth';
+import { avvisa } from './push';
+import { giorniA } from './format';
 
 /**
  * Il lavoro che si sveglia da solo.
@@ -76,19 +78,33 @@ async function chiFirma(id: string | null): Promise<SessionUser | null> {
  */
 export async function assicuraInAnticipo(): Promise<EsitoLavori> {
   const conf = await prisma.impostazioni.findUnique({ where: { id: 'app' } });
-  if (!conf?.assicuraAuto) return { spento: true, fatte: 0, rifiutate: [], inAttesa: 0 };
+  const generale = conf?.assicuraAuto ?? false;
 
-  const firma = await chiFirma(conf.assicuraAutoDaId);
+  /*
+   * L'interruttore grande e quello della singola attività.
+   *
+   * L'attività, se ha detto la sua, comanda — in tutti e due i versi: una
+   * giocata può assicurare da sola con l'interruttore generale spento, e una
+   * può restare a mano con l'interruttore generale acceso. Chi non ha detto
+   * niente segue il grande, che è il caso di quasi tutte.
+   */
+  const attivo = (a: { assicuraAuto: boolean | null }) => a.assicuraAuto ?? generale;
+
+  const daFare = (await attivitaDaCoprire()).filter(attivo);
+  if (daFare.length === 0) return { spento: true, fatte: 0, rifiutate: [], inAttesa: 0 };
+
+  const firma = await chiFirma(conf?.assicuraAutoDaId ?? null);
   if (!firma) return { fatte: 0, rifiutate: [{ chi: '—', perche: 'nessun admin a cui intestarle' }], inAttesa: 0 };
 
   const adesso = new Date();
-  const finestra = new Date(adesso.getTime() + conf.assicuraAnticipoMin * 60_000);
+  // senza impostazioni salvate vale il preavviso di serie: un'ora
+  const finestra = new Date(adesso.getTime() + (conf?.assicuraAnticipoMin ?? 60) * 60_000);
   const oggi = new Date();
   oggi.setHours(0, 0, 0, 0);
 
   const esito: EsitoLavori = { fatte: 0, rifiutate: [], inAttesa: 0 };
 
-  for (const attivita of await attivitaDaCoprire()) {
+  for (const attivita of daFare) {
     // Quelle che cominciano più in là del preavviso si guardano al prossimo
     // giro: è presto, e chi deve ancora pagare ha tempo per farlo.
     if (attivita.quando > finestra) continue;
@@ -127,4 +143,95 @@ export async function assicuraInAnticipo(): Promise<EsitoLavori> {
   }
 
   return esito;
+}
+
+/**
+ * Le tappe dell'avviso di scadenza.
+ *
+ * Un mese prima serve a prenotare la visita; una settimana prima a ricordarsi
+ * che l'hai prenotata; il giorno stesso a non presentarsi in campo scoperto.
+ * Le tappe in mezzo esistono perché fra trenta giorni e zero c'è un mese in
+ * cui è facile non pensarci mai.
+ */
+const TAPPE_SCADENZA = [30, 14, 7, 3, 1, 0];
+
+/** Meno zero: la scadenza è passata, e lo si dice una volta sola. */
+const TAPPA_SCADUTO = -1;
+
+/**
+ * Avvisa chi ha il certificato in scadenza.
+ *
+ * Il gestionale lo sapeva già — lo dice la pagina del certificato, con i
+ * giorni che mancano e la linea che si accorcia. Ma **chi ha il certificato in
+ * scadenza è esattamente la persona che quella pagina non la apre**: se la
+ * aprisse se ne sarebbe già accorta. La notifica va a cercarla dove sta, sul
+ * telefono.
+ *
+ * Una per tappa, non una al giorno e tantomeno una ogni cinque minuti: quello
+ * che si ricorda non è *se* abbiamo avvisato, è **a che punto eravamo** —
+ * altrimenti il passaggio da «manca una settimana» a «è domani», che è la cosa
+ * che conta, non si distinguerebbe da un doppione.
+ *
+ * Si manda **solo agli atleti**: il certificato serve a scendere in campo, e
+ * chi tiene i conti o le tessere in campo non ci va. Stessa regola di tutto il
+ * resto, `devePortareCertificato`.
+ */
+export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number }> {
+  /*
+   * Non di notte, e non all'alba.
+   *
+   * Un certificato che scade fra tre giorni scade fra tre giorni anche alle
+   * nove del mattino: far vibrare il telefono a mezzanotte e cinque — che è
+   * quando il conto dei giorni cambia — non serve a nessuno e insegna a
+   * spegnere le notifiche.
+   */
+  const ora = new Date().getHours();
+  if (ora < 9 || ora >= 21) return { avvisati: 0 };
+
+  const certificati = await prisma.medicalCertificate.findMany({
+    where: {
+      status: 'VALIDO',
+      scadeIl: { not: null, lte: new Date(Date.now() + (TAPPE_SCADENZA[0] + 1) * 86_400_000) },
+      user: { stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] }, roles: { has: 'ATLETA' } },
+    },
+    select: { id: true, userId: true, scadeIl: true, avvisoScadenzaA: true },
+  });
+
+  let avvisati = 0;
+
+  for (const cert of certificati) {
+    const giorni = giorniA(cert.scadeIl);
+    if (giorni === null) continue;
+
+    // la tappa in cui siamo: la prima che il conto alla rovescia ha raggiunto
+    const tappa = giorni < 0 ? TAPPA_SCADUTO : (TAPPE_SCADENZA.find((t) => giorni <= t) ?? null);
+    if (tappa === null) continue;
+
+    // già detto a questa tappa, o a una più stretta: si tace
+    if (cert.avvisoScadenzaA !== null && tappa >= cert.avvisoScadenzaA) continue;
+
+    await avvisa([cert.userId], {
+      titolo:
+        tappa === TAPPA_SCADUTO
+          ? 'Certificato medico scaduto'
+          : giorni === 0
+            ? 'Il certificato medico scade oggi'
+            : `Il certificato medico scade fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`,
+      testo:
+        tappa === TAPPA_SCADUTO
+          ? 'Senza non si scende in campo: prenota la visita e carica il nuovo appena ce l’hai.'
+          : 'Prenota la visita adesso: fra il medico e l’approvazione ci vuole qualche giorno.',
+      url: '/certificati',
+      // uno solo per persona: due avvisi di scadenza non fanno due righe
+      tag: 'certificato-scadenza',
+    });
+
+    await prisma.medicalCertificate.update({
+      where: { id: cert.id },
+      data: { avvisoScadenzaA: tappa },
+    });
+    avvisati += 1;
+  }
+
+  return { avvisati };
 }

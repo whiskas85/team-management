@@ -1,0 +1,13 @@
+-- Le polizze automatiche, decise su una singola attività.
+--
+-- L'interruttore generale è uno per tutto il gestionale: acceso, le polizze
+-- partono ovunque ci sia qualcuno da coprire. Ma le attività non sono tutte
+-- uguali -- al corso i nuovi si tesserano in giornata, alla gara si vuole
+-- guardare in faccia chi si assicura -- e un interruttore solo costringeva a
+-- spegnere tutto per governare un caso.
+--
+-- Tre stati e non due: NULL è "come dice l'impostazione generale" ed è il caso
+-- di tutte le attività, che così seguono l'interruttore grande senza che
+-- nessuno debba ricordarsene. true e false sono una decisione presa su quella
+-- giocata, e vincono in tutti e due i versi.
+ALTER TABLE "Event" ADD COLUMN "assicuraAuto" BOOLEAN;

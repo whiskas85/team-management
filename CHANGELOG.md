@@ -5,6 +5,34 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.66.0 — 20 settembre 2026
+
+### Aggiunto
+
+- **Le polizze automatiche si decidono anche su una singola giocata.**
+  L'interruttore generale vale per tutte; nel modulo dell'attivita', sotto «Chi
+  ci sta», c'e' *Polizze dei nuovi* con tre stati: come dice l'impostazione
+  generale (il caso di tutte, e resta cosi' da solo), assicura da sola, oppure
+  solo a mano. **L'attivita' vince in tutti e due i versi**: si puo' accendere
+  per una sola giocata con l'interruttore grande spento, e spegnerla per una
+  sola con l'interruttore grande acceso. Nella pagina delle polizze ogni card
+  dice cosa fara', ma solo quando c'e' una decisione da sapere.
+- **Il certificato medico in scadenza avvisa sul telefono.** A tappe — trenta
+  giorni, quattordici, sette, tre, il giorno prima, il giorno stesso, e una
+  volta quando e' scaduto — e una per tappa: quello che il gestionale si
+  ricorda non e' *se* ha avvisato, e' **a che punto era**, altrimenti il
+  passaggio da «manca una settimana» a «e' domani» si perderebbe fra i
+  doppioni. Mai di notte: solo fra le nove e le ventuno, perche' il conto dei
+  giorni cambia a mezzanotte e far vibrare il telefono allora insegna solo a
+  spegnere le notifiche. Va ai soli atleti, come tutto il resto del
+  certificato.
+- **Negli operatori c'e' la vista «Avvisi»**: chi riceve le notifiche sul
+  telefono e chi no, con i dispositivi di ognuno e tre numeri in cima. La
+  domanda nasce il giorno che si manda qualcosa di importante — *a quante
+  persone e' arrivato davvero?* — e la risposta non stava da nessuna parte: il
+  permesso lo concede il telefono, una volta sola, e chi ha detto no quel
+  giorno non lo sapeva piu' nessuno.
+
 ## 2.65.1 — 20 settembre 2026
 
 ### Aggiunto
