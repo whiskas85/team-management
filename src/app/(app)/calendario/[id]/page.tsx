@@ -2114,22 +2114,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                             </div>
                           ))}
                       </div>
-                      {/* Durante la giornata l'appello registra e basta: la
-                          chiusura arriva quando la giornata è davvero finita.
-                          Dirlo sul pulsante evita di non premerlo per paura di
-                          chiudere tutto alle otto del mattino. */}
-                      <Invia className="btn-ghost w-full btn-sm">
-                        {terminata ? 'Salva presenze e chiudi' : 'Salva presenze'}
-                      </Invia>
-                      {!terminata && (
-                        <p className="text-[11px] text-muted">
-                          L’attività resta aperta fino alle{' '}
-                          <span className="num">
-                            {fmtTime(evento.fine ?? evento.inizio)}
-                          </span>
-                          : l’appello si può rifare per chi arriva dopo.
-                        </p>
-                      )}
+                      {/* L'appello registra e basta: chiudere l'attività è un
+                          gesto a parte, in fondo alla pagina. Dirlo sul
+                          pulsante evita di non premerlo per paura di chiudere
+                          tutto alle otto del mattino. */}
+                      <Invia className="btn-ghost w-full btn-sm">Salva presenze</Invia>
+                      <p className="text-[11px] text-muted">
+                        Si può rifare per chi arriva dopo. L’attività la chiudi tu, in fondo alla
+                        pagina, quando la giornata è finita davvero.
+                      </p>
                     </>
                   )}
                 </FormAzione>

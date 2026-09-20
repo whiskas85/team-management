@@ -98,6 +98,9 @@ export default async function NuoviPage() {
       // una riga sola se chi sta guardando ha gia' aperto la scheda
       letturaDaAltri: { where: { lettoreId: me.id }, select: { id: true } },
       memberships: { select: { status: true } },
+      // una sola iscrizione basta: chi ha acceso le notifiche le riceve, e
+      // l'elenco deve dire come lo si raggiunge
+      _count: { select: { iscrizioniPush: true } },
       rsvps: {
         select: { status: true, presente: true, event: { select: { inizio: true } } },
         orderBy: { event: { inizio: 'desc' } },
@@ -118,6 +121,7 @@ export default async function NuoviPage() {
       stato: n.stato,
       registrato: fmtDate(n.createdAt),
       ultimoAccesso: n.ultimoAccesso ? fmtDate(n.ultimoAccesso) : null,
+      avvisi: n._count.iscrizioniPush > 0,
       daLeggere: n.stato === 'NUOVO' && n.letturaDaAltri.length === 0,
       adesioni: n.rsvps.filter((r) => r.status === 'PRESENTE').length,
       presenze: venute.length,

@@ -56,7 +56,8 @@ export type NomeIcona =
   | 'commento'
   | 'regolamento'
   | 'mercatino'
-  | 'maglietta';
+  | 'maglietta'
+  | 'avvisi';
 
 const PATHS: Record<NomeIcona, string> = {
   // ---------------------------------------------------------------- navigazione
@@ -137,6 +138,9 @@ const PATHS: Record<NomeIcona, string> = {
   commento:
     'M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
   scudo: 'M12 3l7.5 2.7v5.6c0 4.3-3.1 8.3-7.5 9.7-4.4-1.4-7.5-5.4-7.5-9.7V5.7L12 3Zm-3 8.8 2.2 2.2L15.5 10',
+  // la campanella degli avvisi: accesa vuol dire che le notifiche arrivano
+  avvisi:
+    'M12 3a5 5 0 0 0-5 5c0 4-1.5 5.5-2 6h14c-.5-.5-2-2-2-6a5 5 0 0 0-5-5Zm-2 14a2 2 0 0 0 4 0',
 };
 
 export function Icona({

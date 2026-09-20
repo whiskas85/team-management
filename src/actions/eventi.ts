@@ -1011,29 +1011,22 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
   );
 
   /*
-   * L'appello registra chi c'è. **Chiudere è un'altra cosa.**
+   * L'appello registra chi c'è. **Chiudere è un'altra cosa, e la fa una persona.**
    *
-   * Si fa l'appello al ritrovo, con la giornata davanti: chiuderla in quel
-   * momento la fa sparire da «in programma», la marca come finita e toglie di
-   * mezzo tutto quello che serve mentre si gioca — invitare una squadra che
-   * arriva, allegare il book aggiornato, aggiungere chi si presenta all'ultimo,
-   * rifare l'appello per chi è arrivato tardi. Una giornata cominciata alle
-   * otto non è finita alle otto e cinque.
+   * Si fa l'appello al ritrovo, con la giornata davanti, e lo si rifà quando
+   * arriva chi era in ritardo: se salvare chiudesse, la prima spunta
+   * marcherebbe come finita una giocata appena cominciata — via da «in
+   * programma», via l'appello, via tutto quello che serve mentre si gioca.
    *
-   * Quindi: finché l'ora della fine non è passata l'attività resta aperta, e
-   * l'appello si può rifare quante volte serve. Dopo, salvare chiude, che è il
-   * gesto di chi la sera a casa mette a posto la giornata.
+   * E nemmeno dopo la fine: l'ora scritta sul calendario è una previsione, la
+   * giornata finisce quando lo dice chi c'era. Chiudere un'attività vuol dire
+   * «questa è andata, non si tocca più», ed è un gesto che merita un pulsante
+   * premuto apposta — c'è, in fondo alla pagina, accanto al condividi.
    */
-  const finita = (evento.fine ?? evento.inizio) <= new Date();
-  if (finita) {
-    await prisma.event.update({ where: { id: eventId }, data: { status: 'CONCLUSA' } });
-  }
 
   aggiorna(eventId);
   return {
-    ok: finita
-      ? 'Presenze registrate e attività chiusa.'
-      : 'Presenze registrate. L’attività resta aperta fino alla fine: l’appello si può rifare.',
+    ok: 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiudi tu quando è il momento.',
   };
 }
 

@@ -20,6 +20,7 @@ import {
 } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
 import { avvisa, chiSegueINuovi } from '@/lib/push';
+import { avvisaPersona, doveArrivato, type EsitoAvviso } from '@/lib/avvisi';
 
 function aggiorna(eventId: string) {
   revalidatePath(`/calendario/${eventId}`);
@@ -230,32 +231,35 @@ async function avvisaAssicurato(dati: {
   giorno: string;
   codice: string;
   valida?: string | null;
-}): Promise<boolean> {
-  const { perWhatsapp } = await import('@/lib/telefono');
-  const persona = await prisma.user.findUnique({
-    where: { id: dati.userId },
-    select: { telefono: true },
-  });
-  const numero = perWhatsapp(persona?.telefono);
-  if (!numero) return false;
-
+}): Promise<EsitoAvviso> {
   const validita = dati.valida
     ? `Valida fino al ${dati.valida}`
     : 'Vale fino alle 24:00 del giorno indicato';
 
-  const testo = `Zero Dark Ops — sei coperto
+  /*
+   * Due scritture della stessa cosa, e non è una ripetizione.
+   *
+   * La notifica si legge sulla schermata bloccata e serve a dire «sei
+   * coperto», il resto lo apre un tocco. Il messaggio invece resta nella chat
+   * ed è quello che si mostra in campo se la polizza viene chiesta: lì ci
+   * vogliono il numero, il giorno e la validità, perché nessuno andrà a
+   * cercarli nel gestionale con l'arbitro davanti.
+   */
+  return avvisaPersona(dati.userId, {
+    titolo: 'Sei coperto',
+    testo: `Polizza giornaliera n. ${dati.codice} per ${dati.titolo}, ${dati.giorno}.`,
+    url: '/profilo',
+    tag: 'polizza-giornaliera',
+    whatsapp: `Zero Dark Ops \u2014 sei coperto
 
 ${dati.nome} ${dati.cognome}
-Attività: ${dati.titolo}
+Attivit\u00e0: ${dati.titolo}
 Giorno: ${dati.giorno}
 Polizza giornaliera n. ${dati.codice}
 ${validita}
 
-Tienila a portata: in campo può essere chiesta.`;
-
-  const { inviaWhatsapp } = await import('@/lib/whatsapp');
-  const esito = await inviaWhatsapp(numero, testo).catch(() => ({ ok: false }) as const);
-  return esito.ok;
+Tienila a portata: in campo pu\u00f2 essere chiesta.`,
+  });
 }
 
 /**
@@ -518,7 +522,7 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
       ok:
         `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: polizza prova n. ${polizza.numero}.` +
         (residue === null ? '' : ` Ne restano ${residue}.`) +
-        (avvisato ? ' Gli ho mandato i dati su WhatsApp.' : ''),
+        (doveArrivato[avvisato] ? ` ${doveArrivato[avvisato]}` : ''),
     };
   } catch (e) {
     const messaggio = (e as Error).message;

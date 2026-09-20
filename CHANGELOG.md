@@ -5,6 +5,38 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.68.0 — 20 settembre 2026
+
+### Cambiato
+
+- **Un avviso sceglie da solo la strada, e la regola e' una per tutti.** Chi ha
+  acceso le notifiche riceve quelle; chi non le ha accese riceve un WhatsApp.
+  Mai tutti e due — lo stesso avviso da due strade insegna a ignorarli entrambi
+  — e mai nessuno dei due per una scelta fatta mesi prima davanti a una
+  finestra del browser. Prima ogni avviso decideva per conto suo, e le due
+  regole erano incoerenti: la polizza attivata andava **sempre** su WhatsApp,
+  anche a chi aveva le notifiche; il certificato in scadenza andava **solo** in
+  push, e chi le notifiche non le aveva non sapeva niente.
+  - Il messaggio WhatsApp non e' la notifica travestita: la notifica si legge
+    in due righe sulla schermata bloccata e il resto lo apre un tocco, il
+    messaggio resta nella chat e deve bastare a se' stesso — il numero della
+    polizza, il giorno, la validita' — perche' e' quello che si mostra in campo
+    se la polizza viene chiesta.
+  - Il messaggio di conferma dice dove e' arrivato: «Gli e' arrivata la
+    notifica» oppure «Gli ho mandato i dati su WhatsApp».
+- **L'appello non chiude piu' l'attivita'. Mai.** Registra le presenze e basta,
+  si rifa' per chi arriva tardi, e l'attivita' la chiude una persona quando la
+  giornata e' finita davvero — col pulsante in fondo alla pagina, accanto al
+  condividi. L'ora sul calendario e' una previsione; che sia andata lo dice chi
+  c'era.
+
+### Aggiunto
+
+- **Nei nuovi c'e' la campanella**, in tabella e nelle card: accesa se gli
+  avvisi arrivano sul telefono, spenta se partira' un WhatsApp. Non e' un
+  difetto da correggere, e' come lo si raggiunge — e saperlo prima evita di
+  scrivere a mano a uno che sarebbe stato avvisato da solo.
+
 ## 2.67.0 — 20 settembre 2026
 
 ### Aggiunto

@@ -7,6 +7,7 @@ import { ListaFiltrata } from './Filtri';
 import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
+import { Icona } from './Icona';
 import { STATI_CONTATTO, etichettaStato, tonoStato } from '@/lib/domain';
 import { inviaRichiesta } from '@/actions/iscrizioni';
 import { CampiRichiesta, type VoceListino } from './CampiRichiesta';
@@ -25,6 +26,15 @@ export type RigaNuovo = {
   /** Registrazione che chi sta guardando non ha ancora aperto. */
   daLeggere: boolean;
   ultimoAccesso: string | null;
+  /**
+   * Ha acceso le notifiche sul telefono.
+   *
+   * Cambia **come lo si avvisa**: chi le ha accese riceve la notifica, agli
+   * altri parte un WhatsApp. Saperlo guardando l'elenco evita di scrivere a
+   * mano a uno che sarebbe stato avvisato da solo -- e di dare per avvisato
+   * uno che non lo e'.
+   */
+  avvisi: boolean;
   adesioni: number;
   presenze: number;
   ultimaPresenza: string | null;
@@ -96,8 +106,20 @@ export function ElencoNuovi({
                     </div>
                   )}
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center gap-2">
                   <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
+                  {/* come lo si raggiunge: campanella accesa, notifica sul
+                      telefono; spenta, WhatsApp */}
+                  <span
+                    className={n.avvisi ? 'text-nvg' : 'text-muted/40'}
+                    title={
+                      n.avvisi
+                        ? 'Riceve le notifiche sul telefono'
+                        : 'Niente notifiche: lo si avvisa su WhatsApp'
+                    }
+                  >
+                    <Icona nome="avvisi" size={15} />
+                  </span>
                 </div>
                 {puoInvitare && !n.haIscrizione && (
                   <div className="piede">
@@ -120,6 +142,7 @@ export function ElencoNuovi({
                     <th>Recapiti</th>
                     <th>Registrato</th>
                     <th>Ultimo accesso</th>
+                    <th>Avvisi</th>
                     <th>Presenze</th>
                     <th>Ultima volta</th>
                     <th>Stato</th>
@@ -153,6 +176,21 @@ export function ElencoNuovi({
                       <td className="whitespace-nowrap text-muted num">{n.registrato}</td>
                       <td className="whitespace-nowrap text-muted num">
                         {n.ultimoAccesso ?? 'mai'}
+                      </td>
+                      {/* La campanella accesa vuol dire che l'avviso arriva
+                          sul telefono; spenta, che partira' un WhatsApp. Non
+                          e' un difetto da correggere: e' come lo si raggiunge. */}
+                      <td>
+                        <span
+                          className={n.avvisi ? 'text-nvg' : 'text-muted/40'}
+                          title={
+                            n.avvisi
+                              ? 'Riceve le notifiche sul telefono'
+                              : 'Niente notifiche: lo si avvisa su WhatsApp'
+                          }
+                        >
+                          <Icona nome="avvisi" size={16} />
+                        </span>
                       </td>
                       <td className="text-muted num">
                         {n.presenze}/{n.adesioni}

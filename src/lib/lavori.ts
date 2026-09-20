@@ -3,8 +3,8 @@ import { conIdentita } from './identita';
 import { attivitaDaCoprire, dataLocale } from './assicurazione';
 import { attivaGiornaliera } from '@/actions/assicurazione';
 import type { SessionUser } from './auth';
-import { avvisa } from './push';
-import { giorniA } from './format';
+import { avvisaPersona } from './avvisi';
+import { fmtDate, giorniA } from './format';
 
 /**
  * Il lavoro che si sveglia da solo.
@@ -210,7 +210,7 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
     // già detto a questa tappa, o a una più stretta: si tace
     if (cert.avvisoScadenzaA !== null && tappa >= cert.avvisoScadenzaA) continue;
 
-    await avvisa([cert.userId], {
+    await avvisaPersona(cert.userId, {
       titolo:
         tappa === TAPPA_SCADUTO
           ? 'Certificato medico scaduto'
@@ -224,6 +224,18 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
       url: '/certificati',
       // uno solo per persona: due avvisi di scadenza non fanno due righe
       tag: 'certificato-scadenza',
+      // a chi le notifiche non le ha, lo stesso avviso arriva su WhatsApp —
+      // scritto per stare da solo in una chat, con dentro la data
+      whatsapp:
+        tappa === TAPPA_SCADUTO
+          ? `Zero Dark Ops — il tuo certificato medico è scaduto il ${fmtDate(cert.scadeIl)}.
+
+Senza non si scende in campo: prenota la visita e carica il nuovo nel gestionale appena ce l'hai.`
+          : `Zero Dark Ops — il tuo certificato medico scade ${
+              giorni === 0 ? 'oggi' : `fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`
+            }, il ${fmtDate(cert.scadeIl)}.
+
+Prenota la visita adesso: fra il medico e l'approvazione ci vuole qualche giorno. Il nuovo si carica dal gestionale, in «Miei certificati».`,
     });
 
     await prisma.medicalCertificate.update({
