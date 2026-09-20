@@ -11,8 +11,12 @@ import type { SessionUser } from './auth';
  * seconda verità da tenere allineata a quella vera, e prima o poi divergono —
  * si riusa quella che c'è già, ruolo per ruolo, controllo per controllo.
  *
- * L'unico posto da cui si entra qui è la rotta `/api/mcp`, dopo aver verificato
- * la chiave. Nessun altro chiama `conIdentita`.
+ * Da qui si entra da **due soli posti**, e tutti e due dopo aver verificato
+ * qualcosa: la rotta `/api/mcp`, che ha già controllato la chiave personale, e
+ * i lavori automatici (`lib/lavori.ts`), che girano per conto di chi li ha
+ * accesi — una polizza che parte da sola ha comunque una firma. Nessun altro
+ * chiama `conIdentita`: ogni chiamata in più è un modo di diventare qualcuno
+ * senza fare il login.
  */
 const contesto = new AsyncLocalStorage<SessionUser>();
 

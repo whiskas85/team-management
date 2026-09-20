@@ -5,6 +5,38 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.65.0 — 20 settembre 2026
+
+### Aggiunto
+
+- **Le polizze giornaliere si possono attivare da sole, poco prima
+  dell'attivita'.** Il caso e' la domenica mattina: alle otto si e' in viaggio,
+  il gestionale non lo apre nessuno, e chi non e' stato coperto il giovedi'
+  arriva in campo scoperto. Un lavoro sulla macchina si sveglia ogni pochi
+  minuti e copre chi e' pronto — **spento di suo**, con l'anticipo a un'ora,
+  modificabile fra dieci minuti e un giorno, dal riquadro «Polizze
+  automatiche» nella pagina delle polizze.
+  - **Non salta nessun controllo**: passa dallo stesso pulsante «Assicura»,
+    quindi copre solo chi ha detto «ci sono», ha la quota saldata o dichiarata
+    e i dati anagrafici a posto. Quello che aggiunge e' non dimenticarsene.
+  - **Ha una firma**: le polizze automatiche partono a nome di chi ha acceso
+    l'interruttore, perche' una spesa ha sempre qualcuno dietro anche quando
+    parte da sola. Se quella persona esce dalla squadra, firma il primo che
+    amministra invece di smettere di assicurare in silenzio.
+  - **Due freni**: non piu' di venti polizze per giro, e la porta da cui si
+    sveglia (`/api/lavori`) risponde 404 a chi non ha la chiave — che in test
+    non c'e', quindi li' non parte niente.
+
+### Cambiato
+
+- **Fatto l'appello, la riga del partecipante si congela.** Via il cestino e
+  via «ha risposto il…»: resta il verdetto, «c'era» o «non c'era». La sua
+  presenza e' un fatto registrato — e' finita nella sua percentuale e nello
+  storico della giornata — e cancellarla vorrebbe dire riscrivere cos'e'
+  successo, per giunta per sbaglio, visto che il cestino stava accanto al nome.
+  Il divieto non e' solo nascosto: chi arriva con una pagina aperta da prima si
+  sente rispondere che la presenza e' registrata.
+
 ## 2.64.0 — 20 settembre 2026
 
 ### Aggiunto

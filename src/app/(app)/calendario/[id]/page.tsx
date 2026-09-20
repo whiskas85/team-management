@@ -1569,7 +1569,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   })()}
                               </div>
                             </div>
-                            {tl && (
+                            {/* Fatto l'appello la riga si congela: di quella
+                                persona non si dice più «forse viene», si dice
+                                se c'era. Togliere il cestino non è nascondere
+                                un comando, è dire che quel gesto non ha più
+                                senso — cancellarla cancellerebbe una presenza
+                                registrata, cioè un pezzo di storia della
+                                giornata. */}
+                            {tl && r.presente === null && (
                               <div className="-mr-1 -mt-0.5 shrink-0">
                                 <BottoneElimina
                                   azione={rimuoviPartecipante}
@@ -1597,7 +1604,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                 toccato la risposta — se l'ha cambiata, è quando
                                 l'ha cambiata. */}
                             <span className="mr-auto text-[11px] text-muted">
-                              {aggiuntoDalloStaff(r) ? (
+                              {/* A appello fatto quando ha risposto non
+                                  interessa più a nessuno: la domanda «verrà?»
+                                  ha avuto la sua risposta sul campo, ed è il
+                                  badge qui accanto. */}
+                              {r.presente !== null ? null : aggiuntoDalloStaff(r) ? (
                                 <>
                                   aggiunto dallo staff ·{' '}
                                   <span className="num">{fmtDateTime(r.respondedAt)}</span>

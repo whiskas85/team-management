@@ -44,6 +44,10 @@ services:
       # il ponte verso WhatsApp, raggiungibile solo dentro la rete di Docker
       WHATSAPP_URL: http://whatsapp:3001
       SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
+      # la chiave con cui il cron della macchina sveglia il gestionale per i
+      # lavori automatici (le polizze giornaliere poco prima dell'attivita').
+      # Senza, /api/lavori non esiste e niente parte da solo.
+      SEGRETO_LAVORI: ${SEGRETO_LAVORI:-}
       # notifiche push: senza queste chiavi il gestionale non le propone
       # nemmeno, e tutto il resto funziona come prima
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}

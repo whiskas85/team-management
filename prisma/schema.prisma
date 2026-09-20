@@ -1920,5 +1920,15 @@ model Impostazioni {
   id                  String   @id @default("app")
   /// Se chi non è ancora in squadra può mettere annunci. Vedere lo può sempre.
   nuoviPossonoVendere Boolean  @default(false)
+  /// Le polizze giornaliere si attivano da sole poco prima dell'attività.
+  /// Spenta di suo: ogni polizza è un soldo speso che non torna indietro, e
+  /// una cosa che spende da sola va accesa apposta, da qualcuno, sapendolo.
+  assicuraAuto        Boolean  @default(false)
+  /// Quanti minuti prima. Un'ora: il tempo in cui si è già in viaggio e
+  /// nessuno sta più guardando il gestionale.
+  assicuraAnticipoMin Int      @default(60)
+  /// Chi l'ha accesa. Le polizze automatiche partono a nome suo: una spesa ha
+  /// sempre una firma, anche quando parte da sola.
+  assicuraAutoDaId    String?
   aggiornatoIl        DateTime @updatedAt
 }

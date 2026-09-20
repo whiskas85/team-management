@@ -65,6 +65,10 @@ services:
       TZ: ${TZ:-Europe/Rome}
       WHATSAPP_URL: http://whatsapp:3001
       SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:-}
+      # la chiave con cui il cron della macchina sveglia il gestionale per i
+      # lavori automatici (le polizze giornaliere poco prima dell'attivita').
+      # Senza, /api/lavori non esiste e niente parte da solo.
+      SEGRETO_LAVORI: ${SEGRETO_LAVORI:-}
       # notifiche push: le chiavi di questo ambiente, diverse da quelle del
       # test — un dispositivo iscritto in test non deve ricevere gli avvisi veri
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}

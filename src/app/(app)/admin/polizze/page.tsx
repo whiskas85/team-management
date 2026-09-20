@@ -13,6 +13,7 @@ import { BottoneModale } from '@/components/Modale';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
 import { TimelinePolizze } from '@/components/TimelinePolizze';
+import { PolizzeAutomatiche } from '@/components/PolizzeAutomatiche';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -239,6 +240,10 @@ export default async function PolizzePage() {
               }))
               .filter((t) => t.serve > 0)}
           />
+
+          {/* Sotto la previsione, perche' e' la risposta alla stessa domanda
+              letta al contrario: non "quando finiscono" ma "chi ci pensa". */}
+          <PolizzeAutomatiche />
         </div>
       </div>
     </>

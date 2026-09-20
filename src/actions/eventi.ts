@@ -1170,6 +1170,26 @@ export async function rimuoviPartecipante(_prev: StatoForm, fd: FormData): Promi
   const me = await requireUser();
   if (!puoSchierare(me.roles)) return { errore: 'Non hai i permessi.' };
 
+  /*
+   * Chi è già stato spuntato all'appello non si toglie più.
+   *
+   * La sua presenza — o la sua assenza — è un fatto registrato: è finita nella
+   * sua percentuale di presenze e nello storico della giornata. Cancellarla
+   * vorrebbe dire riscrivere cos'è successo, e per sbaglio, perché il cestino
+   * sta accanto al nome. Il pulsante infatti sparisce; questo è il controllo
+   * che regge anche a una pagina rimasta aperta da prima dell'appello.
+   */
+  const prima = await prisma.eventRsvp.findUnique({
+    where: { id: str(fd, 'rsvpId') },
+    select: { presente: true, user: { select: { nome: true } } },
+  });
+  if (!prima) return { errore: 'Quel partecipante non c’è più.' };
+  if (prima.presente !== null) {
+    return {
+      errore: `L’appello è già stato fatto: la presenza di ${prima.user.nome} è registrata e non si toglie. Se è un errore, rifai l’appello.`,
+    };
+  }
+
   const rsvp = await prisma.eventRsvp.delete({ where: { id: str(fd, 'rsvpId') } });
 
   // via lui, via la sua quota: restava addebitata a chi non c'era più

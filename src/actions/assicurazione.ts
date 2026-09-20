@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoAmministrare, puoGestirePagamenti, puoSchierare } from '@/lib/domain';
-import { str, strOpt, type StatoForm } from '@/lib/form';
+import { bool, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, contaPolizzeProva, eta } from '@/lib/figt';
 import {
@@ -529,4 +529,53 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
     aggiorna(eventId);
     return { errore: messaggio };
   }
+}
+
+/**
+ * Accende o spegne le polizze che si attivano da sole.
+ *
+ * **Spenta di suo, e si accende sapendolo.** Ogni polizza e' un soldo speso
+ * che non torna indietro: una cosa che spende da sola non puo' essere il
+ * comportamento di serie, e chi la accende ci mette il nome — le polizze
+ * automatiche partono a firma sua, perche' una spesa ha sempre qualcuno
+ * dietro anche quando parte alle otto di domenica mattina.
+ *
+ * L'anticipo si misura in minuti e sta fra dieci minuti e un giorno: sotto i
+ * dieci il lavoro non farebbe in tempo a svegliarsi, sopra le ventiquattr'ore
+ * non e' piu' "poco prima dell'attivita'", e' "quando capita".
+ */
+export async function impostaPolizzeAutomatiche(
+  _prev: StatoForm,
+  fd: FormData,
+): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoAmministrare(me.roles)) {
+    return { errore: 'Solo chi amministra può cambiare le polizze automatiche.' };
+  }
+
+  const acceso = bool(fd, 'acceso');
+  const minuti = Math.min(24 * 60, Math.max(10, intOpt(fd, 'anticipo') ?? 60));
+
+  await prisma.impostazioni.upsert({
+    where: { id: 'app' },
+    create: {
+      id: 'app',
+      assicuraAuto: acceso,
+      assicuraAnticipoMin: minuti,
+      assicuraAutoDaId: acceso ? me.id : null,
+    },
+    update: {
+      assicuraAuto: acceso,
+      assicuraAnticipoMin: minuti,
+      // chi spegne non firma niente: la firma resta attaccata all'accensione
+      ...(acceso ? { assicuraAutoDaId: me.id } : {}),
+    },
+  });
+
+  revalidatePath('/admin/polizze');
+  return {
+    ok: acceso
+      ? `Polizze automatiche accese: partono ${minuti} minuti prima dell’attività, a tuo nome.`
+      : 'Polizze automatiche spente: si assicura solo a mano.',
+  };
 }

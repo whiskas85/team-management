@@ -102,7 +102,9 @@ export function TimelinePolizze({
         className={`mt-1 text-xs ${finisceA ? 'text-danger' : 'text-muted'}`}
       >
         {finisceA
-          ? `Non bastano: a «${finisceA.titolo}» ne ${mancanti === 1 ? 'manca 1' : `mancano ${mancanti}`}. Vanno comprate prima.`
+          ? `Finiscono a «${finisceA.titolo}»: da lì in avanti ne ${
+              mancanti === 1 ? 'manca 1' : `mancano ${mancanti}`
+            }. Vanno comprate prima.`
           : 'Bastano per tutto quello che è in programma.'}
       </p>
 
