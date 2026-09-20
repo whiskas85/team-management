@@ -8,6 +8,7 @@ import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { Icona } from './Icona';
+import { daQuanto } from '@/lib/format';
 import { STATI_CONTATTO, etichettaStato, tonoStato } from '@/lib/domain';
 import { inviaRichiesta } from '@/actions/iscrizioni';
 import { CampiRichiesta, type VoceListino } from './CampiRichiesta';
@@ -35,9 +36,13 @@ export type RigaNuovo = {
    * uno che non lo e'.
    */
   avvisi: boolean;
+  /** Quante volte ha detto «ci sono». */
   adesioni: number;
+  /** Quante volte c'era davvero, all'appello. */
   presenze: number;
   ultimaPresenza: string | null;
+  /** Da quanti giorni non si presenta. Nullo se non e' mai venuto. */
+  giorniDaUltima: number | null;
   haIscrizione: boolean;
 };
 
@@ -96,8 +101,17 @@ export function ElencoNuovi({
                       {n.cognome} {n.nome}
                     </Link>
                     <p className="break-all text-xs text-muted">{n.email}</p>
+                    <p className="text-xs num">
+                      <span className="text-nvg">{n.presenze}</span>{' '}
+                      <span className="text-muted">
+                        {n.presenze === 1 ? 'volta venuto' : 'volte venuto'} su {n.adesioni}{' '}
+                        {n.adesioni === 1 ? 'segnata' : 'segnate'}
+                      </span>
+                    </p>
                     <p className="text-xs text-muted num">
-                      {n.presenze} presenze · ultima {n.ultimaPresenza ?? 'mai'}
+                      {n.giorniDaUltima === null
+                        ? 'mai venuto'
+                        : `ultima volta ${daQuanto(n.giorniDaUltima)} fa`}
                     </p>
                   </div>
                   {puoEliminare && (
@@ -107,7 +121,9 @@ export function ElencoNuovi({
                   )}
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
+                  {n.stato !== 'NUOVO' && (
+                    <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
+                  )}
                   {/* come lo si raggiunge: campanella accesa, notifica sul
                       telefono; spenta, WhatsApp */}
                   <span
@@ -143,9 +159,10 @@ export function ElencoNuovi({
                     <th>Registrato</th>
                     <th>Ultimo accesso</th>
                     <th>Avvisi</th>
-                    <th>Presenze</th>
+                    <th>Venuto</th>
+                    <th>Segnato</th>
                     <th>Ultima volta</th>
-                    <th>Stato</th>
+                    <th>Da quanto</th>
                     <th>Azioni</th>
                   </tr>
                 </thead>
@@ -167,6 +184,15 @@ export function ElencoNuovi({
                         </Link>
                         {n.callsign && (
                           <span className="block text-[11px] text-nvg">{n.callsign}</span>
+                        )}
+                        {/* In una tabella di nuovi, «Nuovo» su ogni riga non
+                            dice niente. Gli altri stati si': uno deve ancora
+                            compilare l'invito, uno aspetta la valutazione, uno
+                            e' stato rifiutato -- e quelli vanno visti. */}
+                        {n.stato !== 'NUOVO' && (
+                          <span className="mt-0.5 block">
+                            <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
+                          </span>
                         )}
                       </td>
                       <td className="text-xs text-muted">
@@ -192,9 +218,16 @@ export function ElencoNuovi({
                           <Icona nome="avvisi" size={16} />
                         </span>
                       </td>
-                      <td className="text-muted num">
-                        {n.presenze}/{n.adesioni}
+                      {/* Due colonne e non una frazione: «2/4» va spiegato
+                          ogni volta, e domani va spiegato di nuovo. Quante
+                          volte e' venuto e quante volte si era segnato sono
+                          due numeri diversi, e si leggono da soli. */}
+                      <td className="num">
+                        <span className={n.presenze > 0 ? 'text-nvg' : 'text-muted'}>
+                          {n.presenze}
+                        </span>
                       </td>
+                      <td className="num text-muted">{n.adesioni}</td>
                       <td
                         className={`whitespace-nowrap num ${
                           n.ultimaPresenza ? 'text-muted' : 'text-danger'
@@ -202,8 +235,20 @@ export function ElencoNuovi({
                       >
                         {n.ultimaPresenza ?? 'mai venuto'}
                       </td>
-                      <td>
-                        <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
+                      {/* Da quanto non si vede: una data costringe a fare la
+                          sottrazione a mente, e in venti righe nessuno la fa.
+                          Sopra i tre mesi diventa rosso, perche' quello e' uno
+                          che se n'e' andato senza dirlo. */}
+                      <td
+                        className={`whitespace-nowrap num ${
+                          n.giorniDaUltima === null || n.giorniDaUltima > 90
+                            ? 'text-danger'
+                            : n.giorniDaUltima > 30
+                              ? 'text-warn'
+                              : 'text-muted'
+                        }`}
+                      >
+                        {n.giorniDaUltima === null ? '—' : daQuanto(n.giorniDaUltima)}
                       </td>
                       <td className="whitespace-nowrap">
                         <div className="flex items-center gap-2">

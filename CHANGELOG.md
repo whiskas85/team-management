@@ -5,6 +5,50 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.69.0 — 20 settembre 2026
+
+### Aggiunto
+
+- **Negli allegati si puo' scrivere un documento, non solo caricarlo.** «Scrivi
+  un documento» apre un editore Markdown con l'anteprima: il book di missione
+  lo scrive chi tiene in mano l'attivita' e spesso lo finisce la sera prima, e
+  farlo scrivere altrove vuol dire che la versione buona sta da un'altra parte.
+  E' un allegato come gli altri — stesso elenco, stesso ordine, stesso link,
+  stessa spunta «anche fuori» — ma **si riapre e si corregge**: scrivere
+  qualcosa e non poterlo piu' toccare sarebbe un blocco per appunti.
+- **L'editore Markdown e' diventato completo**: da cinque pulsanti a sedici, in
+  tre gruppi — il testo (grassetto, corsivo, barrato, codice), la struttura
+  (tre livelli di titolo, citazione, elenchi puntato, numerato e di cose da
+  fare), e quello che si attacca (link, immagine, tabella, blocco di codice,
+  riga di separazione). I simboli di riga vanno davanti a **ogni riga scelta** e
+  non solo alla prima, e premendo due volte si tolgono: e' il modo in cui si
+  corregge un errore.
+- **Quattro numeri nuovi**, gli stessi nella propria pagina e nella scheda che
+  si apre dal calendario: presenze, **parola mantenuta** (quante volte ha detto
+  si' e c'era davvero), da quanto non si vede in campo, e la tipologia piu'
+  frequentata. Due numeri da soli non dicevano niente: chi ha detto si' venti
+  volte ed e' venuto dieci e chi ha detto si' dieci ed e' venuto dieci hanno lo
+  stesso «10», e non sono la stessa persona.
+
+### Cambiato
+
+- **La tabella dei nuovi risponde alla domanda per cui esiste**: chi ha senso
+  portare in squadra galleggia, chi non si vede piu' scende. Ordinata per
+  presenze; «2/4» spezzato in due colonne, **Venuto** e **Segnato**, perche'
+  una frazione va spiegata ogni volta e domani va spiegata di nuovo; una
+  colonna **Da quanto** dice i giorni dall'ultima volta («1m 3g»), ambra dopo
+  un mese e rossa dopo tre. Via la colonna dello stato, che su ogni riga
+  diceva «Nuovo»: restano solo gli stati che dicono qualcosa — deve compilare
+  l'invito, aspetta la valutazione, rifiutato — come segno accanto al nome.
+- **Le attivita' annullate non sono piu' storia di nessuno.** Sparivano solo
+  dal calendario, ma restavano nello storico personale e nella scheda con
+  accanto «Presente» — quel si' era stato detto davvero — raccontando una
+  partecipazione mai avvenuta e rovinando il conto delle presenze.
+- **In bozza spariscono partecipanti, commenti e mi piace.** Non e' un caso da
+  gestire, e' la definizione di bozza: finche' non la rilasci non la vede
+  nessuno, quindi nessuno puo' rispondere. Un riquadro «0 presenti, 0 forse, 0
+  assenti» non raccontava uno zero, raccontava che eri arrivato prima tu.
+
 ## 2.68.0 — 20 settembre 2026
 
 ### Cambiato

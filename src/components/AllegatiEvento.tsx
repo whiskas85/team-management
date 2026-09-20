@@ -14,7 +14,15 @@ import {
   genereAllegato,
   peso,
 } from '@/lib/allegati';
-import { aggiornaAllegato, caricaAllegato, ordinaAllegati, togliAllegato } from '@/actions/allegati';
+import {
+  aggiornaAllegato,
+  caricaAllegato,
+  ordinaAllegati,
+  leggiAllegatoScritto,
+  salvaAllegatoScritto,
+  togliAllegato,
+} from '@/actions/allegati';
+import { EditoreMarkdown } from './EditoreMarkdown';
 
 export type Allegato = {
   id: string;
@@ -45,7 +53,7 @@ const MEGA = Math.round(MAX_ALLEGATO_BYTES / 1024 / 1024);
  * WhatsApp: adesso compare nella **loro** pagina d'invito, senza dare loro
  * niente di più di quello che già vedevano.
  */
-export function AllegatiEvento({
+export async function AllegatiEvento({
   eventId,
   allegati,
   puoGestire,
@@ -59,9 +67,34 @@ export function AllegatiEvento({
 }) {
   if (!puoGestire && allegati.length === 0) return null;
 
+  /*
+   * Il testo dei documenti scritti qui, per poterli riaprire nell'editore.
+   *
+   * Si legge solo per chi li gestisce e solo per i Markdown: a chi legge e
+   * basta non serve, e un PDF da venti mega non si carica in memoria per
+   * mostrare un pulsante che quella persona non vedrebbe comunque.
+   */
+  const testi = puoGestire
+    ? Object.fromEntries(
+        await Promise.all(
+          allegati
+            .filter((a) => genereAllegato(a.mimeType) === 'md')
+            .map(async (a) => [a.id, await leggiAllegatoScritto(a.id)] as const),
+        ),
+      )
+    : {};
+
   const righe = allegati.map((a) => ({
     id: a.id,
-    contenuto: <Riga key={a.id} eventId={eventId} allegato={a} puoGestire={puoGestire} />,
+    contenuto: (
+      <Riga
+        key={a.id}
+        eventId={eventId}
+        allegato={a}
+        puoGestire={puoGestire}
+        testo={testi[a.id] ?? undefined}
+      />
+    ),
   }));
 
   const fuori = allegati.filter((a) => a.pubblico).length;
@@ -93,6 +126,20 @@ export function AllegatiEvento({
 
       {puoGestire && (
         <div className="piede mt-4">
+          {/* Due strade per la stessa cosa, e sono due gesti diversi: uno ha
+              gia' il file e lo attacca, l'altro il documento lo scrive adesso
+              -- il book di missione si finisce la sera prima, e farlo scrivere
+              altrove vuol dire che la versione buona sta da un'altra parte. */}
+          <BottoneModale
+            etichetta="Scrivi un documento"
+            icona="bozza"
+            titolo="Scrivi un documento"
+            className="btn-ghost btn-sm"
+            larga
+          >
+            <FormScritto eventId={eventId} conOspiti={conOspiti} />
+          </BottoneModale>
+
           <BottoneModale
             etichetta="Allega un documento"
             icona="carica"
@@ -107,14 +154,88 @@ export function AllegatiEvento({
   );
 }
 
+/**
+ * Il documento scritto qui dentro, in Markdown.
+ *
+ * **Non e' un allegato di serie B**: finisce nello stesso elenco, con lo stesso
+ * link e lo stesso ordine, e chi lo legge non sa se e' nato qui o e' arrivato
+ * da fuori. Quello che cambia e' che si puo' riaprire e correggere, e questo
+ * cambia cosa ci si scrive: un book che si corregge lo si scrive il mercoledi'
+ * invece che la domenica mattina.
+ *
+ * L'editore e' lo stesso dei regolamenti, con la sua anteprima: quello che si
+ * vede scrivendo e' quello che leggera' chi apre il documento.
+ */
+function FormScritto({
+  eventId,
+  allegato,
+  testo,
+  conOspiti = false,
+}: {
+  eventId?: string;
+  allegato?: Allegato;
+  /** Il testo di prima, quando si sta correggendo. */
+  testo?: string;
+  conOspiti?: boolean;
+}) {
+  return (
+    <FormAzione azione={salvaAllegatoScritto}>
+      {allegato ? (
+        <input type="hidden" name="id" value={allegato.id} />
+      ) : (
+        <input type="hidden" name="eventId" value={eventId} />
+      )}
+
+      <Campo label="Come si chiama" span>
+        <input
+          name="titolo"
+          className="input"
+          required
+          maxLength={120}
+          defaultValue={allegato?.titolo ?? ''}
+          placeholder="es. Book di missione"
+        />
+      </Campo>
+
+      <Campo label="Il documento" span>
+        <EditoreMarkdown nome="testo" valore={testo ?? ''} righe={18} />
+      </Campo>
+
+      <Campo label="Chi lo vede" span>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="pubblico"
+            defaultChecked={allegato?.pubblico ?? false}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            Anche le squadre ospiti
+            <span className="block text-xs text-muted">
+              {conOspiti
+                ? 'Lo vedranno aprendo il loro link d\u2019invito.'
+                : 'Serve quando inviterai qualcuno da fuori: senza spunta resta nostro.'}
+            </span>
+          </span>
+        </label>
+      </Campo>
+
+      <Invia icona="salva">{allegato ? 'Salva le modifiche' : 'Allega il documento'}</Invia>
+    </FormAzione>
+  );
+}
+
 function Riga({
   eventId,
   allegato: a,
   puoGestire,
+  testo,
 }: {
   eventId: string;
   allegato: Allegato;
   puoGestire: boolean;
+  /** Il testo, se e' un documento scritto qui: allora si corregge invece di sostituirlo. */
+  testo?: string;
 }) {
   const genere = genereAllegato(a.mimeType);
   const indirizzo = `/calendario/${eventId}/allegati/${a.id}`;
@@ -159,7 +280,21 @@ function Riga({
             <Icona nome="scarica" size={15} />
             Scarica
           </a>
-          {puoGestire && (
+          {/* Un documento scritto qui si corregge, non si sostituisce: il
+              file da caricare non ce l'ha nessuno, sta in queste righe. */}
+          {puoGestire && testo !== undefined && (
+            <BottoneModale
+              etichetta="Modifica"
+              icona="modifica"
+              titolo={`Modifica «${a.titolo}»`}
+              className="btn-ghost btn-sm"
+              larga
+            >
+              <FormScritto allegato={a} testo={testo} />
+            </BottoneModale>
+          )}
+
+          {puoGestire && testo === undefined && (
             <BottoneModale
               etichetta="Modifica"
               icona="modifica"

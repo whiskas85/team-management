@@ -1352,8 +1352,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           />
 
           {/* -------------------------------------------------- partecipanti */}
-          {/* l'ancora del numero in cima: chi tocca «in giocata» finisce qui,
-              e il margine tiene la barra in alto fuori dai piedi */}
+          {/* In bozza non c'è nessuno da mostrare, e non è un caso da gestire:
+              è la definizione di bozza. Finché non la rilasci l'attività non la
+              vede nessuno, quindi nessuno può rispondere — un riquadro
+              «Partecipanti · 0 presenti, 0 forse, 0 assenti» non racconta uno
+              zero, racconta che sei arrivato prima tu.
+              L'ancora del numero in cima resta: chi tocca «in giocata» finisce
+              qui, e il margine tiene la barra in alto fuori dai piedi. */}
+          {evento.status !== 'CREATA' && (
           <div id="partecipanti" className="scroll-mt-24">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               {/* Il conto sta in cima e si legge da lontano: è il dato per cui
@@ -1802,6 +1808,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+          )}
 
           {/* ------------------------------------------------ debriefing */}
           {/* letto qui è letto: il testo è tutto in pagina */}
@@ -1817,6 +1824,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           />
 
           {/* ------------------------------------------------ commenti */}
+          {/* Come sopra: una bozza non la legge nessuno, e una casella per
+              commentare una cosa che non esiste ancora è solo un invito a
+              parlare da soli. */}
+          {evento.status !== 'CREATA' && (
           <Social
             eventId={evento.id}
             commenti={commenti as Commento[]}
@@ -1828,6 +1839,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             chiSono={comeChiamare(me, { incarico: false, diSquadra: true }).nome}
             puoModerare={admin || puoModerareChat(me.roles)}
           />
+          )}
 
           {/* ------------------------------------------------ note private */}
           {scrivoNote && (

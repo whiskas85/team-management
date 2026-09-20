@@ -1,7 +1,7 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { STATI_CONTATTO, isAdmin, puoAmministrare, puoVedereNuovi } from '@/lib/domain';
-import { fmtDate } from '@/lib/format';
+import { fmtDate, giorniA } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { Intestazione, Statistica } from '@/components/ui';
 import { BottoneCreaOperatore } from '@/components/FormOperatore';
@@ -108,6 +108,19 @@ export default async function NuoviPage() {
     },
   });
 
+  /*
+   * In cima chi viene, in fondo chi non si vede più.
+   *
+   * È la domanda per cui questa tabella esiste: chi ha senso portare in
+   * squadra galleggia, chi si è perso per strada scende. Prima ordinava per
+   * data di registrazione, che dice solo chi ha bussato per primo — e uno che
+   * ha bussato a marzo e non è mai venuto stava sopra a uno arrivato a
+   * settembre che c'è stato quattro volte.
+   *
+   * A parità di presenze viene prima chi c'è stato più di recente: fra due che
+   * sono venuti tre volte, quello di domenica scorsa interessa più di quello
+   * dell'anno passato.
+   */
   const righe: RigaNuovo[] = nuovi.map((n) => {
     const venute = n.rsvps.filter((r) => r.presente === true);
     const ultima = venute[0]?.event.inizio ?? null;
@@ -126,11 +139,23 @@ export default async function NuoviPage() {
       adesioni: n.rsvps.filter((r) => r.status === 'PRESENTE').length,
       presenze: venute.length,
       ultimaPresenza: ultima ? fmtDate(ultima) : null,
+      // quanti giorni sono passati: il numero si legge, la data va sottratta
+      giorniDaUltima: ultima ? Math.max(0, -(giorniA(ultima) ?? 0)) : null,
       haIscrizione: n.memberships.some((m) =>
         ['INVITATA', 'COMPILATA', 'ATTIVA'].includes(m.status),
       ),
     };
   });
+
+  righe.sort(
+    (a, b) =>
+      b.presenze - a.presenze ||
+      // a parità di presenze, chi c'è stato più di recente
+      (a.giorniDaUltima ?? Number.MAX_SAFE_INTEGER) -
+        (b.giorniDaUltima ?? Number.MAX_SAFE_INTEGER) ||
+      b.adesioni - a.adesioni ||
+      a.cognome.localeCompare(b.cognome, 'it'),
+  );
 
   const soglia = Date.now() - GIORNI_INATTIVITA * 86400000;
   const maiVenuti = nuovi.filter((n) => !n.rsvps.some((r) => r.presente === true)).length;

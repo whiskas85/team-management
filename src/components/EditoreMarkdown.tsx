@@ -18,14 +18,62 @@ import { Markdown, type Menzioni } from './Markdown';
 
 type Persona = { id: string; maniglia: string; nome: string };
 
-// etichette e non icone: "B" e "I" li riconosce chiunque abbia scritto una
-// mail, mentre una matita che vuol dire grassetto non la indovina nessuno
-const PULSANTI: { etichetta: string; titolo: string; prima: string; dopo: string }[] = [
+type Pulsante = {
+  etichetta: string;
+  titolo: string;
+  prima: string;
+  dopo: string;
+  /**
+   * Il simbolo va davanti a **ogni riga** scelta, non attorno al blocco.
+   *
+   * È la differenza fra un elenco e un pasticcio: selezionando tre righe e
+   * premendo «Elenco», il trattino va davanti a tutte e tre. Senza, finiva
+   * davanti alla prima e le altre restavano un paragrafo solo.
+   */
+  perRiga?: boolean;
+  /** Va a capo prima e dopo: tabelle, righe, blocchi di codice. */
+  blocco?: boolean;
+};
+
+/*
+ * La barra degli strumenti.
+ *
+ * **Etichette e non icone**: «B» e «I» li riconosce chiunque abbia scritto una
+ * mail, mentre una matita che vuol dire grassetto non la indovina nessuno. Chi
+ * il Markdown lo sa già scrive dritto e non le guarda; chi non lo sa deve poter
+ * scrivere un book di missione senza impararlo.
+ *
+ * Sono in tre gruppi, nell'ordine in cui servono scrivendo: il testo, la
+ * struttura, quello che si attacca.
+ */
+const PULSANTI: Pulsante[] = [
+  // --- il testo
   { etichetta: 'B', titolo: 'Grassetto', prima: '**', dopo: '**' },
   { etichetta: 'I', titolo: 'Corsivo', prima: '*', dopo: '*' },
-  { etichetta: 'Titolo', titolo: 'Titolo di sezione', prima: '## ', dopo: '' },
-  { etichetta: 'Elenco', titolo: 'Voce di elenco', prima: '- ', dopo: '' },
+  { etichetta: 'S', titolo: 'Barrato', prima: '~~', dopo: '~~' },
+  { etichetta: '</>', titolo: 'Codice', prima: '`', dopo: '`' },
+
+  // --- la struttura
+  { etichetta: 'H1', titolo: 'Titolo', prima: '# ', dopo: '', perRiga: true },
+  { etichetta: 'H2', titolo: 'Sezione', prima: '## ', dopo: '', perRiga: true },
+  { etichetta: 'H3', titolo: 'Sottosezione', prima: '### ', dopo: '', perRiga: true },
+  { etichetta: '\u201c', titolo: 'Citazione', prima: '> ', dopo: '', perRiga: true },
+  { etichetta: 'Elenco', titolo: 'Elenco puntato', prima: '- ', dopo: '', perRiga: true },
+  { etichetta: '1.', titolo: 'Elenco numerato', prima: '1. ', dopo: '', perRiga: true },
+  { etichetta: '\u2610', titolo: 'Cose da fare', prima: '- [ ] ', dopo: '', perRiga: true },
+
+  // --- quello che si attacca
   { etichetta: 'Link', titolo: 'Collegamento', prima: '[', dopo: '](https://)' },
+  { etichetta: 'Foto', titolo: 'Immagine', prima: '![', dopo: '](https://)' },
+  {
+    etichetta: 'Tabella',
+    titolo: 'Tabella',
+    prima: '| Cosa | Chi | Quando |\n|---|---|---|\n| | | |',
+    dopo: '',
+    blocco: true,
+  },
+  { etichetta: 'Codice', titolo: 'Blocco di codice', prima: '```\n', dopo: '\n```', blocco: true },
+  { etichetta: '\u2014', titolo: 'Riga di separazione', prima: '---', dopo: '', blocco: true },
 ];
 
 export function EditoreMarkdown({
@@ -54,19 +102,57 @@ export function EditoreMarkdown({
     ? Object.fromEntries(persone.map((p) => [p.maniglia, p.nome]))
     : undefined;
 
-  /** Mette i simboli attorno alla selezione e rimette il cursore dove serve. */
-  const avvolgi = (prima: string, dopo: string) => {
+  /** Mette i simboli al posto giusto e rimette il cursore dove serve. */
+  const applica = (b: Pulsante) => {
     const el = area.current;
     if (!el) return;
-    const { selectionStart: a, selectionEnd: b } = el;
-    const scelto = testo.slice(a, b);
-    const nuovo = testo.slice(0, a) + prima + scelto + dopo + testo.slice(b);
+    const { selectionStart: da, selectionEnd: a } = el;
+
+    if (b.perRiga) {
+      // si allarga la selezione all'intera riga: un «- » in mezzo a una parola
+      // non fa un elenco, fa un trattino in mezzo a una parola
+      const inizioRiga = testo.lastIndexOf('\n', da - 1) + 1;
+      const fineRiga = testo.indexOf('\n', a) === -1 ? testo.length : testo.indexOf('\n', a);
+      const righe = testo.slice(inizioRiga, fineRiga).split('\n');
+      // premuto due volte si toglie: è il modo in cui si corregge un errore
+      const gia = righe.every((r) => r.startsWith(b.prima));
+      const rifatte = righe
+        .map((r) => (gia ? r.slice(b.prima.length) : b.prima + r))
+        .join('\n');
+      const nuovo = testo.slice(0, inizioRiga) + rifatte + testo.slice(fineRiga);
+      setTesto(nuovo);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(inizioRiga, inizioRiga + rifatte.length);
+      });
+      return;
+    }
+
+    if (b.blocco) {
+      // un blocco vuole aria intorno: attaccato al paragrafo di sopra, il
+      // Markdown non lo riconosce nemmeno
+      const primaCapo = da > 0 && testo[da - 1] !== '\n' ? '\n\n' : '';
+      const scelto = testo.slice(da, a);
+      const corpo = b.dopo ? b.prima + scelto + b.dopo : b.prima;
+      const dopoCapo = a < testo.length && testo[a] !== '\n' ? '\n\n' : '';
+      const nuovo = testo.slice(0, da) + primaCapo + corpo + dopoCapo + testo.slice(a);
+      setTesto(nuovo);
+      const posizione = da + primaCapo.length + corpo.length;
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(posizione, posizione);
+      });
+      return;
+    }
+
+    const scelto = testo.slice(da, a);
+    const nuovo = testo.slice(0, da) + b.prima + scelto + b.dopo + testo.slice(a);
     setTesto(nuovo);
 
     // senza questo il cursore salta in fondo e si perde il filo del discorso
     requestAnimationFrame(() => {
       el.focus();
-      el.setSelectionRange(a + prima.length, a + prima.length + scelto.length);
+      el.setSelectionRange(da + b.prima.length, da + b.prima.length + scelto.length);
     });
   };
 
@@ -107,7 +193,7 @@ export function EditoreMarkdown({
             key={b.titolo}
             type="button"
             title={b.titolo}
-            onClick={() => avvolgi(b.prima, b.dopo)}
+            onClick={() => applica(b)}
             className="rounded border border-line px-2 py-1 text-[11px] text-muted transition-colors hover:border-nvg/50 hover:text-nvg"
           >
             {b.etichetta}

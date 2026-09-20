@@ -12,6 +12,7 @@ import {
 } from '@/lib/domain';
 import { fmtDate, iniziali, nomeCompleto, umanizza } from '@/lib/format';
 import { Avatar, Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
+import { StatistichePersona } from '@/components/StatistichePersona';
 import { AzioniContatto } from '@/components/AzioniContatto';
 
 /**
@@ -53,7 +54,9 @@ export default async function SchedaCompagnoPage({
         select: {
           status: true,
           presente: true,
-          event: { select: { titolo: true, inizio: true, tipo: { select: { nome: true } } } },
+          event: {
+            select: { titolo: true, inizio: true, status: true, tipo: { select: { nome: true } } },
+          },
         },
         orderBy: { respondedAt: 'desc' },
       },
@@ -62,9 +65,12 @@ export default async function SchedaCompagnoPage({
 
   if (!utente || !inSquadra(utente.stato)) notFound();
 
-  const svolti = utente.rsvps.filter((r) => new Date(r.event.inizio) < new Date());
+  // le annullate non sono storia di nessuno: non ci è stato nessuno, e
+  // lasciarle in scheda racconta una partecipazione che non è avvenuta
+  const partecipazioni = utente.rsvps.filter((r) => r.event.status !== 'ANNULLATA');
+  const svolti = partecipazioni.filter((r) => new Date(r.event.inizio) < new Date());
   const presenze = svolti.filter((r) => r.presente === true).length;
-  const adesioni = utente.rsvps.filter((r) => r.status === 'PRESENTE').length;
+  const adesioni = partecipazioni.filter((r) => r.status === 'PRESENTE').length;
 
   return (
     <>
@@ -115,6 +121,15 @@ export default async function SchedaCompagnoPage({
         </div>
       </div>
 
+      <StatistichePersona
+        righe={partecipazioni.map((r) => ({
+          status: r.status,
+          presente: r.presente,
+          quando: r.event.inizio,
+          tipo: r.event.tipo?.nome ?? null,
+        }))}
+      />
+
       <div className="mb-6 grid grid-cols-2 gap-3">
         <Statistica etichetta="Adesioni" valore={adesioni} dettaglio="attività a cui ha detto sì" />
         <Statistica
@@ -126,11 +141,11 @@ export default async function SchedaCompagnoPage({
       </div>
 
       <h2 className="titolo-sezione mb-3">Ultime attività</h2>
-      {utente.rsvps.length === 0 ? (
+      {partecipazioni.length === 0 ? (
         <Vuoto testo="Non ha ancora risposto a nessuna attività." />
       ) : (
         <div className="space-y-2">
-          {utente.rsvps.slice(0, 10).map((r, i) => (
+          {partecipazioni.slice(0, 10).map((r, i) => (
             <div
               key={i}
               className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-2.5"

@@ -31,6 +31,34 @@ export const giorniA = (d?: Date | string | null): number | null => {
   return Math.round((target.getTime() - oggi.getTime()) / 86400000);
 };
 
+/**
+ * Quanto tempo è passato, detto corto: «3g», «1m 12g», «2a 4m».
+ *
+ * Una data — «17 mar 2026» — costringe chi legge a fare la sottrazione a
+ * mente, e in una tabella di venti righe nessuno la fa: si guarda l'anno e si
+ * tira a indovinare. Il numero di giorni invece si confronta a colpo d'occhio,
+ * ed è quello che serve quando la domanda è «chi non si vede più».
+ *
+ * I mesi sono di trenta giorni e gli anni di dodici mesi: è una misura di
+ * distanza, non una data, e nessuno decide niente sulla differenza fra
+ * cinquantotto e sessanta giorni.
+ */
+export const daQuanto = (giorni: number | null | undefined): string | null => {
+  if (giorni === null || giorni === undefined) return null;
+  if (giorni <= 0) return 'oggi';
+  if (giorni < 30) return `${giorni}g`;
+
+  const mesi = Math.floor(giorni / 30);
+  if (mesi < 12) {
+    const resto = giorni % 30;
+    return resto === 0 ? `${mesi}m` : `${mesi}m ${resto}g`;
+  }
+
+  const anni = Math.floor(mesi / 12);
+  const resto = mesi % 12;
+  return resto === 0 ? `${anni}a` : `${anni}a ${resto}m`;
+};
+
 export const iniziali = (nome: string, cognome: string) =>
   `${nome.charAt(0)}${cognome.charAt(0)}`.toUpperCase();
 

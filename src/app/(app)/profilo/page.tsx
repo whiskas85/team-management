@@ -14,6 +14,7 @@ import {
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, iniziali, inputDate, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
+import { StatistichePersona } from '@/components/StatistichePersona';
 import { Avatar, Badge, Campo, Intestazione, Statistica } from '@/components/ui';
 import { Fisarmonica, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -54,7 +55,13 @@ export default async function ProfiloPage() {
         include: {
           // l'id serve perché dalla riga si va sull'attività
           event: {
-            select: { id: true, titolo: true, inizio: true, tipo: { select: { nome: true } } },
+            select: {
+              id: true,
+              titolo: true,
+              inizio: true,
+              status: true,
+              tipo: { select: { nome: true } },
+            },
           },
         },
         orderBy: { respondedAt: 'desc' },
@@ -70,9 +77,26 @@ export default async function ProfiloPage() {
   // la scheda di emergenza è utile solo se c'è qualcuno da chiamare e un numero
   const iceCompleta = !!utente.emergenzaNome && !!utente.emergenzaTel;
 
-  const svolti = utente.rsvps.filter((r) => new Date(r.event.inizio) < new Date());
+  /*
+   * Le giornate annullate non sono storia di nessuno.
+   *
+   * Una gara saltata per la pioggia non dice niente su chi c'era: non ci è
+   * stato nessuno. Lasciarla nello storico personale — con accanto «Presente»,
+   * perché quel sì era stato detto davvero — racconta una partecipazione che
+   * non è avvenuta, e sporca il conto di chi guarda quante volte è venuto.
+   */
+  const partecipazioni = utente.rsvps.filter((r) => r.event.status !== 'ANNULLATA');
+
+  const svolti = partecipazioni.filter((r) => new Date(r.event.inizio) < new Date());
+  /** Le righe come le vuole il riquadro dei numeri, senza le annullate. */
+  const statistiche = partecipazioni.map((r) => ({
+    status: r.status,
+    presente: r.presente,
+    quando: r.event.inizio,
+    tipo: r.event.tipo?.nome ?? null,
+  }));
   const presenze = svolti.filter((r) => r.presente === true).length;
-  const adesioni = utente.rsvps.filter((r) => r.status === 'PRESENTE').length;
+  const adesioni = partecipazioni.filter((r) => r.status === 'PRESENTE').length;
   const daSaldare = utente.payments
     .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
@@ -144,14 +168,14 @@ export default async function ProfiloPage() {
       )}
 
       {/* -------------------------------------------------- numeri */}
+      {/* Com'è andata: gli stessi numeri della scheda che si apre dal
+          calendario. Erano due pagine che parlavano della stessa persona
+          dicendo cose diverse, e quella con i numeri interessanti era quella
+          che non si apre mai. */}
+      <StatistichePersona righe={statistiche} tu />
+
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Statistica etichetta="Adesioni" valore={adesioni} dettaglio="eventi a cui hai detto sì" />
-        <Statistica
-          etichetta="Presenze confermate"
-          valore={presenze}
-          dettaglio={`su ${svolti.length} eventi svolti`}
-          tono="ok"
-        />
         {tesserato && (
           <Statistica
             etichetta="Certificato"
@@ -487,7 +511,7 @@ export default async function ProfiloPage() {
       <div className="mt-6">
         <h2 className="titolo-sezione mb-3">Storico partecipazioni</h2>
         <Partecipazioni
-          rsvps={utente.rsvps}
+          rsvps={partecipazioni}
           limite={15}
           vuoto="Non hai ancora risposto a nessun evento."
         />
