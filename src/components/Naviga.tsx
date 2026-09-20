@@ -8,6 +8,27 @@ import { Icona } from './Icona';
  * Le coordinate hanno la precedenza sull'indirizzo scritto: un campo in mezzo
  * al bosco spesso non ha una via che Maps sappia trovare.
  */
+/**
+ * Come si dice a Maps «qui»: le coordinate se ci sono, altrimenti l'indirizzo
+ * scritto. Nullo quando non si sa dove sia, e allora non c'è niente da aprire.
+ */
+export function metaNaviga(
+  lat?: number | null,
+  lng?: number | null,
+  indirizzo?: string | null,
+) {
+  if (lat != null && lng != null) return `${lat},${lng}`;
+  return indirizzo?.trim() ? indirizzo.trim() : null;
+}
+
+/** Il percorso verso un posto solo: da dove sei adesso a lì. */
+export const linkNaviga = (meta: string) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(meta)}&travelmode=driving`;
+
+/** Il viaggio intero: prima al ritrovo, poi al campo, in un itinerario solo. */
+export const linkItinerario = (da: string, a: string) =>
+  `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(da)}&destination=${encodeURIComponent(a)}&travelmode=driving`;
+
 export function Naviga({
   lat,
   lng,
@@ -22,14 +43,10 @@ export function Naviga({
   compatto?: boolean;
   className?: string;
 }) {
-  const meta =
-    lat != null && lng != null ? `${lat},${lng}` : indirizzo?.trim() ? indirizzo.trim() : null;
-
+  const meta = metaNaviga(lat, lng, indirizzo);
   if (!meta) return null;
 
-  const href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    meta,
-  )}&travelmode=driving`;
+  const href = linkNaviga(meta);
 
   return (
     <a

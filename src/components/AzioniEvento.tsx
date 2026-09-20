@@ -15,6 +15,7 @@ export function AzioniEvento({
   visibilita,
   soloInterno = false,
   compatto = false,
+  soloRilascio = false,
 }: {
   id: string;
   titolo: string;
@@ -24,8 +25,22 @@ export function AzioniEvento({
   soloInterno?: boolean;
   /** Versione ridotta per le card e le righe di elenco. */
   compatto?: boolean;
+  /**
+   * Nelle card dell'elenco si fa **solo il primo passo**: rilasciare una bozza.
+   *
+   * Il resto — cambiare i destinatari, concludere, annullare, riportare in
+   * bozza — sta dentro l'attività, in fondo, accanto al condividi. Scorrendo
+   * l'elenco quei pulsanti si premevano di sfuggita, e sono tutti gesti che
+   * cambiano la giornata a tutta la squadra; per farne uno bisogna aprire
+   * l'attività, che è esattamente il tempo che ci vuole per pensarci.
+   *
+   * Una bozza invece si rilascia di corsa, ed è giusto così: finché non lo si
+   * fa non la vede nessuno.
+   */
+  soloRilascio?: boolean;
 }) {
   const dim = compatto ? 'btn-sm' : '';
+  if (soloRilascio && status !== 'CREATA') return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">

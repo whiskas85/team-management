@@ -44,7 +44,9 @@ import { ContaRisposte } from '@/components/ContaRisposte';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
-import { Naviga } from '@/components/Naviga';
+import { metaNaviga } from '@/components/Naviga';
+import { ComeArrivare, type Tappa } from '@/components/ComeArrivare';
+import { Quando } from '@/components/Quando';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
@@ -642,6 +644,43 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     conOspiti: evento.ospiti.length > 0,
   };
 
+  /*
+   * Le tappe del viaggio, nell'ordine in cui si fa la strada.
+   *
+   * Prima il ritrovo, poi il campo: chi parte da casa punta al primo, chi
+   * arriva tardi punta al secondo, e finché il pulsante era uno solo uno dei
+   * due sbagliava sempre strada.
+   *
+   * **Un ritrovo scritto a mano non è una tappa**: «davanti al bar» non porta
+   * nessuno da nessuna parte, e un navigatore che apre il nulla è peggio di un
+   * pulsante che non c'è. Ci vuole il punto sulla mappa.
+   */
+  const metaRitrovo =
+    evento.ritrovoLat != null
+      ? metaNaviga(evento.ritrovoLat, evento.ritrovoLng, evento.ritrovo)
+      : null;
+
+  const campo = evento.field
+    ? {
+        testo: evento.field.nome,
+        meta: metaNaviga(
+          evento.field.lat,
+          evento.field.lng,
+          [evento.field.indirizzo, evento.field.citta].filter(Boolean).join(', ') ||
+            evento.field.nome,
+        ),
+      }
+    : evento.luogo
+      ? { testo: evento.luogo, meta: metaNaviga(evento.luogoLat, evento.luogoLng, evento.luogo) }
+      : null;
+
+  const tappe: Tappa[] = [
+    ...(metaRitrovo && evento.ritrovo
+      ? [{ etichetta: 'Luogo di ritrovo', testo: evento.ritrovo, meta: metaRitrovo }]
+      : []),
+    ...(campo?.meta ? [{ etichetta: 'Campo', testo: campo.testo, meta: campo.meta }] : []),
+  ];
+
   // squadra e ospiti restano separati: hanno adempimenti diversi (i nuovi vanno
   // assicurati con la giornaliera) e mescolarli nasconde chi manca di cosa
   const dividi = (
@@ -817,32 +856,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 rilasciata glielo dice comunque la fascia qui sotto */}
             {gestisce && (
               <>
-                {/* Per l'admin l'etichetta apre una finestra con i cambi di
-                    stato: stanno in cima, dove si guarda, ma dietro un tocco
-                    in più — e i passi indietro chiedono conferma — perché
-                    «Riporta in bozza» toccato per sbaglio fa sparire
-                    l'attività a tutta la squadra. */}
-                {admin ? (
-                  <BottoneModale
-                    etichetta={statoLetto}
-                    titolo={`Stato di "${evento.titolo}"`}
-                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold hover:brightness-125 ${coloreStato}`}
-                  >
-                    <AzioniEvento
-                      id={evento.id}
-                      titolo={evento.titolo}
-                      status={evento.status}
-                      visibilita={evento.visibilita}
-                      soloInterno={evento.tipo?.soloInterno ?? false}
-                    />
-                  </BottoneModale>
-                ) : (
-                  <span
-                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold ${coloreStato}`}
-                  >
-                    {statoLetto}
-                  </span>
-                )}
+                {/* Lo stato si legge qui in cima e si cambia in fondo, accanto
+                    al condividi: era un'etichetta che apriva una finestra, e
+                    una cosa che si legge non dovrebbe anche essere il pulsante
+                    che la cambia — in cima alla pagina, per giunta, prima di
+                    aver letto di cosa si tratta. */}
+                <span
+                  className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold ${coloreStato}`}
+                >
+                  {statoLetto}
+                </span>
                 {evento.visibilita ? (
                   <Badge
                     tono={
@@ -923,26 +946,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div className="card">
+            {/* Quando, in grande e per primo, come nell'invito delle squadre
+                ospiti: il giorno e l'ora sono quello che si sbaglia, e in due
+                caselle grigie della griglia si leggevano come un dettaglio
+                anagrafico. A quelli di casa non c'era ragione di dirlo peggio
+                che a quelli di fuori. */}
+            <Quando
+              inizio={evento.inizio}
+              fine={evento.fine}
+              durataOre={evento.durataOre}
+              className="mb-4 border-b border-line pb-4"
+            />
+
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Dato etichetta="Inizio" valore={fmtDateTime(evento.inizio)} />
-              <Dato etichetta="Fine" valore={evento.fine ? fmtDateTime(evento.fine) : '—'} />
-              {/* Quanto dura la gara sul volantino. Sta accanto alle date
-                  apposta: è lì che uno si chiede perché una 24 ore occupi tre
-                  giorni, e la risposta deve stargli sotto gli occhi invece che
-                  venirgli il dubbio di un errore. */}
-              {evento.durataOre !== null && (
-                <Dato
-                  etichetta="Durata gara"
-                  valore={
-                    <>
-                      {evento.durataOre}h
-                      <span className="block text-[11px] text-muted">
-                        dichiarata · l’attività tiene occupato tutto lo spazio fra inizio e fine
-                      </span>
-                    </>
-                  }
-                />
-              )}
               <Dato
                 etichetta="Quota"
                 valore={
@@ -1007,31 +1023,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           gestito da {evento.field.squadra.nome}
                         </span>
                       )}
-                      <span className="mt-1.5 block">
-                        <Naviga
-                          lat={evento.field.lat}
-                          lng={evento.field.lng}
-                          indirizzo={
-                            [evento.field.indirizzo, evento.field.citta]
-                              .filter(Boolean)
-                              .join(', ') || evento.field.nome
-                          }
-                          compatto
-                        />
-                      </span>
                     </>
                   ) : evento.luogo ? (
-                    <>
-                      {evento.luogo}
-                      <span className="mt-1.5 block">
-                        <Naviga
-                          lat={evento.luogoLat}
-                          lng={evento.luogoLng}
-                          indirizzo={evento.luogo}
-                          compatto
-                        />
-                      </span>
-                    </>
+                    <>{evento.luogo}</>
                   ) : (
                     '—'
                   )
@@ -1055,51 +1049,65 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               <Dato
                 etichetta="Ritrovo"
                 valore={
-                  evento.ritrovo ? (
-                    <>
-                      {evento.ritrovo}
-                      {/* un ritrovo scritto a mano non porta nessuno da nessuna
-                          parte: se ha le coordinate, si apre il navigatore */}
-                      {evento.ritrovoLat != null && (
-                        <span className="mt-1.5 block">
-                          <Naviga
-                            lat={evento.ritrovoLat}
-                            lng={evento.ritrovoLng}
-                            indirizzo={evento.ritrovo}
-                            compatto
-                          />
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    '—'
-                  )
+                  /* Il navigatore non sta più qui: portare da qualche parte è
+                     un gesto, e i gesti stanno insieme più in basso, in «Come
+                     ci si arriva». Qui si legge e basta. */
+                  evento.ritrovo ?? '—'
                 }
               />
               <Dato
                 etichetta="Ora ritrovo"
                 valore={evento.oraRitrovo ? fmtTime(evento.oraRitrovo) : '—'}
               />
-              <Dato
-                etichetta="Disponibili"
-                valore={
-                  evento.maxPartecipanti ? (
+              {/* Quanti saremo, per intero e su una riga sua.
+                  La domanda per cui si apre un'attività non è «quante adesioni
+                  ci sono fra i nostri»: è **quanta gente ci sarà in campo**, e
+                  quel numero comprende i nuovi e chi arriva con le altre
+                  squadre. Stava spezzato fra una casella della griglia e il
+                  riquadro dei partecipanti, e nessuno dei due lo diceva
+                  intero. Si tocca e si finisce fra i partecipanti, dove ci
+                  sono i nomi. */}
+              <a
+                href="#partecipanti"
+                className="col-span-2 block rounded-md border border-line bg-surface2/60 px-3 py-2 transition-colors hover:border-nvgdim sm:col-span-3"
+              >
+                <p className="titolo-sezione">In giocata</p>
+                <p className="mt-1 flex items-baseline gap-2">
+                  <span className="num text-2xl font-semibold leading-none text-nvg">
+                    {inGiocata.interni + inGiocata.nuovi + inGiocata.esterni}
+                  </span>
+                  <span className="text-sm text-muted">
+                    {inGiocata.interni + inGiocata.nuovi + inGiocata.esterni === 1
+                      ? 'persona attesa'
+                      : 'persone attese'}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  <span className="num text-ink">{inGiocata.interni}</span> del club ·{' '}
+                  <span className="num text-sky-300">{inGiocata.nuovi}</span>{' '}
+                  {inGiocata.nuovi === 1 ? 'nuovo' : 'nuovi'}
+                  {inGiocata.conOspiti && (
                     <>
-                      {presenti.length}
-                      {/* i posti non chiudono le adesioni: alzare la mano si può
-                          sempre, e chi avanza va in riserva */}
-                      <span className="block text-[11px] text-muted">
-                        {evento.maxPartecipanti} posti in formazione
-                        {pieno && presenti.length > evento.maxPartecipanti
-                          ? ` · ${presenti.length - evento.maxPartecipanti} in più`
-                          : ''}
-                      </span>
+                      {' '}
+                      · <span className="num text-warn">{inGiocata.esterni}</span> da{' '}
+                      {inGiocata.squadre}{' '}
+                      {inGiocata.squadre === 1 ? 'squadra esterna' : 'squadre esterne'}
+                      {inGiocata.mancanti > 0 &&
+                        ` · ${inGiocata.mancanti} ${inGiocata.mancanti === 1 ? 'non ha' : 'non hanno'} ancora risposto`}
                     </>
-                  ) : (
-                    `${presenti.length} adesioni`
-                  )
-                }
-              />
+                  )}
+                </p>
+                {/* i posti non chiudono le adesioni: alzare la mano si può
+                    sempre, e chi avanza va in riserva */}
+                {evento.maxPartecipanti !== null && (
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {evento.maxPartecipanti} posti in formazione
+                    {pieno && presenti.length > evento.maxPartecipanti
+                      ? ` · ${presenti.length - evento.maxPartecipanti} in più`
+                      : ''}
+                  </p>
+                )}
+              </a>
               <Dato
                 etichetta="Chiusura adesioni"
                 valore={evento.chiusuraIscrizioni ? fmtDateTime(evento.chiusuraIscrizioni) : '—'}
@@ -1131,12 +1139,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   nome={evento.field.nome}
                   altezza={200}
                 />
-                <Naviga
-                  lat={evento.field.lat}
-                  lng={evento.field.lng}
-                  indirizzo={evento.field.indirizzo}
-                  className="btn-primary btn-sm mt-3 w-full justify-center sm:w-auto"
-                />
+              </div>
+            )}
+
+            {/* Come ci si arriva: il ritrovo e il campo, ognuno col suo
+                pulsante, e il viaggio intero quando sono tutti e due. */}
+            {tappe.length > 0 && (
+              <div className="mt-5 border-t border-line pt-4">
+                <p className="titolo-sezione mb-2">Come ci si arriva</p>
+                <ComeArrivare tappe={tappe} />
               </div>
             )}
 
@@ -1163,14 +1174,38 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 mandare un indirizzo che si apre solo per chi gestisce il calendario
                 è un modo per farsi richiamare. Da rilasciata in poi sì, anche a
                 cose fatte — di una giocata finita si manda volentieri il racconto. */}
-            {evento.status !== 'CREATA' && (
+            {(evento.status !== 'CREATA' || admin) && (
               <div className="piede mt-5 justify-between">
                 <p className="text-[11px] text-muted">
-                  {evento.status === 'RILASCIATA'
-                    ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
-                    : 'Il link apre questa pagina: quello che c’è scritto resta.'}
+                  {evento.status === 'CREATA'
+                    ? 'Bozza: finché non la rilasci non la vede nessuno.'
+                    : evento.status === 'RILASCIATA'
+                      ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
+                      : 'Il link apre questa pagina: quello che c’è scritto resta.'}
                 </p>
-                <CondividiEvento indirizzo={indirizzoPagina} etichetta="Condividi l’attività" />
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {/* I passi di stato stanno qui, in fondo, accanto al
+                      condividi: sono i gesti che si fanno sull'attività intera
+                      — rilasciarla, concluderla, annullarla — e prima stavano
+                      nelle card dell'elenco, dove si premevano di sfuggita
+                      passando. Qui si arriva dopo averla letta. */}
+                  {admin && (
+                    <AzioniEvento
+                      id={evento.id}
+                      titolo={evento.titolo}
+                      status={evento.status}
+                      visibilita={evento.visibilita}
+                      soloInterno={evento.tipo?.soloInterno ?? false}
+                      compatto
+                    />
+                  )}
+                  {evento.status !== 'CREATA' && (
+                    <CondividiEvento
+                      indirizzo={indirizzoPagina}
+                      etichetta="Condividi l’attività"
+                    />
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1202,7 +1237,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           />
 
           {/* -------------------------------------------------- partecipanti */}
-          <div>
+          {/* l'ancora del numero in cima: chi tocca «in giocata» finisce qui,
+              e il margine tiene la barra in alto fuori dai piedi */}
+          <div id="partecipanti" className="scroll-mt-24">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               {/* Il conto sta in cima e si legge da lontano: è il dato per cui
                   si apre un'attività, e in grigio piccolo si leggeva come una

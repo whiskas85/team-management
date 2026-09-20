@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { fmtDateLong, fmtTime } from '@/lib/format';
+import { fmtTime } from '@/lib/format';
 import { Logo } from '@/components/Logo';
 import { Mappa } from '@/components/Mappa';
 import { Naviga } from '@/components/Naviga';
@@ -11,6 +11,7 @@ import { Campo } from '@/components/ui';
 import { rispondiInvito } from '@/actions/ospiti';
 import { Icona } from '@/components/Icona';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
+import { Quando } from '@/components/Quando';
 import { AvvisoLinkInvito } from '@/components/AvvisoLinkInvito';
 import { etichettaGenere, genereAllegato, peso } from '@/lib/allegati';
 
@@ -151,11 +152,6 @@ export default async function PaginaInvito({
     telefono: r.utente.telefono,
   }));
 
-  // Lo stesso giorno si scrive una volta sola: «20 settembre, 08:15 → 20
-  // settembre, 13:00» fa leggere due date per scoprire che sono la stessa.
-  const stessoGiorno =
-    !!e.fine && new Date(e.fine).toDateString() === new Date(e.inizio).toDateString();
-
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center gap-3 border-b border-line pb-5">
@@ -175,23 +171,7 @@ export default async function PaginaInvito({
           si sbaglia il giorno, si arriva all'ora sbagliata — e stava scritto
           in grigio piccolo in coda al tipo di attività. Che sia un allenamento
           o un torneo, da fuori, non cambia niente a nessuno. */}
-      <div className="card mt-4">
-        <p className="titolo-sezione">Quando</p>
-        <p className="mt-1 text-xl font-semibold leading-tight first-letter:uppercase">
-          {fmtDateLong(e.inizio)}
-        </p>
-        <p className="num mt-1 text-lg text-nvg">
-          {fmtTime(e.inizio)}
-          {e.fine && (stessoGiorno ? ` → ${fmtTime(e.fine)}` : '')}
-        </p>
-        {e.fine && !stessoGiorno && (
-          <p className="mt-2 text-sm text-ink/90">
-            <span className="text-muted">fino a</span>{' '}
-            <span className="font-medium first-letter:uppercase">{fmtDateLong(e.fine)}</span>{' '}
-            <span className="num text-nvg">{fmtTime(e.fine)}</span>
-          </p>
-        )}
-      </div>
+      <Quando inizio={e.inizio} fine={e.fine} className="card mt-4" />
 
       {e.descrizione && (
         <p className="mt-4 whitespace-pre-wrap text-sm text-ink/90">{e.descrizione}</p>

@@ -300,13 +300,16 @@ export default async function CalendarioPage({
                         e={e}
                         elimina={admin ? <EliminaEvento id={e.id} titolo={e.titolo} /> : undefined}
                         azioni={
-                          admin ? (
+                          /* solo la bozza porta pulsanti: sul resto il piede
+                             resterebbe una fascia vuota */
+                          admin && e.status === 'CREATA' ? (
                             <AzioniEvento
                               id={e.id}
                               titolo={e.titolo}
                               status={e.status}
                               visibilita={e.visibilita}
                               compatto
+                              soloRilascio
                             />
                           ) : undefined
                         }

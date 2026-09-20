@@ -167,21 +167,25 @@ export function CardEvento({
         </div>
       </Link>
 
-      {(puoNavigare || e.adesioniAperte) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5">
-          <span className="flex min-w-0 flex-wrap items-center gap-2">
-            <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
-            {quota && e.adesioniAperte && (
-              <span className="badge border-warn/40 bg-warn/10 font-semibold text-warn">
-                a pagamento · {quota}
-              </span>
-            )}
-            {e.adesioniAperte && (
-              <span className="text-[11px] text-muted">
-                {e.mioStato ? `Hai risposto: ${umanizza(e.mioStato).toLowerCase()}` : 'Ci sei?'}
-              </span>
-            )}
-          </span>
+      {/* Dove si va e quanto costa: sono cose da leggere, e stanno in una
+          fascia loro. Il «Ci sei?» non c'è più — i tre pulsanti qui sotto la
+          domanda la fanno da soli, e quello scelto resta acceso: scriverlo
+          anche a parole era dire due volte la stessa cosa. */}
+      {(puoNavigare || (quota && e.adesioniAperte)) && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
+          <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
+          {quota && e.adesioniAperte && (
+            <span className="badge border-warn/40 bg-warn/10 font-semibold text-warn">
+              a pagamento · {quota}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Il piede: qui si fa. La risposta e — per chi gestisce — il rilascio
+          di una bozza, tutto allineato a destra come in tutte le card. */}
+      {(e.adesioniAperte || azioni) && (
+        <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-[calc(0.5rem-1px)] border-t border-line bg-white/[0.045] px-4 py-3 [&>div]:justify-end">
           {e.adesioniAperte && (
             <AdesioneEvento
               eventId={e.id}
@@ -191,12 +195,6 @@ export function CardEvento({
               compatta
             />
           )}
-        </div>
-      )}
-
-      {/* le azioni sotto, allineate a destra, come in tutte le card */}
-      {azioni && (
-        <div className="flex justify-end rounded-b-[calc(0.5rem-1px)] border-t border-line bg-white/[0.045] px-4 py-3 [&>div]:justify-end">
           {azioni}
         </div>
       )}

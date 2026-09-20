@@ -5,6 +5,46 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.61.0 — 20 settembre 2026
+
+### Cambiato
+
+- **Quando, in grande, anche per quelli di casa.** Dentro l'attività il giorno
+  e l'ora erano due caselle grigie della griglia — «Inizio», «Fine», nel
+  formato del computer — e si leggevano come un dettaglio anagrafico. Adesso
+  c'è lo stesso riquadro che vedono le squadre ospiti nell'invito: il giorno
+  per esteso in grande, l'ora in verde, e la seconda data per intero solo
+  quando l'attività scavalca la mezzanotte. È un pezzo solo, usato nelle due
+  pagine: non c'era ragione perché a noi fosse detto peggio che a loro.
+- **«In giocata» si prende una riga sua, e si tocca.** Al posto della casella
+  «Disponibili» c'è il numero delle persone attese in campo — per intero, nuovi
+  e squadre esterne compresi — e sotto da dove vengono: quanti del club, quanti
+  nuovi, quanti da fuori. Toccandolo si scende ai partecipanti, dove ci sono i
+  nomi.
+- **Il navigatore sta in un posto solo: «Come ci si arriva».** Via i pulsantini
+  sparsi dentro «Dove» e «Ritrovo». Al loro posto, sotto la mappa, una riga per
+  tappa — prima *Luogo di ritrovo*, poi *Campo* — con a sinistra dove si va e a
+  destra il pulsante **Naviga**. Quando ci sono tutte e due, sotto compare
+  **Itinerario**: largo quanto la riga e di un altro colore, perché non è un
+  terzo «Naviga» — è il viaggio come si fa davvero, prima al ritrovo e poi al
+  campo, in un percorso solo. Un ritrovo scritto a mano, senza punto sulla
+  mappa, non diventa una tappa: un navigatore che apre il nulla è peggio di un
+  pulsante che non c'è.
+- **I cambi di stato sono scesi in fondo all'attività, accanto al condividi.**
+  Rilascia, concludi, annulla, riporta in bozza, e la scelta dei destinatari:
+  erano sulle card dell'elenco, dove si premevano di sfuggita scorrendo, e in
+  cima alla pagina dietro l'etichetta dello stato — che così era insieme la
+  cosa da leggere e il pulsante per cambiarla. Adesso lo stato in cima si legge
+  e basta; per cambiarlo si arriva in fondo, dopo aver letto l'attività.
+- **Nelle card dell'elenco resta un passo solo: rilasciare una bozza.** Quello
+  sì che si fa di corsa — finché non lo fai non la vede nessuno — e una volta
+  scelti i destinatari i tre pulsanti spariscono: si cambiano dentro
+  l'attività.
+- **I pulsanti per rispondere sono scesi nel piede della card**, con le altre
+  azioni, e la scritta «Hai risposto: presente» non c'è più: i tre pulsanti la
+  domanda la fanno da soli e quello scelto resta acceso, dirlo anche a parole
+  era ripetersi.
+
 ## 2.60.0 — 20 settembre 2026
 
 ### Corretto
