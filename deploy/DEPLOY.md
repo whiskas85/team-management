@@ -225,7 +225,7 @@ zd up -d --build
 zd restart proxy
 
 # 4. la scia del rilascio, prima di andarsene
-docker image prune -f
+docker image prune -f --filter until=24h
 docker builder prune -f --filter until=168h
 ```
 
@@ -246,9 +246,13 @@ Le quattro righe, una per una:
 - **La pulizia.** Ogni ricostruzione lascia dietro l'immagine vecchia senza tag
   e la sua cache di build. Il 20 settembre 2026 erano diventate 41 immagini e
   57 GB di cache: **l'80% del disco**, accumulato in quattro giorni di rilasci.
-  `image prune -f` toglie le immagini senza tag, `builder prune` la cache più
+  `image prune` toglie le immagini senza tag, `builder prune` la cache più
   vecchia di una settimana — quella dell'ultima si tiene, perché è lei che fa
   durare una ricostruzione due minuti invece di sette.
+  **I due `until` non sono decorazioni.** Senza quello sulle immagini, la
+  pulizia si porta via anche la build appena sostituita, che è il paracadute
+  del punto qui sotto: con `until=24h` il ritorno indietro resta possibile per
+  tutta la giornata, che è il tempo in cui un guaio salta fuori.
 
 Per il controllo finale non basta che il sito risponda:
 

@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.62.3 — 20 settembre 2026
+
+### Corretto
+
+- **Nella guida al rilascio, la pulizia cancellava il paracadute.** Il
+  `docker image prune` scritto ieri toglie *tutte* le immagini senza tag, e fra
+  quelle c'è la build appena sostituita — cioè proprio quella a cui si torna se
+  il rilascio va storto, come la riga sotto prometteva. Ora la pulizia salta le
+  ultime 24 ore: il ritorno indietro resta possibile per tutta la giornata, che
+  è il tempo in cui un guaio salta fuori.
+
 ## 2.62.2 — 20 settembre 2026
 
 ### Corretto
