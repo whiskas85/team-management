@@ -5,6 +5,36 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.67.0 — 20 settembre 2026
+
+### Aggiunto
+
+- **La ricerca in cima entra dentro le pagine.** Prima trovava le voci del
+  menu; adesso trova anche **le cose**: le attivita' (per titolo, per campo e
+  per luogo -- i tre modi in cui una giocata si chiama a voce), **le persone**
+  per nome, cognome o callsign, e **i documenti** cercando anche dentro il
+  testo, cosi' «quella cosa sul mercatino» si trova senza sapere in quale
+  regolamento stia. Sotto a ogni riga il dettaglio che la distingue: la data e
+  il campo di una gara, il sottotitolo di un regolamento.
+- **E trova le viste dentro le pagine**: «storico» porta a *Calendario ·
+  Storico*, «mese» a *Calendario · Mese*, «notifiche» a *Operatori · Avvisi*.
+  Nel menu non compaiono — sarebbe una colonna lunga il doppio — ma chi le
+  cerca sta pensando a loro, non alla pagina che le contiene.
+
+### Come e' fatta
+
+- **Due tempi.** Le pagine e le viste sono gia' in mano al browser e compaiono
+  mentre si scrive; le cose partono dopo un quarto di secondo di silenzio, cosi'
+  scrivendo «torneo» non si fanno sei domande al server per arrivare alla
+  settima -- con le prime che tornano fuori tempo massimo e riempiono l'elenco
+  di risultati di due lettere fa.
+- **I permessi non sono riscritti.** Le attivita' passano dal filtro di
+  visibilita' del calendario, le persone dalla stessa regola con cui una scheda
+  si apre: un atleta trova i compagni, chi segue i nuovi trova anche i
+  contatti, un contatto non trova nessuno. Una ricerca che trovasse un pezzo in
+  piu' di quello che le pagine mostrano sarebbe il modo piu' silenzioso di far
+  uscire i dati.
+
 ## 2.66.0 — 20 settembre 2026
 
 ### Aggiunto

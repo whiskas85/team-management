@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icona } from './Icona';
 import type { VoceMenu } from './Nav';
+import { cercaOvunque, type RisultatoRicerca } from '@/actions/ricerca';
 
 /**
  * La riga per andare dove si vuole, senza cercarla nel menu.
@@ -15,9 +16,17 @@ import type { VoceMenu } from './Nav';
  * scrivere «tar» e premere invio è più corto che cercare *Tariffario* con
  * l'occhio.
  *
- * Cerca **fra le voci che questa persona può vedere**: il menu è già filtrato
- * dai permessi, e questa riga non ne conosce altre. Nessuno può scoprire da
- * qui una pagina che non gli spetta.
+ * Cerca in due tempi. **Le pagine** — e le viste dentro le pagine, «Calendario
+ * · Storico» — sono già in mano al browser e compaiono mentre si scrive, senza
+ * aspettare niente. **Le cose** — una giocata, una persona, un regolamento — le
+ * sa solo il database: partono dopo un attimo di silenzio, così scrivendo
+ * «torneo» non si fanno sei domande al server per arrivare alla settima.
+ *
+ * Le pagine sono quelle che questa persona può vedere: il menu è già filtrato
+ * dai permessi, e questa riga non ne conosce altre. Le cose passano dai
+ * permessi veri, quelli del calendario e delle schede, e non da una copia
+ * scritta qui — una ricerca che trovasse un pezzo in più di quello che le
+ * pagine mostrano sarebbe il modo più silenzioso di far uscire i dati.
  */
 export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
   const [testo, setTesto] = useState('');
@@ -27,7 +36,74 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
   const contenitore = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const risultati = useMemo(() => cerca(voci, testo), [voci, testo]);
+  const [trovate, setTrovate] = useState<RisultatoRicerca[]>([]);
+  const [cercando, setCercando] = useState(false);
+
+  const dalMenu = useMemo(() => cerca(voci, testo), [voci, testo]);
+
+  /*
+   * Un attimo di silenzio prima di chiedere al server.
+   *
+   * Scrivendo «torneo» si passa per t, to, tor, torn…: senza l'attesa sarebbero
+   * sei domande per arrivare alla settima, e le prime sei tornerebbero fuori
+   * tempo massimo, magari dopo l'ultima — con l'elenco che si riempie di
+   * risultati di due lettere fa.
+   */
+  useEffect(() => {
+    const q = testo.trim();
+    if (q.length < 2) {
+      setTrovate([]);
+      setCercando(false);
+      return;
+    }
+    setCercando(true);
+    const attesa = setTimeout(() => {
+      let valida = true;
+      cercaOvunque(q)
+        .then((r) => {
+          if (valida) setTrovate(r);
+        })
+        .catch(() => {
+          // la ricerca è un di più: se il server non risponde restano le
+          // pagine, che sono già lì
+          if (valida) setTrovate([]);
+        })
+        .finally(() => {
+          if (valida) setCercando(false);
+        });
+      return () => {
+        valida = false;
+      };
+    }, 250);
+    return () => clearTimeout(attesa);
+  }, [testo]);
+
+  /** Tutto insieme, nell'ordine in cui si scorre con le frecce. */
+  const risultati = useMemo(
+    () => [
+      ...dalMenu.map((v) => ({
+        href: v.href,
+        titolo: v.label,
+        dettaglio: null as string | null,
+        gruppo: v.gruppo,
+        icona: v.icona,
+        badge: v.badge,
+      })),
+      ...trovate.map((r) => ({
+        href: r.href,
+        titolo: r.titolo,
+        dettaglio: r.dettaglio,
+        gruppo: r.gruppo,
+        icona: (r.gruppo === 'Persone'
+          ? 'profilo'
+          : r.gruppo === 'Documenti'
+            ? 'bozza'
+            : 'calendario') as VoceMenu['icona'],
+        badge: undefined,
+      })),
+    ],
+    [dalMenu, trovate],
+  );
 
   // Ctrl+K (o cmd+K sul Mac): la scorciatoia che chi usa altri programmi
   // prova per istinto. Anche "/" da sola, come nei gestori di posta.
@@ -99,8 +175,8 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
             campo.current?.blur();
           }
         }}
-        placeholder="Vai a…"
-        aria-label="Cerca nel menu"
+        placeholder="Cerca…"
+        aria-label="Cerca pagine, attività, persone"
         className="input h-10 w-full pl-9 pr-16 text-sm"
       />
 
@@ -114,7 +190,9 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
       {aperto && testo.trim() !== '' && (
         <div className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-md border border-line bg-surface shadow-2xl">
           {risultati.length === 0 ? (
-            <p className="px-3 py-2.5 text-sm text-muted">Nessuna voce con questo nome.</p>
+            <p className="px-3 py-2.5 text-sm text-muted">
+              {cercando ? 'Sto cercando…' : 'Niente con questo nome.'}
+            </p>
           ) : (
             <ul>
               {risultati.map((v, i) => (
@@ -128,13 +206,20 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
                     }`}
                   >
                     <Icona nome={v.icona} size={16} />
-                    <span className="flex-1 truncate">{v.label}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{v.titolo}</span>
+                      {/* la riga sotto distingue due gare che si chiamano
+                          uguale: la data, il campo, «contatto» */}
+                      {v.dettaglio && (
+                        <span className="block truncate text-[11px] text-muted">{v.dettaglio}</span>
+                      )}
+                    </span>
                     {!!v.badge && (
                       <span className="num rounded-full bg-warn/20 px-1.5 text-[10px] text-warn">
                         {v.badge}
                       </span>
                     )}
-                    <span className="text-[10px] uppercase tracking-[0.06em] text-muted">
+                    <span className="shrink-0 text-[10px] uppercase tracking-[0.06em] text-muted">
                       {v.gruppo}
                     </span>
                   </button>
@@ -163,6 +248,19 @@ function cerca(voci: VoceMenu[], testo: string): VoceMenu[] {
   const q = normalizza(testo.trim());
   if (!q) return [];
 
+  /*
+   * Le pagine e le viste dentro le pagine, nello stesso mucchio.
+   *
+   * Una vista si cerca col suo nome — «storico», «avvisi», «mese» — e chi la
+   * cerca non sta pensando alla pagina che la contiene. Si scrive con il nome
+   * di tutte e due, «Calendario · Storico», perché trovata da sola direbbe
+   * «Storico» e basta, e di storici ce n'è più d'uno.
+   */
+  const cercabili: VoceMenu[] = voci.flatMap((v) => [
+    v,
+    ...(v.sotto ?? []).map((s) => ({ ...v, href: s.href, label: `${v.label} · ${s.label}` })),
+  ]);
+
   const punteggio = (v: VoceMenu): number => {
     const label = normalizza(v.label);
     if (label.startsWith(q)) return 0;
@@ -172,7 +270,7 @@ function cerca(voci: VoceMenu[], testo: string): VoceMenu[] {
     return -1;
   };
 
-  return voci
+  return cercabili
     .map((v) => ({ v, p: punteggio(v) }))
     .filter((r) => r.p >= 0)
     .sort((a, b) => a.p - b.p || a.v.label.localeCompare(b.v.label, 'it'))

@@ -212,6 +212,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       icona: 'calendario',
       gruppo: 'principale',
       badge: attivitaNuove,
+      // le viste del calendario: si cercano col loro nome, «storico», «mese»
+      sotto: [
+        { label: 'Mese', href: '/calendario?vista=mese' },
+        { label: 'Storico', href: '/calendario?vista=passati' },
+      ],
     },
     // La memoria della squadra — com’è andata alle giocate — la rilegge chi
     // gioca e chi la porta in campo. Un incarico da scrivania non basta: il
@@ -348,7 +353,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // apre l'una o l'altra pagina di continuo. In mezzo ai dati di base — campi,
   // tariffe, tipologie — ci finivano solo perché lì c'era posto.
   if (puoVedereOperatori(utente.roles)) {
-    voci.push({ href: '/admin/operatori', label: 'Operatori', icona: 'operatori', gruppo: 'persone' });
+    voci.push({
+      href: '/admin/operatori',
+      label: 'Operatori',
+      icona: 'operatori',
+      gruppo: 'persone',
+      // la vista degli avvisi la trova chi cerca «notifiche», che e' la
+      // parola con cui la si chiama a voce
+      ...(isAdmin(utente.roles)
+        ? { sotto: [{ label: 'Avvisi e notifiche', href: '/admin/operatori?vista=notifiche' }] }
+        : {}),
+    });
   }
   if (puoVedereNuovi(utente.roles)) {
     voci.push({

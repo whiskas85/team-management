@@ -27,6 +27,15 @@ export type VoceMenu = {
   badge?: number;
   /** Se questa persona se l'è messa da parte con la stellina. */
   preferito?: boolean;
+  /**
+   * Le viste dentro la pagina: «Calendario · Storico», «Operatori · Avvisi».
+   *
+   * Nel menu non compaiono — sarebbe una colonna lunga il doppio per cose che
+   * si raggiungono da dentro — ma **nella ricerca sì**: chi scrive «storico»
+   * cerca lo storico, non il calendario, e farglielo trovare è la differenza
+   * fra una riga di ricerca e un elenco di titoli.
+   */
+  sotto?: { label: string; href: string }[];
 };
 
 type Props = {
