@@ -2,9 +2,7 @@ import { prisma } from '@/lib/db';
 import { fmtDate } from '@/lib/format';
 import { AzioneBottone } from './AzioneBottone';
 import { aggiornaPolizzeProva } from '@/actions/assicurazione';
-
-/** Sotto questa soglia le polizze prova vanno ricomprate: meglio avvisare. */
-const SCORTA = 5;
+import { SCORTA_POLIZZE } from '@/lib/assicurazione';
 
 /**
  * Quante polizze prova restano da usare, nella stessa forma degli altri
@@ -27,7 +25,7 @@ export async function GiacenzaPolizze() {
       : null;
 
   const colore =
-    lette === null ? 'text-muted' : lette.residue <= SCORTA ? 'text-danger' : 'text-nvg';
+    lette === null ? 'text-muted' : lette.residue <= SCORTA_POLIZZE ? 'text-danger' : 'text-nvg';
 
   return (
     <div className="card flex flex-col">

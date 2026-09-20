@@ -368,9 +368,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // chi c'era, e l'appello. Le presenze restano dove sono, sulle righe dei
   // partecipanti: quelle sono il risultato, non uno strumento.
   const conclusa = evento.status === 'CONCLUSA';
-  // L'appello sparisce anche sulle annullate, e per un motivo in più: è lui a
-  // concludere l'attività: spuntarlo su una giornata annullata la farebbe
-  // risorgere come conclusa, cioè come se si fosse giocata.
+  // L'appello sparisce anche sulle annullate, e per un motivo in più: a
+  // giornata finita è lui a concludere l'attività, e spuntarlo su una giornata
+  // annullata la farebbe risorgere come conclusa, cioè come se si fosse
+  // giocata. Mentre l'attività è ancora in corso invece l'appello registra e
+  // basta: chiude solo dopo l'ora della fine.
   const senzaAppello = conclusa || evento.status === 'ANNULLATA';
 
   // In corso: dal ritrovo — o dall'inizio — alla fine. Non è uno stato da
@@ -2101,7 +2103,22 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                             </div>
                           ))}
                       </div>
-                      <Invia className="btn-ghost w-full btn-sm">Salva presenze e chiudi</Invia>
+                      {/* Durante la giornata l'appello registra e basta: la
+                          chiusura arriva quando la giornata è davvero finita.
+                          Dirlo sul pulsante evita di non premerlo per paura di
+                          chiudere tutto alle otto del mattino. */}
+                      <Invia className="btn-ghost w-full btn-sm">
+                        {terminata ? 'Salva presenze e chiudi' : 'Salva presenze'}
+                      </Invia>
+                      {!terminata && (
+                        <p className="text-[11px] text-muted">
+                          L’attività resta aperta fino alle{' '}
+                          <span className="num">
+                            {fmtTime(evento.fine ?? evento.inizio)}
+                          </span>
+                          : l’appello si può rifare per chi arriva dopo.
+                        </p>
+                      )}
                     </>
                   )}
                 </FormAzione>

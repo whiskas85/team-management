@@ -16,8 +16,10 @@ import {
   cassePerPolizza,
   quotePerPolizza,
   tariffePolizza,
+  SCORTA_POLIZZE,
 } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
+import { avvisa, chiSegueINuovi } from '@/lib/push';
 
 function aggiorna(eventId: string) {
   revalidatePath(`/calendario/${eventId}`);
@@ -125,13 +127,51 @@ async function sincronizzaGiacenza(
 
   if (!dati) return null;
 
+  const prima = await prisma.credenzialeFigt.findUnique({
+    where: { id: 'figt' },
+    select: { polizzeResidue: true },
+  });
+
   await prisma.credenzialeFigt.update({
     where: { id: 'figt' },
     data: { ...dati, polizzeLetteIl: new Date() },
   });
   revalidatePath('/admin/cassa');
   revalidatePath('/admin/tessere');
+
+  await avvisaScorteBasse(prima?.polizzeResidue ?? null, dati.polizzeResidue);
   return dati.polizzeResidue;
+}
+
+/**
+ * Sotto le cinque polizze si avvisa chi le compra.
+ *
+ * Le polizze prova sono prepagate e si comprano a blocchi, con i tempi della
+ * segreteria federale in mezzo: accorgersi che sono finite il sabato sera,
+ * mentre tre nuovi aspettano di essere coperti, vuol dire che quei tre non
+ * giocano. Il numero c'era già in cassa, ma bisognava andarlo a guardare — e
+ * nessuno guarda un numero che è sempre stato grande.
+ *
+ * **Si avvisa quando il numero scende**, non a ogni lettura: riaprire la cassa
+ * o rileggere il portale non è una notizia. Ogni polizza consumata sotto
+ * soglia manda la sua — cinque, quattro, tre è una discesa, e ognuna è più
+ * urgente della precedente.
+ */
+async function avvisaScorteBasse(prima: number | null, adesso: number | null) {
+  if (adesso === null || adesso > SCORTA_POLIZZE) return;
+  if (prima !== null && adesso >= prima) return;
+
+  await avvisa(await chiSegueINuovi(), {
+    titolo:
+      adesso === 0 ? 'Polizze prova finite' : `Restano ${adesso} polizze prova`,
+    testo:
+      adesso === 0
+        ? 'Non si può più assicurare nessun nuovo: vanno comprate prima della prossima attività.'
+        : `Sotto le ${SCORTA_POLIZZE}: conviene ricomprarle adesso, la segreteria federale non è immediata.`,
+    url: '/admin/polizze',
+    // un tag solo: due avvisi di scorte non fanno due righe sul telefono
+    tag: 'polizze-scorte',
+  });
 }
 
 /**

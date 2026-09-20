@@ -12,6 +12,8 @@ import { Avatar, Badge, Intestazione, Statistica, Vuoto } from '@/components/ui'
 import { BottoneModale } from '@/components/Modale';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
+import { TimelinePolizze } from '@/components/TimelinePolizze';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,21 +36,27 @@ export default async function PolizzePage() {
   await requirePermesso(puoAmministrare);
 
   const attivita = await attivitaDaCoprire();
+
+  // Quante polizze brucia un'attivita': una per persona e per giorno da
+  // coprire, contando solo quelli che non sono gia' assicurati.
+  const daCoprire = (a: (typeof attivita)[number]) =>
+    a.nuovi.reduce(
+      (s, n) => s + n.giorni.filter((g) => g.serve && g.copertura !== 'ASSICURATO').length,
+      0,
+    );
+
+  // la giacenza serve alla previsione: e' il punto di partenza della discesa
+  const giacenza = await prisma.credenzialeFigt.findUnique({
+    where: { id: 'figt' },
+    select: { polizzeResidue: true, polizzeLetteIl: true },
+  });
   // un'attività di soli soci non ha niente da assicurare: tenerla in elenco
   // vorrebbe dire far scorrere dieci card vuote per trovarne una che serve
   const conOspiti = attivita.filter((a) => a.nuovi.length > 0);
   const daFare = conOspiti.reduce((t, a) => t + a.daFare, 0);
   // si contano i giorni, non le persone: uno che viene sabato e domenica ha
   // due polizze da fare, e contarlo una volta sola nasconderebbe la seconda
-  const scoperti = conOspiti.reduce(
-    (t, a) =>
-      t +
-      a.nuovi.reduce(
-        (s, n) => s + n.giorni.filter((g) => g.serve && g.copertura !== 'ASSICURATO').length,
-        0,
-      ),
-    0,
-  );
+  const scoperti = conOspiti.reduce((t, a) => t + daCoprire(a), 0);
 
   return (
     <>
@@ -73,6 +81,8 @@ export default async function PolizzePage() {
         <GiacenzaPolizze />
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
       {conOspiti.length === 0 ? (
         <Vuoto testo="Nelle attività in programma non si è segnato nessuno da fuori: non c’è niente da assicurare." />
       ) : (
@@ -210,6 +220,27 @@ export default async function PolizzePage() {
         attiva a quota saldata — la spende il club e non torna indietro — e chi è già coperto da
         una tessera federale valida quel giorno non ne ha bisogno.
       </p>
+        </div>
+
+        {/* La previsione sta a destra, accanto alle attivita' che la
+            determinano: e' lo stesso elenco letto in un altro modo -- non
+            "chi c'e' da coprire" ma "fino a quando mi bastano le polizze".
+            Su telefono scende sotto, che e' l'ordine giusto: prima il lavoro
+            da fare, poi il conto. */}
+        <div className="lg:sticky lg:top-20 lg:self-start">
+          <TimelinePolizze
+            giacenza={giacenza?.polizzeLetteIl ? giacenza.polizzeResidue : null}
+            tappe={conOspiti
+              .map((a) => ({
+                id: a.id,
+                titolo: a.titolo,
+                quando: a.quando,
+                serve: daCoprire(a),
+              }))
+              .filter((t) => t.serve > 0)}
+          />
+        </div>
+      </div>
     </>
   );
 }

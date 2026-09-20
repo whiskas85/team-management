@@ -27,6 +27,16 @@ export function serveGiornaliera(
   return !coperto;
 }
 
+/**
+ * Sotto questa soglia le polizze prova vanno ricomprate.
+ *
+ * Sta in un posto solo perche' e' la stessa soglia in tre punti: il riquadro
+ * della giacenza che diventa rosso, la notifica che parte a chi le compra, e
+ * la previsione che segna in ambra le attivita' in cui si va al limite. Se
+ * divergessero, il numero rosso e l'avviso racconterebbero due storie.
+ */
+export const SCORTA_POLIZZE = 5;
+
 export const ETICHETTA_ASSICURAZIONE: Record<StatoAssicurazione, string> = {
   NON_ASSICURATO: 'non assicurato',
   RICHIESTA: 'richiesta inviata',

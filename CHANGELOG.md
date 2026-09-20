@@ -5,6 +5,35 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.64.0 — 20 settembre 2026
+
+### Aggiunto
+
+- **Le polizze prova hanno una previsione: «Quando finiscono».** Accanto alle
+  attivita' da coprire, una timeline parte dalla giacenza e la scala attivita'
+  per attivita', in ordine di data: quante ne brucia ognuna, una barra che si
+  accorcia, quante ne restano dopo. La riga dove il numero passa sotto zero e'
+  il giorno in cui qualcuno resta a casa, e si vede settimane prima — che e'
+  esattamente il tempo che serve per ricomprarle. In cima la risposta secca:
+  «Bastano per tutto quello che e' in programma» oppure «Non bastano: a
+  "Open day" ne manca 1. Vanno comprate prima».
+- **Sotto le cinque polizze arriva una notifica** a chi segue i nuovi. Parte
+  dall'unico punto in cui la giacenza cambia — dopo ogni polizza attivata e
+  dopo ogni lettura del portale — e solo **quando il numero scende**: riaprire
+  la cassa non e' una notizia. A zero cambia parole. La soglia adesso vive in
+  un posto solo e la usano tutti e tre i punti: il riquadro rosso in cassa,
+  l'avviso e la previsione.
+
+### Cambiato
+
+- **L'appello non chiude piu' la giocata mentre si sta giocando.** Si fa
+  l'appello al ritrovo, con la giornata davanti: chiuderla in quel momento la
+  faceva sparire da «in programma» e la marcava come finita alle otto e cinque
+  del mattino. Adesso, finche' l'ora della fine non e' passata, salvare
+  registra le presenze e basta — e l'appello si puo' rifare per chi arriva
+  tardi. Il pulsante lo dice: «Salva presenze» durante, «Salva presenze e
+  chiudi» dopo.
+
 ## 2.63.1 — 20 settembre 2026
 
 ### Corretto
