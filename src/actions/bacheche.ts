@@ -10,6 +10,7 @@ import {
   REGOLE_ALLEGATO_BACHECA,
   REGOLE_BANNER,
   destinatariBacheca,
+  gestisceBacheche,
   manigliaDocumento,
   moderaBacheca,
   puoCreareBacheche,
@@ -94,8 +95,24 @@ export async function salvaBacheca(_prev: StatoForm, fd: FormData): Promise<Stat
   if (pubblico === 'SELEZIONE' && lettori.length === 0) {
     return { errore: 'Una bacheca per persone scelte ha bisogno di almeno una persona.' };
   }
-  const scrittori = idScelti(fd, 'scrittori');
-  const moderatoreId = strOpt(fd, 'moderatoreId') ?? (id ? null : me.id);
+  // scrivere e moderare e' di chi e' in squadra: chi arriva nel modulo senza
+  // esserlo si scarta qui, non solo nell'elenco
+  const inSquadra = new Set(
+    (
+      await prisma.user.findMany({
+        where: { id: { in: [...idScelti(fd, 'scrittori'), str(fd, 'moderatoreId')].filter(Boolean) } },
+        select: { id: true, stato: true },
+      })
+    )
+      .filter((u) => gestisceBacheche(u.stato))
+      .map((u) => u.id),
+  );
+  const scrittori = idScelti(fd, 'scrittori').filter((u) => inSquadra.has(u));
+  const scelto = strOpt(fd, 'moderatoreId');
+  if (scelto && !inSquadra.has(scelto)) {
+    return { errore: 'Il moderatore dev’essere una persona in squadra: un nuovo la bacheca la legge.' };
+  }
+  const moderatoreId = scelto ?? (id ? null : me.id);
 
   const dati = {
     nome,

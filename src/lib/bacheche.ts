@@ -34,7 +34,17 @@ export const puoCreareBacheche = (roles: Role[]) => isAdmin(roles);
 
 /** Chi la tiene in ordine: cancella messaggi e risposte di chiunque. */
 export const moderaBacheca = (b: BachecaPerRegole, me: Persona) =>
-  isAdmin(me.roles) || b.moderatoreId === me.id;
+  isAdmin(me.roles) || (b.moderatoreId === me.id && gestisceBacheche(me.stato));
+
+/**
+ * Chi puo' scrivere in una bacheca o moderarla: **solo chi e' in squadra**.
+ *
+ * Un nuovo una bacheca la legge, mette le reazioni, risponde; gestirla no — si
+ * sta affacciando, e scrivere a nome del club non e' il suo posto. La regola
+ * vale anche per chi era stato scelto prima: se torna indietro, smette di
+ * scrivere senza che qualcuno debba ricordarsi di toglierlo.
+ */
+export const gestisceBacheche = (stato: StatoOperatore) => vedeAttivitaSquadra(stato);
 
 /**
  * Chi ci scrive: gli scelti, il moderatore e l'admin.
@@ -44,7 +54,8 @@ export const moderaBacheca = (b: BachecaPerRegole, me: Persona) =>
  * battute, perché le battute stanno sotto, nelle risposte.
  */
 export const scriveInBacheca = (b: BachecaPerRegole, me: Persona) =>
-  moderaBacheca(b, me) || b.scrittori.some((s) => s.userId === me.id);
+  moderaBacheca(b, me) ||
+  (gestisceBacheche(me.stato) && b.scrittori.some((s) => s.userId === me.id));
 
 /** Se questa persona rientra nel pubblico, a prescindere dagli incarichi. */
 function nelPubblico(b: BachecaPerRegole, me: { id: string; stato: StatoOperatore }) {
@@ -82,8 +93,11 @@ export function filtroBacheche(me: Persona): Prisma.BachecaWhereInput {
     OR: [
       { pubblico: { in: pubblici } },
       { pubblico: 'SELEZIONE', lettori: { some: { userId: me.id } } },
-      { scrittori: { some: { userId: me.id } } },
-      { moderatoreId: me.id },
+      // scrittori e moderatore la vedono per il loro incarico, che vale solo
+      // finche' sono in squadra: stessa regola di `scriveInBacheca`
+      ...(gestisceBacheche(me.stato)
+        ? [{ scrittori: { some: { userId: me.id } } }, { moderatoreId: me.id }]
+        : []),
     ],
   };
 }

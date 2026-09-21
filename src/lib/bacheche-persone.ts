@@ -2,7 +2,7 @@ import { prisma } from './db';
 import { nomeCompleto } from './format';
 import { etichettaStato } from './domain';
 import { maniglia } from './note';
-import { indirizzoAllegato, vedeBacheca, type BachecaPerRegole } from './bacheche';
+import { gestisceBacheche, indirizzoAllegato, vedeBacheca, type BachecaPerRegole } from './bacheche';
 import type { PersonaScelta } from '@/components/FormBacheca';
 import type { Citabile } from '@/components/MessaggioBacheca';
 import type { Menzioni } from '@/components/Markdown';
@@ -22,7 +22,12 @@ export async function personeSceglibili(): Promise<PersonaScelta[]> {
     orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
     select: { id: true, nome: true, cognome: true, callsign: true, stato: true },
   });
-  return persone.map((p) => ({ id: p.id, nome: nomeCompleto(p), gruppo: etichettaStato[p.stato] }));
+  return persone.map((p) => ({
+    id: p.id,
+    nome: nomeCompleto(p),
+    gruppo: etichettaStato[p.stato],
+    gestisce: gestisceBacheche(p.stato),
+  }));
 }
 
 /**

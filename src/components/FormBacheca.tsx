@@ -7,7 +7,13 @@ import { Invia } from './Bottone';
 import { Campo } from './ui';
 import { salvaBacheca } from '@/actions/bacheche';
 
-export type PersonaScelta = { id: string; nome: string; gruppo: string };
+export type PersonaScelta = {
+  id: string;
+  nome: string;
+  gruppo: string;
+  /** Puo' scrivere o moderare: e' in squadra. I nuovi leggono e basta. */
+  gestisce: boolean;
+};
 
 const PUBBLICI: { valore: PubblicoBacheca; testo: string; spiega: string }[] = [
   { valore: 'SQUADRA', testo: 'La squadra', spiega: 'Chi è in rosa, sospeso o da riconfermare.' },
@@ -100,6 +106,8 @@ export function FormBacheca({
   moderatorePredefinito: string;
 }) {
   const [pubblico, setPubblico] = useState<PubblicoBacheca>(bacheca?.pubblico ?? 'SQUADRA');
+  // chi scrive e chi modera: solo chi e' in squadra, un nuovo la bacheca la legge
+  const gestori = persone.filter((p) => p.gestisce);
 
   return (
     <FormAzione azione={salvaBacheca}>
@@ -151,9 +159,14 @@ export function FormBacheca({
 
       <div>
         <p className="label">Chi ci scrive</p>
-        <Spunta nome="scrittori" persone={persone} scelti={bacheca?.scrittori ?? []} />
+        <Spunta
+          nome="scrittori"
+          persone={gestori}
+          scelti={(bacheca?.scrittori ?? []).filter((id) => gestori.some((g) => g.id === id))}
+        />
         <p className="mt-1 text-xs text-muted">
-          Gli altri leggono, mettono le reazioni e rispondono. L’admin e il moderatore scrivono sempre.
+          Solo chi è in squadra: i nuovi leggono, mettono le reazioni e rispondono. L’admin e il
+          moderatore scrivono sempre.
         </p>
       </div>
 
@@ -164,7 +177,7 @@ export function FormBacheca({
           className="input"
         >
           <option value="">Nessuno: la modera l’admin</option>
-          {persone.map((p) => (
+          {gestori.map((p) => (
             <option key={p.id} value={p.id}>
               {p.nome}
             </option>

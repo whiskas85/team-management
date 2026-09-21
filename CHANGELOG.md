@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.77.3 — 21 settembre 2026
+
+### Corretto
+
+- **Un nuovo non gestisce una bacheca.** Fra chi ci scrive e fra i moderatori
+  si potevano scegliere anche i nuovi: adesso l'elenco propone solo chi e' in
+  squadra, e il gestionale scarta un nuovo anche se ci arriva lo stesso. Un
+  nuovo la bacheca la legge, mette le reazioni e risponde — e resta
+  sceglibile fra i lettori di una bacheca per persone scelte. Se qualcuno
+  torna indietro dalla squadra smette di scrivere da solo, senza che serva
+  toglierlo.
+
 ## 2.77.2 — 21 settembre 2026
 
 ### Cambiato
