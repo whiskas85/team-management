@@ -22,6 +22,7 @@ export function BottoneModale({
   children,
   className = 'btn-primary',
   larga = false,
+  compatto = false,
 }: {
   etichetta: string;
   icona?: NomeIcona;
@@ -29,6 +30,14 @@ export function BottoneModale({
   children: ReactNode | ((chiudi: () => void) => ReactNode);
   className?: string;
   larga?: boolean;
+  /**
+   * Sul telefono solo l'icona, la scritta dal tablet in su.
+   *
+   * Per i pulsanti che stanno accanto a un titolo in una riga che resta in
+   * cima: su uno schermo stretto «Scrivi» e «Configura» per intero mangerebbero
+   * il titolo, e il titolo è la cosa che quella riga esiste per mostrare.
+   */
+  compatto?: boolean;
 }) {
   const [aperto, setAperto] = useState(false);
   const chiudi = () => setAperto(false);
@@ -46,9 +55,14 @@ export function BottoneModale({
 
   return (
     <>
-      <button type="button" onClick={() => setAperto(true)} className={className}>
+      <button
+        type="button"
+        onClick={() => setAperto(true)}
+        className={className}
+        {...(compatto ? { 'aria-label': etichetta, title: etichetta } : {})}
+      >
         {icona && <Icona nome={icona} size={15} />}
-        {etichetta}
+        {compatto ? <span className="hidden sm:inline">{etichetta}</span> : etichetta}
       </button>
 
       {aperto && (

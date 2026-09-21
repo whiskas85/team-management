@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.78.3 — 21 settembre 2026
+
+### Cambiato
+
+- **Nella bacheca il titolo resta in cima mentre si scorre**, con accanto
+  **Scrivi** e **Configura**: si arriva in fondo a dieci messaggi e per
+  scriverne un altro non si deve tornare su. Sul telefono i due pulsanti sono
+  solo l'icona — il più e l'ingranaggio — perche' il titolo ha bisogno della
+  riga. La testata segue la barra dell'app: quando sul telefono si nasconde
+  scorrendo, il titolo sale al suo posto; quando ricompare, scende sotto.
+
 ## 2.78.2 — 21 settembre 2026
 
 ### Corretto

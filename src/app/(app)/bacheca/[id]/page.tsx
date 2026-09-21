@@ -17,7 +17,10 @@ import {
   vedeBacheca,
 } from '@/lib/bacheche';
 import { chiocciole, personeSceglibili } from '@/lib/bacheche-persone';
-import { Badge, Intestazione, Vuoto } from '@/components/ui';
+import { Badge, Vuoto } from '@/components/ui';
+import { Stellina } from '@/components/Preferiti';
+import { TestataFissa } from '@/components/TestataFissa';
+import { iconaBacheca } from '@/lib/icone-bacheca';
 import { BottoneModale } from '@/components/Modale';
 import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -138,24 +141,37 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
         ← Bacheche
       </Link>
 
-      <Intestazione
-        titolo={b.nome}
-        sottotitolo={[
-          b.descrizione,
-          etichettaPubblico[b.pubblico],
-          b.moderatore ? `modera ${chi(b.moderatore)}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-        azioni={
-          <>
+      {/* Il titolo resta in cima mentre si scorre, con accanto quello che si
+          fa: scrivere e configurare. Sul telefono i due pulsanti sono solo
+          l'icona, perché il titolo ha bisogno della riga. */}
+      <TestataFissa>
+        <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Icona nome={iconaBacheca(b.icona)} size={20} />
+            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight sm:text-2xl">{b.nome}</h1>
+            <Stellina />
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             {scrive && (
-              <BottoneModale etichetta="Scrivi" icona="aggiungi" titolo={`Nuovo messaggio in ${b.nome}`} larga>
+              <BottoneModale
+                etichetta="Scrivi"
+                icona="aggiungi"
+                titolo={`Nuovo messaggio in ${b.nome}`}
+                larga
+                compatto
+              >
                 <FormMessaggio bachecaId={b.id} citabili={citabili} />
               </BottoneModale>
             )}
             {configura && (
-              <BottoneModale etichetta="Configura" icona="modifica" titolo="Configura la bacheca" className="btn-ghost" larga>
+              <BottoneModale
+                etichetta="Configura"
+                icona="impostazioni"
+                titolo="Configura la bacheca"
+                className="btn-ghost"
+                larga
+                compatto
+              >
                 <FormBacheca
                   persone={await personeSceglibili()}
                   moderatorePredefinito={me.id}
@@ -180,9 +196,14 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                 </div>
               </BottoneModale>
             )}
-          </>
-        }
-      />
+          </div>
+        </div>
+      </TestataFissa>
+      <p className="mb-6 text-sm text-muted">
+        {[b.descrizione, etichettaPubblico[b.pubblico], b.moderatore ? `modera ${chi(b.moderatore)}` : null]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
         {/* ------------------------------------------------------ messaggi */}

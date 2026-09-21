@@ -58,7 +58,8 @@ export type NomeIcona =
   | 'mercatino'
   | 'maglietta'
   | 'avvisi'
-  | 'bacheca';
+  | 'bacheca'
+  | 'impostazioni';
 
 const PATHS: Record<NomeIcona, string> = {
   // ---------------------------------------------------------------- navigazione
@@ -144,6 +145,9 @@ const PATHS: Record<NomeIcona, string> = {
     'M12 3a5 5 0 0 0-5 5c0 4-1.5 5.5-2 6h14c-.5-.5-2-2-2-6a5 5 0 0 0-5-5Zm-2 14a2 2 0 0 0 4 0',
   // la puntina della bacheca: il foglio attaccato al muro che resta li'
   bacheca: 'M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Zm3 11v7',
+  // l'ingranaggio: si configura, non si modifica un contenuto
+  impostazioni:
+    'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7.6 7.6 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7.6 7.6 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z',
 };
 
 export function Icona({
