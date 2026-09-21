@@ -116,8 +116,8 @@ export function ModuloContatto() {
       <label className="flex items-start gap-3 text-sm text-ink/80">
         <input type="checkbox" name="consenso" required className="mt-1" />
         <span>
-          Ho letto l’informativa qui sotto e acconsento a essere ricontattato da Zero Dark Team per
-          organizzare una giornata di prova.
+          Ho letto l’informativa qui sotto e acconsento a essere ricontattato da Zero Dark Team
+          (SAT &amp; Gaming ASD) per organizzare una giornata di prova.
         </span>
       </label>
 

@@ -105,6 +105,12 @@ export const AMBIZIONI = [
   },
 ];
 
+/**
+ * L'associazione di riferimento: e' lei, e non la squadra, il soggetto con cui
+ * si firma — titolare dei dati del modulo, affiliata a federazione ed ente.
+ */
+export const ASSOCIAZIONE = 'SAT & Gaming ASD';
+
 /** Le affiliazioni, con i loro canali ufficiali. */
 export const AFFILIAZIONI = [
   {
@@ -120,9 +126,8 @@ export const AFFILIAZIONI = [
   },
   {
     sigla: 'CORP',
-    nome: 'CORP FIGT',
-    // da completare: una riga su cos'è CORP, detta da chi lo conosce
-    testo: '',
+    nome: 'Comitato Regionale Piemonte · FIGT',
+    testo: 'Il comitato regionale della FIGT: il riferimento delle squadre piemontesi.',
     link: [{ testo: 'Facebook', url: 'https://www.facebook.com/corpfigt' }],
   },
   {

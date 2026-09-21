@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.1 — 21 settembre 2026
+
+### Cambiato
+
+- **Sul sito, CORP e' il Comitato Regionale Piemonte della FIGT**, con la sua
+  riga di descrizione.
+- **L'associazione di riferimento e' SAT & Gaming ASD**: e' lei la titolare
+  dei dati nell'informativa del modulo «Vuoi provare?», nel consenso e nel
+  piede di pagina, accanto a Zero Dark Team.
+
 ## 2.79.0 — 21 settembre 2026
 
 ### Aggiunto

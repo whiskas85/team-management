@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { INDIRIZZO_GESTIONALE, percorsoSito } from '@/lib/sito';
-import { LINK_SOCIAL } from './contenuti';
+import { ASSOCIAZIONE, LINK_SOCIAL } from './contenuti';
 
 /**
  * Il sito pubblico della squadra: la vetrina, non il gestionale.
@@ -84,7 +84,9 @@ export default async function LayoutSito({ children }: { children: React.ReactNo
             <a href={`${INDIRIZZO_GESTIONALE}/login`} className="mt-1 block hover:text-nvg">
               Area riservata ai soci
             </a>
-            <p className="mt-4 text-xs">© {new Date().getFullYear()} Zero Dark Team · Going dark</p>
+            <p className="mt-4 text-xs">
+              © {new Date().getFullYear()} Zero Dark Team · {ASSOCIAZIONE}
+            </p>
           </div>
         </div>
         {/* il tricolore del logo, in fondo, come una firma */}
