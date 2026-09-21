@@ -33,6 +33,16 @@ export type Avviso = {
    * cosa — che e' il motivo per cui il sondaggio esiste.
    */
   azioni?: AzioneAvviso[];
+  /**
+   * Dove il telefono dice «l'ho ricevuta».
+   *
+   * È la seconda spunta di WhatsApp: il servizio di notifiche accetta il
+   * messaggio (prima spunta), ma che sia arrivato sul telefono lo può dire
+   * solo il telefono. Il service worker, appena la mostra, chiama questo
+   * indirizzo. Solo indirizzi nostri, `/api/…`: un messaggio non deve poter
+   * far chiamare al telefono di qualcuno un posto qualsiasi.
+   */
+  ricevuta?: string;
 };
 
 /** Un pulsante sotto la notifica: `id` torna indietro, `testo` si legge. */
@@ -89,6 +99,45 @@ export async function avvisa(userIds: string[], avviso: Avviso): Promise<void> {
       }
     }),
   );
+}
+
+/**
+ * Come `avvisa`, ma dice **a chi è partita davvero**.
+ *
+ * Serve dove l'invio va raccontato, come la prima spunta di un messaggio in
+ * bacheca: una persona conta come «inviata» se almeno uno dei suoi
+ * dispositivi è stato accettato dal servizio di notifiche. Chi ha le
+ * iscrizioni scadute non conta, e la sua riga lo dirà.
+ */
+export async function avvisaConEsito(userIds: string[], avviso: Avviso): Promise<Set<string>> {
+  const partiti = new Set<string>();
+  if (!configurata() || userIds.length === 0) return partiti;
+
+  const iscrizioni = await prisma.iscrizionePush.findMany({
+    where: { userId: { in: userIds } },
+  });
+  if (iscrizioni.length === 0) return partiti;
+
+  preparaMittente();
+  const corpo = JSON.stringify(avviso);
+
+  await Promise.all(
+    iscrizioni.map(async (i) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: i.endpoint, keys: { p256dh: i.p256dh, auth: i.auth } },
+          corpo,
+        );
+        partiti.add(i.userId);
+      } catch (e) {
+        const stato = (e as { statusCode?: number }).statusCode;
+        if (stato === 404 || stato === 410) {
+          await prisma.iscrizionePush.delete({ where: { id: i.id } }).catch(() => {});
+        }
+      }
+    }),
+  );
+  return partiti;
 }
 
 /**

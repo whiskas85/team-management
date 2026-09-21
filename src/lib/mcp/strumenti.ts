@@ -20,6 +20,8 @@ import { SCATENANTI } from '../messaggi';
 import { rispondiEvento, salvaEvento } from '@/actions/eventi';
 import { segnaPagato } from '@/actions/pagamenti';
 import { aggiungiTesti } from '@/actions/messaggi';
+import { pubblicaMessaggio, salvaMessaggio } from '@/actions/bacheche';
+import { etichettaPubblico, filtroBacheche, scriveInBacheca, vedeBacheca } from '../bacheche';
 
 /**
  * Quello che un assistente può fare nel gestionale.
@@ -539,6 +541,136 @@ const certificatiInScadenza: Strumento = {
   },
 };
 
+
+// ------------------------------------------------------------------ bacheca
+
+const bacheche: Strumento = {
+  nome: 'bacheche',
+  descrizione:
+    'Le bacheche che questa persona vede: nome, a chi si rivolgono, se ci può scrivere e quanti messaggi deve ancora leggere.',
+  parametri: { type: 'object', properties: {} },
+  async esegui(me) {
+    const elenco = await prisma.bacheca.findMany({
+      where: filtroBacheche(me),
+      orderBy: [{ ordine: 'asc' }, { creataIl: 'asc' }],
+      include: { lettori: { select: { userId: true } }, scrittori: { select: { userId: true } } },
+    });
+    const daLeggere = await prisma.consegnaBacheca.findMany({
+      where: { userId: me.id, lettaIl: null },
+      select: { messaggio: { select: { bachecaId: true } } },
+    });
+    return elenco.map((b) => ({
+      id: b.id,
+      nome: b.nome,
+      descrizione: b.descrizione,
+      perChi: etichettaPubblico[b.pubblico],
+      puoScrivere: scriveInBacheca(b, me),
+      daLeggere: daLeggere.filter((d) => d.messaggio.bachecaId === b.id).length,
+    }));
+  },
+};
+
+const bachecaMessaggi: Strumento = {
+  nome: 'bacheca_messaggi',
+  descrizione:
+    'I messaggi di una bacheca, dal più recente, con il testo in Markdown, le date di pubblicazione e di modifica, le reazioni e le risposte. Chi scrive nella bacheca vede anche le bozze e quante persone hanno letto. Leggerli da qui non li segna come letti: la lettura è della persona, non dell’assistente.',
+  parametri: {
+    type: 'object',
+    properties: {
+      bachecaId: { type: 'string', description: 'Id della bacheca, da bacheche.' },
+      quanti: { type: 'number', description: 'Quanti messaggi, di solito 10.' },
+    },
+    required: ['bachecaId'],
+  },
+  async esegui(me, arg) {
+    const b = await prisma.bacheca.findUnique({
+      where: { id: testo(arg, 'bachecaId') },
+      include: { lettori: { select: { userId: true } }, scrittori: { select: { userId: true } } },
+    });
+    if (!b || !vedeBacheca(b, me)) throw new Error('Bacheca non trovata.');
+    const scrive = scriveInBacheca(b, me);
+
+    const messaggi = await prisma.messaggioBacheca.findMany({
+      where: { bachecaId: b.id, ...(scrive ? {} : { pubblicatoIl: { not: null } }) },
+      orderBy: [{ pubblicatoIl: { sort: 'desc', nulls: 'first' } }, { creatoIl: 'desc' }],
+      take: Math.min(Math.max(numero(arg, 'quanti') ?? 10, 1), 50),
+      include: {
+        autore: { select: { nome: true, cognome: true, callsign: true } },
+        reazioni: { select: { emoji: true } },
+        risposte: {
+          orderBy: { creataIl: 'asc' },
+          include: { autore: { select: { nome: true, cognome: true, callsign: true } } },
+        },
+        consegne: { select: { lettaIl: true } },
+      },
+    });
+
+    return messaggi.map((m) => ({
+      id: m.id,
+      bozza: !m.pubblicatoIl,
+      titolo: m.titolo,
+      testoMarkdown: m.testo,
+      autore: nomeCompleto(m.autore),
+      pubblicato: m.pubblicatoIl ? fmtDateTime(m.pubblicatoIl) : null,
+      modificato: m.modificatoIl ? fmtDateTime(m.modificatoIl) : null,
+      reazioni: Object.fromEntries(
+        [...new Set(m.reazioni.map((r) => r.emoji))].map((e) => [
+          e,
+          m.reazioni.filter((r) => r.emoji === e).length,
+        ]),
+      ),
+      risposte: m.risposte.map((r) => ({
+        autore: nomeCompleto(r.autore),
+        quando: fmtDateTime(r.creataIl),
+        testoMarkdown: r.testo,
+      })),
+      ...(scrive && m.pubblicatoIl
+        ? { lettoDa: m.consegne.filter((c) => c.lettaIl).length, destinatari: m.consegne.length }
+        : {}),
+    }));
+  },
+};
+
+const scriviInBacheca: Strumento = {
+  nome: 'scrivi_in_bacheca',
+  descrizione:
+    'Scrive un messaggio in una bacheca, in Markdown: titoli, elenchi, grassetto, tabelle, link. Con @maniglia si richiama una persona o un documento della bacheca. Nasce sempre come bozza: la vedono solo quelli che scrivono lì, e la notifica parte solo con rilascia_in_bacheca. Passando messaggioId si corregge un messaggio già scritto da questa persona (se era già pubblicato, resta la data di modifica).',
+  scrive: true,
+  parametri: {
+    type: 'object',
+    properties: {
+      bachecaId: { type: 'string', description: 'Id della bacheca, per un messaggio nuovo.' },
+      messaggioId: { type: 'string', description: 'Id del messaggio, per correggerlo.' },
+      titolo: { type: 'string', description: 'Facoltativo: se c’è, è quello che si legge nella notifica.' },
+      testo: { type: 'string', description: 'Il messaggio in Markdown.' },
+    },
+    required: ['testo'],
+  },
+  async esegui(_me, arg) {
+    return esitoAzione(salvaMessaggio, {
+      id: testo(arg, 'messaggioId'),
+      bachecaId: testo(arg, 'bachecaId'),
+      titolo: testo(arg, 'titolo'),
+      testo: testo(arg, 'testo'),
+    });
+  },
+};
+
+const rilasciaInBacheca: Strumento = {
+  nome: 'rilascia_in_bacheca',
+  descrizione:
+    'Rilascia una bozza della bacheca: da quel momento la vedono tutti quelli a cui è rivolta e parte la notifica push. Non si torna indietro: prima di usarlo chiedi conferma alla persona.',
+  scrive: true,
+  parametri: {
+    type: 'object',
+    properties: { messaggioId: { type: 'string' } },
+    required: ['messaggioId'],
+  },
+  async esegui(_me, arg) {
+    return esitoAzione(pubblicaMessaggio, { id: testo(arg, 'messaggioId') });
+  },
+};
+
 // ------------------------------------------------------------------ scrittura
 
 const rispondiAttivita: Strumento = {
@@ -741,6 +873,10 @@ export const STRUMENTI: Strumento[] = [
   registraIncasso,
   modelliMessaggi,
   proponiTesti,
+  bacheche,
+  bachecaMessaggi,
+  scriviInBacheca,
+  rilasciaInBacheca,
 ];
 
 /**

@@ -5,6 +5,48 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.77.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **La bacheca.** Nasce da quello che su WhatsApp si perde: l'avviso
+  importante scivola sotto cinquanta battute, e chi entra nel gruppo dopo non
+  lo vede mai. Qui una comunicazione ha un posto, una data, e **si sa chi l'ha
+  letta**. Ha una voce sua nel menu, con il pallino dei messaggi da leggere.
+  - **Piu' bacheche**, ognuna con il suo pubblico: la squadra, i nuovi, tutti e
+    due, oppure **persone scelte a mano** — il direttivo, chi fa il marketing.
+    Chi non la vede non sa nemmeno che esiste.
+  - **Chi scrive lo decidi tu**, bacheca per bacheca; gli altri leggono,
+    mettono le reazioni e rispondono. C'e' un **moderatore** — di partenza chi
+    l'ha creata — che toglie messaggi e risposte di chiunque quando serve
+    rimettere ordine.
+  - Il messaggio e' **Markdown**, con in cima un'**immagine** come il banner di
+    un messaggio WhatsApp. Nasce **bozza** e parte quando lo rilasci; dopo si
+    puo' ancora correggere, e resta scritta la data della modifica accanto a
+    quella di pubblicazione.
+  - **Reazioni come su WhatsApp** (👍 ❤️ 😂 😮 😢 🙏, una a testa) e
+    **risposte** sotto il messaggio. Con la **chiocciola** si richiama una
+    persona — le arriva una notifica — o un **documento della bacheca**, che
+    diventa un link che lo apre.
+  - **Solo notifica push, niente WhatsApp**: chi non ha le notifiche trova il
+    messaggio col pallino nel menu.
+  - **Le spunte di WhatsApp**, per chi scrive nella bacheca: una grigia
+    pubblicato, due grigie **arrivato sul telefono di tutti**, due verdi
+    **letto da tutti**. Toccandole si vede persona per persona: letto e
+    quando, ricevuto, notifica partita, senza notifiche. «Ricevuto» lo dice il
+    telefono stesso quando mostra la notifica; «letto» vuol dire bacheca
+    aperta con il messaggio davanti.
+  - **Anche dall'assistente**: vede le bacheche, legge i messaggi in Markdown,
+    scrive bozze e le rilascia (chiedendo conferma prima).
+
+### Cambiato
+
+- **Il Markdown mostra tutto quello che l'editore sa scrivere**: tabelle,
+  immagini, blocchi di codice, barrato e caselle delle cose da fare. Da 2.69
+  l'editore aveva i pulsanti, ma il testo si vedeva con i simboli al posto
+  della tabella. Vale ovunque: regolamenti, debriefing, note, book.
+  Le immagini si caricano solo da indirizzi `https` o dai nostri.
+
 ## 2.76.0 — 21 settembre 2026
 
 ### Cambiato

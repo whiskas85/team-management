@@ -16,7 +16,13 @@ import { Markdown, type Menzioni } from './Markdown';
  * qualcosa si vede storto qui, si vedrà storto anche là, e lo scopri subito.
  */
 
-type Persona = { id: string; maniglia: string; nome: string };
+/**
+ * Chi o cosa si richiama con la chiocciola.
+ *
+ * Una persona ha solo il nome; un documento ha anche l'indirizzo, e nel testo
+ * diventa un link che lo apre.
+ */
+type Persona = { id: string; maniglia: string; nome: string; href?: string };
 
 type Pulsante = {
   etichetta: string;
@@ -99,7 +105,9 @@ export function EditoreMarkdown({
   const area = useRef<HTMLTextAreaElement>(null);
 
   const menzioni: Menzioni | undefined = persone
-    ? Object.fromEntries(persone.map((p) => [p.maniglia, p.nome]))
+    ? Object.fromEntries(
+        persone.map((p) => [p.maniglia, p.href ? { nome: p.nome, href: p.href } : p.nome]),
+      )
     : undefined;
 
   /** Mette i simboli al posto giusto e rimette il cursore dove serve. */
@@ -258,7 +266,9 @@ export function EditoreMarkdown({
                   className="flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-sm hover:bg-surface2"
                 >
                   <span className="num text-nvg">@{p.maniglia}</span>
-                  <span className="min-w-0 truncate text-xs text-muted">{p.nome}</span>
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    {p.href ? `📎 ${p.nome}` : p.nome}
+                  </span>
                 </button>
               ))}
             </div>

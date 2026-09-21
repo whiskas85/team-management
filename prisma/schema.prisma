@@ -232,6 +232,15 @@ model User {
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   sondaggiScritti       Sondaggio[]             @relation("SondaggiScritti")
   votiSondaggi          VotoSondaggio[]         @relation("VotiSondaggi")
+  bachecheCreate        Bacheca[]               @relation("BachecheCreate")
+  bachecheModerate      Bacheca[]               @relation("BachecheModerate")
+  bachecheLette         LettoreBacheca[]        @relation("BachecheLette")
+  bachecheScritte       ScrittoreBacheca[]      @relation("BachecheScritte")
+  messaggiBacheca       MessaggioBacheca[]      @relation("MessaggiBacheca")
+  reazioniBacheca       ReazioneBacheca[]       @relation("ReazioniBacheca")
+  risposteBacheca       RispostaBacheca[]       @relation("RisposteBacheca")
+  consegneBacheca       ConsegnaBacheca[]       @relation("ConsegneBacheca")
+  allegatiBacheca       AllegatoBacheca[]       @relation("AllegatiBacheca")
   gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
   gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
   allegatiCaricati      AllegatoEvento[]        @relation("AllegatiCaricati")
@@ -2065,4 +2074,158 @@ model VotoSondaggio {
 
   @@unique([opzioneId, userId])
   @@index([sondaggioId, userId])
+}
+
+// ------------------------------------------------------------------ bacheche
+
+/// Chi legge una bacheca.
+enum PubblicoBacheca {
+  /// Chi e' in squadra: in rosa, sospeso o da riconfermare.
+  SQUADRA
+  /// I contatti che si stanno affacciando.
+  NUOVI
+  /// Squadra e nuovi insieme.
+  TUTTI
+  /// Solo le persone scelte a mano: il direttivo, chi fa il marketing.
+  SELEZIONE
+}
+
+/// Un posto dove si scrivono comunicazioni che restano.
+///
+/// Nasce da quello che su WhatsApp si perde: l'avviso importante scivola sotto
+/// cinquanta messaggi di battute, e chi entra nel gruppo dopo non lo vede
+/// mai. Qui un messaggio ha un posto, una data, e si sa chi l'ha letto.
+model Bacheca {
+  id          String          @id @default(cuid())
+  nome        String
+  descrizione String?
+  pubblico    PubblicoBacheca @default(SQUADRA)
+  ordine      Int             @default(0)
+  creataIl    DateTime        @default(now())
+  creataDaId  String
+  creataDa    User            @relation("BachecheCreate", fields: [creataDaId], references: [id], onDelete: Cascade)
+  /// Chi tiene l'ordine: cancella messaggi e risposte di chiunque. Di
+  /// partenza e' chi l'ha creata; se se ne va, la bacheca resta senza e la
+  /// modera l'admin.
+  moderatoreId String?
+  moderatore   User?          @relation("BachecheModerate", fields: [moderatoreId], references: [id], onDelete: SetNull)
+
+  /// Chi la legge, quando il pubblico e' una selezione.
+  lettori   LettoreBacheca[]
+  /// Chi ci scrive. Gli altri leggono, reagiscono e rispondono.
+  scrittori ScrittoreBacheca[]
+  messaggi  MessaggioBacheca[]
+  allegati  AllegatoBacheca[]
+}
+
+model LettoreBacheca {
+  bachecaId String
+  bacheca   Bacheca @relation(fields: [bachecaId], references: [id], onDelete: Cascade)
+  userId    String
+  utente    User    @relation("BachecheLette", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([bachecaId, userId])
+  @@index([userId])
+}
+
+model ScrittoreBacheca {
+  bachecaId String
+  bacheca   Bacheca @relation(fields: [bachecaId], references: [id], onDelete: Cascade)
+  userId    String
+  utente    User    @relation("BachecheScritte", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([bachecaId, userId])
+  @@index([userId])
+}
+
+/// Un messaggio in bacheca, scritto in Markdown.
+///
+/// Nasce **bozza**: finche' `pubblicatoIl` e' vuoto lo vedono solo chi scrive
+/// in quella bacheca. Il rilascio e' il momento in cui parte la notifica.
+model MessaggioBacheca {
+  id           String    @id @default(cuid())
+  bachecaId    String
+  bacheca      Bacheca   @relation(fields: [bachecaId], references: [id], onDelete: Cascade)
+  autoreId     String
+  autore       User      @relation("MessaggiBacheca", fields: [autoreId], references: [id], onDelete: Cascade)
+  titolo       String?
+  testo        String
+  /// L'immagine in cima, come il banner di un messaggio WhatsApp.
+  bannerPath   String?
+  bannerTipo   String?
+  creatoIl     DateTime  @default(now())
+  pubblicatoIl DateTime?
+  /// L'ultima modifica dopo il rilascio: prima del rilascio una bozza si
+  /// corregge quante volte si vuole e non e' una modifica per nessuno.
+  modificatoIl DateTime?
+
+  reazioni ReazioneBacheca[]
+  risposte RispostaBacheca[]
+  consegne ConsegnaBacheca[]
+
+  @@index([bachecaId, pubblicatoIl])
+}
+
+/// Una reazione, come su WhatsApp: una per persona, si cambia o si toglie.
+model ReazioneBacheca {
+  messaggioId String
+  messaggio   MessaggioBacheca @relation(fields: [messaggioId], references: [id], onDelete: Cascade)
+  userId      String
+  utente      User             @relation("ReazioniBacheca", fields: [userId], references: [id], onDelete: Cascade)
+  emoji       String
+  messaIl     DateTime         @default(now())
+
+  @@id([messaggioId, userId])
+}
+
+model RispostaBacheca {
+  id           String           @id @default(cuid())
+  messaggioId  String
+  messaggio    MessaggioBacheca @relation(fields: [messaggioId], references: [id], onDelete: Cascade)
+  autoreId     String
+  autore       User             @relation("RisposteBacheca", fields: [autoreId], references: [id], onDelete: Cascade)
+  testo        String
+  creataIl     DateTime         @default(now())
+  modificataIl DateTime?
+
+  @@index([messaggioId])
+}
+
+/// Le spunte di WhatsApp, per una persona e un messaggio.
+///
+/// **Inviata**: il servizio di notifiche l'ha presa in consegna. **Ricevuta**:
+/// il telefono ha detto di averla avuta. **Letta**: la persona ha aperto la
+/// bacheca con il messaggio davanti. Ogni gradino implica quelli prima, ma
+/// si registra solo quello che si e' visto davvero.
+model ConsegnaBacheca {
+  messaggioId String
+  messaggio   MessaggioBacheca @relation(fields: [messaggioId], references: [id], onDelete: Cascade)
+  userId      String
+  utente      User             @relation("ConsegneBacheca", fields: [userId], references: [id], onDelete: Cascade)
+  /// Aveva le notifiche accese al momento del rilascio.
+  conPush     Boolean          @default(false)
+  inviataIl   DateTime?
+  ricevutaIl  DateTime?
+  lettaIl     DateTime?
+
+  @@id([messaggioId, userId])
+  @@index([userId, lettaIl])
+}
+
+/// Un documento della bacheca, richiamabile con la chiocciola.
+model AllegatoBacheca {
+  id           String   @id @default(cuid())
+  bachecaId    String
+  bacheca      Bacheca  @relation(fields: [bachecaId], references: [id], onDelete: Cascade)
+  /// Come lo si scrive dopo la chiocciola: unica dentro la bacheca.
+  maniglia     String
+  fileName     String
+  filePath     String
+  mimeType     String
+  fileSize     Int
+  caricatoIl   DateTime @default(now())
+  caricatoDaId String
+  caricatoDa   User     @relation("AllegatiBacheca", fields: [caricatoDaId], references: [id], onDelete: Cascade)
+
+  @@unique([bachecaId, maniglia])
 }

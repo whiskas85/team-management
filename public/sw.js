@@ -100,16 +100,32 @@ self.addEventListener('push', (evento) => {
   // sparisce sarebbe proprio quello che nessuno andrebbe piu' a cercare.
   const azioni = Array.isArray(avviso.azioni) ? avviso.azioni.slice(0, 2) : [];
 
-  evento.waitUntil(
-    self.registration.showNotification(avviso.titolo, {
-      body: avviso.testo,
-      icon: '/icona-192.png',
-      badge: '/icona-192.png',
-      tag: avviso.tag,
-      actions: azioni.map((a) => ({ action: a.id, title: a.testo })),
-      data: { url: avviso.url, azioni },
-    }),
-  );
+  const mostrata = self.registration.showNotification(avviso.titolo, {
+    body: avviso.testo,
+    icon: '/icona-192.png',
+    badge: '/icona-192.png',
+    tag: avviso.tag,
+    actions: azioni.map((a) => ({ action: a.id, title: a.testo })),
+    data: { url: avviso.url, azioni },
+  });
+
+  /*
+   * La seconda spunta: «è arrivata sul telefono».
+   *
+   * La può dire solo il telefono, e la dice dopo averla mostrata. Chi è lo
+   * racconta il cookie di sessione, come per il voto dalla notifica: se la
+   * sessione è scaduta la spunta non arriva, e non si inventa. Solo indirizzi
+   * nostri: un messaggio non deve poter far chiamare al telefono un posto
+   * qualsiasi.
+   */
+  const ricevuta =
+    typeof avviso.ricevuta === 'string' && avviso.ricevuta.startsWith('/api/')
+      ? mostrata.then(() =>
+          fetch(avviso.ricevuta, { method: 'POST', credentials: 'include' }).catch(() => {}),
+        )
+      : mostrata;
+
+  evento.waitUntil(ricevuta);
 });
 
 // Toccandola si va dove serve. Se il gestionale è già aperto da qualche parte

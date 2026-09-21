@@ -20,6 +20,7 @@ import {
 } from '@/lib/domain';
 import { attivitaDaCoprire } from '@/lib/assicurazione';
 import { loRiguarda } from '@/lib/sondaggi';
+import { filtroBacheche, puoCreareBacheche } from '@/lib/bacheche';
 import { filtroVisibilita } from '@/lib/query';
 import { iniziali } from '@/lib/format';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
@@ -149,6 +150,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
    * vede chi passa di lì, e chi non passa non risponde — che è esattamente il
    * problema che i sondaggi dovevano risolvere.
    */
+  /*
+   * La bacheca: quante comunicazioni aspettano di essere lette, e se ce n'è
+   * almeno una per questa persona. Chi non ne vede nessuna non ha la voce: un
+   * menu con una porta che si apre su una stanza vuota insegna a ignorarla.
+   */
+  const [bachecheMie, bachecaDaLeggere] = await Promise.all([
+    prisma.bacheca.count({ where: filtroBacheche(utente) }),
+    // solo nelle bacheche che vede ancora: chi esce da una selezione non deve
+    // portarsi dietro un pallino che non può più spegnere
+    prisma.consegnaBacheca.count({
+      where: { userId: utente.id, lettaIl: null, messaggio: { bacheca: filtroBacheche(utente) } },
+    }),
+  ]);
+
   const sondaggiDaVotare = (
     await prisma.sondaggio.findMany({
       where: {
@@ -260,6 +275,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       gruppo: 'principale',
       badge: mieiPagamentiAperti,
     },
+    ...(bachecheMie > 0 || puoCreareBacheche(utente.roles)
+      ? [
+          {
+            href: '/bacheca',
+            label: 'Bacheca',
+            icona: 'bacheca' as const,
+            gruppo: 'principale' as const,
+            badge: bachecaDaLeggere,
+          },
+        ]
+      : []),
     {
       href: '/sondaggi',
       label: 'Sondaggi',
