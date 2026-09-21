@@ -21,6 +21,7 @@ import {
 import { attivitaDaCoprire } from '@/lib/assicurazione';
 import { loRiguarda } from '@/lib/sondaggi';
 import { filtroBacheche, puoCreareBacheche } from '@/lib/bacheche';
+import { iconaBacheca } from '@/lib/icone-bacheca';
 import { filtroVisibilita } from '@/lib/query';
 import { iniziali } from '@/lib/format';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
@@ -159,7 +160,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     prisma.bacheca.findMany({
       where: filtroBacheche(utente),
       orderBy: [{ ordine: 'asc' }, { creataIl: 'asc' }],
-      select: { id: true, nome: true },
+      select: { id: true, nome: true, icona: true },
     }),
     // solo nelle bacheche che vede ancora: chi esce da una selezione non deve
     // portarsi dietro un pallino che non può più spegnere
@@ -290,7 +291,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...bachecheMie.map((b) => ({
       href: `/bacheca/${b.id}`,
       label: b.nome,
-      icona: 'bacheca' as const,
+      icona: iconaBacheca(b.icona),
       gruppo: 'annunci' as const,
       badge: daLeggereIn(b.id),
     })),

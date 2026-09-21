@@ -18,6 +18,7 @@ import {
   vedeBacheca,
 } from '@/lib/bacheche';
 import { citabili, citatiIn } from '@/lib/note';
+import { iconaBacheca } from '@/lib/icone-bacheca';
 import { avvisaConEsito, avvisa } from '@/lib/push';
 import { nomeCompleto } from '@/lib/format';
 import { eliminaAllegato as cancellaDalDisco, salvaAllegato } from '@/lib/storage';
@@ -118,6 +119,8 @@ export async function salvaBacheca(_prev: StatoForm, fd: FormData): Promise<Stat
     nome,
     descrizione: strOpt(fd, 'descrizione'),
     pubblico,
+    // solo fra quelle previste: un valore qualsiasi finirebbe nel menu di tutti
+    icona: iconaBacheca(strOpt(fd, 'icona')),
     moderatoreId,
   };
 

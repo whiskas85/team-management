@@ -6,6 +6,8 @@ import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { Campo } from './ui';
 import { salvaBacheca } from '@/actions/bacheche';
+import { Icona } from './Icona';
+import { ICONE_BACHECA, iconaBacheca } from '@/lib/icone-bacheca';
 
 export type PersonaScelta = {
   id: string;
@@ -98,6 +100,7 @@ export function FormBacheca({
     nome: string;
     descrizione: string | null;
     pubblico: PubblicoBacheca;
+    icona: string;
     moderatoreId: string | null;
     lettori: string[];
     scrittori: string[];
@@ -106,6 +109,7 @@ export function FormBacheca({
   moderatorePredefinito: string;
 }) {
   const [pubblico, setPubblico] = useState<PubblicoBacheca>(bacheca?.pubblico ?? 'SQUADRA');
+  const [icona, setIcona] = useState(iconaBacheca(bacheca?.icona));
   // chi scrive e chi modera: solo chi e' in squadra, un nuovo la bacheca la legge
   const gestori = persone.filter((p) => p.gestisce);
 
@@ -124,6 +128,31 @@ export function FormBacheca({
           placeholder="Gli avvisi ufficiali del club"
         />
       </Campo>
+
+      {/* L'icona con cui la si riconosce nel menu, prima ancora del nome */}
+      <div>
+        <p className="label">Icona nel menu</p>
+        <input type="hidden" name="icona" value={icona} />
+        <div className="flex flex-wrap gap-1.5">
+          {ICONE_BACHECA.map((i) => (
+            <button
+              key={i.nome}
+              type="button"
+              title={i.testo}
+              aria-label={i.testo}
+              aria-pressed={icona === i.nome}
+              onClick={() => setIcona(i.nome)}
+              className={`flex h-9 w-9 items-center justify-center rounded-md border transition-colors ${
+                icona === i.nome
+                  ? 'border-nvg bg-nvg/15 text-nvg'
+                  : 'border-line text-muted hover:border-nvgdim hover:text-ink'
+              }`}
+            >
+              <Icona nome={i.nome} size={17} />
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div>
         <p className="label">Chi la legge</p>

@@ -164,6 +164,7 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                     nome: b.nome,
                     descrizione: b.descrizione,
                     pubblico: b.pubblico,
+                    icona: b.icona,
                     moderatoreId: b.moderatoreId,
                     lettori: b.lettori.map((l) => l.userId),
                     scrittori: b.scrittori.map((s) => s.userId),

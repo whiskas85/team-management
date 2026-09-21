@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.78.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **Ogni bacheca ha la sua icona.** Nel menu Annunci le bacheche stanno una
+  sotto l'altra, e con la stessa puntina si distinguevano solo leggendo il
+  nome. Nel modulo della bacheca si sceglie fra ventiquattro icone — la
+  campanella per gli avvisi, lo scudo per il direttivo, la maglietta per il
+  merchandising — e si cambia quando si vuole da «Configura». Si vede nel
+  menu e nell'elenco delle bacheche.
+
 ## 2.77.3 — 21 settembre 2026
 
 ### Corretto

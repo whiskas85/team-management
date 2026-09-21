@@ -2100,6 +2100,9 @@ model Bacheca {
   nome        String
   descrizione String?
   pubblico    PubblicoBacheca @default(SQUADRA)
+  /// L'icona nel menu, scelta fra quelle del gestionale: le bacheche stanno
+  /// una sotto l'altra, e un'icona diversa si riconosce prima del nome.
+  icona       String          @default("bacheca")
   ordine      Int             @default(0)
   creataIl    DateTime        @default(now())
   creataDaId  String

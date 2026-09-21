@@ -8,6 +8,7 @@ import { Badge, Intestazione, Vuoto } from '@/components/ui';
 import { BottoneModale } from '@/components/Modale';
 import { FormBacheca } from '@/components/FormBacheca';
 import { Icona } from '@/components/Icona';
+import { iconaBacheca } from '@/lib/icone-bacheca';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,7 @@ export default async function BachechePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="flex items-center gap-2 break-words font-medium">
-                      <Icona nome="bacheca" size={16} /> {b.nome}
+                      <Icona nome={iconaBacheca(b.icona)} size={16} /> {b.nome}
                     </h3>
                     {b.descrizione && <p className="mt-0.5 text-xs text-muted">{b.descrizione}</p>}
                   </div>
