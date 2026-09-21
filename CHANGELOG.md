@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.77.2 — 21 settembre 2026
+
+### Cambiato
+
+- **Le bacheche hanno un gruppo loro nel menu: Annunci.** Stavano fra le cose
+  operative, ma quelle si fanno e gli annunci si leggono. Ogni bacheca e' una
+  riga con il suo pallino dei messaggi da leggere, e in fondo **Tutte le
+  bacheche** porta all'elenco, da dove se ne creano di nuove.
+
 ## 2.77.1 — 21 settembre 2026
 
 ### Corretto

@@ -155,14 +155,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
    * almeno una per questa persona. Chi non ne vede nessuna non ha la voce: un
    * menu con una porta che si apre su una stanza vuota insegna a ignorarla.
    */
-  const [bachecheMie, bachecaDaLeggere] = await Promise.all([
-    prisma.bacheca.count({ where: filtroBacheche(utente) }),
+  const [bachecheMie, bachecheDaLeggere] = await Promise.all([
+    prisma.bacheca.findMany({
+      where: filtroBacheche(utente),
+      orderBy: [{ ordine: 'asc' }, { creataIl: 'asc' }],
+      select: { id: true, nome: true },
+    }),
     // solo nelle bacheche che vede ancora: chi esce da una selezione non deve
     // portarsi dietro un pallino che non può più spegnere
-    prisma.consegnaBacheca.count({
+    prisma.consegnaBacheca.findMany({
       where: { userId: utente.id, lettaIl: null, messaggio: { bacheca: filtroBacheche(utente) } },
+      select: { messaggio: { select: { bachecaId: true } } },
     }),
   ]);
+  const daLeggereIn = (id: string) =>
+    bachecheDaLeggere.filter((c) => c.messaggio.bachecaId === id).length;
 
   const sondaggiDaVotare = (
     await prisma.sondaggio.findMany({
@@ -275,14 +282,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       gruppo: 'principale',
       badge: mieiPagamentiAperti,
     },
-    ...(bachecheMie > 0 || puoCreareBacheche(utente.roles)
+    /*
+     * Gli annunci: una riga per bacheca, con il suo pallino, e in fondo
+     * l'elenco di tutte — da li' se ne creano di nuove. Stanno in un gruppo
+     * loro e non fra le cose operative: si leggono, non si fanno.
+     */
+    ...bachecheMie.map((b) => ({
+      href: `/bacheca/${b.id}`,
+      label: b.nome,
+      icona: 'bacheca' as const,
+      gruppo: 'annunci' as const,
+      badge: daLeggereIn(b.id),
+    })),
+    ...(bachecheMie.length > 0 || puoCreareBacheche(utente.roles)
       ? [
           {
             href: '/bacheca',
-            label: 'Bacheca',
-            icona: 'bacheca' as const,
-            gruppo: 'principale' as const,
-            badge: bachecaDaLeggere,
+            label: 'Tutte le bacheche',
+            icona: 'menu' as const,
+            gruppo: 'annunci' as const,
           },
         ]
       : []),

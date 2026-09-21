@@ -18,6 +18,7 @@ export type VoceMenu = {
   icona: NomeIcona;
   gruppo:
     | 'principale'
+    | 'annunci'
     | 'mercatino'
     | 'regolamenti'
     | 'persone'
@@ -57,6 +58,7 @@ type Props = {
 
 const ETICHETTA_GRUPPO: Record<string, string> = {
   principale: 'Operativo',
+  annunci: 'Annunci',
   mercatino: 'Mercatino',
   regolamenti: 'Regolamenti',
   persone: 'Atleti & nuovi',
@@ -114,6 +116,7 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
 
   const gruppi = [
     'principale',
+    'annunci',
     'mercatino',
     'regolamenti',
     'persone',
