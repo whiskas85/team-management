@@ -82,19 +82,72 @@ export function SceltaStato({ attuale = 'SQUADRA' }: { attuale?: StatoOperatore 
  * È un componente solo e non due copie: i campi obbligatori sono gli stessi, e
  * due moduli gemelli prima o poi divergono su quello che conta.
  */
-export function BottoneCreaOperatore({ stato = 'SQUADRA' }: { stato?: StatoOperatore }) {
+/**
+ * Quello che una tessera federale sa gia' dire di una persona.
+ *
+ * Il portale restituisce il nominativo, a volte l'email e il comune: sono i
+ * campi che il modulo puo' presentarsi gia' compilati. Telefono, data di
+ * nascita e password la tessera non li ha, e restano da mettere — ma il nome
+ * scritto a mano due volte e' il nome scritto sbagliato una volta.
+ */
+export type DaTessera = {
+  numero: string;
+  nome: string;
+  cognome: string;
+  email: string | null;
+  luogoNascita: string | null;
+};
+
+export function BottoneCreaOperatore({
+  stato = 'SQUADRA',
+  tessera,
+  etichetta = 'Crea operatore',
+}: {
+  stato?: StatoOperatore;
+  /**
+   * La tessera da cui nasce questa persona.
+   *
+   * Cambia due cose: il modulo arriva compilato con quello che il portale sa,
+   * e **la tessera si aggancia da sola** appena la persona esiste. Senza, si
+   * creava di la', si tornava di qua e si cercava il nome nella colonna: tre
+   * passaggi in cui si abbina la tessera a un omonimo.
+   */
+  tessera?: DaTessera;
+  etichetta?: string;
+}) {
   return (
-    <BottoneModale etichetta="Crea operatore" icona="operatori" titolo="Nuovo operatore" larga>
+    <BottoneModale
+      etichetta={etichetta}
+      icona="operatori"
+      titolo={tessera ? `Nuovo operatore da ${tessera.numero}` : 'Nuovo operatore'}
+      larga
+    >
       <FormAzione azione={creaOperatore}>
+        {tessera && (
+          <>
+            <input type="hidden" name="tesseraNumero" value={tessera.numero} />
+            <p className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2.5 text-sm">
+              Nasce dalla tessera <strong className="num text-nvg">{tessera.numero}</strong>: entra{' '}
+              <strong className="text-ink">in squadra</strong> e la tessera gli resta attaccata.
+              Quello che il portale non sa — telefono, data di nascita, password — mettilo tu.
+            </p>
+          </>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Nome *">
-            <input name="nome" required className="input" />
+            <input name="nome" required className="input" defaultValue={tessera?.nome} />
           </Campo>
           <Campo label="Cognome *">
-            <input name="cognome" required className="input" />
+            <input name="cognome" required className="input" defaultValue={tessera?.cognome} />
           </Campo>
           <Campo label="Email *">
-            <input name="email" type="email" required className="input" />
+            <input
+              name="email"
+              type="email"
+              required
+              className="input"
+              defaultValue={tessera?.email ?? undefined}
+            />
           </Campo>
           <Campo label="Callsign">
             <input name="callsign" className="input" />
@@ -106,7 +159,12 @@ export function BottoneCreaOperatore({ stato = 'SQUADRA' }: { stato?: StatoOpera
             <input type="date" name="dataNascita" required className="input" />
           </Campo>
           <Campo label="Luogo di nascita *">
-            <input name="luogoNascita" required className="input" />
+            <input
+              name="luogoNascita"
+              required
+              className="input"
+              defaultValue={tessera?.luogoNascita ?? undefined}
+            />
           </Campo>
           <SceltaStato attuale={stato} />
           <Campo label="Password provvisoria *" span>

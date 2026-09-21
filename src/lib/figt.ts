@@ -193,6 +193,55 @@ export function abbina<T extends { id: string; nome: string; cognome: string; em
   return candidati.length === 1 ? candidati[0] : null;
 }
 
+
+/*
+ * Il nominativo del portale, diviso in cognome e nome.
+ *
+ * Il portale scrive **«COGNOME NOME» tutto maiuscolo**, in un campo solo: per
+ * precompilare un modulo bisogna indovinare dove finisce l'uno e comincia
+ * l'altro, e indovinare vuol dire sbagliare qualche volta.
+ *
+ * La regola: il cognome e' la **prima** parola, piu' quelle che la precedono
+ * se sono particelle — «DE LUCA MARIO» e' De Luca / Mario, non De / Luca
+ * Mario. Il resto e' il nome, cosi' «ROSSI MARIA LUISA» resta Maria Luisa
+ * invece di diventare un cognome doppio.
+ *
+ * **E' un suggerimento, non un verdetto**: finisce in due campi di testo che
+ * chi crea la persona ha davanti agli occhi e puo' correggere prima di
+ * salvare. Per questo si puo' permettere di sbagliare ogni tanto: l'alternativa
+ * era riscrivere a mano ogni volta anche i nove casi su dieci che sono giusti.
+ */
+const PARTICELLE = new Set([
+  'de', 'di', 'del', 'della', 'dello', 'dei', 'degli', 'delle',
+  'da', 'dal', 'dalla', 'la', 'lo', 'li', 'san', 'santa',
+  'van', 'von', 'der', 'den', 'ter', 'mc', 'mac',
+]);
+
+/** «ROSSI» diventa «Rossi»: il portale urla, il gestionale no. */
+const aModo = (parola: string) =>
+  parola
+    .split(/(['’-])/)
+    .map((p) => (/[\p{L}]/u.test(p) ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : p))
+    .join('');
+
+export function dividiNominativo(nominativo: string): { nome: string; cognome: string } {
+  const parole = nominativo.trim().split(/\s+/).filter(Boolean);
+  if (parole.length === 0) return { nome: '', cognome: '' };
+  if (parole.length === 1) return { nome: '', cognome: aModo(parole[0]) };
+
+  // si prende la prima parola, e si continua finche' sono particelle: sono
+  // loro che stanno davanti al cognome, mai davanti al nome
+  let quante = 1;
+  while (quante < parole.length - 1 && PARTICELLE.has(parole[quante - 1].toLowerCase())) {
+    quante++;
+  }
+
+  return {
+    cognome: parole.slice(0, quante).map(aModo).join(' '),
+    nome: parole.slice(quante).map(aModo).join(' '),
+  };
+}
+
 // ------------------------------------------------------------ polizza prova
 
 export type DatiPolizza = {

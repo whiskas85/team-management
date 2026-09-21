@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { collegaTessera } from '@/actions/figt';
+import { BottoneCreaOperatore } from './FormOperatore';
 
 export type TesseraOrfana = {
   numero: string;
@@ -11,6 +12,16 @@ export type TesseraOrfana = {
   comune: string | null;
   anno: number;
   stato: string;
+  /**
+   * Il nominativo gia' diviso, per precompilare il modulo.
+   *
+   * Lo divide la pagina, sul server: la regola sta con il resto del codice del
+   * portale (`lib/figt`), e tirarsela dietro nel browser vorrebbe dire
+   * spedirci anche tutto il modo in cui si legge il portale federale — mezzo
+   * migliaio di righe che al browser non servono.
+   */
+  nome: string;
+  cognome: string;
 };
 
 export type OperatoreLibero = {
@@ -112,6 +123,31 @@ export function AbbinaTessere({
           </>
         )}
       </p>
+
+      {/* La persona che nella colonna non c'è.
+          Dal portale torna un nome che nel gestionale non esiste ancora, e
+          prima bisognava andarlo a creare negli operatori, tornare qui e
+          cercarlo: tre passaggi, e in mezzo la tessera che si attacca
+          all'omonimo. Da qui nasce già in squadra con la tessera addosso. */}
+      {tesseraScelta && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-surface2 px-3 py-2.5">
+          <span className="text-xs text-muted">
+            Nell’elenco non c’è? È uno che nel gestionale non è ancora entrato.
+          </span>
+          <span className="ml-auto">
+            <BottoneCreaOperatore
+              etichetta="Crea la persona da questa tessera"
+              tessera={{
+                numero: tesseraScelta.numero,
+                nome: tesseraScelta.nome,
+                cognome: tesseraScelta.cognome,
+                email: tesseraScelta.email,
+                luogoNascita: tesseraScelta.comune,
+              }}
+            />
+          </span>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ------------------------------------------------------- tessere */}

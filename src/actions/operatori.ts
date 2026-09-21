@@ -10,6 +10,7 @@ import { isAdmin, isContatto, puoVedereNuovi, puoVedereOperatori } from '@/lib/d
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { perWhatsapp } from '@/lib/telefono';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
+import { collegaTessera } from './figt';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
 
 const RUOLI = ['ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA', 'TL', 'ATLETA'] as const;
@@ -200,7 +201,7 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
   const stato = enumVal(fd, 'stato', STATI, 'SQUADRA');
   const roles = leggiRuoli(fd);
 
-  await prisma.user.create({
+  const creato = await prisma.user.create({
     data: {
       email,
       nome,
@@ -216,6 +217,33 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
   });
 
   if (roles.includes('ADMIN')) await congedaAdminIniziale();
+
+  /*
+   * Se la persona nasce **da una tessera**, la tessera le si attacca subito.
+   *
+   * È tutto lo scopo del gesto: dal portale federale torna un nome che nel
+   * gestionale non c'è, e prima bisognava crearlo di là, tornare di qua e
+   * cercarlo nella colonna per abbinarlo — tre passaggi in cui si sbaglia
+   * persona. Creare e abbinare sono la stessa cosa, e adesso sono un gesto
+   * solo.
+   *
+   * Se l'abbinamento non riesce la persona resta creata: è il pezzo che costa
+   * di più rifare, e la tessera si riattacca a mano dalla stessa pagina.
+   */
+  const tessera = strOpt(fd, 'tesseraNumero');
+  if (tessera) {
+    const esito = await collegaTessera(tessera, creato.id);
+    if (esito.errore) {
+      aggiorna();
+      return {
+        ok: `${nome} ${cognome} è stato creato, ma la tessera non si è agganciata: ${esito.errore} Riprova dalla pagina delle tessere.`,
+      };
+    }
+    aggiorna();
+    return {
+      ok: `${nome} ${cognome} è in squadra con la tessera ${tessera}. Comunicagli la password provvisoria.`,
+    };
+  }
 
   aggiorna();
   return { ok: `${nome} ${cognome} è stato creato. Comunicagli la password provvisoria.` };

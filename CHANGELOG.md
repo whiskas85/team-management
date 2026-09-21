@@ -5,6 +5,31 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.75.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **Dalla tessera nasce la persona.** Dal portale federale torna a volte un
+  nome che nel gestionale non c'e' ancora: prima bisognava crearlo negli
+  operatori, tornare alle tessere e cercarlo nella colonna per abbinarlo —
+  tre passaggi, e in mezzo la tessera che si attacca all'omonimo. Adesso si
+  prende in mano la tessera e si preme **«Crea la persona da questa
+  tessera»**: il modulo arriva gia' compilato con quello che il portale sa
+  (nome, cognome, email, comune), la persona entra **in squadra** e nel libro
+  atleti, e **la tessera le resta attaccata** nello stesso gesto. Telefono,
+  data di nascita e password la tessera non li ha: quelli si mettono a mano.
+  - Il portale scrive «COGNOME NOME» tutto maiuscolo: il gestionale lo divide
+    riconoscendo le particelle — «DE LUCA MARIO» e' De Luca / Mario, «ROSSI
+    MARIA LUISA» resta Maria Luisa — e lo riscrive a modo. E' un suggerimento
+    nei due campi che si hanno davanti, e si corregge prima di salvare.
+
+### Cambiato
+
+- **«Operatori senza tessera» propone solo chi e' in squadra.** Un contatto
+  che viene alle aperte gioca con la giornaliera e tesserato non sara' mai:
+  averlo nella colonna voleva dire poter attaccare una tessera vera a chi non
+  e' ancora del club, su un elenco lungo il doppio.
+
 ## 2.74.0 — 21 settembre 2026
 
 ### Aggiunto

@@ -5,6 +5,7 @@ import { elencoOperatori } from '@/lib/query';
 import { URL_ASNWG, puoAmministrare, tonoFigt, vedeAreaTesseramento } from '@/lib/domain';
 import { fmtDate, giorniA, nomeCompleto, umanizza } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
+import { dividiNominativo } from '@/lib/figt';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
@@ -52,9 +53,18 @@ export default async function TesserePage() {
   // tessera" riempie la pagina di allarmi su cui non c'è niente da fare.
   const daTesserare = operatori.filter((o) => vedeAreaTesseramento(o.stato));
 
-  // e le persone che aspettano una tessera: due liste che si guardano
   const conTessera = new Set(tessere.map((t) => t.userId));
-  const senzaTessera = operatori
+
+  /*
+   * Le persone che aspettano una tessera: due colonne che si guardano.
+   *
+   * **Solo chi è in squadra.** La tessera federale la prende chi è del club:
+   * un contatto che viene alle aperte gioca con la giornaliera e tesserato non
+   * sarà mai, e averlo nella colonna voleva dire poter attaccare una tessera
+   * vera a chi non è ancora nessuno — per giunta su un elenco lungo il doppio,
+   * dove l'omonimo giusto si trova per sbaglio.
+   */
+  const senzaTessera = daTesserare
     .filter((o) => !conTessera.has(o.id))
     .map((o) => ({
       id: o.id,
@@ -260,6 +270,8 @@ export default async function TesserePage() {
               comune: t.comune,
               anno: t.anno,
               stato: t.stato,
+              // diviso qui, dove il codice del portale sta gia' in casa
+              ...dividiNominativo(t.nominativo),
             }))}
             operatori={senzaTessera}
           />
