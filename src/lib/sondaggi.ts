@@ -1,5 +1,6 @@
 import type { DestinatariSondaggio, Role, StatoOperatore } from '@prisma/client';
 import { inSquadra, isAdmin, puoSchierare } from './domain';
+import { prisma } from './db';
 
 /**
  * I sondaggi: chi li fa, chi li vede, quando si vota.
@@ -94,4 +95,55 @@ export function quantoManca(scadeIl: Date | null, adesso = new Date()): string |
   if (ore < 48) return `${ore} ${ore === 1 ? 'ora' : 'ore'}`;
   const giorni = Math.round(ore / 24);
   return `${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`;
+}
+
+/**
+ * Registra il voto di una persona, da qualunque porta arrivi.
+ *
+ * Le porte sono due e stanno per diventare tre: il form dentro il gestionale e
+ * i pulsanti sotto la notifica. Le regole — riguarda questa persona? e' ancora
+ * aperto? si puo' spuntarne piu' d'una? — sono le stesse, e scritte due volte
+ * diventerebbero due regole diverse il giorno in cui una cambia.
+ *
+ * **Si riscrive tutto ogni volta.** Votare di nuovo cancella le scelte di
+ * prima: cambiare idea e' normale, e la differenza fra «ha cambiato idea» e
+ * «ha votato due volte» non la deve fare chi legge il risultato.
+ */
+export type EsitoVoto = { ok: true } | { ok: false; errore: string };
+
+export async function registraVoto(
+  persona: { id: string; stato: StatoOperatore },
+  sondaggioId: string,
+  scelte: string[],
+): Promise<EsitoVoto> {
+  const s = await prisma.sondaggio.findUnique({
+    where: { id: sondaggioId },
+    include: { opzioni: { select: { id: true } } },
+  });
+  if (!s) return { ok: false, errore: 'Sondaggio non trovato.' };
+  if (!loRiguarda(s.destinatari, persona.stato)) {
+    return { ok: false, errore: 'Questo sondaggio non è per te.' };
+  }
+  if (!eAperto(s)) {
+    return { ok: false, errore: 'Il sondaggio è chiuso: le risposte non si cambiano più.' };
+  }
+
+  // Le opzioni che non appartengono a questo sondaggio si buttano via qui: chi
+  // arriva dalla notifica manda un identificativo che non e' passato da nessun
+  // form, e fidarsene vorrebbe dire lasciar votare un'altra domanda.
+  const valide = scelte.filter((id) => s.opzioni.some((o) => o.id === id));
+
+  if (valide.length === 0) return { ok: false, errore: 'Scegli almeno una risposta.' };
+  if (!s.sceltaMultipla && valide.length > 1) {
+    return { ok: false, errore: 'Su questa domanda si sceglie una risposta sola.' };
+  }
+
+  await prisma.$transaction([
+    prisma.votoSondaggio.deleteMany({ where: { sondaggioId, userId: persona.id } }),
+    prisma.votoSondaggio.createMany({
+      data: valide.map((opzioneId) => ({ sondaggioId, opzioneId, userId: persona.id })),
+    }),
+  ]);
+
+  return { ok: true };
 }

@@ -5,6 +5,39 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.73.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **Si risponde dai pulsanti della notifica.** Alla domanda «chi viene?» la
+  notifica arriva con sotto **Ci sono** e **Non ci sono**: si preme uno dei due
+  e la risposta e' registrata, col gestionale chiuso. Serve a togliere di mezzo
+  i trenta secondi fra la domanda e la risposta — aprire l'applicazione,
+  aspettare il caricamento, cercare il pulsante — perche' in quei trenta
+  secondi si decide di rispondere dopo, e dopo vuol dire mai.
+  - **Solo su «chi viene?».** Su una data la risposta dipende da cosa hanno
+    detto gli altri, e quella vuole la pagina: se si rispondesse alla cieca il
+    sondaggio non sarebbe servito a niente.
+  - **«Forse» non e' un pulsante**: Android ne mostra due, e «forse» e' la
+    risposta di chi ci deve pensare — chi ci pensa apre.
+  - **Chi vota lo dice la sessione, non il messaggio.** Il push viaggia verso
+    un dispositivo: se bastasse il dispositivo a votare, basterebbe avere in
+    mano il telefono di un altro.
+  - Se qualcosa non va — rete assente, sessione scaduta, sondaggio chiuso nel
+    frattempo — **non si finge che sia andata**: si apre la pagina, che sa dire
+    cosa e' successo.
+  - Su iPhone i pulsanti non ci sono, e la notifica resta quella di prima: si
+    tocca e si apre il sondaggio.
+
+### Corretto
+
+- **Il testo per WhatsApp non viaggia piu' dentro la notifica push.** Ogni
+  avviso porta due versioni di se' — quella corta per la notifica e quella
+  lunga per la chat, col numero della polizza e le date — e finivano tutte e
+  due nel messaggio push, che ha **quattromila byte e basta**. Bastava un testo
+  lungo per sforare il limite, e allora non partiva niente: chi doveva essere
+  avvisato non riceveva nulla proprio perche' gli si voleva dire di piu'.
+
 ## 2.72.0 — 21 settembre 2026
 
 ### Aggiunto

@@ -21,7 +21,22 @@ export type Avviso = {
   url: string;
   /** Raggruppa: due avvisi con lo stesso tag non fanno due righe. */
   tag?: string;
+  /**
+   * I pulsanti sotto la notifica, per rispondere senza aprire niente.
+   *
+   * **Due al massimo, e non e' una scelta nostra**: Android ne mostra due e
+   * iOS nessuno. Un terzo pulsante non darebbe errore — sparirebbe e basta, e
+   * la risposta che sparisce e' proprio quella che nessuno darebbe piu'.
+   *
+   * Ci vanno solo le risposte che si danno senza pensarci: «ci sono», «non ci
+   * sono». Tutto il resto vuole la pagina, dove si vede chi ha gia' risposto
+   * cosa — che e' il motivo per cui il sondaggio esiste.
+   */
+  azioni?: AzioneAvviso[];
 };
+
+/** Un pulsante sotto la notifica: `id` torna indietro, `testo` si legge. */
+export type AzioneAvviso = { id: string; testo: string };
 
 function configurata(): boolean {
   return Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);

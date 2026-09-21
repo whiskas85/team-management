@@ -53,7 +53,17 @@ export async function avvisaPersona(
   if (!persona) return 'niente';
 
   if (persona._count.iscrizioniPush > 0) {
-    await avvisa([userId], avviso);
+    /*
+     * Il testo per WhatsApp resta fuori dal messaggio push.
+     *
+     * Non e' un dettaglio di pulizia: il messaggio ha **quattromila byte** e
+     * basta, e il testo per WhatsApp e' quello lungo — il numero della
+     * polizza, le date, cosa farne. Attaccato a una notifica che non lo usa
+     * puo' far sforare il limite, e allora non parte niente: chi doveva essere
+     * avvisato non riceve nulla proprio perche' gli si voleva dire di piu'.
+     */
+    const { whatsapp: _, ...perPush } = avviso;
+    await avvisa([userId], perPush);
     return 'push';
   }
 

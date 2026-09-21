@@ -95,33 +95,80 @@ self.addEventListener('push', (evento) => {
     /* messaggio malformato: resta l'avviso generico, meglio di niente */
   }
 
+  // I pulsanti si tagliano a due perché Android ne mostra due: mandarne tre
+  // non darebbe errore, ne farebbe sparire uno in silenzio — e quello che
+  // sparisce sarebbe proprio quello che nessuno andrebbe piu' a cercare.
+  const azioni = Array.isArray(avviso.azioni) ? avviso.azioni.slice(0, 2) : [];
+
   evento.waitUntil(
     self.registration.showNotification(avviso.titolo, {
       body: avviso.testo,
       icon: '/icona-192.png',
       badge: '/icona-192.png',
       tag: avviso.tag,
-      data: { url: avviso.url },
+      actions: azioni.map((a) => ({ action: a.id, title: a.testo })),
+      data: { url: avviso.url, azioni },
     }),
   );
 });
 
 // Toccandola si va dove serve. Se il gestionale è già aperto da qualche parte
 // si porta in primo piano quella scheda invece di aprirne un'altra.
+function apri(url) {
+  return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((aperte) => {
+    for (const c of aperte) {
+      if (c.url.includes(url) && 'focus' in c) return c.focus();
+    }
+    const prima = aperte[0];
+    if (prima && 'navigate' in prima) return prima.navigate(url).then((c) => c && c.focus());
+    return clients.openWindow(url);
+  });
+}
+
+/*
+ * Rispondere dalla notifica.
+ *
+ * Una domanda a cui si risponde «ci sono» non merita di far aprire
+ * l'applicazione, aspettare il caricamento e cercare il pulsante: a quel punto
+ * si risponde dopo, e dopo vuol dire mai. Il pulsante manda la risposta da qui,
+ * con il gestionale chiuso.
+ *
+ * **Chi sei lo dice il cookie di sessione**, non il messaggio: il push viaggia
+ * verso un dispositivo, e se bastasse lui a votare basterebbe avere in mano il
+ * telefono di un altro. Se la sessione è scaduta non si inventa niente — si
+ * apre la pagina, dove si fa l'accesso e si risponde come sempre.
+ */
+function rispondi(url, opzioneId) {
+  const [, sondaggioId] = url.match(/\/sondaggi\/([^/?#]+)/) || [];
+  if (!sondaggioId) return apri(url);
+
+  return fetch('/api/voto', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sondaggioId, opzioneId }),
+  })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+    .then((esito) =>
+      self.registration.showNotification('Risposta registrata', {
+        body: esito.testo || 'Puoi cambiarla dal gestionale finché il sondaggio è aperto.',
+        icon: '/icona-192.png',
+        badge: '/icona-192.png',
+        tag: 'voto-' + sondaggioId,
+        data: { url },
+      }),
+    )
+    // Rete assente, sessione scaduta, sondaggio chiuso nel frattempo: non si
+    // finge che sia andata. Si apre la pagina, che sa dire cosa è successo.
+    .catch(() => apri(url));
+}
+
 self.addEventListener('notificationclick', (evento) => {
   evento.notification.close();
   const url = evento.notification.data?.url || '/dashboard';
+  const azione = evento.action;
 
-  evento.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((aperte) => {
-      for (const c of aperte) {
-        if (c.url.includes(url) && 'focus' in c) return c.focus();
-      }
-      const prima = aperte[0];
-      if (prima && 'navigate' in prima) return prima.navigate(url).then((c) => c && c.focus());
-      return clients.openWindow(url);
-    }),
-  );
+  evento.waitUntil(azione ? rispondi(url, azione) : apri(url));
 });
 
 // a ogni versione nuova si buttano via le cache vecchie

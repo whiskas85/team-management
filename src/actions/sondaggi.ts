@@ -6,7 +6,14 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { inSquadra } from '@/lib/domain';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
-import { eAperto, loRiguarda, puoFareSondaggi, quantoManca, risultato } from '@/lib/sondaggi';
+import {
+  eAperto,
+  loRiguarda,
+  puoFareSondaggi,
+  quantoManca,
+  registraVoto,
+  risultato,
+} from '@/lib/sondaggi';
 import { avvisaPersona } from '@/lib/avvisi';
 
 const TIPI = ['TESTO', 'DATA', 'PRESENZE'] as const;
@@ -91,7 +98,10 @@ export async function creaSondaggio(_prev: StatoForm, fd: FormData): Promise<Sta
  * Non si avvisa chi l'ha scritto: sa già cosa ha chiesto.
  */
 async function annuncia(id: string) {
-  const s = await prisma.sondaggio.findUnique({ where: { id } });
+  const s = await prisma.sondaggio.findUnique({
+    where: { id },
+    include: { opzioni: { orderBy: { ordine: 'asc' }, select: { id: true, testo: true } } },
+  });
   if (!s) return;
 
   const persone = await prisma.user.findMany({
@@ -102,6 +112,25 @@ async function annuncia(id: string) {
   const manca = quantoManca(s.scadeIl);
   const dove = `/sondaggi/${s.id}`;
 
+  /*
+   * I pulsanti sotto la notifica: solo per «chi viene?».
+   *
+   * Sono le uniche risposte che si danno senza guardare niente — ci sono, non
+   * ci sono — e sono proprio quelle che uno rimanda ad aprire l'applicazione e
+   * poi non dà piu'. Su una data, invece, la risposta dipende da cosa hanno
+   * detto gli altri: quella vuole la pagina, altrimenti il sondaggio non
+   * serviva a niente.
+   *
+   * **«Forse» non e' un pulsante**: ne entrano due, e «forse» e' la risposta
+   * di chi ci deve pensare — chi ci pensa apre.
+   */
+  const azioni =
+    s.tipo === 'PRESENZE'
+      ? [s.opzioni.at(0), s.opzioni.at(-1)]
+          .filter((o) => o !== undefined)
+          .map((o) => ({ id: o.id, testo: o.testo }))
+      : undefined;
+
   await Promise.all(
     persone
       .filter((p) => p.id !== s.creatoDaId && loRiguarda(s.destinatari, p.stato))
@@ -111,6 +140,7 @@ async function annuncia(id: string) {
           testo: manca ? `${s.domanda} · mancano ${manca}` : s.domanda,
           url: dove,
           tag: `sondaggio-${s.id}`,
+          azioni,
           whatsapp: `Zero Dark Ops — c’è una domanda per te
 
 ${s.domanda}${s.dettaglio ? `\n${s.dettaglio}` : ''}
@@ -133,30 +163,12 @@ export async function vota(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   const sondaggioId = str(fd, 'sondaggioId');
 
-  const s = await prisma.sondaggio.findUnique({
-    where: { id: sondaggioId },
-    include: { opzioni: { select: { id: true } } },
-  });
-  if (!s) return { errore: 'Sondaggio non trovato.' };
-  if (!loRiguarda(s.destinatari, me.stato)) return { errore: 'Questo sondaggio non è per te.' };
-  if (!eAperto(s)) return { errore: 'Il sondaggio è chiuso: le risposte non si cambiano più.' };
-
-  const scelte = fd
-    .getAll('opzione')
-    .map((v) => v.toString())
-    .filter((id) => s.opzioni.some((o) => o.id === id));
-
-  if (scelte.length === 0) return { errore: 'Scegli almeno una risposta.' };
-  if (!s.sceltaMultipla && scelte.length > 1) {
-    return { errore: 'Su questa domanda si sceglie una risposta sola.' };
-  }
-
-  await prisma.$transaction([
-    prisma.votoSondaggio.deleteMany({ where: { sondaggioId, userId: me.id } }),
-    prisma.votoSondaggio.createMany({
-      data: scelte.map((opzioneId) => ({ sondaggioId, opzioneId, userId: me.id })),
-    }),
-  ]);
+  const esito = await registraVoto(
+    me,
+    sondaggioId,
+    fd.getAll('opzione').map((v) => v.toString()),
+  );
+  if (!esito.ok) return { errore: esito.errore };
 
   aggiorna(sondaggioId);
   return { ok: 'Risposta registrata. Puoi cambiarla finché il sondaggio è aperto.' };
