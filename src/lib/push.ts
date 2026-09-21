@@ -109,7 +109,23 @@ export async function avvisa(userIds: string[], avviso: Avviso): Promise<void> {
  * dispositivi è stato accettato dal servizio di notifiche. Chi ha le
  * iscrizioni scadute non conta, e la sua riga lo dirà.
  */
-export async function avvisaConEsito(userIds: string[], avviso: Avviso): Promise<Set<string>> {
+export async function avvisaConEsito(
+  userIds: string[],
+  avviso: Avviso,
+  opzioni: {
+    /**
+     * Il pezzo di avviso che cambia da persona a persona, come la ricevuta
+     * firmata: ognuno riceve la sua, e nessuno può mandare quella di un altro.
+     */
+    perPersona?: (userId: string) => Partial<Avviso>;
+    /**
+     * «high» chiede al telefono di consegnarla subito anche se è in risparmio
+     * energetico. Senza, Android la tiene ferma finché non lo si sblocca — e
+     * «notifica partita, non ancora arrivata» resta lì per ore.
+     */
+    urgenza?: 'normal' | 'high';
+  } = {},
+): Promise<Set<string>> {
   const partiti = new Set<string>();
   if (!configurata() || userIds.length === 0) return partiti;
 
@@ -119,14 +135,19 @@ export async function avvisaConEsito(userIds: string[], avviso: Avviso): Promise
   if (iscrizioni.length === 0) return partiti;
 
   preparaMittente();
-  const corpo = JSON.stringify(avviso);
 
   await Promise.all(
     iscrizioni.map(async (i) => {
       try {
         await webpush.sendNotification(
           { endpoint: i.endpoint, keys: { p256dh: i.p256dh, auth: i.auth } },
-          corpo,
+          JSON.stringify({ ...avviso, ...opzioni.perPersona?.(i.userId) }),
+          {
+            urgency: opzioni.urgenza ?? 'normal',
+            // un giorno: un avviso di bacheca arrivato dopo una settimana di
+            // telefono spento non è più una notizia, lo si trova in bacheca
+            TTL: 60 * 60 * 24,
+          },
         );
         partiti.add(i.userId);
       } catch (e) {

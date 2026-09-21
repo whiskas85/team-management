@@ -1,4 +1,11 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from 'node:crypto';
 
 /**
  * Cifratura reversibile per i pochi segreti che devono tornare in chiaro,
@@ -33,4 +40,23 @@ export function decifra(pacchetto: string): string {
   const d = createDecipheriv('aes-256-gcm', chiave(), Buffer.from(iv, 'base64'));
   d.setAuthTag(Buffer.from(tag, 'base64'));
   return Buffer.concat([d.update(Buffer.from(dati, 'base64')), d.final()]).toString('utf8');
+}
+
+/**
+ * Una firma corta per un fatto preciso, come «questa ricevuta è di Mario per
+ * questo messaggio».
+ *
+ * Serve dove non c'è una sessione a garantire chi parla: il telefono che
+ * riceve una notifica può avere la sessione scaduta, ma la firma viaggia
+ * dentro la notifica stessa, che è cifrata per quel telefono e nessun altro.
+ * Chi non l'ha ricevuta non la conosce, e non può inventarla.
+ */
+export function firma(testo: string): string {
+  return createHmac('sha256', chiave()).update(testo).digest('base64url').slice(0, 32);
+}
+
+export function firmaValida(testo: string, data: string): boolean {
+  const attesa = Buffer.from(firma(testo));
+  const arrivata = Buffer.from(data);
+  return attesa.length === arrivata.length && timingSafeEqual(attesa, arrivata);
 }

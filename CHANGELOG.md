@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.78.2 — 21 settembre 2026
+
+### Corretto
+
+- **La spunta «ricevuto» non dipende piu' dalla sessione.** Il telefono la
+  mandava presentandosi col cookie di accesso: chi non aveva spuntato
+  «ricordami» dopo dodici ore non aveva piu' una sessione valida, riceveva la
+  notifica e non poteva dirlo. Adesso ogni notifica porta dentro una ricevuta
+  firmata per quella persona — la notifica e' cifrata per il suo telefono, e
+  nessun altro la conosce — e la spunta arriva anche a sessione scaduta.
+- **Gli avvisi di bacheca partono con priorita' alta.** Con quella normale
+  Android li teneva fermi finche' il telefono era in risparmio energetico, e
+  restavano per ore su «notifica partita, non ancora arrivata». Se il telefono
+  resta spento piu' di un giorno la notifica non arriva piu': il messaggio lo
+  si trova comunque in bacheca.
+
 ## 2.78.1 — 21 settembre 2026
 
 ### Aggiunto

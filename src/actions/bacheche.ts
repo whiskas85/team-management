@@ -19,6 +19,7 @@ import {
 } from '@/lib/bacheche';
 import { citabili, citatiIn } from '@/lib/note';
 import { iconaBacheca } from '@/lib/icone-bacheca';
+import { firma } from '@/lib/segreti';
 import { avvisaConEsito, avvisa } from '@/lib/push';
 import { nomeCompleto } from '@/lib/format';
 import { eliminaAllegato as cancellaDalDisco, salvaAllegato } from '@/lib/storage';
@@ -297,13 +298,28 @@ export async function pubblicaMessaggio(_prev: StatoForm, fd: FormData): Promise
     }),
   ]);
 
-  const partiti = await avvisaConEsito([...conPush], {
-    titolo: `Bacheca · ${m.bacheca.nome}`,
-    testo: anteprima(m.titolo, m.testo),
-    url: `/bacheca/${m.bachecaId}#m-${m.id}`,
-    tag: `bacheca-${m.id}`,
-    ricevuta: `/api/bacheca/ricevuta/${m.id}`,
-  });
+  const partiti = await avvisaConEsito(
+    [...conPush],
+    {
+      titolo: `Bacheca · ${m.bacheca.nome}`,
+      testo: anteprima(m.titolo, m.testo),
+      url: `/bacheca/${m.bachecaId}#m-${m.id}`,
+      tag: `bacheca-${m.id}`,
+    },
+    {
+      urgenza: 'high',
+      /*
+       * La ricevuta porta con sé chi è e una firma, e non dipende dalla
+       * sessione: chi non ha spuntato «ricordami» dopo dodici ore non ha più
+       * una sessione valida, e il suo telefono riceveva la notifica senza
+       * poterlo dire. La firma è dentro la notifica, cifrata per quel
+       * telefono: nessun altro la conosce.
+       */
+      perPersona: (userId) => ({
+        ricevuta: `/api/bacheca/ricevuta/${m.id}?u=${userId}&f=${firma(`ricevuta:${m.id}:${userId}`)}`,
+      }),
+    },
+  );
   if (partiti.size > 0) {
     await prisma.consegnaBacheca.updateMany({
       where: { messaggioId: m.id, userId: { in: [...partiti] } },
