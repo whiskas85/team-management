@@ -12,6 +12,13 @@ export const LINK_SOCIAL = [
   { testo: 'YouTube · SAT & Gaming', url: 'https://www.youtube.com/@SATgaming1' },
 ];
 
+/** Tre numeri su di noi, sotto «chi siamo»: si leggono prima del testo. */
+export const FATTI = [
+  { valore: '2024', testo: 'l’anno in cui è nata la squadra' },
+  { valore: 'Piemonte', testo: 'il territorio dove giochiamo' },
+  { valore: '2 settimane', testo: 'ogni quanto ci alleniamo, più gare, corsi ed eventi' },
+];
+
 /** Cosa ci appassiona: la riga sotto «chi siamo». */
 export const INTERESSI = [
   {

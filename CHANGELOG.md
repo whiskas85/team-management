@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.2 — 21 settembre 2026
+
+### Cambiato
+
+- **«Chi siamo» racconta la squadra vera**: nata nel 2024, gioca sul
+  territorio piemontese, si allena ogni due settimane, e in mezzo ci sono gare,
+  corsi ed eventi. Tre numeri in evidenza sotto il testo.
+- **Il sito si accende sul dominio**: `zerodarkteam.it` punta alla macchina
+  del gestionale, `www` lo segue, e chi scrive il dominio senza www viene
+  portato su `www`. La posta resta su Aruba: i suoi record non sono cambiati.
+
 ## 2.79.1 — 21 settembre 2026
 
 ### Cambiato

@@ -64,3 +64,9 @@
 		header_up X-Real-IP {remote_host}
 	}
 }
+
+# Il dominio senza www: chi lo scrive così finisce sul sito. Un solo indirizzo
+# vero per il sito, perché motori di ricerca e condivisioni non ne vedano due.
+{$DOMINIO_RADICE:zerodarkteam.it} {
+	redir https://{$DOMINIO_SITO:www.zerodarkteam.it}{uri} permanent
+}

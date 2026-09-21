@@ -310,10 +310,11 @@ test.
 
 Per accenderlo servono due cose, una sola da fare a mano:
 
-1. **Nel pannello DNS di Aruba**, il record A di `www` deve puntare
-   all'indirizzo di questa macchina (lo stesso di `ops`). **Non toccare** i
-   record della posta (`mx`, `mail`, `webmail`, `smtp`, `pop3`, `imap`) né il
-   record MX: la posta resta su Aruba.
+1. **Nel pannello DNS di Aruba**, il record A di `@` (il dominio senza www)
+   deve puntare all'indirizzo di questa macchina, lo stesso di `ops`: `www` è
+   un alias di `@` e lo segue da solo. **Non toccare** i record della posta
+   (`mx`, `mail`, `webmail`, `smtp`, `pop3`, `imap`) né il record MX: hanno
+   indirizzi propri e la posta resta su Aruba. Fatto il 21 settembre 2026.
 2. Quando il DNS risponde con l'indirizzo nuovo, riavviare il proxy perché
    chieda subito il certificato invece di aspettare la sua prossima prova:
 
@@ -321,8 +322,8 @@ Per accenderlo servono due cose, una sola da fare a mano:
 zd restart proxy
 ```
 
-Il blocco è già nel `Caddyfile`. `zerodarkteam.it` senza www resta ad Aruba:
-se un giorno lo si punta qui, va aggiunto al blocco del sito.
+I blocchi sono nel `Caddyfile`: `www` mostra il sito, `zerodarkteam.it` senza
+www rimanda a `www`.
 
 I testi del sito stanno in `src/app/sito/contenuti.ts`; le foto delle missioni
 si mettono in `public/sito/` con il nome scritto lì (`pcr.jpg`, `plr.jpg`,

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { percorsoSito } from '@/lib/sito';
-import { AFFILIAZIONI, AMBIZIONI, INTERESSI, LINK_SOCIAL, VALORI } from './contenuti';
+import { AFFILIAZIONI, AMBIZIONI, FATTI, INTERESSI, LINK_SOCIAL, VALORI } from './contenuti';
 import { Scena } from './Scena';
 
 export const dynamic = 'force-dynamic';
@@ -87,12 +87,21 @@ export default async function HomeSito() {
           <Titolo numero="01" sopra="Chi siamo">
             Una squadra, <span className="text-nvg">prima di tutto</span>
           </Titolo>
-          <p className="mb-12 max-w-3xl text-lg text-ink/80">
-            Zero Dark Team è una squadra di softair tattico. Ci unisce la voglia di preparare le
-            cose per bene e di farle insieme: studiare la carta prima di partire, parlarsi via radio,
-            arrivare all’obiettivo senza farsi vedere. Il resto — l’attrezzatura, i campi, le gare —
-            viene dopo.
+          <p className="mb-10 max-w-3xl text-lg text-ink/80">
+            Zero Dark Team è una squadra di softair tattico nata nel 2024 e attiva sul territorio
+            piemontese. Ci alleniamo ogni due settimane, e in mezzo ci sono le gare, i corsi e gli
+            eventi. Ci unisce la voglia di preparare le cose per bene e di farle insieme: studiare la
+            carta prima di partire, parlarsi via radio, arrivare all’obiettivo senza farsi vedere. Il
+            resto — l’attrezzatura, i campi, le classifiche — viene dopo.
           </p>
+          <dl className="mb-12 grid gap-4 sm:grid-cols-3">
+            {FATTI.map((f) => (
+              <div key={f.valore} className="border-l-2 border-nvg pl-4">
+                <dt className="font-mono text-3xl font-bold tracking-tight text-nvg md:text-4xl">{f.valore}</dt>
+                <dd className="mt-1 text-sm text-muted">{f.testo}</dd>
+              </div>
+            ))}
+          </dl>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {INTERESSI.map((i, n) => (
               <div
