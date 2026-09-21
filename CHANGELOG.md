@@ -5,6 +5,41 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.72.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **I sondaggi.** Nasce da una cosa che si faceva su WhatsApp e si perdeva:
+  «quando giochiamo a ottobre?», «chi viene domenica?». In chat risponde chi
+  legge per primo, gli altri si accodano, e il giorno dopo nessuno sa piu' cosa
+  era stato deciso. Qui la domanda ha un posto, una scadenza e **un risultato
+  che resta**.
+  - Si sceglie **cosa si sta chiedendo**, e da li' cambia tutto il resto:
+    *trovare una data* (le risposte sono giorni e ore), *sapere chi viene* (le
+    risposte sono gia' scritte: ci sono, forse, non ci sono), *scegliere fra
+    cose* (le risposte le scrivi tu — la maglia, il posto dove si mangia).
+  - **Dal risultato nasce l'attivita'**, in bozza: con dentro la data che ha
+    vinto, o con gia' segnato chi ha detto di esserci. Le manca il campo, la
+    quota, chi ne risponde — la rilasci tu quando e' completa. Se due risposte
+    sono a pari merito non nasce da sola: scegli tu quale vale.
+  - **Il risultato si vede sempre**, anche prima di aver votato. Nascondere i
+    numeri finche' non ti esponi e' un trucco da sondaggio d'opinione, dove
+    conta che la gente non si influenzi; qui conta l'opposto — se tre hanno
+    gia' detto sabato, il quarto deve saperlo prima di dire domenica,
+    altrimenti una data non si trova mai. Chi ha fatto la domanda vede anche
+    **chi** ha risposto cosa: e' lui che deve richiamare quelli che mancano.
+  - **Si vede solo quello che ti riguarda**: si decide se la domanda e' per la
+    squadra, per i nuovi o per tutti, e a chi non spetta non compare. Finche'
+    e' aperto si puo' cambiare idea; passata la scadenza scende nello storico
+    da solo, senza che nessuno debba chiuderlo.
+  - Nel menu c'e' **il pallino** dei sondaggi aperti a cui non hai ancora
+    risposto: una domanda senza un numero addosso la vede chi passa di li', e
+    chi non passa non risponde — che e' esattamente il problema che i sondaggi
+    dovevano risolvere.
+  - Chi e' nei destinatari **viene avvisato** all'apertura, con dentro quanto
+    tempo resta per votare — push a chi le ha attivate, WhatsApp agli altri,
+    come per ogni altro avviso.
+
 ## 2.71.0 — 21 settembre 2026
 
 ### Cambiato

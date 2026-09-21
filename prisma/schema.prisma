@@ -230,6 +230,8 @@ model User {
   rifiutiDecisi         RifiutoRegistrazione[]  @relation("RifiutiDecisi")
   attivitaDaReferente   ReferenteEvento[]       @relation("ReferenteDi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
+  sondaggiScritti       Sondaggio[]             @relation("SondaggiScritti")
+  votiSondaggi          VotoSondaggio[]         @relation("VotiSondaggi")
   gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
   gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
   allegatiCaricati      AllegatoEvento[]        @relation("AllegatiCaricati")
@@ -712,6 +714,8 @@ model Event {
   collegatoAId          String?
   collegatoA            Event?           @relation("AttivitaCollegate", fields: [collegatoAId], references: [id], onDelete: SetNull)
   collegate             Event[]          @relation("AttivitaCollegate")
+  /// Il sondaggio da cui e' nata, se e' nata cosi'.
+  sondaggio             Sondaggio?       @relation("EventoDaSondaggio")
   /// Le polizze automatiche, per questa sola attività.
   ///
   /// **Tre stati e non due.** Vuoto vuol dire «come dice l'impostazione
@@ -1966,4 +1970,99 @@ model Impostazioni {
   /// sempre una firma, anche quando parte da sola.
   assicuraAutoDaId    String?
   aggiornatoIl        DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------ sondaggi
+
+/// Che forma ha il sondaggio, e quindi cosa se ne puo' fare dopo.
+enum TipoSondaggio {
+  /// Opzioni scritte a mano: «Quale maglia?», «Dove andiamo a mangiare?».
+  TESTO
+  /// Le opzioni sono date e ore: serve a trovare il giorno di una giocata, e
+  /// dal risultato si crea l'attivita' con dentro la data che ha vinto.
+  DATA
+  /// «Chi c'e'?» su una proposta: dal risultato nasce l'attivita' con gia'
+  /// dentro chi ha detto di esserci.
+  PRESENZE
+}
+
+/// A chi si rivolge il sondaggio: decide chi lo vede e chi puo' votare.
+enum DestinatariSondaggio {
+  SQUADRA
+  NUOVI
+  TUTTI
+}
+
+/// Una domanda fatta alla squadra, con le sue risposte.
+///
+/// Nasce da una cosa che si faceva su WhatsApp e si perdeva: «quando
+/// giochiamo?», «chi viene?». In chat la risposta la da' chi legge per primo,
+/// gli altri si accodano, e il giorno dopo nessuno sa piu' cosa era stato
+/// deciso. Qui la domanda ha un posto, una scadenza e un risultato che resta.
+model Sondaggio {
+  id             String               @id @default(cuid())
+  domanda        String
+  /// Il contorno: perche' si chiede, cosa comporta. Si legge sotto la domanda.
+  dettaglio      String?
+  tipo           TipoSondaggio        @default(TESTO)
+  destinatari    DestinatariSondaggio @default(SQUADRA)
+  /// Si possono spuntare piu' risposte. Su una data serve quasi sempre: uno
+  /// puo' esserci sia sabato sia domenica, e saperlo cambia la scelta.
+  sceltaMultipla Boolean              @default(false)
+  /// Entro quando si vota. Passata, il sondaggio non accetta piu' risposte e
+  /// scende nello storico da solo, senza che nessuno debba chiuderlo.
+  scadeIl        DateTime?
+  /// Chiuso a mano, prima della scadenza: la decisione e' gia' presa.
+  chiusoIl       DateTime?
+  creatoIl       DateTime             @default(now())
+  creatoDaId     String
+  creatoDa       User                 @relation("SondaggiScritti", fields: [creatoDaId], references: [id], onDelete: Cascade)
+
+  /// L'attivita' nata da questo sondaggio, se e' stata creata.
+  ///
+  /// Serve a non crearla due volte e a poterci tornare: il sondaggio resta la
+  /// storia di come quella giornata e' stata decisa.
+  eventoId String? @unique
+  evento   Event?  @relation("EventoDaSondaggio", fields: [eventoId], references: [id], onDelete: SetNull)
+
+  opzioni OpzioneSondaggio[]
+  voti    VotoSondaggio[]
+
+  @@index([chiusoIl, scadeIl])
+}
+
+/// Una delle risposte possibili.
+model OpzioneSondaggio {
+  id          String    @id @default(cuid())
+  sondaggioId String
+  sondaggio   Sondaggio @relation(fields: [sondaggioId], references: [id], onDelete: Cascade)
+  testo       String
+  /// Quando, se l'opzione e' una data: e' questa che finisce nell'attivita'.
+  quando      DateTime?
+  /// Fino a quando, per le opzioni che sono una giornata intera.
+  fino        DateTime?
+  ordine      Int       @default(0)
+  voti        VotoSondaggio[]
+
+  @@index([sondaggioId])
+}
+
+/// Il voto di una persona su un'opzione.
+///
+/// Una riga per opzione scelta: con la scelta multipla ne ha piu' d'una, e
+/// cambiare idea vuol dire cancellare le sue e riscriverle. Cosi' il conto e'
+/// sempre la somma delle righe, e non c'e' un secondo posto dove il totale
+/// potrebbe raccontare un'altra storia.
+model VotoSondaggio {
+  id          String           @id @default(cuid())
+  sondaggioId String
+  sondaggio   Sondaggio        @relation(fields: [sondaggioId], references: [id], onDelete: Cascade)
+  opzioneId   String
+  opzione     OpzioneSondaggio @relation(fields: [opzioneId], references: [id], onDelete: Cascade)
+  userId      String
+  utente      User             @relation("VotiSondaggi", fields: [userId], references: [id], onDelete: Cascade)
+  creatoIl    DateTime         @default(now())
+
+  @@unique([opzioneId, userId])
+  @@index([sondaggioId, userId])
 }

@@ -16,7 +16,20 @@ import { Badge } from './ui';
  * partirebbero da due istanti diversi, alla prima resa il numero balla: per
  * questo il badge compare al secondo giro, e prima di allora non c'è.
  */
-export function ContoAllaRovescia({ scadenza }: { scadenza: string }) {
+export function ContoAllaRovescia({
+  scadenza,
+  etichetta = 'adesioni',
+  scaduto = 'adesioni chiuse',
+}: {
+  scadenza: string;
+  /**
+   * Di cosa è il conto alla rovescia: le adesioni a un'attività, il voto a un
+   * sondaggio. Il numero è lo stesso, ma «adesioni: 3g» su un sondaggio manda
+   * a cercare un'iscrizione che non esiste.
+   */
+  etichetta?: string;
+  scaduto?: string;
+}) {
   const [adesso, setAdesso] = useState<number | null>(null);
 
   useEffect(() => {
@@ -31,7 +44,7 @@ export function ContoAllaRovescia({ scadenza }: { scadenza: string }) {
 
   const mancano = new Date(scadenza).getTime() - adesso;
 
-  if (mancano <= 0) return <Badge tono="danger">adesioni chiuse</Badge>;
+  if (mancano <= 0) return <Badge tono="danger">{scaduto}</Badge>;
 
   const minuti = Math.floor(mancano / 60_000);
   const ore = Math.floor(minuti / 60);
@@ -48,5 +61,9 @@ export function ContoAllaRovescia({ scadenza }: { scadenza: string }) {
         ? `${ore}h ${minuti % 60}m`
         : `${minuti}m`;
 
-  return <Badge tono={tono}>adesioni: {quanto}</Badge>;
+  return (
+    <Badge tono={tono}>
+      {etichetta}: {quanto}
+    </Badge>
+  );
 }

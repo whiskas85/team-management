@@ -19,6 +19,7 @@ import {
   vedeDebriefing,
 } from '@/lib/domain';
 import { attivitaDaCoprire } from '@/lib/assicurazione';
+import { loRiguarda } from '@/lib/sondaggi';
 import { filtroVisibilita } from '@/lib/query';
 import { iniziali } from '@/lib/format';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
@@ -141,6 +142,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     },
   });
 
+  /*
+   * I sondaggi aperti a cui questa persona non ha ancora risposto.
+   *
+   * È il pallino che li fa esistere: una domanda senza un numero addosso la
+   * vede chi passa di lì, e chi non passa non risponde — che è esattamente il
+   * problema che i sondaggi dovevano risolvere.
+   */
+  const sondaggiDaVotare = (
+    await prisma.sondaggio.findMany({
+      where: {
+        chiusoIl: null,
+        OR: [{ scadeIl: null }, { scadeIl: { gt: new Date() } }],
+        voti: { none: { userId: utente.id } },
+      },
+      select: { destinatari: true },
+    })
+  ).filter((s) => loRiguarda(s.destinatari, utente.stato)).length;
+
   // il carrello è uno solo e attraversa il catalogo: il pallino dice quanti
   // pezzi ci sono dentro, o uno lo dimentica pieno per settimane
   const nelCarrello = puoVedereMerchandising(utente.stato)
@@ -240,6 +259,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       icona: 'pagamenti',
       gruppo: 'principale',
       badge: mieiPagamentiAperti,
+    },
+    {
+      href: '/sondaggi',
+      label: 'Sondaggi',
+      icona: 'avvisi',
+      gruppo: 'principale',
+      badge: sondaggiDaVotare,
+      sotto: [{ label: 'Storico', href: '/sondaggi?vista=storico' }],
     },
     // vale per tutti: una chiave non dà poteri, eredita quelli di chi la crea
     { href: '/assistente', label: 'Assistente', icona: 'chiave', gruppo: 'principale' },
