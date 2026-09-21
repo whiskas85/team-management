@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.3 — 22 settembre 2026
+
+### Aggiunto
+
+- **Sul sito, nell'angolo in alto a destra, «Entra in OPS»**: chi e' gia'
+  della squadra passa dal sito al gestionale con un tocco, senza doversi
+  ricordare l'indirizzo. Sta da solo, separato da una riga dal resto della
+  testata: e' un'altra porta, non un'altra pagina. Sul telefono dice solo
+  «OPS».
+
 ## 2.79.2 — 21 settembre 2026
 
 ### Cambiato

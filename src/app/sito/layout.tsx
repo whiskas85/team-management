@@ -33,13 +33,16 @@ export default async function LayoutSito({ children }: { children: React.ReactNo
     <div className="relative min-h-[100dvh] overflow-x-hidden bg-bg text-ink">
       {/* ------------------------------------------------------------ testata */}
       <header className="fixed inset-x-0 top-0 z-40 border-b border-line/60 bg-bg/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 md:px-8">
-          <Link href={a('/')} className="flex items-center gap-2.5">
+        {/* Tutta la larghezza: a sinistra il marchio, a destra — nell'angolo,
+            staccato da tutto il resto — l'ingresso a OPS. In mezzo il sito. */}
+        <nav className="flex items-center gap-4 px-4 py-3 md:gap-6 md:px-8">
+          <Link href={a('/')} className="flex shrink-0 items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.jpg" alt="Zero Dark Team" width={36} height={36} className="rounded-full" />
-            <span className="text-sm font-semibold uppercase tracking-[0.25em]">Zero Dark</span>
+            <span className="hidden text-sm font-semibold uppercase tracking-[0.25em] sm:inline">Zero Dark</span>
           </Link>
-          <div className="ml-auto hidden items-center gap-6 text-xs uppercase tracking-[0.2em] text-muted md:flex">
+
+          <div className="ml-auto hidden items-center gap-6 text-xs uppercase tracking-[0.2em] text-muted lg:flex">
             <a href={`${a('/')}#chi-siamo`} className="hover:text-nvg">Chi siamo</a>
             <a href={`${a('/')}#valori`} className="hover:text-nvg">Valori</a>
             <a href={`${a('/')}#ambizioni`} className="hover:text-nvg">Missioni</a>
@@ -47,10 +50,26 @@ export default async function LayoutSito({ children }: { children: React.ReactNo
           </div>
           <Link
             href={a('/contatti')}
-            className="ml-auto rounded-md border border-nvg bg-nvg/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-nvg transition-colors hover:bg-nvg hover:text-bg md:ml-0"
+            className="ml-auto rounded-md border border-nvg bg-nvg/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-nvg transition-colors hover:bg-nvg hover:text-bg lg:ml-0"
           >
             Vuoi provare?
           </Link>
+
+          {/* L'ingresso per chi è già dentro: il gestionale della squadra, da
+              solo nell'angolo. Una riga verticale lo separa dal sito, perché
+              è un'altra porta e non un'altra pagina. */}
+          <span aria-hidden className="h-6 w-px bg-line" />
+          <a
+            href={`${INDIRIZZO_GESTIONALE}/login`}
+            title="Entra in Zero Dark Ops, il portale della squadra"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-ink/85 transition-colors hover:border-nvg hover:text-nvg"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+            </svg>
+            <span className="hidden sm:inline">Entra in OPS</span>
+            <span className="sm:hidden">OPS</span>
+          </a>
         </nav>
       </header>
 
