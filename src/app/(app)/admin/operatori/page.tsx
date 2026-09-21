@@ -12,6 +12,7 @@ import {
 } from '@/lib/domain';
 import { fmtDate, fmtDateTime, iniziali, nomeCompleto } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
+import { etaCompiuta } from '@/lib/messaggi';
 import { Intestazione, Statistica } from '@/components/ui';
 import { ElencoOperatori, type RigaOperatore } from '@/components/ElencoOperatori';
 import { ElencoRegolarita, type RigaRegolarita } from '@/components/ElencoRegolarita';
@@ -158,14 +159,24 @@ async function Gestione({ tutti }: { tutti: boolean }) {
   // passa in quello stato, e finché non compariva qui restava invisibile —
   // impossibile riconfermarlo, modificarlo o cancellarlo dall'applicazione.
   // I contatti da valutare non stanno qui: hanno la loro pagina, «Nuovi».
+  const stagione = await stagioneAttiva();
   const operatori = await prisma.user.findMany({
-    where: {
-      stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO'] },
-      ...(tutti ? {} : soloAtleti),
-    },
+    where: tutti
+      ? { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO'] } }
+      : // Nel libro i disabilitati non ci sono: senza la colonna dello stato
+        // sembrerebbero atleti in forza, e in campo non ci vengono piu'. Li
+        // si ritrova in «Tutti».
+        { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] }, ...soloAtleti },
     orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
     include: {
       certificates: { select: { status: true, scadeIl: true }, orderBy: { createdAt: 'desc' } },
+      // la tessera di questa stagione: quella dell'anno scorso era valida allora
+      figtCards: {
+        where: { stagioneId: stagione.id },
+        select: { status: true, codice: true },
+        take: 1,
+      },
+      _count: { select: { iscrizioniPush: true } },
       // i debiti col club: una quota del corso di Mario non è un debito verso la squadra
       payments: { where: { cassaId: null }, select: { importo: true, pagato: true, status: true } },
       rsvps: { select: { status: true, presente: true } },
@@ -196,6 +207,10 @@ async function Gestione({ tutti }: { tutti: boolean }) {
       daSaldare: o.payments
         .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
         .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0),
+      nato: o.dataNascita ? fmtDate(o.dataNascita) : null,
+      anni: o.dataNascita ? etaCompiuta(o.dataNascita) : null,
+      tessera: o.figtCards[0] ?? null,
+      avvisi: o._count.iscrizioniPush > 0,
     };
   });
 
@@ -276,12 +291,18 @@ async function Gestione({ tutti }: { tutti: boolean }) {
         </div>
       )}
 
-      <ElencoOperatori
-        righe={righe}
-        statiFiltrabili={['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO']}
-        puoEliminare
-        puoAssegnareRuoli
-      />
+      {tutti ? (
+        <ElencoOperatori
+          righe={righe}
+          statiFiltrabili={['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO']}
+          puoEliminare
+          puoAssegnareRuoli
+        />
+      ) : (
+        // Il libro si legge, non si amministra: niente spunte, ruoli, stato
+        // o cestino. Quelle cose stanno in «Tutti», dove si gestisce.
+        <ElencoOperatori righe={righe} libro />
+      )}
 
       {/* Dove sono finiti gli altri. Un elenco che ne nasconde una parte senza
           dirlo fa cercare una persona che c'è, e non trovarla fa pensare a un

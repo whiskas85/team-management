@@ -5,7 +5,16 @@ import { useEffect, useState, useTransition } from 'react';
 import type { Role, StatoOperatore } from '@prisma/client';
 import { Avatar, Badge, Elenco, Vuoto } from './ui';
 import { ListaFiltrata } from './Filtri';
-import { etichettaRuolo, etichettaStato, tonoCertificato, tonoRuolo, tonoStato, devePortareCertificato } from '@/lib/domain';
+import {
+  etichettaRuolo,
+  etichettaStato,
+  tonoCertificato,
+  tonoFigt,
+  tonoRuolo,
+  tonoStato,
+  devePortareCertificato,
+} from '@/lib/domain';
+import { Icona } from './Icona';
 import { umanizza } from '@/lib/format';
 import { assegnaRuolo, eliminaOperatore } from '@/actions/operatori';
 import { BottoneElimina } from './CardRiga';
@@ -28,15 +37,31 @@ export type RigaOperatore = {
   /** Lo stesso istante in millisecondi: la data formattata non si può ordinare. */
   ultimaAttivitaIl: number | null;
   daSaldare: number;
+  nato: string | null;
+  anni: number | null;
+  /** La tessera FIGT della stagione in corso, se c'e'. */
+  tessera: { status: string; codice: string | null } | null;
+  /** Ha acceso le notifiche: gli avvisi gli arrivano sul telefono. */
+  avvisi: boolean;
 };
 
 /** Le colonne su cui si può ordinare cliccando l'intestazione. */
-type Colonna = 'nome' | 'stato' | 'certificato' | 'presenze' | 'attivita' | 'saldo';
+type Colonna =
+  | 'nome'
+  | 'stato'
+  | 'anni'
+  | 'certificato'
+  | 'tessera'
+  | 'presenze'
+  | 'attivita'
+  | 'saldo';
 
 const VALORI: Record<Colonna, (o: RigaOperatore) => string | number | null> = {
   nome: (o) => `${o.cognome} ${o.nome}`.toLowerCase(),
   stato: (o) => o.stato,
+  anni: (o) => o.anni,
   certificato: (o) => o.certStato ?? null,
+  tessera: (o) => o.tessera?.status ?? null,
   presenze: (o) => o.presenze,
   attivita: (o) => o.ultimaAttivitaIl,
   saldo: (o) => o.daSaldare,
@@ -50,8 +75,18 @@ export function ElencoOperatori({
   statiFiltrabili,
   puoEliminare = false,
   puoAssegnareRuoli = false,
+  libro = false,
 }: {
   righe: RigaOperatore[];
+  /**
+   * Il libro atleti: un elenco da leggere, non da amministrare.
+   *
+   * Ci sono le cose che servono a sapere se un atleta puo' scendere in campo
+   * e come raggiungerlo — eta', certificato, tessera, campanella — e mancano
+   * quelle che servono a gestirlo: ruoli, stato, spunte, cestino. Stanno in
+   * «Tutti», dove la pagina e' fatta per quello.
+   */
+  libro?: boolean;
   mostraCertificato?: boolean;
   statiFiltrabili?: StatoOperatore[];
   /** L'admin cancella dalla riga: prima bisognava aprire la scheda e cercarlo. */
@@ -235,6 +270,189 @@ export function ElencoOperatori({
       </span>
     </div>
   );
+
+  // ------------------------------------------------------ pezzi condivisi
+  const certificato = (o: RigaOperatore) =>
+    o.certStato ? (
+      <>
+        <Badge tono={tonoCertificato[o.certStato as 'VALIDO']}>{umanizza(o.certStato)}</Badge>
+        {o.certScade && (
+          <span className="mt-1 block text-[11px] text-muted num">fino al {o.certScade}</span>
+        )}
+      </>
+    ) : devePortareCertificato(o.roles) ? (
+      <Badge tono="danger">Assente</Badge>
+    ) : (
+      <span className="text-[11px] text-muted">non serve</span>
+    );
+
+  const tessera = (o: RigaOperatore) =>
+    o.tessera ? (
+      <>
+        <Badge tono={tonoFigt[o.tessera.status] ?? 'neutro'}>{umanizza(o.tessera.status)}</Badge>
+        {o.tessera.codice && (
+          <span className="mt-1 block text-[11px] text-muted num">{o.tessera.codice}</span>
+        )}
+      </>
+    ) : (
+      // Un atleta senza la tessera della stagione e' un atleta che la
+      // federazione non conosce: si dice in chiaro, come per il certificato.
+      <Badge tono="warn">Nessuna</Badge>
+    );
+
+  // La campanella accesa vuol dire che l'avviso arriva sul telefono; spenta,
+  // che partira' un WhatsApp. Non e' un difetto: e' come lo si raggiunge.
+  const campanella = (o: RigaOperatore) => (
+    <span
+      className={o.avvisi ? 'text-nvg' : 'text-muted/40'}
+      title={
+        o.avvisi ? 'Riceve le notifiche sul telefono' : 'Niente notifiche: lo si avvisa su WhatsApp'
+      }
+    >
+      <Icona nome="avvisi" size={16} />
+    </span>
+  );
+
+  const saldo = (o: RigaOperatore) =>
+    o.daSaldare > 0 ? (
+      <span className="text-warn">
+        {o.daSaldare.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}
+      </span>
+    ) : (
+      <span className="text-muted">—</span>
+    );
+
+  const visto = (o: RigaOperatore) =>
+    o.ultimaAttivita ? (
+      <span className="text-muted">{o.ultimaAttivita}</span>
+    ) : (
+      <span className="text-warn">mai entrato</span>
+    );
+
+  /*
+   * Lo stato non ha una colonna, nel libro: quasi tutti sono «in squadra», e
+   * scriverlo su ogni riga non dice niente. Chi e' sospeso o da riconfermare
+   * invece va visto — scende in campo solo quando torna a posto — e lo dice un
+   * segno piccolo sotto il nome.
+   */
+  const segnoStato = (o: RigaOperatore) =>
+    o.stato !== 'SQUADRA' && (
+      <span className="mt-0.5 block">
+        <Badge tono={tonoStato[o.stato]}>{etichettaStato[o.stato]}</Badge>
+      </span>
+    );
+
+  if (libro) {
+    return (
+      <ListaFiltrata
+        elementi={righe}
+        segnaposto="Nome, callsign, email o telefono…"
+        cerca={(o) => `${o.nome} ${o.cognome} ${o.callsign ?? ''} ${o.email} ${o.telefono ?? ''}`}
+        filtri={[]}
+        valoreFiltro={() => ''}
+      >
+        {(lista) =>
+          lista.length === 0 ? (
+            <Vuoto testo="Nessun atleta corrisponde alla ricerca." />
+          ) : (
+            <Elenco
+              cards={ordinati(lista).map((o) => (
+                <Link key={o.id} href={`/admin/operatori/${o.id}`} className="card block">
+                  <div className="flex items-start gap-3">
+                    <Avatar iniziali={`${o.nome[0] ?? ''}${o.cognome[0] ?? ''}`.toUpperCase()} />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words font-medium">
+                        {o.cognome} {o.nome}
+                        {o.callsign && <span className="text-nvg"> · {o.callsign}</span>}
+                      </h3>
+                      <p className="break-all text-xs text-muted">{o.email}</p>
+                      {o.telefono && <p className="text-xs text-muted num">{o.telefono}</p>}
+                      <p className="text-xs text-muted num">
+                        {o.nato ? `${o.nato} · ${o.anni} anni` : 'data di nascita mancante'}
+                      </p>
+                      {segnoStato(o)}
+                    </div>
+                    {campanella(o)}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-xs">
+                    <div>
+                      <p className="label">Certificato</p>
+                      {certificato(o)}
+                    </div>
+                    <div>
+                      <p className="label">Tessera FIGT</p>
+                      {tessera(o)}
+                    </div>
+                    <div>
+                      <p className="label">Presenze</p>
+                      <span className="num">{o.presenze}</span>
+                    </div>
+                    <div>
+                      <p className="label">Da saldare</p>
+                      <span className="num">{saldo(o)}</span>
+                    </div>
+                    <div className="col-span-2 num">{visto(o)}</div>
+                  </div>
+                </Link>
+              ))}
+              tabella={
+                <table className="tabella">
+                  <thead>
+                    <tr>
+                      <Titolo col="nome">Operatore</Titolo>
+                      <th>Contatti</th>
+                      <th>Nascita</th>
+                      <Titolo col="anni">Anni</Titolo>
+                      <Titolo col="certificato">Certificato</Titolo>
+                      <Titolo col="tessera">Tessera FIGT</Titolo>
+                      <th title="Notifiche sul telefono">Avvisi</th>
+                      <Titolo col="presenze">Presenze</Titolo>
+                      <Titolo col="attivita">Ultima attività</Titolo>
+                      <Titolo col="saldo">Da saldare</Titolo>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ordinati(lista).map((o) => (
+                      <tr key={o.id}>
+                        <td>
+                          <Link
+                            href={`/admin/operatori/${o.id}`}
+                            className="font-medium hover:text-nvg"
+                          >
+                            {o.cognome} {o.nome}
+                          </Link>
+                          {o.callsign && (
+                            <span className="block text-[11px] text-nvg">{o.callsign}</span>
+                          )}
+                          {segnoStato(o)}
+                        </td>
+                        <td className="max-w-[13rem] text-xs text-muted">
+                          <span className="block truncate" title={o.email}>
+                            {o.email}
+                          </span>
+                          {o.telefono && <span className="block num">{o.telefono}</span>}
+                        </td>
+                        <td className="whitespace-nowrap text-xs text-muted num">
+                          {o.nato ?? '—'}
+                        </td>
+                        <td className="num">{o.anni ?? <span className="text-muted">—</span>}</td>
+                        <td>{certificato(o)}</td>
+                        <td>{tessera(o)}</td>
+                        <td>{campanella(o)}</td>
+                        <td className="num">{o.presenze}</td>
+                        <td className="whitespace-nowrap text-xs num">{visto(o)}</td>
+                        <td className="whitespace-nowrap num">{saldo(o)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              }
+            />
+          )
+        }
+      </ListaFiltrata>
+    );
+  }
 
   const lista = (
     <ListaFiltrata

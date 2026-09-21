@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.76.0 — 21 settembre 2026
+
+### Cambiato
+
+- **Il libro atleti si legge, non si amministra.** Le colonne sono quelle che
+  servono a sapere se un atleta puo' scendere in campo e come raggiungerlo:
+  operatore, contatti, **data di nascita**, **anni**, certificato medico,
+  **tessera FIGT** della stagione, la **campanella** degli avvisi (accesa: gli
+  arrivano le notifiche; spenta: lo si avvisa su WhatsApp), presenze, ultima
+  attivita' e da saldare. Si ordina per anni e per tessera come per le altre.
+- Via ruoli, stato, spunte, ruoli in blocco e **cestino**: sono cose da
+  gestione, e restano tutte nella vista **Tutti**. Chi e' sospeso o da
+  riconfermare ha un segno piccolo sotto il nome, perche' in campo scende
+  solo quando torna a posto; i disabilitati escono dal libro e si ritrovano in
+  «Tutti».
+- Le presenze sono un numero solo: «2/4» andava spiegato ogni volta.
+
 ## 2.75.0 — 21 settembre 2026
 
 ### Aggiunto
