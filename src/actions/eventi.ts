@@ -21,6 +21,7 @@ import {
   MOTIVO_NON_IDONEO,
   NOTA_AGGIUNTO_STAFF,
   conFormazione,
+  eAtleta,
   idoneoPer,
   inSquadra,
   isAdmin,
@@ -535,6 +536,21 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
     }
     if (evento.visibilita === 'TEAM' && !inSquadra(me.stato)) {
       return { errore: 'Questa attività è riservata alla squadra.' };
+    }
+    /*
+     * Chi è del club ma non è nel libro atleti non si segna da solo.
+     *
+     * Senza questo, il libro sarebbe una regola per chi schiera e non per chi
+     * si schiera: il team leader non lo trova nell'elenco, ma lui apre
+     * l'attività, preme «ci sono» ed è dentro lo stesso. Chi è già fra i
+     * partecipanti resta fuori da questa regola — se qualcuno ce l'ha messo
+     * apposta, deve poter dire se viene.
+     */
+    if (vedeAttivitaSquadra(me.stato) && !eAtleta(me.roles)) {
+      return {
+        errore:
+          'Non sei nel libro atleti: a questa non si segna chi in campo non ci va. Se è un errore, fattelo dire dall’admin.',
+      };
     }
   }
   if (evento.status === 'ANNULLATA') return { errore: 'L’attività è stata annullata.' };
@@ -1053,11 +1069,34 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
         nome: true,
         cognome: true,
         stato: true,
+        roles: true,
         certificates: { select: { status: true, scadeIl: true, tipo: true } },
       },
     }),
   ]);
   if (!evento) return { errore: 'Attività non trovata.' };
+
+  /*
+   * Chi è del club ma non è nel libro atleti non si schiera.
+   *
+   * Nell'elenco non compare nemmeno, quindi qui ci si arriva solo da una
+   * pagina rimasta aperta da prima o da una richiesta costruita a mano: il
+   * filtro nell'interfaccia rende la cosa comoda, questo la rende **vera**.
+   *
+   * Non è lo scarto per il certificato, che è «ci andrebbe e gli manca un
+   * foglio»: questo è «in campo non ci va», e dirlo con le parole dell'altro
+   * manderebbe qualcuno a cercare una visita medica che non serve.
+   */
+  const nonAtleti = utenti.filter((u) => vedeAttivitaSquadra(u.stato) && !eAtleta(u.roles));
+  if (nonAtleti.length > 0) {
+    return {
+      errore: `${nonAtleti
+        .map((u) => u.nome)
+        .join(', ')} non ${nonAtleti.length === 1 ? 'è un atleta' : 'sono atleti'}: in campo non ci va${
+        nonAtleti.length === 1 ? '' : 'nno'
+      }. Se deve giocare, dagli il ruolo atleta dagli operatori.`,
+    };
+  }
 
   const serveAgonistico = evento.tipo?.certAgonistico ?? false;
   const serveCert = serveCertificato(evento.tipo);

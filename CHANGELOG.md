@@ -5,6 +5,40 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.74.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **Il libro atleti: chi scende in campo.** In squadra non ci sono solo
+  giocatori — c'e' chi tiene i conti, le tessere, la segreteria — e contarli
+  insieme agli altri faceva due danni silenziosi. **Adesso «in squadra» e «nel
+  libro atleti» sono due cose diverse**, e chi non e' nel libro resta del club
+  a tutti gli effetti: si iscrive, paga, viene alle cene. Si dice solo che in
+  campo non ci va.
+  - **Operatori si apre sul libro**, con accanto quanti **atleti in forza**
+    ci sono: e' il numero che si cerca preparando una giocata. Gli altri
+    stanno nella vista **Tutti**, che si gestisce come prima — e li' gli si
+    da' il ruolo atleta il giorno che comincia a giocare.
+  - **Le statistiche contano gli atleti.** L'affluenza media divisa per una
+    rosa piu' grande di quella vera faceva sembrare che venisse meno gente di
+    quanta ne venisse.
+  - **Chi non e' nel libro non si schiera**: non compare fra i partecipanti da
+    aggiungere, non puo' segnarsi da solo, e non finisce fra i «silenziosi»
+    che non hanno risposto — non gli era stato chiesto niente. I nuovi restano
+    dove sono: non sono del club, sono in prova, e il libro parla di chi il
+    club ce l'ha gia'.
+  - Il libro e' il ruolo **Atleta**, quello che gia' oggi decide a chi si
+    chiede il certificato medico: niente da compilare, e' gia' a posto.
+
+### Corretto
+
+- **Il cerchio dei certificati poteva passare il cento per cento.** Contava i
+  certificati validi e li divideva per le persone: chi ne ha due — il vecchio
+  ancora valido e quello nuovo — ne portava due, e nel conto entravano anche
+  quelli di chi in squadra non c'e' piu'. Adesso conta **quante persone** ne
+  hanno almeno uno che vale, che e' la domanda a cui quel cerchio serve a
+  rispondere.
+
 ## 2.73.0 — 21 settembre 2026
 
 ### Aggiunto

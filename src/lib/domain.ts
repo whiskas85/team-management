@@ -300,7 +300,38 @@ export const etichettaAssegnazione: Record<string, string> = {
  * Chi gioca **e** amministra resta candidabile: i ruoli sono un insieme, e
  * basta avere anche questo.
  */
-export const puoEssereReferente = (roles: Role[]) => ha(roles, 'ATLETA');
+export const puoEssereReferente = (roles: Role[]) => eAtleta(roles);
+
+/**
+ * **Il libro atleti**: chi in campo ci va.
+ *
+ * È il ruolo `ATLETA`, e da qui in avanti è **una regola sola** invece di sei
+ * controlli scritti a mano. Serve perché in squadra non ci sono solo giocatori:
+ * c'è anche chi tiene i conti, le tessere, la segreteria — gente preziosa che
+ * in campo non ci mette piede. Contarla insieme agli altri faceva due danni
+ * silenziosi: **abbassava le percentuali** (l'affluenza media divisa per una
+ * rosa più grande di quella vera, la regolarità dei certificati divisa per
+ * gente a cui il certificato non si chiede) e la **offriva da schierare**,
+ * mettendo in una giocata un nome che quella domenica non ci sarebbe andato.
+ *
+ * «In squadra» e «nel libro atleti» restano due cose diverse: un non atleta
+ * è del club a tutti gli effetti — si iscrive, paga, viene alle cene — e
+ * toglierlo dalla squadra sarebbe dirgli che non conta. Non è quello che si
+ * vuole dire: si vuole solo dire che **in campo non ci va**.
+ *
+ * Chi gioca **e** amministra è nel libro: i ruoli sono un insieme, e basta
+ * avere anche questo.
+ */
+export const eAtleta = (roles: Role[]) => ha(roles, 'ATLETA');
+
+/**
+ * Il libro atleti detto a Prisma, per non riscrivere il filtro ogni volta.
+ *
+ * Si mette in `AND` con lo stato: il libro dice **chi gioca**, lo stato dice
+ * **chi c'è adesso**, e sono due domande diverse — un atleta disabilitato è
+ * nel libro ma non è in rosa.
+ */
+export const soloAtleti = { roles: { has: 'ATLETA' as Role } };
 
 /**
  * Chi tiene in mano una singola attività.
@@ -330,7 +361,7 @@ export const tieneInMano = (
  * Non vieta niente: un non atleta che il certificato lo carica lo stesso se lo
  * vede gestito come tutti. Dice solo a chi va **chiesto**.
  */
-export const devePortareCertificato = (roles: Role[]) => ha(roles, 'ATLETA');
+export const devePortareCertificato = (roles: Role[]) => eAtleta(roles);
 
 /** Chi gestisce il calendario vede anche le bozze. */
 export const puoGestireEventi = (roles: Role[]) => ha(roles, 'ADMIN');

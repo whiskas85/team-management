@@ -7,6 +7,8 @@ import {
   puoVedereOperatori,
   statoEffettivo,
   devePortareCertificato,
+  eAtleta,
+  soloAtleti,
 } from '@/lib/domain';
 import { fmtDate, fmtDateTime, iniziali, nomeCompleto } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
@@ -41,7 +43,8 @@ export default async function OperatoriPage({
   const me = await requirePermesso(puoVedereOperatori);
   const { vista } = await searchParams;
   if (!isAdmin(me.roles)) return <Regolarita />;
-  return vista === 'notifiche' ? <Notifiche /> : <Gestione />;
+  if (vista === 'notifiche') return <Notifiche />;
+  return <Gestione tutti={vista === 'tutti'} />;
 }
 
 /**
@@ -53,7 +56,8 @@ export default async function OperatoriPage({
  * dodici colonne in cui non si legge più niente.
  */
 const VISTE_OPERATORI = [
-  { chiave: 'elenco', href: '/admin/operatori', testo: 'Elenco' },
+  { chiave: 'elenco', href: '/admin/operatori', testo: 'Libro atleti' },
+  { chiave: 'tutti', href: '/admin/operatori?vista=tutti', testo: 'Tutti' },
   { chiave: 'notifiche', href: '/admin/operatori?vista=notifiche', testo: 'Avvisi' },
 ];
 
@@ -135,15 +139,30 @@ async function Notifiche() {
   );
 }
 
-/** Quello che l'admin fa con le persone: crearle, dare ruoli, toglierle. */
-async function Gestione() {
+/**
+ * Quello che l'admin fa con le persone: crearle, dare ruoli, toglierle.
+ *
+ * Due elenchi dietro allo stesso indirizzo, e quello che si apre per primo è
+ * **il libro atleti**: chi in campo ci va. In squadra non ci sono solo
+ * giocatori — c'è chi tiene i conti, le tessere, la segreteria — e sono
+ * persone del club a tutti gli effetti, ma mischiate agli altri facevano
+ * sembrare la rosa più grande di quella che scende in campo la domenica.
+ *
+ * «Tutti» esiste perché quelle persone vanno comunque gestite: ci si dà un
+ * ruolo, ci si azzera una password, ci si guarda una quota aperta. Non sono
+ * nascoste, sono in un'altra pagina.
+ */
+async function Gestione({ tutti }: { tutti: boolean }) {
 
-  // Qui vivono gli atleti registrati: i contatti da valutare stanno in "Nuovi".
   // Chi è da riconfermare va tenuto dentro: aprendo una stagione tutta la rosa
   // passa in quello stato, e finché non compariva qui restava invisibile —
   // impossibile riconfermarlo, modificarlo o cancellarlo dall'applicazione.
+  // I contatti da valutare non stanno qui: hanno la loro pagina, «Nuovi».
   const operatori = await prisma.user.findMany({
-    where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO'] } },
+    where: {
+      stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE', 'DISABILITATO'] },
+      ...(tutti ? {} : soloAtleti),
+    },
     orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
     include: {
       certificates: { select: { status: true, scadeIl: true }, orderBy: { createdAt: 'desc' } },
@@ -196,23 +215,40 @@ async function Gestione() {
   const conDebito = righe.filter((r) => r.daSaldare > 0).length;
   const teamLeader = righe.filter((r) => r.roles.includes('TL')).length;
 
+  /*
+   * Quanti scendono in campo, adesso.
+   *
+   * È il numero che si va a cercare quando si prepara una giocata — «in quanti
+   * siamo?» — e non è «quanti sono in squadra»: fra quelli c'è chi tiene i
+   * conti e la domenica non c'è. Si contano quelli in forza: un sospeso o un
+   * disabilitato è nel libro ma quella domenica non si schiera.
+   */
+  const atletiInForza = righe.filter((r) => eAtleta(r.roles) && r.stato === 'SQUADRA').length;
+
   return (
     <>
       <Intestazione
-        titolo="Operatori"
-        sottotitolo="Atleti registrati del team · anagrafica completa"
+        titolo={tutti ? 'Operatori' : 'Libro atleti'}
+        sottotitolo={
+          tutti
+            ? 'Tutti quelli del club, atleti e non · anagrafica completa'
+            : 'Chi scende in campo · anagrafica completa'
+        }
         azioni={
           <>
-            <ScegliVista viste={VISTE_OPERATORI} attuale="elenco" />
+            <ScegliVista viste={VISTE_OPERATORI} attuale={tutti ? 'tutti' : 'elenco'} />
             <BottoneCreaOperatore />
           </>
         }
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Il numero che si cerca preparando una giocata: in quanti siamo
+            davvero. Nell'elenco di tutti la domanda cambia — lì si guarda
+            quanti sono del club — e il riquadro la segue. */}
         <Statistica
-          etichetta="In squadra"
-          valore={inSquadra}
+          etichetta={tutti ? 'In squadra' : 'Atleti in forza'}
+          valore={tutti ? inSquadra : atletiInForza}
           dettaglio={daRiconfermare > 0 ? `${daRiconfermare} da riconfermare` : undefined}
           tono="ok"
         />
@@ -246,6 +282,27 @@ async function Gestione() {
         puoEliminare
         puoAssegnareRuoli
       />
+
+      {/* Dove sono finiti gli altri. Un elenco che ne nasconde una parte senza
+          dirlo fa cercare una persona che c'è, e non trovarla fa pensare a un
+          guasto. */}
+      <p className="mt-4 text-xs text-muted">
+        {tutti ? (
+          <>
+            Tutti quelli del club: <strong className="text-ink">atleti e non</strong>. Chi non ha
+            il ruolo atleta è del club come gli altri — si iscrive, paga, viene alle cene — ma in
+            campo non ci va: non gli si chiede il certificato, non fa numero nelle statistiche e
+            non compare fra chi si può schierare.
+          </>
+        ) : (
+          <>
+            Il libro atleti è <strong className="text-ink">chi scende in campo</strong>, ed è
+            quello che fa numero nelle statistiche. Chi tiene i conti, le tessere o la segreteria
+            sta in <strong className="text-ink">Tutti</strong>: si gestisce da lì, e lì gli si può
+            dare il ruolo atleta il giorno che comincia a giocare.
+          </>
+        )}
+      </p>
     </>
   );
 }
@@ -317,6 +374,9 @@ async function Regolarita() {
   });
 
   const daSistemare = righe.filter((r) => !r.aPosto).length;
+  // Quanti di quelli in rosa scendono in campo: «in rosa 17, atleti 16» dice
+  // in due numeri una cosa che altrimenti si scopre contando a mano.
+  const atleti = operatori.filter((o) => eAtleta(o.roles)).length;
   const senzaCertificato = righe.filter(
     (r) => r.serveCertificato && r.certStato !== 'VALIDO',
   ).length;
@@ -330,7 +390,11 @@ async function Regolarita() {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Statistica etichetta="In rosa" valore={righe.length} />
+        <Statistica
+          etichetta="In rosa"
+          valore={righe.length}
+          dettaglio={atleti < righe.length ? `${atleti} atleti` : undefined}
+        />
         <Statistica
           etichetta="Da sistemare"
           valore={daSistemare}

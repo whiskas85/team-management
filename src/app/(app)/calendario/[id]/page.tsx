@@ -9,6 +9,7 @@ import {
   NOTA_AGGIUNTO_STAFF,
   etichettaEvento,
   etichettaRisposta,
+  eAtleta,
   etichettaVisibilita,
   inRegola,
   inSquadra,
@@ -23,6 +24,7 @@ import {
   isContatto,
   puoVedereNuovi,
   serveCertificato,
+  soloAtleti,
   tonoAssegnazione,
   tonoEvento,
   tonoRsvp,
@@ -348,6 +350,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       : await prisma.user.count({
           where: {
             stato: { in: ['SQUADRA', 'SOSPESO'] },
+            // solo il libro atleti: a chi in campo non ci va non si e' chiesto
+            // niente, e contarlo fra i silenziosi vorrebbe dire aspettare per
+            // sempre una risposta che nessuno gli ha domandato
+            ...soloAtleti,
             rsvps: { none: { eventId: evento.id } },
           },
         });
@@ -438,6 +444,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             cognome: true,
             callsign: true,
             stato: true,
+            roles: true,
             certificates: { select: { status: true, scadeIl: true } },
           },
         }),
@@ -450,9 +457,22 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   const gia = new Set(evento.rsvps.map((r) => r.userId));
 
-  // per ognuno diciamo subito se è schierabile: il certificato è vincolante
+  /*
+   * Per ognuno diciamo subito se è schierabile: il certificato è vincolante.
+   *
+   * **Chi è del club ma non è nel libro atleti non compare proprio.** Non è
+   * uno «schierabile con riserva» come chi ha il certificato scaduto: quello
+   * ci andrebbe e gli manca un foglio, questo in campo non ci va e basta.
+   * Offrirlo voleva dire mettere in una giocata un nome che quella domenica
+   * non si sarebbe presentato.
+   *
+   * I nuovi restano: non sono del club, sono in prova, e il libro atleti parla
+   * di chi il club ce l'ha già. Un nuovo lo si porta in campo apposta — è
+   * esattamente come lo si conosce.
+   */
   const candidati: Candidato[] = operatoriGrezzi
     .filter((o) => !gia.has(o.id))
+    .filter((o) => !vedeAttivitaSquadra(o.stato) || eAtleta(o.roles))
     .map((o) => {
       const serve = inSquadra(o.stato) && serveCertificato(evento.tipo);
       const ok = !serve || inRegola(o.certificates);
@@ -528,6 +548,18 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       })
     : [];
   const certificatoOk = !certificatoDovuto || inRegola(mieiCertificati);
+
+  /*
+   * Se non sei nel libro atleti, i pulsanti della disponibilità non ci sono.
+   *
+   * L'azione li rifiuterebbe comunque, ma un pulsante che si può premere e
+   * risponde «no» e' una porta finta: chi la trova pensa di aver sbagliato
+   * qualcosa. Meglio dire prima come stanno le cose.
+   *
+   * Chi è già fra i partecipanti li vede lo stesso: se qualcuno ce l'ha messo
+   * apposta, deve poter dire se viene o no.
+   */
+  const fuoriDalLibro = vedeAttivitaSquadra(me.stato) && !eAtleta(me.roles) && !mio;
   // titolari e riserve hanno senso solo dove la tipologia li prevede
   // Si schiera dove la tipologia lo prevede, **e anche dove i posti sono
   // contati**: se un'attività ha un limite ma nessuno può essere messo in
@@ -1965,7 +1997,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               {schieraQuesta ? 'La tua disponibilità' : 'La tua adesione'}
             </p>
 
-            {!certificatoOk ? (
+            {fuoriDalLibro ? (
+              <p className="text-sm text-muted">
+                A questa non ti segni: non sei nel <strong className="text-ink">libro atleti</strong>,
+                e il libro è chi scende in campo. Resti del club come tutti gli altri — se è un
+                errore, l’admin ti dà il ruolo atleta e da lì ti segni come chiunque.
+              </p>
+            ) : !certificatoOk ? (
               <div className="space-y-3">
                 <div className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2.5 text-sm text-danger">
                   Non puoi segnarti: il certificato medico manca o non è più valido.

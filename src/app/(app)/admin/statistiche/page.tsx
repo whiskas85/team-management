@@ -1,7 +1,7 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
-import { isAdmin, statoEffettivo } from '@/lib/domain';
+import { eAtleta, isAdmin, statoEffettivo } from '@/lib/domain';
 import { impegni } from '@/lib/impegni';
 import { fmtEuro, umanizza } from '@/lib/format';
 import { Intestazione, Statistica, Vuoto } from '@/components/ui';
@@ -33,12 +33,28 @@ export default async function StatistichePage() {
       where: { cassaId: null },
       select: { importo: true, pagato: true, tipo: true, createdAt: true },
     }),
-    prisma.medicalCertificate.findMany({ select: { status: true, scadeIl: true } }),
+    prisma.medicalCertificate.findMany({
+      select: { userId: true, status: true, scadeIl: true },
+    }),
   ]);
 
   const campi = await prisma.field.findMany({ select: { id: true, nome: true } });
 
-  const squadra = utenti.filter((u) => u.stato === 'SQUADRA');
+  /*
+   * La rosa che conta: **gli atleti in forza**.
+   *
+   * In squadra non ci sono solo giocatori — c'è chi tiene i conti, le tessere,
+   * la segreteria — e contarli qui falsava due numeri in silenzio. L'affluenza
+   * media divisa per una rosa più grande di quella vera faceva sembrare che
+   * venisse meno gente di quanta ne venisse; la regolarità dei certificati la
+   * divideva per persone a cui il certificato non si chiede nemmeno, e non
+   * poteva arrivare al cento per cento per costruzione.
+   *
+   * Il libro atleti è in `lib/domain`, ed è lo stesso che decide chi si può
+   * schierare: se qui contassimo in un altro modo, la pagina delle statistiche
+   * e quella degli operatori direbbero due numeri diversi sulla stessa rosa.
+   */
+  const squadra = utenti.filter((u) => u.stato === 'SQUADRA' && eAtleta(u.roles));
   const svolti = eventi.filter((e) => new Date(e.inizio) < new Date());
 
   /*
@@ -102,7 +118,20 @@ export default async function StatistichePage() {
     : 0;
   const copertura = squadra.length ? (affluenzaMedia / squadra.length) * 100 : 0;
 
-  const certValidi = certificati.filter((c) => statoEffettivo(c) === 'VALIDO').length;
+  /*
+   * In regola col certificato: **quante persone**, non quanti certificati.
+   *
+   * Si contavano i certificati validi e si dividevano per le persone: uno che
+   * ne ha due — il vecchio ancora valido e quello nuovo — ne portava due, e
+   * bastavano un paio come lui per far passare il cerchio oltre il cento per
+   * cento. Nel conto entravano anche quelli di chi in squadra non c'è più.
+   * Adesso si guarda **chi degli atleti in forza ne ha almeno uno che vale**,
+   * che è la domanda a cui il cerchio serve a rispondere.
+   */
+  const conCertificatoValido = new Set(
+    certificati.filter((c) => statoEffettivo(c) === 'VALIDO').map((c) => c.userId),
+  );
+  const certValidi = squadra.filter((u) => conCertificatoValido.has(u.id)).length;
   const inRegolaPct = squadra.length ? (certValidi / squadra.length) * 100 : 0;
 
   const incassato = pagamenti.reduce((t, p) => t + Number(p.pagato), 0);
@@ -130,7 +159,7 @@ export default async function StatistichePage() {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Statistica etichetta="Operatori in forza" valore={squadra.length} tono="ok" />
+        <Statistica etichetta="Atleti in forza" valore={squadra.length} tono="ok" />
         <Statistica
           etichetta="Eventi svolti"
           valore={svolti.length}
