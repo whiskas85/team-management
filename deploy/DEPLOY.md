@@ -299,3 +299,32 @@ df -h /                                                                   # quan
 (`docker images -f dangling=true`): si riparte da quella con
 `docker run` o rimettendola nel compose, senza aspettare una ricompilazione. E
 il database si rimette com'era con il dump del passo 1.
+
+## Il sito pubblico su www
+
+Il sito della squadra (`www.zerodarkteam.it`) è **la stessa applicazione** del
+gestionale, sulla stessa macchina. Quale dei due si vede lo decide l'indirizzo:
+lo smistamento sta in `src/middleware.ts`, le pagine in `src/app/sito/`. Da
+`ops` il sito si vede sotto `/sito`, che serve a provarlo prima del DNS e nel
+test.
+
+Per accenderlo servono due cose, una sola da fare a mano:
+
+1. **Nel pannello DNS di Aruba**, il record A di `www` deve puntare
+   all'indirizzo di questa macchina (lo stesso di `ops`). **Non toccare** i
+   record della posta (`mx`, `mail`, `webmail`, `smtp`, `pop3`, `imap`) né il
+   record MX: la posta resta su Aruba.
+2. Quando il DNS risponde con l'indirizzo nuovo, riavviare il proxy perché
+   chieda subito il certificato invece di aspettare la sua prossima prova:
+
+```bash
+zd restart proxy
+```
+
+Il blocco è già nel `Caddyfile`. `zerodarkteam.it` senza www resta ad Aruba:
+se un giorno lo si punta qui, va aggiunto al blocco del sito.
+
+I testi del sito stanno in `src/app/sito/contenuti.ts`; le foto delle missioni
+si mettono in `public/sito/` con il nome scritto lì (`pcr.jpg`, `plr.jpg`,
+`milsim.jpg`, `corsi.jpg`). Finché la foto non c'è, al suo posto si vede una
+carta topografica disegnata.

@@ -165,7 +165,18 @@ export async function cambiaPassword(_prev: StatoForm, fd: FormData): Promise<St
 /** Creazione manuale di un operatore da parte dell'admin. */
 export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può creare operatori.' };
+  /*
+   * L'admin crea chiunque. Chi segue i nuovi — amministrazione, segreteria —
+   * crea soltanto **un nuovo da un contatto**: è il passo che fa dopo averlo
+   * chiamato, e fermarlo lì vorrebbe dire aspettare l'admin per ogni
+   * telefonata andata bene. Niente ruoli e niente squadra: quelli restano
+   * dell'admin.
+   */
+  const daContatto = !!strOpt(fd, 'contattoId');
+  const soloNuovo = !isAdmin(me.roles);
+  if (soloNuovo && !(daContatto && puoVedereNuovi(me.roles))) {
+    return { errore: 'Solo l’admin può creare operatori.' };
+  }
 
   const email = str(fd, 'email').toLowerCase();
   const nome = str(fd, 'nome');
@@ -198,8 +209,8 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
     if (preso) return { errore: CALLSIGN_PRESO(callsign, preso) };
   }
 
-  const stato = enumVal(fd, 'stato', STATI, 'SQUADRA');
-  const roles = leggiRuoli(fd);
+  const stato = soloNuovo ? 'NUOVO' : enumVal(fd, 'stato', STATI, 'SQUADRA');
+  const roles = soloNuovo ? [] : leggiRuoli(fd);
 
   const creato = await prisma.user.create({
     data: {
@@ -230,6 +241,19 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
    * Se l'abbinamento non riesce la persona resta creata: è il pezzo che costa
    * di più rifare, e la tessera si riattacca a mano dalla stessa pagina.
    */
+  /*
+   * Se nasce **da un contatto**, il contatto ha finito il suo lavoro: la
+   * persona adesso è un nuovo, con il suo percorso, e la riga fra i contatti
+   * da chiamare non deve restare lì a farla chiamare una seconda volta. La
+   * nota della telefonata la si ricopia nella scheda, se serve: il contatto
+   * era un appunto, la scheda è la persona.
+   */
+  const contattoId = strOpt(fd, 'contattoId');
+  if (contattoId) {
+    await prisma.contatto.delete({ where: { id: contattoId } }).catch(() => null);
+    revalidatePath('/admin/contatti');
+  }
+
   const tessera = strOpt(fd, 'tesseraNumero');
   if (tessera) {
     const esito = await collegaTessera(tessera, creato.id);

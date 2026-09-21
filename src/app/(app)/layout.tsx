@@ -441,6 +441,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
   }
   if (puoVedereNuovi(utente.roles)) {
+    // il gradino prima dei nuovi: chi ci ha lasciato un numero e va chiamato
+    voci.push({
+      href: '/admin/contatti',
+      label: 'Contatti',
+      icona: 'telefono',
+      gruppo: 'persone',
+      badge: await prisma.contatto.count({ where: { chiamatoIl: null } }),
+    });
     voci.push({
       href: '/admin/nuovi',
       label: 'Nuovi',

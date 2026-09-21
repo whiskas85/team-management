@@ -98,12 +98,29 @@ export type DaTessera = {
   luogoNascita: string | null;
 };
 
+/** Quello che un contatto sa già dire: l'abbiamo chiamato, ci ha dato i suoi dati. */
+export type DaContatto = {
+  id: string;
+  nome: string;
+  cognome: string | null;
+  email: string | null;
+  telefono: string;
+};
+
 export function BottoneCreaOperatore({
   stato = 'SQUADRA',
   tessera,
+  contatto,
   etichetta = 'Crea operatore',
+  className,
 }: {
   stato?: StatoOperatore;
+  /**
+   * Il contatto da cui nasce questo nuovo: il modulo arriva compilato con
+   * quello che si sa, e salvando il contatto esce dall'elenco da chiamare.
+   */
+  contatto?: DaContatto;
+  className?: string;
   /**
    * La tessera da cui nasce questa persona.
    *
@@ -119,10 +136,27 @@ export function BottoneCreaOperatore({
     <BottoneModale
       etichetta={etichetta}
       icona="operatori"
-      titolo={tessera ? `Nuovo operatore da ${tessera.numero}` : 'Nuovo operatore'}
+      titolo={
+        tessera
+          ? `Nuovo operatore da ${tessera.numero}`
+          : contatto
+            ? `${contatto.nome} diventa un nuovo`
+            : 'Nuovo operatore'
+      }
       larga
+      className={className}
     >
       <FormAzione azione={creaOperatore}>
+        {contatto && (
+          <>
+            <input type="hidden" name="contattoId" value={contatto.id} />
+            <p className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2.5 text-sm">
+              Da contatto a <strong className="text-ink">nuovo</strong>: salvando esce dai contatti da
+              chiamare e comincia il percorso di tutti i nuovi. Data e luogo di nascita chiedili al
+              telefono: servono per la polizza della prima giornata.
+            </p>
+          </>
+        )}
         {tessera && (
           <>
             <input type="hidden" name="tesseraNumero" value={tessera.numero} />
@@ -135,10 +169,15 @@ export function BottoneCreaOperatore({
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Nome *">
-            <input name="nome" required className="input" defaultValue={tessera?.nome} />
+            <input name="nome" required className="input" defaultValue={tessera?.nome ?? contatto?.nome} />
           </Campo>
           <Campo label="Cognome *">
-            <input name="cognome" required className="input" defaultValue={tessera?.cognome} />
+            <input
+              name="cognome"
+              required
+              className="input"
+              defaultValue={tessera?.cognome ?? contatto?.cognome ?? undefined}
+            />
           </Campo>
           <Campo label="Email *">
             <input
@@ -146,14 +185,14 @@ export function BottoneCreaOperatore({
               type="email"
               required
               className="input"
-              defaultValue={tessera?.email ?? undefined}
+              defaultValue={tessera?.email ?? contatto?.email ?? undefined}
             />
           </Campo>
           <Campo label="Callsign">
             <input name="callsign" className="input" />
           </Campo>
           <Campo label="Telefono *">
-            <input name="telefono" required className="input" />
+            <input name="telefono" required className="input" defaultValue={contatto?.telefono} />
           </Campo>
           <Campo label="Data di nascita *">
             <input type="date" name="dataNascita" required className="input" />

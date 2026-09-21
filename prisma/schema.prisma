@@ -241,6 +241,7 @@ model User {
   risposteBacheca       RispostaBacheca[]       @relation("RisposteBacheca")
   consegneBacheca       ConsegnaBacheca[]       @relation("ConsegneBacheca")
   allegatiBacheca       AllegatoBacheca[]       @relation("AllegatiBacheca")
+  contattiScritti       Contatto[]              @relation("ContattiScritti")
   gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
   gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
   allegatiCaricati      AllegatoEvento[]        @relation("AllegatiCaricati")
@@ -2231,4 +2232,50 @@ model AllegatoBacheca {
   caricatoDa   User     @relation("AllegatiBacheca", fields: [caricatoDaId], references: [id], onDelete: Cascade)
 
   @@unique([bachecaId, maniglia])
+}
+
+// ------------------------------------------------------------------ contatti
+
+/// Da dove arriva un contatto.
+enum OrigineContatto {
+  /// Dal modulo «Vuoi provare?» del sito.
+  SITO
+  /// Scritto a mano da chi segue i nuovi: una telefonata, un passaparola.
+  MANO
+}
+
+/// Una persona da chiamare, **prima** che diventi un nuovo.
+///
+/// Non ha un account e non entra nel gestionale: e' un nome e un telefono,
+/// con la nota di cosa ci si e' detti. Da qui ci sono due strade sole: la si
+/// scarta — e la riga sparisce, perche' di chi non e' mai entrato non si
+/// tengono i dati — oppure diventa un nuovo, e da li' il percorso e' quello di
+/// sempre.
+model Contatto {
+  id           String          @id @default(cuid())
+  nome         String
+  cognome      String?
+  telefono     String
+  email        String?
+  /// Da dove scrive, per sapere in che campo proporgli la prima giornata.
+  zona         String?
+  comeCiHaConosciuto String?
+  messaggio    String?
+  origine      OrigineContatto @default(SITO)
+  /// Quello che ci si e' detti al telefono: la nota di chi lo segue.
+  nota         String?
+  /// L'ultima volta che qualcuno l'ha chiamato, per non chiamarlo in due.
+  chiamatoIl   DateTime?
+  /// Quando ha accettato l'informativa del modulo. Chi lo scrive a mano l'ha
+  /// sentito al telefono, e il campo resta vuoto.
+  consensoIl   DateTime?
+  /// Impronta dell'indirizzo da cui ha scritto: serve solo a fermare chi manda
+  /// cento moduli di fila, e non si puo' risalire all'indirizzo vero.
+  impronta     String?
+  creatoIl     DateTime        @default(now())
+  creatoDaId   String?
+  creatoDa     User?           @relation("ContattiScritti", fields: [creatoDaId], references: [id], onDelete: SetNull)
+
+  @@index([creatoIl])
+  @@index([impronta, creatoIl])
 }

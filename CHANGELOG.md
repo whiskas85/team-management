@@ -5,6 +5,36 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **Il sito della squadra, su www.zerodarkteam.it.** Stessa macchina e stessa
+  applicazione del gestionale: e' l'indirizzo a decidere se si vede il sito o
+  ops. Coi colori del logo — nero, verde del visore, il tricolore negli
+  accenti — e costruito come un ordine di missione: chi siamo e cosa ci
+  appassiona (softair, tracking, cartografia, ATAK), **i valori del softair**,
+  le nostre ambizioni (**PCR, PLR, MILSIM e i corsi interni**), le
+  affiliazioni FIGT, CORP e ACSI con i loro canali, Instagram e il canale
+  YouTube di **SAT & Gaming** col suo logo.
+  - Le foto delle missioni si mettono in una cartella, una per sezione: finche'
+    non ci sono, al loro posto c'e' una carta topografica disegnata, diversa
+    per ogni missione.
+  - Si vede gia' da ops sotto `/sito`; su www si accende appena il DNS punta
+    qui.
+- **Contatti, il gradino prima dei nuovi.** Chi lascia nome e telefono dal
+  modulo «Vuoi provare?» del sito — o chi scrivi a mano dopo una telefonata —
+  finisce nella pagina **Contatti**, con il pallino nel menu e una notifica a
+  chi segue i nuovi. Un tocco per chiamarlo o scrivergli su WhatsApp, la nota
+  della telefonata e il segno «l'ho chiamato» per non chiamarlo in due. Da li'
+  due strade: **Scarta**, e i dati vengono cancellati del tutto, oppure
+  **Diventa un nuovo**, con il modulo gia' compilato — e da li' il percorso di
+  sempre. Lo possono fare admin, amministrazione e segreteria.
+  - Il modulo del sito e' la prima porta aperta a chiunque senza accesso, e
+    si difende da solo: un campo trappola per i programmi, un tempo minimo di
+    compilazione, un tetto di invii all'ora per indirizzo e in tutto. Chi
+    manda spam riceve lo stesso «grazie», e non capisce dove si e' fermato.
+
 ## 2.78.3 — 21 settembre 2026
 
 ### Cambiato

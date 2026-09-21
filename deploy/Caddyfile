@@ -39,3 +39,28 @@
 		}
 	}
 }
+
+# Il sito pubblico della squadra. È la stessa applicazione del gestionale: a
+# decidere che su questo indirizzo si vede il sito è lo smistamento del
+# gestionale stesso (src/middleware.ts), che guarda l'Host che Caddy gli passa.
+#
+# Finché il DNS di www non punta a questa macchina, Caddy prova a chiedere il
+# certificato, non ci riesce e riprova da solo con pause sempre più lunghe: il
+# gestionale qui sopra non ne risente. Cambiato il DNS, conviene riavviare il
+# proxy perché ci riprovi subito invece di aspettare la pausa.
+{$DOMINIO_SITO:www.zerodarkteam.it} {
+	encode zstd gzip
+
+	# dal sito arriva solo il modulo «vuoi provare?»: niente caricamenti
+	request_body {
+		max_size 1MB
+	}
+
+	header Strict-Transport-Security "max-age=31536000"
+
+	reverse_proxy app:3000 {
+		# l'indirizzo vero di chi scrive: serve al tetto dei moduli, che
+		# altrimenti vedrebbe tutti arrivare dal proxy
+		header_up X-Real-IP {remote_host}
+	}
+}
