@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.77.1 — 21 settembre 2026
+
+### Corretto
+
+- **Caselle e scelte nel verde della squadra, ovunque.** Nei moduli nuovi —
+  la bacheca, i sondaggi — uscivano col blu del browser: il verde si metteva a
+  mano casella per casella, e quelle che lo dimenticavano restavano fuori
+  tema. Adesso e' una regola sola per tutto il gestionale.
+
 ## 2.77.0 — 21 settembre 2026
 
 ### Aggiunto

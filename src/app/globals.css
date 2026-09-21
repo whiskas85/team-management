@@ -24,6 +24,18 @@
   border-color: var(--border);
 }
 
+/*
+ * Caselle e scelte nel colore della squadra, ovunque.
+ *
+ * Prima il verde si metteva a mano su ogni casella, e quella che se lo
+ * dimenticava usciva col blu del browser in mezzo a una pagina tutta verde.
+ * Una regola sola qui e nessuna casella resta fuori tema.
+ */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--nvg);
+}
+
 html,
 body {
   background: var(--bg);
