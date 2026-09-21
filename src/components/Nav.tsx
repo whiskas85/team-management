@@ -26,6 +26,13 @@ export type VoceMenu = {
     | 'segreteria'
     | 'comando';
   badge?: number;
+  /**
+   * Il pallino è la somma di altre voci del menu, come «Tutte le bacheche»
+   * che conta gli annunci di tutte. Si mostra, ma nel conto del pulsante Menu
+   * non entra: quelle voci ci sono già, e contarle due volte raddoppierebbe
+   * il numero.
+   */
+  riepilogo?: boolean;
   /** Se questa persona se l'è messa da parte con la stellina. */
   preferito?: boolean;
   /**
@@ -149,7 +156,7 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
   // Quelle delle voci già in barra non si contano due volte: il loro numero si
   // legge sulla voce stessa
   const daVedere = voci
-    .filter((v) => !rapide.includes(v))
+    .filter((v) => !rapide.includes(v) && !v.riepilogo)
     .reduce((t, v) => t + (v.badge ?? 0), 0);
 
   return (

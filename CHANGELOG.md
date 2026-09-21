@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.78.1 — 21 settembre 2026
+
+### Aggiunto
+
+- **Il totale degli annunci non letti.** Ogni bacheca aveva il suo pallino, ma
+  per sapere quanti annunci aspettavano bisognava sommarli a occhio. Adesso
+  «Tutte le bacheche» porta il numero di tutti gli annunci non letti insieme:
+  due da leggere, due. Nel pallino del pulsante Menu del telefono non si conta
+  due volte — li' ci sono gia' quelli delle singole bacheche.
+
 ## 2.78.0 — 21 settembre 2026
 
 ### Aggiunto

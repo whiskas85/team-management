@@ -302,6 +302,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             label: 'Tutte le bacheche',
             icona: 'menu' as const,
             gruppo: 'annunci' as const,
+            // tutti gli annunci non letti, di tutte le bacheche insieme
+            badge: bachecheDaLeggere.length,
+            riepilogo: true,
           },
         ]
       : []),
