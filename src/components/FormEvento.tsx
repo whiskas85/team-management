@@ -49,6 +49,8 @@ type Evento = {
   chiusuraIscrizioni: Date | null;
   /** Le polizze automatiche su questa attività: null segue l'impostazione generale. */
   assicuraAuto: boolean | null;
+  /** L'attività di cui questa fa parte, se qualcuno l'ha detto. */
+  collegatoAId: string | null;
   note: string | null;
   linkRiunione: string | null;
   /** Riservata alla squadra o aperta a tutti: decide se serve la quota esterni. */
@@ -115,9 +117,18 @@ export function FormEvento({
   casse = [],
   squadra = [],
   referenti = [],
+  collegabili = [],
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
+  /**
+   * Le attivita' vicine di data, a cui questa si puo' dichiarare legata.
+   *
+   * Solo quando si corregge un'attivita' che esiste gia': quando ne nasce una
+   * non c'e' ancora niente a cui legarla, e chiederlo sarebbe una domanda
+   * senza risposta.
+   */
+  collegabili?: { id: string; titolo: string; quando: string }[];
   /** Voci di tariffario con cui si compongono le due quote. */
   listino: VoceListino[];
   /** Stagione in cui l'attività vive: filtra il listino. */
@@ -374,6 +385,34 @@ export function FormEvento({
                   className="input"
                 />
               </Campo>
+
+              {/* Quando due attivita' sono la stessa giornata.
+                  Il gestionale riconosce da solo quelle che si sovrappongono
+                  nel tempo -- la PLR e la giocata della stessa domenica -- e
+                  per quelle non serve dire niente. Questo campo e' per quello
+                  che l'orologio non vede: la gara e il suo allenamento del
+                  venerdi', due giornate della stessa trasferta. */}
+              {collegabili.length > 0 && (
+                <Campo label="Fa parte di" span>
+                  <select
+                    name="collegatoAId"
+                    className="input"
+                    defaultValue={evento?.collegatoAId ?? ''}
+                  >
+                    <option value="">Niente: e&rsquo; una giornata a se&rsquo;</option>
+                    {collegabili.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.titolo} &middot; {c.quando}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-muted">
+                    Per le statistiche le due contano come un impegno solo: chi c&rsquo;era non ci
+                    poteva stare due volte. Quelle che si sovrappongono nell&rsquo;orario lo fanno
+                    gia&rsquo; da se&rsquo;.
+                  </p>
+                </Campo>
+              )}
 
               {/* Le polizze automatiche, per questa sola giocata. Sta qui, fra
                   le cose che dicono come si comporta l'attivita', e non fra i

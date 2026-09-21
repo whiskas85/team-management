@@ -698,6 +698,20 @@ model Event {
   /// per far tacere un avviso, ed è il modo migliore per rendere inaffidabile
   /// il calendario.
   durataOre             Int?
+  /// Fa parte dello stesso impegno di un'altra attività.
+  ///
+  /// La domenica c'è la PLR e c'è la giocata: due righe nel calendario, con
+  /// due formazioni e due quote, ma **un operatore ci sta una volta sola**.
+  /// Per le statistiche vanno contate come una, altrimenti a chi c'era si
+  /// abbassa la percentuale per una giornata in cui c'era davvero.
+  ///
+  /// Quasi sempre non serve toccarlo: due attività che si sovrappongono nel
+  /// tempo il gestionale le riconosce da solo. Questo campo è per quello che
+  /// l'orologio non vede — la gara e il suo allenamento del venerdì, due
+  /// giornate della stessa trasferta.
+  collegatoAId          String?
+  collegatoA            Event?           @relation("AttivitaCollegate", fields: [collegatoAId], references: [id], onDelete: SetNull)
+  collegate             Event[]          @relation("AttivitaCollegate")
   /// Le polizze automatiche, per questa sola attività.
   ///
   /// **Tre stati e non due.** Vuoto vuol dire «come dice l'impostazione

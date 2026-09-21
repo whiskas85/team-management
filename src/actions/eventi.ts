@@ -163,6 +163,8 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     // le polizze automatiche su questa attività: vuoto resta vuoto, cioè
     // «come dice l'impostazione generale»
     assicuraAuto: { si: true, no: false }[str(fd, 'assicuraAuto')] ?? null,
+    // a quale altra attività è legata: mai a sé stessa, che sarebbe un anello
+    collegatoAId: strOpt(fd, 'collegatoAId') === id ? null : strOpt(fd, 'collegatoAId'),
     note: strOpt(fd, 'note'),
   };
 

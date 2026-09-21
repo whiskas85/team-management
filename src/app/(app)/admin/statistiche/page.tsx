@@ -2,6 +2,7 @@ import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { isAdmin, statoEffettivo } from '@/lib/domain';
+import { impegni } from '@/lib/impegni';
 import { fmtEuro, umanizza } from '@/lib/format';
 import { Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Anello, Barre, BarreOrizzontali, mesiRecenti } from '@/components/Grafico';
@@ -15,7 +16,15 @@ export default async function StatistichePage() {
     }),
     prisma.event.findMany({
       where: { status: { not: 'ANNULLATA' } },
-      select: { id: true, titolo: true, tipo: { select: { nome: true } }, inizio: true, fieldId: true },
+      select: {
+        id: true,
+        titolo: true,
+        tipo: { select: { nome: true } },
+        inizio: true,
+        fine: true,
+        collegatoAId: true,
+        fieldId: true,
+      },
     }),
     prisma.eventRsvp.findMany({
       select: { userId: true, status: true, presente: true, eventId: true },
@@ -32,11 +41,24 @@ export default async function StatistichePage() {
   const squadra = utenti.filter((u) => u.stato === 'SQUADRA');
   const svolti = eventi.filter((e) => new Date(e.inizio) < new Date());
 
-  // presenze per operatore
+  /*
+   * Le attività che vanno insieme contano per una.
+   *
+   * La domenica con la PLR e la giocata è una giornata sola: chi c'era non ci
+   * poteva stare due volte, e contarla doppia gonfia le presenze di chi c'era
+   * e abbassa l'affluenza media di tutte le altre giornate. La regola è quella
+   * di `lib/impegni`, la stessa che usano le statistiche personali — se qui
+   * contassimo in un altro modo, la scheda di una persona e la classifica
+   * direbbero due numeri diversi sulla stessa domenica.
+   */
+  const gruppi = impegni(eventi);
+  const impegnoDi = (eventId: string) => gruppi.get(eventId) ?? eventId;
+
+  // presenze per operatore, contate a impegno
   const classifica = squadra
     .map((u) => {
-      const suoi = rsvps.filter((r) => r.userId === u.id);
-      const presenze = suoi.filter((r) => r.presente === true).length;
+      const suoi = rsvps.filter((r) => r.userId === u.id && r.presente === true);
+      const presenze = new Set(suoi.map((r) => impegnoDi(r.eventId))).size;
       return { etichetta: `${u.cognome} ${u.nome}`, valore: presenze };
     })
     .sort((a, b) => b.valore - a.valore)
@@ -58,9 +80,22 @@ export default async function StatistichePage() {
     .sort((a, b) => b.valore - a.valore)
     .slice(0, 8);
 
-  // affluenza media agli eventi svolti
-  const affluenze = svolti.map(
-    (e) => rsvps.filter((r) => r.eventId === e.id && r.presente === true).length,
+  /*
+   * Affluenza media per **giornata**, non per riga di calendario.
+   *
+   * Chi c'era alla PLR e alla giocata è una persona sola in campo quella
+   * domenica: sommarla due volte direbbe che eravamo il doppio. E la giornata
+   * si conta una volta: due righe con dieci presenti ciascuna sono una
+   * giornata da dieci, non due da dieci.
+   */
+  const impegniSvolti = [...new Set(svolti.map((e) => impegnoDi(e.id)))];
+  const affluenze = impegniSvolti.map(
+    (gruppo) =>
+      new Set(
+        rsvps
+          .filter((r) => r.presente === true && impegnoDi(r.eventId) === gruppo)
+          .map((r) => r.userId),
+      ).size,
   );
   const affluenzaMedia = affluenze.length
     ? affluenze.reduce((a, b) => a + b, 0) / affluenze.length

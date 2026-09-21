@@ -15,6 +15,7 @@ import {
 import { fmtDate, fmtEuro, iniziali, inputDate, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
 import { StatistichePersona } from '@/components/StatistichePersona';
+import { impegni } from '@/lib/impegni';
 import { Avatar, Badge, Campo, Intestazione, Statistica } from '@/components/ui';
 import { Fisarmonica, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -59,7 +60,9 @@ export default async function ProfiloPage() {
               id: true,
               titolo: true,
               inizio: true,
+              fine: true,
               status: true,
+              collegatoAId: true,
               tipo: { select: { nome: true } },
             },
           },
@@ -90,13 +93,35 @@ export default async function ProfiloPage() {
   const svolti = partecipazioni.filter((r) => new Date(r.event.inizio) < new Date());
   /** Le righe come le vuole il riquadro dei numeri, senza le annullate. */
   const statistiche = partecipazioni.map((r) => ({
+    eventId: r.eventId,
     status: r.status,
     presente: r.presente,
     quando: r.event.inizio,
+    finisce: r.event.fine,
+    collegatoAId: r.event.collegatoAId,
     tipo: r.event.tipo?.nome ?? null,
   }));
   const presenze = svolti.filter((r) => r.presente === true).length;
-  const adesioni = partecipazioni.filter((r) => r.status === 'PRESENTE').length;
+  /*
+   * Anche qui si contano gli impegni, non le righe.
+   *
+   * Sulla stessa pagina il riquadro delle presenze dice «su 1 attività
+   * svolta» e questo direbbe «2»: due numeri che parlano della stessa
+   * domenica e non si mettono d'accordo sono peggio di nessun numero.
+   */
+  const gruppiImpegni = impegni(
+    partecipazioni.map((r) => ({
+      id: r.eventId,
+      inizio: r.event.inizio,
+      fine: r.event.fine,
+      collegatoAId: r.event.collegatoAId,
+    })),
+  );
+  const adesioni = new Set(
+    partecipazioni
+      .filter((r) => r.status === 'PRESENTE')
+      .map((r) => gruppiImpegni.get(r.eventId) ?? r.eventId),
+  ).size;
   const daSaldare = utente.payments
     .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);

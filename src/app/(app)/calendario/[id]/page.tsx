@@ -97,6 +97,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     include: {
       tipo: true,
       field: { include: { squadra: { select: { nome: true } } } },
+      // le altre attività che fanno parte della stessa giornata, per dirlo
+      collegatoA: { select: { id: true, titolo: true } },
+      collegate: { select: { id: true, titolo: true } },
       createdBy: { select: { nome: true, cognome: true } },
       // le squadre di fuori invitate, con il loro link
       ospiti: { orderBy: { creatoIl: 'asc' } },
@@ -680,6 +683,34 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       ? { testo: evento.luogo, meta: metaNaviga(evento.luogoLat, evento.luogoLng, evento.luogo) }
       : null;
 
+  /*
+   * A quali altre attività si può dichiarare legata questa.
+   *
+   * Solo quelle vicine di data — cinque giorni prima e cinque dopo — perché
+   * «fa parte della stessa giornata» ha senso su una trasferta o su un fine
+   * settimana, non su una gara di marzo. Una tendina con dentro tre anni di
+   * calendario non la guarda nessuno.
+   */
+  /** Le altre attività della stessa giornata, dette per nome. */
+  const insieme = [
+    ...(evento.collegatoA ? [evento.collegatoA] : []),
+    ...evento.collegate,
+  ];
+
+  const collegabili = (
+    await prisma.event.findMany({
+      where: {
+        id: { not: evento.id },
+        inizio: {
+          gte: new Date(evento.inizio.getTime() - 5 * 86_400_000),
+          lte: new Date(evento.inizio.getTime() + 5 * 86_400_000),
+        },
+      },
+      orderBy: { inizio: 'asc' },
+      select: { id: true, titolo: true, inizio: true },
+    })
+  ).map((a) => ({ id: a.id, titolo: a.titolo, quando: fmtDateTime(a.inizio) }));
+
   const tappe: Tappa[] = [
     ...(metaRitrovo && evento.ritrovo
       ? [{ etichetta: 'Luogo di ritrovo', testo: evento.ritrovo, meta: metaRitrovo }]
@@ -902,6 +933,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     stagioni={stagioni}
                     evento={evento}
                     casse={casseAttive}
+                    collegabili={collegabili}
                     soloLogistica={!admin}
                     // un nuovo forzato su un'attività di squadra ha bisogno del
                     // suo prezzo: senza, la card esterni resterebbe nascosta
@@ -1051,6 +1083,25 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 anagrafico. A quelli di casa non c'era ragione di dirlo peggio
                 che a quelli di fuori. */}
             <Quando inizio={evento.inizio} fine={evento.fine} durataOre={evento.durataOre} />
+
+            {/* Se fa parte di una giornata più grande, si dice qui: altrimenti
+                il collegamento resta una spunta invisibile dentro al modulo, e
+                chi guarda le statistiche non capisce perché due attività
+                contano per una. */}
+            {insieme.length > 0 && (
+              <p className="mt-2 text-xs text-muted">
+                Stessa giornata di{' '}
+                {insieme.map((a, i) => (
+                  <span key={a.id}>
+                    {i > 0 && ', '}
+                    <Link href={`/calendario/${a.id}`} className="text-nvg hover:underline">
+                      {a.titolo}
+                    </Link>
+                  </span>
+                ))}
+                : per le statistiche contano come un impegno solo.
+              </p>
+            )}
 
             {/* ------------------------------------------------ dove si gioca */}
             {/* Un posto solo. Il campo, il ritrovo, la mappa e i pulsanti per

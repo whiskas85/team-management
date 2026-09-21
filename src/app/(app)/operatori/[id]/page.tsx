@@ -13,6 +13,7 @@ import {
 import { fmtDate, iniziali, nomeCompleto, umanizza } from '@/lib/format';
 import { Avatar, Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { StatistichePersona } from '@/components/StatistichePersona';
+import { impegni } from '@/lib/impegni';
 import { AzioniContatto } from '@/components/AzioniContatto';
 
 /**
@@ -54,8 +55,16 @@ export default async function SchedaCompagnoPage({
         select: {
           status: true,
           presente: true,
+          eventId: true,
           event: {
-            select: { titolo: true, inizio: true, status: true, tipo: { select: { nome: true } } },
+            select: {
+              titolo: true,
+              inizio: true,
+              fine: true,
+              status: true,
+              collegatoAId: true,
+              tipo: { select: { nome: true } },
+            },
           },
         },
         orderBy: { respondedAt: 'desc' },
@@ -68,9 +77,20 @@ export default async function SchedaCompagnoPage({
   // le annullate non sono storia di nessuno: non ci è stato nessuno, e
   // lasciarle in scheda racconta una partecipazione che non è avvenuta
   const partecipazioni = utente.rsvps.filter((r) => r.event.status !== 'ANNULLATA');
-  const svolti = partecipazioni.filter((r) => new Date(r.event.inizio) < new Date());
-  const presenze = svolti.filter((r) => r.presente === true).length;
-  const adesioni = partecipazioni.filter((r) => r.status === 'PRESENTE').length;
+  const gruppiImpegni = impegni(
+    partecipazioni.map((r) => ({
+      id: r.eventId,
+      inizio: r.event.inizio,
+      fine: r.event.fine,
+      collegatoAId: r.event.collegatoAId,
+    })),
+  );
+  // a giornate e non a righe, come il riquadro dei numeri qui sopra
+  const adesioni = new Set(
+    partecipazioni
+      .filter((r) => r.status === 'PRESENTE')
+      .map((r) => gruppiImpegni.get(r.eventId) ?? r.eventId),
+  ).size;
 
   return (
     <>
@@ -123,20 +143,24 @@ export default async function SchedaCompagnoPage({
 
       <StatistichePersona
         righe={partecipazioni.map((r) => ({
+          eventId: r.eventId,
           status: r.status,
           presente: r.presente,
           quando: r.event.inizio,
+          finisce: r.event.fine,
+          collegatoAId: r.event.collegatoAId,
           tipo: r.event.tipo?.nome ?? null,
         }))}
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <Statistica etichetta="Adesioni" valore={adesioni} dettaglio="attività a cui ha detto sì" />
+      {/* Le presenze le dice gia' il riquadro qui sopra: ripeterle sotto con
+          un conto fatto in un altro modo era il modo piu' sicuro di far
+          litigare due numeri sulla stessa pagina. */}
+      <div className="mb-6">
         <Statistica
-          etichetta="Presenze confermate"
-          valore={presenze}
-          dettaglio={`su ${svolti.length} attività svolte`}
-          tono="ok"
+          etichetta="Adesioni"
+          valore={adesioni}
+          dettaglio="giornate a cui ha detto sì"
         />
       </div>
 

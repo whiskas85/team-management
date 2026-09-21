@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.70.0 — 21 settembre 2026
+
+### Aggiunto
+
+- **Due attivita' che si sovrappongono sono un impegno solo.** La domenica con
+  la PLR e la giocata, la notturna che finisce alle tredici e la diurna che
+  comincia alle otto: restano due righe nel calendario — hanno due formazioni e
+  due quote — ma per le statistiche contano una volta. **Un operatore ci puo'
+  stare una volta sola**, e contarle come due gli abbassava la percentuale per
+  una giornata in cui c'era davvero.
+  - La regola e' il tempo, non il luogo: basta un istante in cui sono tutte e
+    due in corso. Torino e Milano la stessa domenica mattina sono posti
+    diversi, e proprio per questo un operatore ne fa una sola. **Toccarsi non
+    e' sovrapporsi**: la notturna fino alle otto e la diurna dalle otto restano
+    due impegni, e chi le fa tutte e due ha fatto due cose.
+  - Vale per le presenze personali, per la *parola mantenuta* — mancare vuol
+    dire non esserci stato in nessuna delle attivita' di quella giornata — per
+    la classifica e per l'**affluenza media**, che adesso conta le persone in
+    campo quel giorno e non la somma delle righe: chi c'era a tutte e due era
+    una persona sola, e sommarla diceva che eravamo il doppio.
+- **E il campo «Fa parte di»**, per quello che l'orologio non vede: la gara con
+  il suo allenamento del venerdi', due giornate della stessa trasferta. Elenca
+  le attivita' a cinque giorni di distanza, e quando c'e' un collegamento la
+  pagina lo dice — «Stessa giornata di Open day» — invece di lasciarlo una
+  spunta invisibile dentro un modulo.
+
 ## 2.69.0 — 20 settembre 2026
 
 ### Aggiunto
