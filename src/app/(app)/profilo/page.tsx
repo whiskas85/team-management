@@ -14,7 +14,6 @@ import {
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, iniziali, inputDate, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
-import { StatistichePersona } from '@/components/StatistichePersona';
 import { impegni } from '@/lib/impegni';
 import { Avatar, Badge, Campo, Intestazione, Statistica } from '@/components/ui';
 import { Fisarmonica, FormAzione } from '@/components/Form';
@@ -91,16 +90,6 @@ export default async function ProfiloPage() {
   const partecipazioni = utente.rsvps.filter((r) => r.event.status !== 'ANNULLATA');
 
   const svolti = partecipazioni.filter((r) => new Date(r.event.inizio) < new Date());
-  /** Le righe come le vuole il riquadro dei numeri, senza le annullate. */
-  const statistiche = partecipazioni.map((r) => ({
-    eventId: r.eventId,
-    status: r.status,
-    presente: r.presente,
-    quando: r.event.inizio,
-    finisce: r.event.fine,
-    collegatoAId: r.event.collegatoAId,
-    tipo: r.event.tipo?.nome ?? null,
-  }));
   const presenze = svolti.filter((r) => r.presente === true).length;
   /*
    * Anche qui si contano gli impegni, non le righe.
@@ -193,12 +182,9 @@ export default async function ProfiloPage() {
       )}
 
       {/* -------------------------------------------------- numeri */}
-      {/* Com'è andata: gli stessi numeri della scheda che si apre dal
-          calendario. Erano due pagine che parlavano della stessa persona
-          dicendo cose diverse, e quella con i numeri interessanti era quella
-          che non si apre mai. */}
-      <StatistichePersona righe={statistiche} tu />
-
+      {/* Com'è andata sta nella home, non qui: questa è la pagina dove si
+          compila, e i numeri si guardano entrando — non venendo a cercarli
+          dentro una pagina di moduli. */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Statistica etichetta="Adesioni" valore={adesioni} dettaglio="eventi a cui hai detto sì" />
         {tesserato && (

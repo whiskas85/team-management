@@ -29,9 +29,20 @@ export type RigaPartecipazione = {
  */
 export function StatistichePersona({
   righe,
+  svolteTotali,
+  stagione,
   tu = false,
 }: {
   righe: RigaPartecipazione[];
+  /**
+   * Le giornate che ci sono state in stagione, contate a impegni.
+   *
+   * È il denominatore vero. Prima si usava «quante ne ho svolte fra quelle a
+   * cui ho risposto», e un «7 su 8» raccontava una squadra che gioca otto
+   * volte l'anno: chi legge cerca **su quante se ne sono fatte**.
+   */
+  svolteTotali: number;
+  stagione: string | null;
   /** Cambia solo le parole: «hai detto sì» invece di «ha detto sì». */
   tu?: boolean;
 }) {
@@ -92,20 +103,33 @@ export function StatistichePersona({
     .reduce<Date | null>((t, r) => (t === null || r.quando > t ? r.quando : t), null);
   const daUltima = ultima ? Math.max(0, -(giorniA(ultima) ?? 0)) : null;
 
-  /** Dove si va più spesso: si conta dove c'è stato davvero, non dove si è segnato. */
-  const perTipo = new Map<string, number>();
+  /*
+   * Dove si va più spesso, **contato a giornate come tutto il resto**.
+   *
+   * Contandolo a righe usciva «10 volte su 7»: dieci attività di allenamento
+   * dentro sette giornate, confrontate con un totale che le giornate le
+   * contava una volta. Due unità diverse nello stesso paragone, e un numero
+   * impossibile davanti agli occhi di chi lo legge.
+   */
+  const perTipo = new Map<string, Set<string>>();
   for (const r of svolte) {
     if (r.presente !== true || !r.tipo) continue;
-    perTipo.set(r.tipo, (perTipo.get(r.tipo) ?? 0) + 1);
+    const gruppo = gruppi.get(r.eventId) ?? r.eventId;
+    perTipo.set(r.tipo, (perTipo.get(r.tipo) ?? new Set()).add(gruppo));
   }
-  const preferita = [...perTipo.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  const preferita =
+    [...perTipo.entries()]
+      .map(([nome, giornate]) => [nome, giornate.size] as const)
+      .sort((a, b) => b[1] - a[1])[0] ?? null;
 
   return (
     <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Statistica
         etichetta="Presenze"
         valore={presenze}
-        dettaglio={`su ${quanti(svolte)} ${quanti(svolte) === 1 ? 'attività svolta' : 'attività svolte'}`}
+        dettaglio={`su ${svolteTotali} ${
+          svolteTotali === 1 ? 'giornata' : 'giornate'
+        }${stagione ? ` · ${stagione}` : ''}`}
         tono={presenze > 0 ? 'ok' : 'neutro'}
       />
 
@@ -141,7 +165,7 @@ export function StatistichePersona({
         valore={preferita ? preferita[0] : '—'}
         dettaglio={
           preferita
-            ? `${preferita[1]} ${preferita[1] === 1 ? 'volta' : 'volte'} su ${presenze}`
+            ? `${preferita[1]} ${preferita[1] === 1 ? 'giornata' : 'giornate'} su ${presenze}`
             : `${adesioni} ${adesioni === 1 ? 'adesione' : 'adesioni'} in tutto`
         }
       />

@@ -5,6 +5,35 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.71.0 — 21 settembre 2026
+
+### Cambiato
+
+- **I numeri stanno nella home, non nel profilo.** «Com'e' andata» e' una cosa
+  che si guarda di passaggio, entrando: nel profilo — che e' la pagina dei
+  moduli da compilare, il certificato, i recapiti — bisognava andarli a
+  cercare, e nessuno ci va per sapere quante volte e' sceso in campo. Il
+  riquadro e' lo stesso che si apre dal calendario sulla scheda di una persona:
+  un conto solo, due posti dove si legge.
+
+### Corretto
+
+- **«10 volte su 7» non si legge piu'.** Nel riquadro dei numeri le presenze si
+  contavano a giornate — due attivita' sovrapposte sono un impegno solo — ma la
+  tipologia piu' frequentata si contava a righe, e dieci allenamenti dentro
+  sette giornate finivano confrontati con un totale che le giornate le contava
+  una volta. Due unita' diverse nello stesso paragone, e un numero impossibile
+  davanti agli occhi di chi lo legge. **Adesso si conta a giornate dappertutto.**
+- **Il denominatore e' la stagione, non quello a cui hai risposto.** «7 su 8»
+  dove l'8 erano le attivita' a cui la persona si era segnata raccontava una
+  squadra che gioca otto volte l'anno. Chi guarda legge «su quante se ne sono
+  fatte», ed e' quello che deve trovare: adesso sotto il numero c'e' scritto
+  anche **quale stagione**. Restano fuori le annullate — non ci e' stato
+  nessuno — e quelle che la persona non poteva fare, perche' un'attivita' su
+  invito a cui non era invitata non e' una giornata che si e' persa.
+- I due conti vivevano in due pagine diverse e divergevano. Adesso stanno in un
+  posto solo (`lib/statistiche`), e chi li mostra non puo' piu' sbagliarli.
+
 ## 2.70.0 — 21 settembre 2026
 
 ### Aggiunto

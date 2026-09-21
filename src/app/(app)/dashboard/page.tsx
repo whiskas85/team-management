@@ -16,6 +16,8 @@ import {
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, giorniA, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
+import { StatistichePersona } from '@/components/StatistichePersona';
+import { quadroPersona } from '@/lib/statistiche';
 import { CardEvento } from '@/components/CardEvento';
 
 export default async function DashboardPage({
@@ -35,7 +37,7 @@ export default async function DashboardPage({
   const domani = new Date(inizioOggi);
   domani.setDate(domani.getDate() + 1);
 
-  const [prossimi, certificati, pagamenti, iscrizione, tessera] = await Promise.all([
+  const [prossimi, certificati, pagamenti, iscrizione, tessera, quadro] = await Promise.all([
     eventiPerLista({
       stato: me.stato,
       userId: me.id,
@@ -71,6 +73,9 @@ export default async function DashboardPage({
           include: { stagione: { select: { nome: true } } },
         })
       : Promise.resolve(null),
+    // come sta andando: le sue partecipazioni e quante giornate ci sono
+    // state, contate nello stesso modo (lib/statistiche)
+    quadroPersona(me.id, me.stato, me.roles),
   ]);
 
   const oggi = prossimi.filter((e) => e.inizio < domani);
@@ -221,6 +226,20 @@ export default async function DashboardPage({
           />
         )}
       </div>
+
+      {/* ------------------------------------------------ com'e' andata */}
+      {/* I numeri stanno qui e non nel profilo: questa e' la pagina che si
+          apre entrando, e «come sto andando» e' una cosa che si guarda di
+          passaggio -- non una che si va a cercare dentro una pagina di
+          moduli da compilare. */}
+      {tesserato && (
+        <StatistichePersona
+          righe={quadro.righe}
+          svolteTotali={quadro.svolteTotali}
+          stagione={quadro.stagione}
+          tu
+        />
+      )}
 
       {/* ------------------------------------------------ riepilogo personale */}
       <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">

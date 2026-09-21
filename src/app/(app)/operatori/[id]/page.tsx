@@ -14,6 +14,7 @@ import { fmtDate, iniziali, nomeCompleto, umanizza } from '@/lib/format';
 import { Avatar, Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { StatistichePersona } from '@/components/StatistichePersona';
 import { impegni } from '@/lib/impegni';
+import { quadroPersona } from '@/lib/statistiche';
 import { AzioniContatto } from '@/components/AzioniContatto';
 
 /**
@@ -73,6 +74,10 @@ export default async function SchedaCompagnoPage({
   });
 
   if (!utente || !inSquadra(utente.stato)) notFound();
+
+  // gli stessi numeri della home, contati dallo stesso posto: due conti
+  // diversi sulla stessa persona finiscono sempre per divergere
+  const quadro = await quadroPersona(utente.id, utente.stato, utente.roles);
 
   // le annullate non sono storia di nessuno: non ci è stato nessuno, e
   // lasciarle in scheda racconta una partecipazione che non è avvenuta
@@ -142,15 +147,9 @@ export default async function SchedaCompagnoPage({
       </div>
 
       <StatistichePersona
-        righe={partecipazioni.map((r) => ({
-          eventId: r.eventId,
-          status: r.status,
-          presente: r.presente,
-          quando: r.event.inizio,
-          finisce: r.event.fine,
-          collegatoAId: r.event.collegatoAId,
-          tipo: r.event.tipo?.nome ?? null,
-        }))}
+        righe={quadro.righe}
+        svolteTotali={quadro.svolteTotali}
+        stagione={quadro.stagione}
       />
 
       {/* Le presenze le dice gia' il riquadro qui sopra: ripeterle sotto con
