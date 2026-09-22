@@ -5,6 +5,13 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.6 — 22 settembre 2026
+
+### Corretto
+
+- **Il link della FIGT porta al suo sito**, `figt.it`, con l'icona del sito:
+  prima portava alla pagina dei documenti, che non c'entrava.
+
 ## 2.79.5 — 22 settembre 2026
 
 ### Cambiato

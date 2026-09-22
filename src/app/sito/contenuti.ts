@@ -131,7 +131,7 @@ export const AFFILIAZIONI = [
     logo: { file: 'figt.webp', chiaro: false },
     testo: 'La federazione del softair in Italia: regolamenti, campionati PCR e PLR, tesseramento.',
     link: [
-      { tipo: 'documenti', url: 'https://www.figt.it/documenti-figt-asnwg/' },
+      { tipo: 'sito', url: 'https://www.figt.it/' },
       { tipo: 'facebook', url: 'https://www.facebook.com/figt.it/?locale=it_IT' },
       { tipo: 'instagram', url: 'https://www.instagram.com/figtasnwg/' },
       { tipo: 'youtube', url: 'https://www.youtube.com/channel/UCJUQKzB4ydwMnJ5XsWs8Hsg' },
