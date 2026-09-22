@@ -5,14 +5,15 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoVedereNuovi } from '@/lib/domain';
-import { accogliContatto, nascitaCredibile, nuovaChiaveSito } from '@/lib/contatti-esterni';
+import { nascitaCredibile, nuovaChiaveSito } from '@/lib/contatti-esterni';
 import { isAdmin } from '@/lib/domain';
 import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
 
 /**
  * I contatti: le persone da chiamare prima che diventino nuovi.
  *
- * Arrivano dal modulo del sito o da chi li scrive a mano dopo una telefonata.
+ * Arrivano dai siti collegati, attraverso la porta `/api/contatti`, o da chi
+ * li scrive a mano dopo una telefonata.
  * Li segue chi segue i nuovi — admin, amministrazione, segreteria — perché sono
  * la stessa persona in un momento prima.
  */
@@ -21,59 +22,6 @@ function aggiorna() {
   revalidatePath('/admin/contatti');
   // il pallino nel menu
   revalidatePath('/', 'layout');
-}
-
-// ------------------------------------------------------------- dal sito
-
-/**
- * Il modulo «Vuoi provare?» del sito: la prima porta del server aperta a
- * chiunque, senza accesso.
- *
- * Per questo si difende da sola, in tre modi che una persona vera non vede:
- *
- * - **un campo trappola** nascosto: una persona non lo vede e lo lascia vuoto,
- *   un programma che riempie tutti i campi lo compila e si tradisce;
- * - **il tempo**: sotto i tre secondi dall'apertura della pagina nessuno ha
- *   scritto nome e telefono, chi lo fa è un programma;
- * - **un tetto**: tre moduli all'ora dallo stesso indirizzo, trenta all'ora in
- *   tutto. Oltre, si risponde come se fosse andata — chi manda spam non deve
- *   capire dove si è fermato.
- *
- * L'indirizzo non si salva: se ne tiene un'impronta, che basta a contare i
- * moduli e non permette di risalire a chi li ha mandati.
- */
-export async function inviaContatto(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
-  const grazie: StatoForm = {
-    ok: 'Ricevuto! Ti chiamiamo noi nei prossimi giorni per conoscerci e proporti la prima giornata.',
-  };
-
-  // la trappola e il tempo: si risponde «grazie» e non si salva niente
-  if (str(fd, 'sito_web')) return grazie;
-  const aperto = Number(str(fd, 'aperto'));
-  if (!aperto || Date.now() - aperto < 3000) return grazie;
-
-  const h = await headers();
-  const ip = (h.get('x-real-ip') ?? h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
-
-  // le regole stanno in lib/contatti-esterni, le stesse per ogni sito collegato
-  const esito = await accogliContatto(
-    {
-      nome: str(fd, 'nome'),
-      cognome: str(fd, 'cognome'),
-      telefono: str(fd, 'telefono'),
-      email: str(fd, 'email'),
-      dataNascita: str(fd, 'dataNascita'),
-      zona: str(fd, 'zona'),
-      come: str(fd, 'come'),
-      messaggio: str(fd, 'messaggio'),
-      consenso: bool(fd, 'consenso'),
-    },
-    { ip, sitoId: null },
-  );
-  if (!esito.ok) return { errore: esito.errore };
-
-  aggiorna();
-  return grazie;
 }
 
 // ------------------------------------------------------------ dal gestionale

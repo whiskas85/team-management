@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.81.0 — 22 settembre 2026
+
+### Cambiato
+
+- **Il sito della squadra esce dal gestionale.** Vive nel suo repository
+  (`zerodarkteam-site`) e gira sulla stessa macchina in un suo contenitore; il
+  gestionale non contiene piu' pagine, immagini o smistamenti del sito. Gli
+  resta solo la porta per i contatti, che il sito usa con la sua chiave come
+  qualunque altro sito collegato. E' il primo passo per poter dare OPS ad
+  altre squadre senza il sito di Zero Dark dentro.
+  - Per chi visita `www.zerodarkteam.it` non cambia niente: stesse pagine,
+    stesso modulo, i contatti arrivano in Contatti come prima, col nome del
+    sito accanto.
+  - Il proxy trova il sito in un file della cartella `siti/` del server, fuori
+    dal repository del gestionale.
+
 ## 2.80.0 — 22 settembre 2026
 
 ### Aggiunto

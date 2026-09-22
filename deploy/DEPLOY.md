@@ -302,30 +302,53 @@ il database si rimette com'era con il dump del passo 1.
 
 ## Il sito pubblico su www
 
-Il sito della squadra (`www.zerodarkteam.it`) è **la stessa applicazione** del
-gestionale, sulla stessa macchina. Quale dei due si vede lo decide l'indirizzo:
-lo smistamento sta in `src/middleware.ts`, le pagine in `src/app/sito/`. Da
-`ops` il sito si vede sotto `/sito`, che serve a provarlo prima del DNS e nel
-test.
+Il sito della squadra (`www.zerodarkteam.it`) **non fa parte del gestionale**:
+vive nel suo repository, `whiskas85/zerodarkteam-site`, e gira sulla stessa
+macchina in un suo contenitore (`zd-sito`), agganciato alla rete di Docker del
+gestionale. Il gestionale non sa niente del sito: gli offre soltanto la porta
+per i contatti, `POST /api/contatti`, che si apre da *Contatti → Collega un
+sito* e vale con la chiave generata lì.
 
-Per accenderlo servono due cose, una sola da fare a mano:
+Sulla macchina:
 
-1. **Nel pannello DNS di Aruba**, il record A di `@` (il dominio senza www)
-   deve puntare all'indirizzo di questa macchina, lo stesso di `ops`: `www` è
-   un alias di `@` e lo segue da solo. **Non toccare** i record della posta
-   (`mx`, `mail`, `webmail`, `smtp`, `pop3`, `imap`) né il record MX: hanno
-   indirizzi propri e la posta resta su Aruba. Fatto il 21 settembre 2026.
-2. Quando il DNS risponde con l'indirizzo nuovo, riavviare il proxy perché
-   chieda subito il certificato invece di aspettare la sua prossima prova:
+- il codice del sito in **`/opt/zerodarkteam-site`**, con accanto un `.env`
+  (permessi 600) che contiene `CHIAVE_OPS`: la chiave del sito, mai nel
+  repository;
+- il proxy lo trova in **`/opt/gestionale/siti/zerodarkteam.caddy`**, fuori dal
+  repository del gestionale. Il Caddyfile del gestionale importa tutti i file
+  `.caddy` di quella cartella; se è vuota non succede niente.
 
-```bash
-zd restart proxy
+Il file del proxy è questo:
+
+```
+www.zerodarkteam.it {
+	encode zstd gzip
+	request_body {
+		max_size 1MB
+	}
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy zd-sito:3000 {
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+zerodarkteam.it {
+	redir https://www.zerodarkteam.it{uri} permanent
+}
 ```
 
-I blocchi sono nel `Caddyfile`: `www` mostra il sito, `zerodarkteam.it` senza
-www rimanda a `www`.
+Per aggiornare il sito:
 
-I testi del sito stanno in `src/app/sito/contenuti.ts`; le foto delle missioni
-si mettono in `public/sito/` con il nome scritto lì (`pcr.jpg`, `plr.jpg`,
-`milsim.jpg`, `cqb.jpg`, `sniper.jpg`, `corsi.jpg`). Finché la foto non c'è, al suo posto si vede una
-carta topografica disegnata.
+```bash
+cd /opt/zerodarkteam-site
+git pull --ff-only
+docker compose up -d --build
+```
+
+Se si cambia il file del proxy, serve `zd restart proxy`: come il Caddyfile, è
+montato e il contenitore non se ne accorge da solo.
+
+**DNS.** Su Aruba il record A di `@` punta a questa macchina e `www` ne è un
+alias. I record della posta (`mx`, `mail`, `webmail`, `smtp`, `pop3`, `imap`)
+e il record MX hanno indirizzi propri: non si toccano, la posta resta su
+Aruba.

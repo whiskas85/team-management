@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { eHostSito } from '@/lib/sito';
 
 /**
  * Registra il service worker, che è la condizione perché telefono e computer
@@ -15,9 +14,6 @@ import { eHostSito } from '@/lib/sito';
 export function RegistraApp() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    // il sito pubblico non è l'applicazione: lì il service worker farebbe
-    // comparire l'invito a installare il gestionale a chi cerca la squadra
-    if (location.pathname.startsWith('/sito') || eHostSito(location.hostname)) return;
     navigator.serviceWorker.register('/sw.js').catch(() => {
       /* contesto non sicuro o registrazione rifiutata: si continua senza */
     });
