@@ -1,14 +1,12 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useActionState, useState, useTransition } from 'react';
 import { inviaContatto } from '@/actions/contatti';
 import type { StatoForm } from '@/lib/form';
 
 const COME = ['Instagram', 'YouTube', 'Un amico', 'Un campo di gioco', 'Ricerca su internet', 'Altro'];
 
-function Invia() {
-  const { pending } = useFormStatus();
+function Invia({ pending }: { pending: boolean }) {
   return (
     <button
       type="submit"
@@ -33,6 +31,7 @@ const campo =
  */
 export function ModuloContatto() {
   const [stato, azione] = useActionState(inviaContatto, {} as StatoForm);
+  const [inCorso, avvia] = useTransition();
   // l'ora in cui la pagina si è aperta: chi manda il modulo in meno di tre
   // secondi non l'ha scritto a mano
   const [aperto] = useState(() => String(Date.now()));
@@ -47,7 +46,20 @@ export function ModuloContatto() {
   }
 
   return (
-    <form action={azione} className="space-y-4">
+    /*
+     * Il modulo si manda «a mano» e non con `action`: con `action` React lo
+     * svuota a ogni invio, anche quando torna un errore — e chi ha sbagliato
+     * solo la data si ritrovava a riscrivere nome e telefono. Così quello che
+     * ha scritto resta lì, e corregge solo il campo sbagliato.
+     */
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        avvia(() => azione(fd));
+      }}
+      className="space-y-4"
+    >
       {stato.errore && (
         <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{stato.errore}</p>
       )}
@@ -83,6 +95,17 @@ export function ModuloContatto() {
         <label className="block text-xs uppercase tracking-[0.15em] text-muted">
           Email
           <input name="email" type="email" autoComplete="email" className={`${campo} mt-1.5 normal-case tracking-normal`} />
+        </label>
+        <label className="block text-xs uppercase tracking-[0.15em] text-muted">
+          Data di nascita *
+          <input
+            name="dataNascita"
+            type="date"
+            required
+            autoComplete="bday"
+            max={new Date().toISOString().slice(0, 10)}
+            className={`${campo} mt-1.5 normal-case tracking-normal [color-scheme:dark]`}
+          />
         </label>
         <label className="block text-xs uppercase tracking-[0.15em] text-muted">
           Da dove vieni
@@ -121,7 +144,7 @@ export function ModuloContatto() {
         </span>
       </label>
 
-      <Invia />
+      <Invia pending={inCorso} />
     </form>
   );
 }

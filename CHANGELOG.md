@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.7 — 22 settembre 2026
+
+### Aggiunto
+
+- **Nel modulo «Vuoi provare?» c'e' la data di nascita**, obbligatoria: serve
+  a sapere se puo' giocare e per la polizza della prima giornata. Il sito
+  rifiuta le date impossibili — nel futuro, o di centenari — con un messaggio
+  che dice cosa correggere. L'informativa lo spiega.
+- In **Contatti** si legge accanto al nome, con l'eta', e si puo' mettere anche
+  scrivendo un contatto a mano (li' resta facoltativa). Quando il contatto
+  diventa un nuovo, il modulo arriva con la data gia' scritta.
+
+### Corretto
+
+- **Il modulo del sito non si svuota piu' quando c'e' un errore.** Chi
+  sbagliava un solo campo — la data, il telefono — si ritrovava il modulo
+  vuoto e doveva riscrivere tutto: adesso quello che ha scritto resta, e
+  corregge solo cio' che serve.
+
 ## 2.79.6 — 22 settembre 2026
 
 ### Corretto

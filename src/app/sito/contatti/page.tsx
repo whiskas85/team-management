@@ -50,8 +50,9 @@ export default function ContattiSito() {
               <p>
                 Titolare dei dati è <strong className="text-ink/80">{ASSOCIAZIONE}</strong>, l’associazione
                 sportiva dilettantistica di cui fa parte Zero Dark Team. I dati che ci lasci — nome,
-                telefono e quello che scegli di aggiungere — li usiamo solo per ricontattarti e
-                organizzare una giornata di prova. Li vede soltanto chi
+                telefono, data di nascita e quello che scegli di aggiungere — li usiamo solo per
+                ricontattarti e organizzare una giornata di prova: la data di nascita serve per la
+                polizza assicurativa della giornata. Li vede soltanto chi
                 nella squadra segue i nuovi arrivati, e non li diamo a nessun altro. Se dopo la
                 telefonata non se ne fa niente, li cancelliamo; se decidi di venire, diventano la tua
                 scheda nella squadra. Puoi chiederci in qualsiasi momento di vederli, correggerli o

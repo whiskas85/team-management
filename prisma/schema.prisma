@@ -2257,6 +2257,9 @@ model Contatto {
   cognome      String?
   telefono     String
   email        String?
+  /// Serve prima della prima giornata: l'eta' dice se puo' giocare, e la
+  /// polizza giornaliera senza la data di nascita non si attiva.
+  dataNascita  DateTime?
   /// Da dove scrive, per sapere in che campo proporgli la prima giornata.
   zona         String?
   comeCiHaConosciuto String?

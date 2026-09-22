@@ -1,7 +1,8 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { puoVedereNuovi } from '@/lib/domain';
-import { fmtDateTime } from '@/lib/format';
+import { fmtDate, fmtDateTime } from '@/lib/format';
+import { etaCompiuta } from '@/lib/messaggi';
 import { urlTelefono, urlWhatsapp } from '@/lib/contatti';
 import { Badge, Campo, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { BottoneModale } from '@/components/Modale';
@@ -13,6 +14,16 @@ import { Icona } from '@/components/Icona';
 import { aggiungiContatto, salvaNotaContatto, scartaContatto } from '@/actions/contatti';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Una data nel formato del campo, AAAA-MM-GG, **coi giorni di qui**.
+ *
+ * La data di nascita è salvata a mezzanotte ora italiana: passarla da
+ * `toISOString` la porterebbe in UTC, cioè alle dieci di sera del giorno
+ * prima, e il modulo si aprirebbe con un giorno in meno.
+ */
+const perCampoData = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /**
  * I contatti: chi chiamare, prima che diventi un nuovo.
@@ -58,6 +69,9 @@ export default async function ContattiPage() {
                 </Campo>
                 <Campo label="Email">
                   <input name="email" type="email" className="input" />
+                </Campo>
+                <Campo label="Data di nascita">
+                  <input name="dataNascita" type="date" className="input" />
                 </Campo>
                 <Campo label="Zona">
                   <input name="zona" className="input" placeholder="Da dove viene" />
@@ -106,6 +120,7 @@ export default async function ContattiPage() {
                   <span className="num">
                     {c.origine === 'SITO' ? 'dal sito' : `scritto da ${c.creatoDa?.callsign ?? c.creatoDa?.nome ?? '—'}`}{' '}
                     · {fmtDateTime(c.creatoIl)}
+                    {c.dataNascita && ` · nato il ${fmtDate(c.dataNascita)} (${etaCompiuta(c.dataNascita)} anni)`}
                     {c.zona && ` · ${c.zona}`}
                     {c.comeCiHaConosciuto && ` · ${c.comeCiHaConosciuto}`}
                   </span>
@@ -129,6 +144,7 @@ export default async function ContattiPage() {
                       cognome: c.cognome,
                       email: c.email,
                       telefono: c.telefono,
+                      dataNascita: c.dataNascita ? perCampoData(c.dataNascita) : null,
                     }}
                   />
                 }

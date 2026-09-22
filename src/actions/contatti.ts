@@ -8,7 +8,20 @@ import { requireUser } from '@/lib/auth';
 import { puoVedereNuovi } from '@/lib/domain';
 import { avvisa, chiSegueINuovi } from '@/lib/push';
 import { numeroInternazionale } from '@/lib/contatti';
-import { bool, str, strOpt, type StatoForm } from '@/lib/form';
+import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
+
+/**
+ * Una data di nascita credibile, o niente.
+ *
+ * Il modulo del sito la chiede obbligatoria, ma un «01/01/0001» scritto per
+ * fretta o un anno nel futuro non sono una data: meglio dirlo subito a chi
+ * scrive che scoprirlo al momento della polizza.
+ */
+function nascitaCredibile(d: Date | null): boolean {
+  if (!d) return false;
+  const anni = (Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000);
+  return anni >= 5 && anni <= 100;
+}
 
 /**
  * I contatti: le persone da chiamare prima che diventino nuovi.
@@ -61,6 +74,10 @@ export async function inviaContatto(_prev: StatoForm, fd: FormData): Promise<Sta
   if (!numeroInternazionale(telefono)) {
     return { errore: 'Serve un numero di telefono valido: è lì che ti chiamiamo.' };
   }
+  const dataNascita = data(fd, 'dataNascita');
+  if (!nascitaCredibile(dataNascita)) {
+    return { errore: 'Controlla la data di nascita: ci serve per la polizza della prima giornata.' };
+  }
   if (!bool(fd, 'consenso')) {
     return { errore: 'Per poterti richiamare ci serve il tuo consenso all’informativa qui sotto.' };
   }
@@ -84,6 +101,7 @@ export async function inviaContatto(_prev: StatoForm, fd: FormData): Promise<Sta
       cognome: pulito(strOpt(fd, 'cognome'), 80),
       telefono: telefono.slice(0, 30),
       email: pulito(strOpt(fd, 'email')?.toLowerCase() ?? null, 120),
+      dataNascita,
       zona: pulito(strOpt(fd, 'zona'), 80),
       comeCiHaConosciuto: pulito(strOpt(fd, 'come'), 80),
       messaggio: pulito(strOpt(fd, 'messaggio'), 1000),
@@ -121,12 +139,18 @@ export async function aggiungiContatto(_prev: StatoForm, fd: FormData): Promise<
   const nome = str(fd, 'nome');
   const telefono = str(fd, 'telefono');
   if (!nome || !telefono) return { errore: 'Servono almeno nome e telefono.' };
+  // a mano la data è facoltativa: al telefono non sempre la si chiede subito
+  const dataNascita = data(fd, 'dataNascita');
+  if (dataNascita && !nascitaCredibile(dataNascita)) {
+    return { errore: 'La data di nascita non sembra giusta: controllala o lasciala vuota.' };
+  }
 
   await prisma.contatto.create({
     data: {
       nome,
       cognome: strOpt(fd, 'cognome'),
       telefono,
+      dataNascita,
       email: strOpt(fd, 'email')?.toLowerCase() ?? null,
       zona: strOpt(fd, 'zona'),
       comeCiHaConosciuto: strOpt(fd, 'come'),

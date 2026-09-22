@@ -105,6 +105,8 @@ export type DaContatto = {
   cognome: string | null;
   email: string | null;
   telefono: string;
+  /** Già nel formato del campo data, AAAA-MM-GG. */
+  dataNascita: string | null;
 };
 
 export function BottoneCreaOperatore({
@@ -152,8 +154,8 @@ export function BottoneCreaOperatore({
             <input type="hidden" name="contattoId" value={contatto.id} />
             <p className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2.5 text-sm">
               Da contatto a <strong className="text-ink">nuovo</strong>: salvando esce dai contatti da
-              chiamare e comincia il percorso di tutti i nuovi. Data e luogo di nascita chiedili al
-              telefono: servono per la polizza della prima giornata.
+              chiamare e comincia il percorso di tutti i nuovi. Il luogo di nascita chiedilo al
+              telefono: con la data serve per la polizza della prima giornata.
             </p>
           </>
         )}
@@ -195,7 +197,13 @@ export function BottoneCreaOperatore({
             <input name="telefono" required className="input" defaultValue={contatto?.telefono} />
           </Campo>
           <Campo label="Data di nascita *">
-            <input type="date" name="dataNascita" required className="input" />
+            <input
+              type="date"
+              name="dataNascita"
+              required
+              className="input"
+              defaultValue={contatto?.dataNascita ?? undefined}
+            />
           </Campo>
           <Campo label="Luogo di nascita *">
             <input
