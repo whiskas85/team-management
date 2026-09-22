@@ -1,6 +1,6 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { puoVedereNuovi } from '@/lib/domain';
+import { isAdmin, puoVedereNuovi } from '@/lib/domain';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { etaCompiuta } from '@/lib/messaggi';
 import { urlTelefono, urlWhatsapp } from '@/lib/contatti';
@@ -11,7 +11,13 @@ import { Invia } from '@/components/Bottone';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 import { BottoneCreaOperatore } from '@/components/FormOperatore';
 import { Icona } from '@/components/Icona';
-import { aggiungiContatto, salvaNotaContatto, scartaContatto } from '@/actions/contatti';
+import {
+  aggiungiContatto,
+  collegaSito,
+  salvaNotaContatto,
+  scartaContatto,
+  scollegaSito,
+} from '@/actions/contatti';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,12 +45,24 @@ const perCampoData = (d: Date) =>
  * contatto che ha già trovato un'altra squadra.
  */
 export default async function ContattiPage() {
-  await requirePermesso(puoVedereNuovi);
+  const me = await requirePermesso(puoVedereNuovi);
+  const admin = isAdmin(me.roles);
 
-  const contatti = await prisma.contatto.findMany({
-    orderBy: [{ chiamatoIl: { sort: 'asc', nulls: 'first' } }, { creatoIl: 'asc' }],
-    include: { creatoDa: { select: { nome: true, cognome: true, callsign: true } } },
-  });
+  const [contatti, siti] = await Promise.all([
+    prisma.contatto.findMany({
+      orderBy: [{ chiamatoIl: { sort: 'asc', nulls: 'first' } }, { creatoIl: 'asc' }],
+      include: {
+        creatoDa: { select: { nome: true, cognome: true, callsign: true } },
+        sito: { select: { nome: true } },
+      },
+    }),
+    admin
+      ? prisma.sitoCollegato.findMany({
+          orderBy: { creatoIl: 'asc' },
+          include: { _count: { select: { contatti: true } } },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const daChiamare = contatti.filter((c) => !c.chiamatoIl).length;
   const dalSito = contatti.filter((c) => c.origine === 'SITO').length;
@@ -55,6 +73,23 @@ export default async function ContattiPage() {
         titolo="Contatti"
         sottotitolo="Chi chiamare, prima che diventi un nuovo"
         azioni={
+          <>
+          {/* La porta per i siti esterni: la apre l'admin, un sito alla volta. */}
+          {admin && (
+            <BottoneModale etichetta="Collega un sito" icona="chiave" titolo="Collega un sito esterno" className="btn-ghost">
+              <FormAzione azione={collegaSito}>
+                <p className="text-sm text-muted">
+                  Un sito collegato può mandare qui i moduli «vuoi provare?» compilati da chi lo
+                  visita: arrivano fra i contatti da chiamare. Ricevi una chiave da mettere nella
+                  configurazione del sito.
+                </p>
+                <Campo label="Nome del sito *">
+                  <input name="nome" required className="input" placeholder="Sito della squadra" />
+                </Campo>
+                <Invia icona="chiave">Collega</Invia>
+              </FormAzione>
+            </BottoneModale>
+          )}
           <BottoneModale etichetta="Aggiungi contatto" icona="aggiungi" titolo="Nuovo contatto">
             <FormAzione azione={aggiungiContatto}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -86,6 +121,7 @@ export default async function ContattiPage() {
               <Invia icona="aggiungi">Aggiungi</Invia>
             </FormAzione>
           </BottoneModale>
+          </>
         }
       />
 
@@ -118,7 +154,9 @@ export default async function ContattiPage() {
                 }
                 sottotitolo={
                   <span className="num">
-                    {c.origine === 'SITO' ? 'dal sito' : `scritto da ${c.creatoDa?.callsign ?? c.creatoDa?.nome ?? '—'}`}{' '}
+                    {c.origine === 'SITO'
+                      ? `dal sito${c.sito ? ` · ${c.sito.nome}` : ''}`
+                      : `scritto da ${c.creatoDa?.callsign ?? c.creatoDa?.nome ?? '—'}`}{' '}
                     · {fmtDateTime(c.creatoIl)}
                     {c.dataNascita && ` · nato il ${fmtDate(c.dataNascita)} (${etaCompiuta(c.dataNascita)} anni)`}
                     {c.zona && ` · ${c.zona}`}
@@ -195,6 +233,42 @@ export default async function ContattiPage() {
               </CardRiga>
             );
           })}
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- siti collegati */}
+      {admin && (
+        <div className="card mt-8">
+          <p className="titolo-sezione mb-3">Siti collegati</p>
+          {siti.length === 0 ? (
+            <p className="text-sm text-muted">
+              Nessun sito collegato: i contatti si aggiungono solo a mano. «Collega un sito» apre la
+              porta a un sito esterno.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {siti.map((s) => (
+                <li key={s.id} className="flex items-center gap-3 text-sm">
+                  <Icona nome="chiave" size={15} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{s.nome}</p>
+                    <p className="text-[11px] text-muted num">
+                      {s.prefisso}… · collegato il {fmtDate(s.creatoIl)} ·{' '}
+                      {s.ultimoUsoIl ? `ultimo modulo ${fmtDateTime(s.ultimoUsoIl)}` : 'mai usato'} ·{' '}
+                      {s._count.contatti} {s._count.contatti === 1 ? 'contatto' : 'contatti'}
+                    </p>
+                  </div>
+                  <BottoneElimina
+                    azione={scollegaSito}
+                    valori={{ id: s.id }}
+                    conferma={`Scollegare «${s.nome}»? La sua chiave smette di valere subito; i contatti già arrivati restano.`}
+                    etichetta={`Scollega ${s.nome}`}
+                    piccolo
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

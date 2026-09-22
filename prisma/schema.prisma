@@ -242,6 +242,7 @@ model User {
   consegneBacheca       ConsegnaBacheca[]       @relation("ConsegneBacheca")
   allegatiBacheca       AllegatoBacheca[]       @relation("AllegatiBacheca")
   contattiScritti       Contatto[]              @relation("ContattiScritti")
+  sitiCollegati         SitoCollegato[]         @relation("SitiCollegati")
   gettoniAccesso        GettoneAccesso[]        @relation("GettoniDi")
   gettoniConsegnati     GettoneAccesso[]        @relation("GettoniCreati")
   allegatiCaricati      AllegatoEvento[]        @relation("AllegatiCaricati")
@@ -2278,7 +2279,29 @@ model Contatto {
   creatoIl     DateTime        @default(now())
   creatoDaId   String?
   creatoDa     User?           @relation("ContattiScritti", fields: [creatoDaId], references: [id], onDelete: SetNull)
+  /// Il sito esterno da cui e' arrivato, se e' arrivato da uno.
+  sitoId       String?
+  sito         SitoCollegato?  @relation(fields: [sitoId], references: [id], onDelete: SetNull)
 
   @@index([creatoIl])
   @@index([impronta, creatoIl])
+}
+
+/// Un sito esterno che puo' mandare contatti al gestionale.
+///
+/// La porta si apre da qui, un sito alla volta: il sito riceve una chiave e la
+/// usa per consegnare i moduli «vuoi provare?» compilati da chi lo visita.
+/// Come per le chiavi dell'assistente, qui resta solo l'impronta: chi perde la
+/// chiave scollega il sito e ne fa una nuova.
+model SitoCollegato {
+  id          String     @id
+  /// Come lo si riconosce: «Sito della squadra», «Pagina dell'evento».
+  nome        String
+  hash        String
+  prefisso    String
+  creatoIl    DateTime   @default(now())
+  creatoDaId  String?
+  creatoDa    User?      @relation("SitiCollegati", fields: [creatoDaId], references: [id], onDelete: SetNull)
+  ultimoUsoIl DateTime?
+  contatti    Contatto[]
 }

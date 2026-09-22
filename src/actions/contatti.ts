@@ -1,27 +1,13 @@
 'use server';
 
-import { createHash } from 'node:crypto';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { puoVedereNuovi } from '@/lib/domain';
-import { avvisa, chiSegueINuovi } from '@/lib/push';
-import { numeroInternazionale } from '@/lib/contatti';
+import { accogliContatto, nascitaCredibile, nuovaChiaveSito } from '@/lib/contatti-esterni';
+import { isAdmin } from '@/lib/domain';
 import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
-
-/**
- * Una data di nascita credibile, o niente.
- *
- * Il modulo del sito la chiede obbligatoria, ma un «01/01/0001» scritto per
- * fretta o un anno nel futuro non sono una data: meglio dirlo subito a chi
- * scrive che scoprirlo al momento della polizza.
- */
-function nascitaCredibile(d: Date | null): boolean {
-  if (!d) return false;
-  const anni = (Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000);
-  return anni >= 5 && anni <= 100;
-}
 
 /**
  * I contatti: le persone da chiamare prima che diventino nuovi.
@@ -36,8 +22,6 @@ function aggiorna() {
   // il pallino nel menu
   revalidatePath('/', 'layout');
 }
-
-const pulito = (v: string | null, max: number) => (v ? v.slice(0, max) : null);
 
 // ------------------------------------------------------------- dal sito
 
@@ -68,57 +52,25 @@ export async function inviaContatto(_prev: StatoForm, fd: FormData): Promise<Sta
   const aperto = Number(str(fd, 'aperto'));
   if (!aperto || Date.now() - aperto < 3000) return grazie;
 
-  const nome = str(fd, 'nome');
-  const telefono = str(fd, 'telefono');
-  if (!nome) return { errore: 'Scrivi come ti chiami.' };
-  if (!numeroInternazionale(telefono)) {
-    return { errore: 'Serve un numero di telefono valido: è lì che ti chiamiamo.' };
-  }
-  const dataNascita = data(fd, 'dataNascita');
-  if (!nascitaCredibile(dataNascita)) {
-    return { errore: 'Controlla la data di nascita: ci serve per la polizza della prima giornata.' };
-  }
-  if (!bool(fd, 'consenso')) {
-    return { errore: 'Per poterti richiamare ci serve il tuo consenso all’informativa qui sotto.' };
-  }
-
   const h = await headers();
-  const ip = (h.get('x-real-ip') ?? h.get('x-forwarded-for') ?? '').split(',')[0].trim();
-  const impronta = ip
-    ? createHash('sha256').update(`${process.env.SESSION_SECRET ?? ''}:${ip}`).digest('hex').slice(0, 32)
-    : null;
+  const ip = (h.get('x-real-ip') ?? h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
 
-  const unOraFa = new Date(Date.now() - 60 * 60 * 1000);
-  const [daQui, inTutto] = await Promise.all([
-    impronta ? prisma.contatto.count({ where: { impronta, creatoIl: { gte: unOraFa } } }) : 0,
-    prisma.contatto.count({ where: { origine: 'SITO', creatoIl: { gte: unOraFa } } }),
-  ]);
-  if (daQui >= 3 || inTutto >= 30) return grazie;
-
-  const contatto = await prisma.contatto.create({
-    data: {
-      nome: nome.slice(0, 80),
-      cognome: pulito(strOpt(fd, 'cognome'), 80),
-      telefono: telefono.slice(0, 30),
-      email: pulito(strOpt(fd, 'email')?.toLowerCase() ?? null, 120),
-      dataNascita,
-      zona: pulito(strOpt(fd, 'zona'), 80),
-      comeCiHaConosciuto: pulito(strOpt(fd, 'come'), 80),
-      messaggio: pulito(strOpt(fd, 'messaggio'), 1000),
-      origine: 'SITO',
-      consensoIl: new Date(),
-      impronta,
+  // le regole stanno in lib/contatti-esterni, le stesse per ogni sito collegato
+  const esito = await accogliContatto(
+    {
+      nome: str(fd, 'nome'),
+      cognome: str(fd, 'cognome'),
+      telefono: str(fd, 'telefono'),
+      email: str(fd, 'email'),
+      dataNascita: str(fd, 'dataNascita'),
+      zona: str(fd, 'zona'),
+      come: str(fd, 'come'),
+      messaggio: str(fd, 'messaggio'),
+      consenso: bool(fd, 'consenso'),
     },
-  });
-
-  // chi segue i nuovi lo sa subito: un contatto richiamato il giorno stesso
-  // è un contatto che viene alla prima giornata
-  await avvisa(await chiSegueINuovi(), {
-    titolo: 'Un nuovo contatto dal sito',
-    testo: `${contatto.nome}${contatto.zona ? ` · ${contatto.zona}` : ''}: da chiamare`,
-    url: '/admin/contatti',
-    tag: `contatto-${contatto.id}`,
-  }).catch(() => {});
+    { ip, sitoId: null },
+  );
+  if (!esito.ok) return { errore: esito.errore };
 
   aggiorna();
   return grazie;
@@ -197,4 +149,47 @@ export async function scartaContatto(_prev: StatoForm, fd: FormData): Promise<St
   await prisma.contatto.delete({ where: { id: str(fd, 'id') } }).catch(() => null);
   aggiorna();
   return { ok: 'Contatto scartato: i suoi dati sono stati cancellati.' };
+}
+
+// ------------------------------------------------------------ siti collegati
+
+/**
+ * Collega un sito esterno: gli dà una chiave per consegnare i contatti.
+ *
+ * Lo fa l'admin, perché è una porta aperta verso l'esterno. La chiave si vede
+ * una volta sola, in chiaro, insieme all'indirizzo a cui mandare i moduli:
+ * nel gestionale ne resta soltanto l'impronta.
+ */
+export async function collegaSito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'I siti li collega l’admin.' };
+
+  const nome = str(fd, 'nome');
+  if (!nome) return { errore: 'Dai un nome al sito: «Sito della squadra», «Pagina dell’evento»…' };
+
+  const nuova = nuovaChiaveSito();
+  await prisma.sitoCollegato.create({
+    data: { id: nuova.id, nome, hash: nuova.hash, prefisso: nuova.prefisso, creatoDaId: me.id },
+  });
+
+  // l'indirizzo com'è visto da chi sta guardando la pagina: dietro il proxy
+  // sono le intestazioni inoltrate a dire quello vero
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+
+  aggiorna();
+  return {
+    ok: 'Sito collegato.',
+    chiaveSito: { nome, chiave: nuova.chiave, indirizzo: `${proto}://${host}/api/contatti` },
+  };
+}
+
+/** Scollega un sito: la sua chiave smette di valere subito. I contatti arrivati restano. */
+export async function scollegaSito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'I siti li scollega l’admin.' };
+  await prisma.sitoCollegato.delete({ where: { id: str(fd, 'id') } }).catch(() => null);
+  aggiorna();
+  return { ok: 'Sito scollegato: la sua chiave non vale più.' };
 }

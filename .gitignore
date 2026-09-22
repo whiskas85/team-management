@@ -19,3 +19,7 @@ certificati/openssl.cnf
 # repository, e non si pubblicano da nessuna parte.
 backup/
 *.sql.gz
+
+# I siti che questa macchina serve oltre al gestionale: sono di questa
+# installazione, non del gestionale.
+siti/

@@ -5,6 +5,7 @@ import { Icona, type NomeIcona } from './Icona';
 import { useModale } from './Modale';
 import { Credenziali } from './Credenziali';
 import { ChiaveMcp } from './ChiaveMcp';
+import { ChiaveSito } from './ChiaveSito';
 import type { StatoForm } from '@/lib/form';
 
 type Azione = (prev: StatoForm, fd: FormData) => Promise<StatoForm>;
@@ -33,8 +34,10 @@ export function FormAzione({
 
   // salvato: la finestra si chiude da sola sui dati ormai aggiornati
   useEffect(() => {
-    if (stato.ok && modale && !restaAperto && !stato.credenziali && !stato.chiave) modale.chiudi();
-  }, [stato.ok, stato.credenziali, stato.chiave, modale, restaAperto]);
+    if (stato.ok && modale && !restaAperto && !stato.credenziali && !stato.chiave && !stato.chiaveSito) {
+      modale.chiudi();
+    }
+  }, [stato.ok, stato.credenziali, stato.chiave, stato.chiaveSito, modale, restaAperto]);
 
   return (
     <form action={action} className={className}>
@@ -62,6 +65,13 @@ export function FormAzione({
       {/* chiave per un assistente: stessa logica, si vede una volta sola */}
       {stato.chiave && (
         <ChiaveMcp nome={stato.chiave.nome} token={stato.chiave.token} indirizzo={indirizzo} />
+      )}
+      {stato.chiaveSito && (
+        <ChiaveSito
+          nome={stato.chiaveSito.nome}
+          chiave={stato.chiaveSito.chiave}
+          indirizzo={stato.chiaveSito.indirizzo}
+        />
       )}
       {children}
     </form>

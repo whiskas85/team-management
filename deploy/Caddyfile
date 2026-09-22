@@ -70,3 +70,8 @@
 {$DOMINIO_RADICE:zerodarkteam.it} {
 	redir https://{$DOMINIO_SITO:www.zerodarkteam.it}{uri} permanent
 }
+
+# Gli altri siti che questa macchina serve oltre al gestionale: un file .caddy
+# per sito nella cartella siti/ del server, fuori dal repository. Se non ce ne
+# sono, non succede niente.
+import /etc/caddy/siti/*.caddy

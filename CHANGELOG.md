@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.80.0 — 22 settembre 2026
+
+### Aggiunto
+
+- **La porta per i siti esterni.** In Contatti l'admin ha **Collega un
+  sito**: da' un nome al sito, riceve una chiave e l'indirizzo a cui mandare i
+  moduli «vuoi provare?». I contatti che arrivano cosi' finiscono fra quelli da
+  chiamare, col nome del sito da cui sono partiti. In fondo alla pagina
+  l'elenco dei siti collegati — ultimo modulo, quanti contatti — e **Scollega**,
+  che fa smettere di valere la chiave all'istante.
+  - La chiave si vede una volta sola e nel gestionale ne resta l'impronta,
+    come per le chiavi dell'assistente. Va usata da server a server, mai in una
+    pagina.
+  - Le regole — cosa serve, le date impossibili, il tetto di moduli all'ora —
+    sono le stesse del modulo di oggi, scritte una volta sola.
+- **Il proxy serve anche altri siti della stessa macchina**, da una cartella
+  del server fuori dal repository: e' il posto dove andra' il sito della
+  squadra quando uscira' dal gestionale.
+- **`TODO.md`**: cosa serve per poter vendere OPS ad altre squadre — il
+  controllo dei nomi scritti nel codice, il tema modificabile con un tema
+  neutro di prova, i portali federali configurabili, una pagina di
+  configurazione. Da fare, non ancora fatto.
+
 ## 2.79.9 — 22 settembre 2026
 
 ### Aggiunto

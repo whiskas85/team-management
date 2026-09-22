@@ -26,6 +26,8 @@ export type StatoForm = {
    * ricopiata a mano — sono trentadue caratteri casuali.
    */
   chiave?: { nome: string; token: string };
+  /** La chiave di un sito appena collegato: si vede una volta, come l'altra. */
+  chiaveSito?: { nome: string; chiave: string; indirizzo: string };
 };
 
 export const str = (fd: FormData, k: string): string => (fd.get(k)?.toString() ?? '').trim();

@@ -118,6 +118,9 @@ services:
       TZ: ${TZ:-Europe/Rome}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # altri siti serviti dalla stessa macchina (es. il sito della squadra):
+      # un file .caddy per sito, sul server e fuori dal repository
+      - ./siti:/etc/caddy/siti:ro
       # i certificati ottenuti: senza questo volume, ogni riavvio ne
       # richiederebbe di nuovi e Let's Encrypt ha un limite settimanale
       - caddy-dati:/data
