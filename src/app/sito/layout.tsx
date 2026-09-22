@@ -15,7 +15,7 @@ import { LinkIcona } from './IconaLink';
 export const metadata: Metadata = {
   title: { default: 'Zero Dark Team · Softair tattico', template: '%s · Zero Dark Team' },
   description:
-    'Zero Dark Team: squadra di softair tattico. Pattuglie a corto e lungo raggio, milsim, cartografia e ATAK. Vieni a provare una giornata con noi.',
+    'Zero Dark Team: squadra di softair tattico di Torino, in gara in tutta Italia. Pattuglie a corto e lungo raggio, milsim, cartografia e ATAK. Vieni a provare una giornata con noi.',
   openGraph: {
     title: 'Zero Dark Team',
     description: 'Softair tattico: pattuglie, milsim, cartografia, ATAK. Going dark.',

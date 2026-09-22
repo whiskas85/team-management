@@ -20,7 +20,7 @@ export const LINK_SOCIAL: (Link & { descrizione: string })[] = [
 /** Tre numeri su di noi, sotto «chi siamo»: si leggono prima del testo. */
 export const FATTI = [
   { valore: '2024', testo: 'l’anno in cui è nata la squadra' },
-  { valore: 'Piemonte', testo: 'il territorio dove giochiamo' },
+  { valore: 'Torino', testo: 'dove giochiamo; per le gare, tutta Italia' },
   { valore: '2 settimane', testo: 'ogni quanto ci alleniamo, più gare, corsi ed eventi' },
 ];
 

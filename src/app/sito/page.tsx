@@ -92,9 +92,9 @@ export default async function HomeSito() {
             Una squadra, <span className="text-nvg">prima di tutto</span>
           </Titolo>
           <p className="mb-10 max-w-3xl text-lg text-ink/80">
-            Zero Dark Team è una squadra di softair tattico nata nel 2024 e attiva sul territorio
-            piemontese. Ci alleniamo ogni due settimane, e in mezzo ci sono le gare, i corsi e gli
-            eventi. Ci unisce la voglia di preparare le cose per bene e di farle insieme: studiare la
+            Zero Dark Team è una squadra di softair tattico nata nel 2024 a Torino. Giochiamo qui, e
+            per le gare giriamo tutta Italia. Ci alleniamo ogni due settimane, e in mezzo ci sono le
+            gare, i corsi e gli eventi. Ci unisce la voglia di preparare le cose per bene e di farle insieme: studiare la
             carta prima di partire, parlarsi via radio, arrivare all’obiettivo senza farsi vedere. Il
             resto — l’attrezzatura, i campi, le classifiche — viene dopo.
           </p>

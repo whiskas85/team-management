@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.8 — 22 settembre 2026
+
+### Cambiato
+
+- **Sul sito, dove giochiamo: Torino, e per le gare tutta Italia**, nel testo
+  di «Chi siamo», nei tre numeri e nella descrizione che leggono i motori di
+  ricerca.
+
 ## 2.79.7 — 22 settembre 2026
 
 ### Aggiunto
