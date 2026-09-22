@@ -327,5 +327,5 @@ www rimanda a `www`.
 
 I testi del sito stanno in `src/app/sito/contenuti.ts`; le foto delle missioni
 si mettono in `public/sito/` con il nome scritto lì (`pcr.jpg`, `plr.jpg`,
-`milsim.jpg`, `corsi.jpg`). Finché la foto non c'è, al suo posto si vede una
+`milsim.jpg`, `cqb.jpg`, `sniper.jpg`, `corsi.jpg`). Finché la foto non c'è, al suo posto si vede una
 carta topografica disegnata.

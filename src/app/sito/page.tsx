@@ -165,7 +165,14 @@ export default async function HomeSito() {
                   className="aspect-[3/2] rounded-lg border border-line"
                 />
                 <div>
-                  <p className="font-mono text-4xl font-bold tracking-tight text-nvg md:text-5xl">{a.sigla}</p>
+                  {/* le sigle lunghe (SNIPER & SPOTTER) scendono di misura per stare in riga */}
+                  <p
+                    className={`font-mono font-bold tracking-tight text-nvg ${
+                      a.sigla.length > 8 ? 'text-3xl md:text-4xl' : 'text-4xl md:text-5xl'
+                    }`}
+                  >
+                    {a.sigla}
+                  </p>
                   <h3 className="mt-1 text-lg uppercase tracking-[0.15em] text-ink/90">{a.nome}</h3>
                   <p className="mt-4 text-ink/75">{a.testo}</p>
                 </div>

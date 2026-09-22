@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.9 — 22 settembre 2026
+
+### Aggiunto
+
+- **Fra le ambizioni del sito, CQB e Sniper & Spotter**, accanto a PCR, PLR e
+  MILSIM: il combattimento negli spazi stretti, e la coppia di precisione
+  fatta di chi osserva e chi esegue. Come le altre hanno la loro carta
+  disegnata, finche' non arrivano le foto (`cqb.jpg`, `sniper.jpg`).
+
 ## 2.79.8 — 22 settembre 2026
 
 ### Cambiato

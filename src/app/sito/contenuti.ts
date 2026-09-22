@@ -108,6 +108,22 @@ export const AMBIZIONI = [
       'Eventi di più giorni con scenari realistici: catena di comando, ruoli, logistica, briefing e debriefing. Si vive in campo, si pianifica e si esegue come un’unità vera.',
   },
   {
+    sigla: 'CQB',
+    nome: 'Close Quarter Battle',
+    foto: 'cqb.jpg',
+    codice: 'CQB · ROOM CLEARING',
+    testo:
+      'Il combattimento negli spazi stretti: edifici, stanze, corridoi. Ingresso, bonifica degli ambienti, controllo degli angoli, coppie che si coprono a vicenda e comunicazione ridotta all’essenziale. Velocità controllata e disciplina: qui un passo sbagliato si paga subito.',
+  },
+  {
+    sigla: 'SNIPER & SPOTTER',
+    nome: 'La coppia di precisione',
+    foto: 'sniper.jpg',
+    codice: 'RECON · SNIPER TEAM',
+    testo:
+      'Due persone, un lavoro solo. Lo spotter osserva, trova il bersaglio, stima distanza e vento e guida; lo sniper esegue. Mimetismo, pazienza, lettura del terreno e ore di silenzio in appostamento: si vince senza farsi vedere.',
+  },
+  {
     sigla: 'CORSI',
     nome: 'Formazione interna',
     foto: 'corsi.jpg',
