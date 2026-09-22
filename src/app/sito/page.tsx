@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { percorsoSito } from '@/lib/sito';
 import { AFFILIAZIONI, AMBIZIONI, FATTI, INTERESSI, LINK_SOCIAL, VALORI } from './contenuti';
 import { Scena } from './Scena';
+import { LinkIcona } from './IconaLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,9 +33,18 @@ export default async function HomeSito() {
   return (
     <>
       {/* ---------------------------------------------------------------- hero */}
-      <section className="relative flex min-h-[100dvh] items-center pt-16">
-        <Scena nome="zero-dark" alt="" className="absolute inset-0 opacity-70" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#050605_75%)]" />
+      <section className="relative flex min-h-[100dvh] items-center overflow-hidden pt-16">
+        {/* La copertina: la squadra al visore notturno, sotto le stelle. Il
+            verde è già quello del sito. Due veli la scuriscono dove c'è da
+            leggere — a sinistra il testo, in basso il passaggio alla pagina. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/sito/copertina.webp"
+          alt="La squadra Zero Dark in pattuglia, di notte, vista al visore notturno"
+          className="absolute inset-0 h-full w-full object-cover object-[65%_center]"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-bg via-bg/75 to-bg/10" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
 
         {/* gli angoli del mirino, come nel visore */}
         <div className="pointer-events-none absolute inset-6 hidden md:block">
@@ -45,7 +55,7 @@ export default async function HomeSito() {
           <span className="absolute bottom-2 left-12 font-mono text-[10px] tracking-[0.3em] text-nvg/70">00:30 · GOING DARK</span>
         </div>
 
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-[1fr_auto] md:px-8">
+        <div className="relative mx-auto w-full max-w-6xl px-4 md:px-8">
           <div>
             <p className="mb-4 font-mono text-xs uppercase tracking-[0.4em] text-nvg">Softair tattico</p>
             <h1 className="text-5xl font-bold uppercase leading-[0.95] tracking-tight md:text-7xl">
@@ -72,12 +82,6 @@ export default async function HomeSito() {
               </a>
             </div>
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.jpg"
-            alt="Il logo di Zero Dark Team"
-            className="mx-auto w-56 rounded-full shadow-nvg md:w-80"
-          />
         </div>
       </section>
 
@@ -198,15 +202,7 @@ export default async function HomeSito() {
                 {f.testo && <p className="mt-4 text-sm text-ink/75">{f.testo}</p>}
                 <div className="mt-auto flex flex-wrap gap-2 pt-5">
                   {f.link.map((l) => (
-                    <a
-                      key={l.url}
-                      href={l.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded border border-line px-2.5 py-1 text-xs text-ink/80 hover:border-nvg hover:text-nvg"
-                    >
-                      {l.testo}
-                    </a>
+                    <LinkIcona key={l.url} tipo={l.tipo} url={l.url} descrizione={f.sigla} />
                   ))}
                 </div>
               </div>
@@ -228,15 +224,7 @@ export default async function HomeSito() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               {LINK_SOCIAL.map((l) => (
-                <a
-                  key={l.url}
-                  href={l.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-md border border-line px-4 py-2.5 text-sm hover:border-nvg hover:text-nvg"
-                >
-                  {l.testo}
-                </a>
+                <LinkIcona key={l.url} tipo={l.tipo} url={l.url} descrizione={l.descrizione} grande />
               ))}
             </div>
           </div>

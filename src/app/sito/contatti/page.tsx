@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ASSOCIAZIONE, LINK_SOCIAL } from '../contenuti';
 import { Scena } from '../Scena';
+import { LinkIcona } from '../IconaLink';
 import { ModuloContatto } from './ModuloContatto';
 
 export const metadata: Metadata = {
@@ -71,15 +72,11 @@ export default function ContattiSito() {
             </ol>
             <div>
               <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.3em] text-muted">Oppure seguici</p>
-              <ul className="space-y-2 text-sm">
+              <div className="flex gap-2">
                 {LINK_SOCIAL.map((l) => (
-                  <li key={l.url}>
-                    <a href={l.url} target="_blank" rel="noreferrer" className="hover:text-nvg">
-                      {l.testo}
-                    </a>
-                  </li>
+                  <LinkIcona key={l.url} tipo={l.tipo} url={l.url} descrizione={l.descrizione} />
                 ))}
-              </ul>
+              </div>
             </div>
           </aside>
         </div>

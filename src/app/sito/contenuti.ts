@@ -7,9 +7,14 @@
  * sezione: se il file c'è si vede la foto, altrimenti un disegno al suo posto.
  */
 
-export const LINK_SOCIAL = [
-  { testo: 'Instagram · @zero.dark.team', url: 'https://www.instagram.com/zero.dark.team/' },
-  { testo: 'YouTube · SAT & Gaming', url: 'https://www.youtube.com/@SATgaming1' },
+import type { TipoLink } from './IconaLink';
+
+type Link = { tipo: TipoLink; url: string };
+
+/** I nostri canali. `descrizione` finisce nel titolo dell'icona: di chi è il canale. */
+export const LINK_SOCIAL: (Link & { descrizione: string })[] = [
+  { tipo: 'instagram', descrizione: '@zero.dark.team', url: 'https://www.instagram.com/zero.dark.team/' },
+  { tipo: 'youtube', descrizione: 'SAT & Gaming', url: 'https://www.youtube.com/@SATgaming1' },
 ];
 
 /** Tre numeri su di noi, sotto «chi siamo»: si leggono prima del testo. */
@@ -126,18 +131,18 @@ export const AFFILIAZIONI = [
     logo: { file: 'figt.webp', chiaro: false },
     testo: 'La federazione del softair in Italia: regolamenti, campionati PCR e PLR, tesseramento.',
     link: [
-      { testo: 'Documenti', url: 'https://www.figt.it/documenti-figt-asnwg/' },
-      { testo: 'Facebook', url: 'https://www.facebook.com/figt.it/?locale=it_IT' },
-      { testo: 'Instagram', url: 'https://www.instagram.com/figtasnwg/' },
-      { testo: 'YouTube', url: 'https://www.youtube.com/channel/UCJUQKzB4ydwMnJ5XsWs8Hsg' },
-    ],
+      { tipo: 'documenti', url: 'https://www.figt.it/documenti-figt-asnwg/' },
+      { tipo: 'facebook', url: 'https://www.facebook.com/figt.it/?locale=it_IT' },
+      { tipo: 'instagram', url: 'https://www.instagram.com/figtasnwg/' },
+      { tipo: 'youtube', url: 'https://www.youtube.com/channel/UCJUQKzB4ydwMnJ5XsWs8Hsg' },
+    ] as Link[],
   },
   {
     sigla: 'CORP',
     nome: 'Comitato Regionale Piemonte · FIGT',
     logo: { file: 'corp.webp', chiaro: false },
     testo: 'Il comitato regionale della FIGT: il riferimento delle squadre piemontesi.',
-    link: [{ testo: 'Facebook', url: 'https://www.facebook.com/corpfigt' }],
+    link: [{ tipo: 'facebook', url: 'https://www.facebook.com/corpfigt' }] as Link[],
   },
   {
     sigla: 'ACSI',
@@ -146,9 +151,9 @@ export const AFFILIAZIONI = [
     logo: { file: 'acsi.webp', chiaro: true },
     testo: 'L’ente di promozione sportiva a cui siamo affiliati.',
     link: [
-      { testo: 'Sito', url: 'https://www.acsi.it/' },
-      { testo: 'Facebook', url: 'https://www.facebook.com/acsi1960/?locale=it_IT' },
-      { testo: 'Instagram', url: 'https://www.instagram.com/acsisocial/' },
-    ],
+      { tipo: 'sito', url: 'https://www.acsi.it/' },
+      { tipo: 'facebook', url: 'https://www.facebook.com/acsi1960/?locale=it_IT' },
+      { tipo: 'instagram', url: 'https://www.instagram.com/acsisocial/' },
+    ] as Link[],
   },
 ];

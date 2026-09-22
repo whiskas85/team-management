@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { INDIRIZZO_GESTIONALE, percorsoSito } from '@/lib/sito';
 import { ASSOCIAZIONE, LINK_SOCIAL } from './contenuti';
+import { LinkIcona } from './IconaLink';
 
 /**
  * Il sito pubblico della squadra: la vetrina, non il gestionale.
@@ -86,15 +87,11 @@ export default async function LayoutSito({ children }: { children: React.ReactNo
           </div>
           <div className="text-sm text-muted">
             <p className="mb-2 text-xs uppercase tracking-[0.2em] text-ink">Seguici</p>
-            <ul className="space-y-1">
+            <div className="flex gap-2">
               {LINK_SOCIAL.map((l) => (
-                <li key={l.url}>
-                  <a href={l.url} target="_blank" rel="noreferrer" className="hover:text-nvg">
-                    {l.testo}
-                  </a>
-                </li>
+                <LinkIcona key={l.url} tipo={l.tipo} url={l.url} descrizione={l.descrizione} />
               ))}
-            </ul>
+            </div>
           </div>
           <div className="text-sm text-muted md:text-right">
             <Link href={a('/contatti')} className="block hover:text-nvg">

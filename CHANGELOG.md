@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.5 — 22 settembre 2026
+
+### Cambiato
+
+- **Il sito ha la sua copertina**: la squadra in pattuglia sotto le stelle,
+  vista al visore notturno. Il verde della foto e' quello del sito; il testo
+  sta a sinistra, dove il cielo e' piu' scuro, e il logo resta nella testata.
+- **I link a Facebook, Instagram, YouTube e ai siti sono solo icone**, nelle
+  affiliazioni, fra i nostri link, nella pagina contatti e in fondo alla
+  pagina. Al passaggio del mouse dicono dove portano.
+
 ## 2.79.4 — 22 settembre 2026
 
 ### Aggiunto
