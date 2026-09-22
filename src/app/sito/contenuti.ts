@@ -122,7 +122,8 @@ export const ASSOCIAZIONE = 'SAT & Gaming ASD';
 export const AFFILIAZIONI = [
   {
     sigla: 'FIGT',
-    nome: 'Federazione Italiana Gioco Tattico · ASNWG',
+    nome: 'Federazione Italiana Giochi Tattici · ASNWG',
+    logo: { file: 'figt.webp', chiaro: false },
     testo: 'La federazione del softair in Italia: regolamenti, campionati PCR e PLR, tesseramento.',
     link: [
       { testo: 'Documenti', url: 'https://www.figt.it/documenti-figt-asnwg/' },
@@ -134,12 +135,15 @@ export const AFFILIAZIONI = [
   {
     sigla: 'CORP',
     nome: 'Comitato Regionale Piemonte · FIGT',
+    logo: { file: 'corp.webp', chiaro: false },
     testo: 'Il comitato regionale della FIGT: il riferimento delle squadre piemontesi.',
     link: [{ testo: 'Facebook', url: 'https://www.facebook.com/corpfigt' }],
   },
   {
     sigla: 'ACSI',
     nome: 'Associazione Centri Sportivi Italiani',
+    // il logo nasce su un quadrato bianco: su fondo scuro gli serve la sua piastrina
+    logo: { file: 'acsi.webp', chiaro: true },
     testo: 'L’ente di promozione sportiva a cui siamo affiliati.',
     link: [
       { testo: 'Sito', url: 'https://www.acsi.it/' },

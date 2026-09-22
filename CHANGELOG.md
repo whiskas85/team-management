@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.79.4 — 22 settembre 2026
+
+### Aggiunto
+
+- **Sul sito, i loghi delle affiliazioni**: FIGT, Comitato Regionale Piemonte
+  (CO.R.P.) e ACSI hanno il loro stemma in cima alla scheda. Il nome della
+  FIGT e' corretto: Federazione Italiana Giochi Tattici.
+
 ## 2.79.3 — 22 settembre 2026
 
 ### Aggiunto

@@ -180,6 +180,19 @@ export default async function HomeSito() {
           <div className="grid gap-4 md:grid-cols-3">
             {AFFILIAZIONI.map((f) => (
               <div key={f.sigla} className="flex flex-col rounded-lg border border-line bg-surface p-6">
+                <div
+                  className={`mb-5 flex h-28 items-center justify-center rounded-md ${
+                    f.logo.chiaro ? 'bg-white p-2' : 'bg-bg/60 p-3'
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/sito/${f.logo.file}`}
+                    alt={`Logo ${f.sigla}`}
+                    className="h-full w-auto object-contain"
+                    loading="lazy"
+                  />
+                </div>
                 <p className="text-3xl font-bold tracking-tight">{f.sigla}</p>
                 <p className="mt-1 text-xs uppercase tracking-[0.15em] text-muted">{f.nome}</p>
                 {f.testo && <p className="mt-4 text-sm text-ink/75">{f.testo}</p>}
