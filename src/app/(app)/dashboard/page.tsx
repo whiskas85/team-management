@@ -87,6 +87,11 @@ export default async function DashboardPage({
   // gli si dice che manca. Se l'ha caricato lo stesso, lo vede come tutti.
   const chiediCertificato = devePortareCertificato(me.roles) || !!certAttuale;
   const daPagare = pagamenti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
+  // L'avviso in cima dice cosa devo fare io: una quota che ho già segnalato
+  // come pagata aspetta la cassa, non me. Il riquadro «Da saldare» più sotto
+  // invece la conta finché non è verificata, come l'elenco dei pagamenti.
+  const daFare = pagamenti.filter((p) => !p.dichiaratoIl);
+  const daPagareIo = daFare.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
 
   // riquadri di back office, in base agli incarichi
   const amministra = puoAmministrare(me.roles);
@@ -217,10 +222,10 @@ export default async function DashboardPage({
               azione="Rinnova"
             />
           )}
-        {daPagare > 0 && (
+        {daPagareIo > 0 && (
           <Avviso
             tono="warn"
-            testo={`Hai ${fmtEuro(daPagare)} da saldare su ${pagamenti.length} voci.`}
+            testo={`Hai ${fmtEuro(daPagareIo)} da saldare su ${daFare.length} ${daFare.length === 1 ? 'voce' : 'voci'}.`}
             href="/pagamenti"
             azione="Vedi"
           />

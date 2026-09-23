@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.84.2 — 23 settembre 2026
+
+### Corretto
+
+- **Una quota segnalata come pagata esce dal pallino.** Premuto «Ho pagato»,
+  per chi paga e' fatta: il pallino su «Miei pagamenti» e l'avviso giallo in
+  home non la contano piu'. Nell'elenco dei pagamenti resta, «in verifica»,
+  finche' chi tiene la cassa non la conferma.
+- **Il pallino della cassa si accende solo quando c'e' da fare.** Per chi
+  gestisce una cassa conta le quote segnalate come pagate da verificare, e i
+  rimborsi chiesti da dare. Le quote che nessuno ha ancora pagato non lo
+  accendono piu': lo tenevano acceso sempre, e non diceva niente.
+
 ## 2.84.1 — 23 settembre 2026
 
 ### Corretto

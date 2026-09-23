@@ -120,12 +120,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Quello che devo io: senza il pallino, una quota appena addebitata resta
   // invisibile finché non si apre la pagina per caso. I rimborsi non contano —
-  // sono soldi in arrivo, non una cosa da fare.
+  // sono soldi in arrivo, non una cosa da fare. E non conta nemmeno quella che
+  // ho già segnalato come pagata: per me è fatta, aspetta solo la verifica di
+  // chi tiene la cassa. Nell'elenco resta finché non la conferma lui; dal
+  // pallino esce subito, perché il pallino dice cosa devo fare io.
   const mieiPagamentiAperti = await prisma.payment.count({
     where: {
       userId: utente.id,
       status: { in: ['DA_PAGARE', 'PARZIALE'] },
       tipo: { not: 'RIMBORSO' },
+      dichiaratoIl: null,
     },
   });
 
@@ -336,16 +340,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     select: { id: true, nome: true },
   });
   if (mieCasse.length > 0) {
-    // Il pallino conta le righe ancora aperte della cassa: le quote da
-    // incassare — dichiarate o no — e i rimborsi da dare. Contare solo quelle
-    // dichiarate lasciava il pallino spento su una cassa piena di quote da
-    // riscuotere; quelle chiuse (pagate, annullate, gestite fuori) non contano,
-    // se no non si spegnerebbe mai.
+    // Il pallino conta quello che aspetta chi tiene la cassa: le quote che
+    // qualcuno ha segnalato come pagate — «Ho pagato» — e che vanno
+    // verificate, e i rimborsi chiesti da dare. Le quote non ancora pagate
+    // no: sono cose che deve fare qualcun altro, e con quelle dentro il
+    // pallino restava acceso tutto il tempo e non diceva più niente.
     const inAttesa = await prisma.payment.count({
       where: {
         cassaId: { in: mieCasse.map((c) => c.id) },
         OR: [
-          { tipo: { not: 'RIMBORSO' }, status: { in: ['DA_PAGARE', 'PARZIALE'] } },
+          {
+            tipo: { not: 'RIMBORSO' },
+            status: { in: ['DA_PAGARE', 'PARZIALE'] },
+            dichiaratoIl: { not: null },
+          },
           { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO', 'NON_GESTITO'] } },
         ],
       },
