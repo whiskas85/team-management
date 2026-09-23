@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.84.1 — 23 settembre 2026
+
+### Corretto
+
+- **La finestra «Paga» sul computer.** Stava allineata a destra — se lo
+  portava dietro dalla colonna della tabella in cui sta il pulsante — e nomi,
+  istruzioni e importo finivano sul bordo destro con i pulsanti a sinistra.
+  Adesso ogni metodo e' una riga: a sinistra il nome con le istruzioni
+  sotto, a destra il pulsante per pagare. Sul telefono non cambia niente.
+  Anche un link lunghissimo nelle istruzioni va a capo invece di uscire dalla
+  scheda.
+
 ## 2.84.0 — 23 settembre 2026
 
 ### Cambiato

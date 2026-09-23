@@ -37,14 +37,24 @@ export function MetodiPagamento({ metodi }: { metodi: MetodoDaMostrare[] }) {
 
   return (
     <div className="space-y-2">
+      {/* Sul telefono una colonna: il nome, le istruzioni, il pulsante largo
+          sotto. Dal tablet in su una riga: a sinistra cosa è, a destra cosa
+          si preme — come si legge una riga di un conto. */}
       {metodi.map((m) => (
-        <div key={m.id} className="rounded-lg border border-line bg-surface2 p-3">
-          <p className="font-medium text-ink">{m.nome}</p>
-          {m.istruzioni && (
-            <p className="mt-0.5 whitespace-pre-line break-words text-xs text-muted">{m.istruzioni}</p>
-          )}
+        <div
+          key={m.id}
+          className="rounded-lg border border-line bg-surface2 p-3 text-left sm:flex sm:items-center sm:justify-between sm:gap-4"
+        >
+          <div className="min-w-0">
+            <p className="font-medium text-ink">{m.nome}</p>
+            {m.istruzioni && (
+              <p className="mt-0.5 whitespace-pre-line break-words text-xs text-muted [overflow-wrap:anywhere]">
+                {m.istruzioni}
+              </p>
+            )}
+          </div>
           {(m.link || m.iban) && (
-            <div className="mt-2.5 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2 sm:mt-0 sm:shrink-0 sm:flex-col sm:items-stretch">
               {m.link && (
                 <a
                   href={m.link}

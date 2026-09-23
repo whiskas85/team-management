@@ -289,7 +289,10 @@ function Dichiara({
       titolo={`${giaSegnalato ? 'Correggi la segnalazione' : 'Paga'} · ${pagamento.descrizione}`}
       className={giaSegnalato ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}
     >
-      <div className="space-y-5">
+      {/* allineata a sinistra di suo: sul computer il pulsante sta in una
+          cella di tabella allineata a destra, e la finestra se la portava
+          dietro — nomi, istruzioni e importo finivano tutti sul bordo destro */}
+      <div className="space-y-5 text-left">
         <div>
           <p className="titolo-sezione">Da pagare</p>
           <p className="num mt-1 text-2xl font-semibold text-ink">
