@@ -323,6 +323,12 @@ function CampiMetodo({ metodo }: { metodo?: Metodo }) {
           className="input"
           placeholder="IBAN, numero Satispay, «contanti al corso»…"
         />
+        {/* chi scrive le istruzioni deve sapere che un indirizzo non resta
+            testo: altrimenti lo spezza, o lo mette in un posto dove non serve */}
+        <p className="mt-1 text-[11px] text-muted">
+          Se dentro c’è un link — paypal.me/…, un link Satispay — chi paga trova il pulsante
+          «Paga con …» che lo porta lì.
+        </p>
       </Campo>
 
       <label className="flex min-w-0 items-start gap-2 text-sm sm:col-span-2">

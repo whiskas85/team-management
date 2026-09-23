@@ -10,6 +10,8 @@ import { Invia } from '@/components/Bottone';
 import { dichiaraPagamento } from '@/actions/metodi';
 import { chiediRimborso } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
+import { Icona } from '@/components/Icona';
+import { primoLink } from '@/lib/link';
 
 export default async function MieiPagamentiPage() {
   const me = await requireUser();
@@ -261,7 +263,31 @@ function Dichiara({
     return <span className="text-xs text-muted">Salda con {cassa ?? 'la segreteria'}</span>;
   }
 
+  // I metodi che hanno un link diventano un pulsante accanto a «Ho pagato»,
+  // non solo dentro: si paga prima di dirlo, e cercare come pagare aprendo la
+  // finestra che serve a dire che si è già pagato era un giro al contrario.
+  // Una volta segnalato il pagamento non servono più.
+  const perPagare = pagamento.dichiaratoIl
+    ? []
+    : metodi.flatMap((m) => {
+        const link = primoLink(m.istruzioni);
+        return link ? [{ id: m.id, nome: m.nome, link }] : [];
+      });
+
   return (
+    <span className="flex flex-wrap items-center justify-end gap-2">
+    {perPagare.map((m) => (
+      <a
+        key={m.id}
+        href={m.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-primary btn-sm"
+      >
+        <Icona nome="apri" size={15} />
+        Paga con {m.nome}
+      </a>
+    ))}
     <BottoneModale
       etichetta={pagamento.dichiaratoIl ? 'Correggi la segnalazione' : 'Ho pagato'}
       icona="incassa"
@@ -303,14 +329,34 @@ function Dichiara({
         </div>
 
         {metodi.some((m) => m.istruzioni) && (
-          <div className="rounded-md border border-line bg-surface2 px-3 py-2 text-xs text-muted">
+          <div className="space-y-2 rounded-md border border-line bg-surface2 px-3 py-2 text-xs text-muted">
             {metodi
               .filter((m) => m.istruzioni)
-              .map((m) => (
-                <p key={m.id}>
-                  <span className="text-ink">{m.nome}:</span> {m.istruzioni}
-                </p>
-              ))}
+              .map((m) => {
+                // Se nelle istruzioni c'è un indirizzo — PayPal, Satispay, un
+                // link di pagamento — diventa un pulsante: dal telefono copiare
+                // una stringa da un riquadro grigio è il modo più sicuro per
+                // sbagliarla, e intanto la voglia di pagare passa.
+                const link = primoLink(m.istruzioni);
+                return (
+                  <div key={m.id}>
+                    <p>
+                      <span className="text-ink">{m.nome}:</span> {m.istruzioni}
+                    </p>
+                    {link && (
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary btn-sm mt-1.5 w-full justify-center sm:w-auto"
+                      >
+                        <Icona nome="apri" size={15} />
+                        Paga con {m.nome}
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         )}
 
@@ -321,5 +367,6 @@ function Dichiara({
         </p>
       </FormAzione>
     </BottoneModale>
+    </span>
   );
 }

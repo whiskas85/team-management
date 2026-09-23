@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.83.0 — 23 settembre 2026
+
+### Aggiunto
+
+- **«Paga con …»: il link di un metodo di pagamento diventa un pulsante.**
+  Se nelle istruzioni di un metodo c'e' un indirizzo — `paypal.me/...`, un
+  link Satispay, qualunque `https://` o `www.` — chi ha una quota da saldare
+  trova il pulsante «Paga con PayPal» accanto a «Ho pagato», e lo ritrova
+  dentro la finestra con le istruzioni. Le istruzioni possono avere testo
+  intorno: si pesca solo il link, e il testo resta com'e' stato scritto.
+  IBAN e indirizzi email non diventano pulsanti. Una volta segnalato il
+  pagamento il pulsante sparisce.
+  - Nel modulo dei metodi, sotto le istruzioni, una riga lo dice a chi le
+    scrive.
+
 ## 2.82.2 — 23 settembre 2026
 
 ### Corretto
