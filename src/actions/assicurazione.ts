@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { puoAmministrare, puoGestirePagamenti, puoSchierare } from '@/lib/domain';
+import { puoAmministrare, puoGestirePagamenti } from '@/lib/domain';
 import { bool, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, contaPolizzeProva, eta } from '@/lib/figt';
@@ -274,8 +274,11 @@ Tienila a portata: in campo pu\u00f2 essere chiesta.`,
  */
 export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoAmministrare(me.roles) && !puoSchierare(me.roles)) {
-    return { errore: 'Solo chi amministra o guida la squadra può assicurare un partecipante.' };
+  // Solo chi amministra le tessere: una polizza è un soldo speso che non
+  // torna indietro, e il team leader — che fino alla 2.82 poteva — schiera e
+  // fa l'appello, non tessera.
+  if (!puoAmministrare(me.roles)) {
+    return { errore: 'Solo chi amministra le tessere può assicurare un partecipante.' };
   }
 
   const userId = str(fd, 'userId');
@@ -366,8 +369,11 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
  */
 export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoAmministrare(me.roles) && !puoSchierare(me.roles)) {
-    return { errore: 'Solo chi amministra o guida la squadra può assicurare un partecipante.' };
+  // Solo chi amministra le tessere: una polizza è un soldo speso che non
+  // torna indietro, e il team leader — che fino alla 2.82 poteva — schiera e
+  // fa l'appello, non tessera.
+  if (!puoAmministrare(me.roles)) {
+    return { errore: 'Solo chi amministra le tessere può assicurare un partecipante.' };
   }
 
   // in test non si chiama il portale: ogni attivazione brucia una polizza vera

@@ -17,6 +17,7 @@ import {
   puoGestireEventi,
   etichettaAssegnazione,
   occupaPosto,
+  puoAmministrare,
   puoGestirePagamenti,
   puoModerareChat,
   schierato,
@@ -500,8 +501,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // automatismo nascosto da qualche altra parte
   const { importo: mioCosto, dettaglio: mioDettaglio } = quotaPer(evento, me.stato);
   const quotaEsterni = evento.costoEsterni === null ? null : Number(evento.costoEsterni);
-  // lo stato di pagamento degli altri è un dato riservato a chi amministra
-  const vedeQuoteAltrui = tl || puoGestirePagamenti(me.roles);
+  // Lo stato di pagamento degli altri è di chi tiene la cassa, e basta. Il
+  // team leader schiera e fa l'appello: chi ha pagato e chi no non è affar
+  // suo, e vederlo scritto sotto ogni nome della squadra non andava bene.
+  const vedeQuoteAltrui = puoGestirePagamenti(me.roles);
+  // Lo stesso per le polizze: la copertura di ognuno — «non assicurato» —
+  // e il pulsante che la attiva sono di chi amministra le tessere. Prima lo
+  // stato si vedeva da chiunque aprisse l'attività, e il pulsante lo aveva
+  // anche il team leader.
+  const vedeCoperture = puoAmministrare(me.roles);
   // i rimborsi sono movimenti a sé: la quota di un operatore è quella dovuta,
   // altrimenti si finirebbe per chiedere il rimborso di un rimborso
   // (quella del club: è la sola che si rimborsa da qui)
@@ -864,7 +872,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const gruppi = schieraQuesta
     ? [
         ...dividi('titolari', 'Titolari', 'text-nvg', titolari),
-        ...dividi('convocati', 'Convocati · in attesa del saldo', 'text-warn', convocati),
+        // il perché — non ha ancora pagato — lo legge solo chi tiene la cassa
+        ...dividi(
+          'convocati',
+          vedeQuoteAltrui ? 'Convocati · in attesa del saldo' : 'Convocati · da confermare',
+          'text-warn',
+          convocati,
+        ),
         ...dividi('toc', 'TOC · sala controllo', 'text-sky-300', toc),
         ...dividi('riserve', 'Riserve', 'text-warn', riserve),
         ...dividi('daassegnare', 'Da assegnare', 'text-muted', daAssegnare),
@@ -1604,7 +1618,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     giornaliera non si fa: consuma una polizza vera, la paga
                                     il club e non torna indietro. Il pulsante ricompare
                                     quando passa a "ci sono". */}
-                                {r.status === 'PRESENTE' &&
+                                {vedeCoperture &&
+                                  r.status === 'PRESENTE' &&
                                   (() => {
                                     const giorniScoperti = giorniEvento.filter((giorno) =>
                                       serveGiornaliera(
@@ -1641,7 +1656,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                                 {ETICHETTA_ASSICURAZIONE[stato]}
                                                 {g?.codice ? ` · ${g.codice}` : ''}
                                               </Badge>
-                                              {tl && copribile && stato !== 'ASSICURATO' && (
+                                              {copribile && stato !== 'ASSICURATO' && (
                                                 <BottoneModale
                                                   etichetta={piuGiorni ? `Assicura ${quando}` : 'Assicura'}
                                                   icona="tessera"

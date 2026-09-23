@@ -29,9 +29,9 @@ export const dynamic = 'force-dynamic';
  *
  * Chi apre «Operatori» cerca le persone della squadra, ma non tutti per lo
  * stesso motivo: l'admin le **gestisce** — le crea, dà i ruoli, azzera una
- * password — mentre amministrazione, segreteria e team leader le
- * **controllano**, e di un compagno hanno bisogno di sapere se è a posto con
- * l'iscrizione e con il certificato.
+ * password — mentre amministrazione e segreteria le **controllano**, e di un
+ * compagno hanno bisogno di sapere se è a posto con l'iscrizione e con il
+ * certificato. Il team leader no: la tabella degli operatori non è sua.
  *
  * Prima la voce c'era per tutti e la pagina la apriva solo l'admin: agli altri
  * rispondeva rimbalzandoli sulla home, che è il modo peggiore di dire di no —

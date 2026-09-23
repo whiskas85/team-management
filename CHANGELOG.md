@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.82.2 — 23 settembre 2026
+
+### Corretto
+
+- **Quote e polizze degli altri non si vedono piu' dal team leader.** Nella
+  pagina di un'attivita' il TL leggeva sotto ogni nome «quota da saldare» e
+  «non assicurato», e aveva il pulsante per attivare la giornaliera. Adesso:
+  - lo stato delle quote degli altri lo vede solo chi tiene la cassa (admin e
+    segreteria);
+  - lo stato della polizza e il pulsante «Assicura» solo chi amministra le
+    tessere (admin e amministrazione). Prima lo stato della polizza lo vedeva
+    chiunque aprisse l'attivita', atleti compresi;
+  - le azioni che registrano o attivano una giornaliera rifiutano il TL anche
+    se chiamate a mano;
+  - fra i convocati, «in attesa del saldo» lo legge solo chi tiene la cassa:
+    gli altri leggono «da confermare».
+- **Sulla scheda di una persona** «Da saldare», «Totale versato» e l'elenco
+  dei pagamenti li vede solo chi tiene la cassa: la scheda la apre anche
+  l'amministrazione, per certificato e iscrizione.
+- **La tabella degli operatori non e' piu' del team leader.** Sparisce dal
+  suo menu, e la tabella e la scheda completa di una persona non si aprono;
+  anche la ricerca e l'assistente lo trattano come chiunque in squadra. I
+  compagni li vede dalla scheda di squadra, come tutti.
+
 ## 2.82.1 — 23 settembre 2026
 
 ### Corretto

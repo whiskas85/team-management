@@ -26,9 +26,17 @@ export const puoModerareChat = (roles: Role[]) => ha(roles, 'ADMIN', 'MODERATORE
 /** Team leader: schiera titolari e riserve. */
 export const puoSchierare = (roles: Role[]) => ha(roles, 'ADMIN', 'TL');
 
-/** Chi vede la scheda di un operatore (anagrafica, note, storico). */
+/**
+ * Chi vede la scheda di un operatore (anagrafica, note, storico) e la tabella
+ * degli operatori.
+ *
+ * Il team leader non c'è, dalla 2.82.2: schiera e fa l'appello, e i compagni
+ * li vede come chiunque in squadra, dalla scheda di squadra. L'anagrafica
+ * intera — date di nascita, certificati, tessere, soldi — è di chi tiene le
+ * carte del club.
+ */
 export const puoVedereOperatori = (roles: Role[]) =>
-  ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA', 'TL');
+  ha(roles, 'ADMIN', 'AMMINISTRAZIONE', 'SEGRETERIA');
 
 /**
  * Chi segue i contatti non ancora in squadra: solo per loro un nuovo ha nome e

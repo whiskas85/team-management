@@ -9,6 +9,7 @@ import {
   etichettaStato,
   isAdmin,
   isContatto,
+  puoGestirePagamenti,
   puoVedereNuovi,
   puoVedereOperatori,
   statoEffettivo,
@@ -43,6 +44,11 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
   const me = await requirePermesso(puoVedereOperatori);
   const { id } = await params;
   const admin = isAdmin(me.roles);
+  // I soldi di una persona — quanto deve, quanto ha versato, i suoi
+  // movimenti — li vede chi tiene la cassa. La scheda la aprono anche
+  // amministrazione e team leader, per il certificato e l'iscrizione: i conti
+  // dei compagni non sono affar loro.
+  const vedePagamenti = puoGestirePagamenti(me.roles);
 
   // l'indirizzo da cui si sta guardando è lo stesso che deve usare la squadra:
   // finisce nel messaggio delle credenziali, così non va dettato a memoria
@@ -220,12 +226,16 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
           dettaglio={`su ${svolti.length} eventi svolti`}
           tono="ok"
         />
-        <Statistica
-          etichetta="Da saldare"
-          valore={fmtEuro(daSaldare)}
-          tono={daSaldare > 0 ? 'warn' : 'ok'}
-        />
-        <Statistica etichetta="Totale versato" valore={fmtEuro(versato)} />
+        {vedePagamenti && (
+          <>
+            <Statistica
+              etichetta="Da saldare"
+              valore={fmtEuro(daSaldare)}
+              tono={daSaldare > 0 ? 'warn' : 'ok'}
+            />
+            <Statistica etichetta="Totale versato" valore={fmtEuro(versato)} />
+          </>
+        )}
       </div>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
@@ -361,6 +371,7 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
           </div>
         )}
 
+        {vedePagamenti && (
         <div className="card">
           <p className="titolo-sezione mb-3">Pagamenti</p>
           {utente.payments.length === 0 ? (
@@ -381,6 +392,7 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
             </div>
           )}
         </div>
+        )}
 
         {/* Le note stanno qui ma non sono di questa scheda: sono di chi
             guarda. Due persone che aprono lo stesso operatore vedono cose
