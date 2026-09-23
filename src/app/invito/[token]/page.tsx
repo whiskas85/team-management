@@ -171,7 +171,7 @@ export default async function PaginaInvito({
           si sbaglia il giorno, si arriva all'ora sbagliata — e stava scritto
           in grigio piccolo in coda al tipo di attività. Che sia un allenamento
           o un torneo, da fuori, non cambia niente a nessuno. */}
-      <Quando inizio={e.inizio} fine={e.fine} className="card mt-4" />
+      <Quando inizio={e.inizio} fine={e.fine} ritrovo={e.oraRitrovo} className="card mt-4" />
 
       {e.descrizione && (
         <p className="mt-4 whitespace-pre-wrap text-sm text-ink/90">{e.descrizione}</p>

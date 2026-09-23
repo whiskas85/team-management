@@ -1114,7 +1114,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 caselle grigie della griglia si leggevano come un dettaglio
                 anagrafico. A quelli di casa non c'era ragione di dirlo peggio
                 che a quelli di fuori. */}
-            <Quando inizio={evento.inizio} fine={evento.fine} durataOre={evento.durataOre} />
+            <Quando
+              inizio={evento.inizio}
+              fine={evento.fine}
+              ritrovo={evento.oraRitrovo}
+              durataOre={evento.durataOre}
+            />
 
             {/* Se fa parte di una giornata più grande, si dice qui: altrimenti
                 il collegamento resta una spunta invisibile dentro al modulo, e
@@ -1148,15 +1153,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               />
 
               {/* Il ritrovo è un'altra cosa dal campo: è dove ci si trova
-                  prima, spesso a chilometri di distanza, e con un'ora sua. */}
+                  prima, spesso a chilometri di distanza, e con un'ora sua.
+                  Grande come il campo: in una riga piccola sotto al campo si
+                  leggeva come una nota, ed è invece il posto dove si va. */}
               {(evento.ritrovo || evento.oraRitrovo) && (
-                <p className="mt-3 text-sm">
-                  <span className="titolo-sezione">Ritrovo</span>{' '}
-                  <span className="ml-1">{evento.ritrovo ?? 'sul posto'}</span>
-                  {evento.oraRitrovo && (
-                    <span className="num text-nvg"> &middot; ore {fmtTime(evento.oraRitrovo)}</span>
-                  )}
-                </p>
+                <Blocco
+                  className="mt-4"
+                  etichetta="Ritrovo"
+                  valore={evento.ritrovo ?? 'Sul posto'}
+                  sotto={evento.oraRitrovo ? `ore ${fmtTime(evento.oraRitrovo)}` : undefined}
+                />
               )}
 
               {evento.linkRiunione && (

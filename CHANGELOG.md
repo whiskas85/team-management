@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.82.1 — 23 settembre 2026
+
+### Corretto
+
+- **Con un ritrovo, il «Quando» mette in evidenza la sua ora.** Un'attivita'
+  alle 10 con il ritrovo alle 8 si leggeva «10:00 -> 18:00» in grande, e le
+  8 stavano in una riga piccola sotto al campo: il quando era giusto, ma
+  l'ora da ricordare era nel posto sbagliato. Adesso sotto la data c'e' prima
+  l'ora del ritrovo, in verde, e poi l'orario dell'attivita', piu' piccolo.
+  Se il ritrovo e' il giorno prima, porta la sua data. Vale anche per
+  l'invito delle squadre ospiti.
+- **Il ritrovo e' un blocco grande come «Dove si gioca»**, con il luogo e
+  l'ora sotto, invece di una riga piccola che si leggeva come una nota.
+
 ## 2.82.0 — 23 settembre 2026
 
 ### Aggiunto
