@@ -88,6 +88,19 @@ export const quotaOnorata = (
   quota: { status: string; dichiaratoIl: Date | null } | null | undefined,
 ) => quotaSaldata(quota) || quota?.dichiaratoIl != null;
 
+/**
+ * Chi non paga niente non si assicura.
+ *
+ * Quando un nuovo viene invitato con la quota a zero — l'open day offerto, la
+ * riunione, la cena — la giornaliera non si propone: né il pallino rosso «non
+ * assicurato» nell'attività, né la pagina delle polizze, né le polizze
+ * automatiche, che ne avrebbero comprata una vera. Conta la somma di tutte le
+ * sue quote, del club e delle altre casse: il Corso CQB che non chiede niente
+ * al club ma quaranta euro a SAT & Gaming non è gratis. Nessuna quota è zero.
+ */
+export const quotaAZero = (quote: { importo: unknown }[]) =>
+  quote.reduce((t, q) => t + Number(q.importo), 0) === 0;
+
 /** Com'è composta la quota di un'attività, quanto serve a sapere cosa paga la polizza. */
 export type ComposizionePolizza = {
   costoEsterni: unknown;
@@ -243,7 +256,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
       payments: {
         where: { tipo: { not: 'RIMBORSO' } },
-        select: { userId: true, status: true, dichiaratoIl: true, cassaId: true },
+        select: { userId: true, status: true, dichiaratoIl: true, cassaId: true, importo: true },
       },
       // com'è composta la quota: serve a sapere quale paga la polizza
       quoteCasse: { select: { cassaId: true, importoEsterni: true } },
@@ -298,6 +311,8 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
 
     const nuovi = e.rsvps
       .filter((r) => !vedeAttivitaSquadra(r.user.stato))
+      // invitato con la quota a zero: la polizza non si propone
+      .filter((r) => !quotaAZero(quote.get(r.userId) ?? []))
       .map((r) => {
         // tutte le sue quote dicono se ha pagato; quelle con le voci che
         // pagano la polizza dicono se lo si può assicurare

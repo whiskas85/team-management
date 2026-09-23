@@ -75,6 +75,7 @@ import {
   giorniDi,
   quotaOnorata,
   cassePerPolizza,
+  quotaAZero,
   quotePerPolizza,
   tariffePolizza,
   serveGiornaliera,
@@ -916,10 +917,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
    * sono»: è l'ultimo momento in cui qualcuno lo può fermare, e in una lista
    * di spunte tutte uguali passerebbe come gli altri.
    */
+  // Gli serve la giornaliera quel giorno: è un nuovo senza annuale valida, e
+  // per questa attività paga qualcosa. Invitato con la quota a zero — l'open
+  // day offerto, la riunione — la polizza non si propone.
+  const serveAssicurarlo = (r: Riga, giorno: string) =>
+    serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, dataLocale(giorno)) &&
+    !quotaAZero(quoteDi(r.userId));
+
   const scoperto = (r: Riga) =>
     giorniEvento.some(
       (giorno) =>
-        serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, dataLocale(giorno)) &&
+        serveAssicurarlo(r, giorno) &&
         giornaliere.get(`${r.userId}|${giorno}`)?.stato !== 'ASSICURATO',
     );
 
@@ -1629,12 +1637,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   r.status === 'PRESENTE' &&
                                   (() => {
                                     const giorniScoperti = giorniEvento.filter((giorno) =>
-                                      serveGiornaliera(
-                                        diSquadra(r),
-                                        r.user.stato,
-                                        r.user.figtCards,
-                                        dataLocale(giorno),
-                                      ),
+                                      serveAssicurarlo(r, giorno),
                                     );
                                     if (giorniScoperti.length === 0) return null;
 

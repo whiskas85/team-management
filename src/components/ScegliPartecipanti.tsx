@@ -255,7 +255,8 @@ function PrezzoPerEsterni({ listino, stagioneId, giorni, puoImpostare }: PrezzoE
             Questa attività non ha un prezzo per chi viene da fuori. Senza, il nuovo non avrebbe
             nessuna quota, e la giornaliera — che la paga il club — si potrebbe fare lo stesso.
             Scegli qui quanto paga: vale per l’attività e per tutti i nuovi che ci aggiungerai.
-            Zero è una scelta, vuol dire offerta.
+            Zero è una scelta, vuol dire offerta — e senza niente da pagare l’assicurazione
+            giornaliera non viene proposta.
           </>
         ) : (
           <>

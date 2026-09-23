@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.85.2 — 23 settembre 2026
+
+### Corretto
+
+- **Un nuovo invitato con la quota a zero non si propone da assicurare.**
+  L'open day offerto, la riunione, la cena: se per quell'attivita' il nuovo
+  non paga niente, la giornaliera non compare da nessuna parte — ne' il
+  «non assicurato» e il pulsante «Assicura» nell'attivita', ne' il riquadro
+  rosso all'appello, ne' la pagina delle polizze col suo pallino, ne' le
+  polizze automatiche, che ne avrebbero comprata una vera. Conta la somma di
+  tutte le sue quote, del club e delle altre casse: se una cassa gli chiede
+  qualcosa, la polizza si propone come prima.
+  - Scegliendo il prezzo del nuovo, la frase su «zero» ora lo dice.
+
 ## 2.85.1 — 23 settembre 2026
 
 ### Cambiato
