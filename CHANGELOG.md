@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.84.0 — 23 settembre 2026
+
+### Cambiato
+
+- **«Paga» invece di «Ho pagato».** Sulla quota da saldare il pulsante dice
+  «Paga», e apre tutto quello che serve a chi paga: quanto resta da pagare,
+  i metodi uno per scheda — nome, istruzioni e il pulsante per usarlo — e
+  sotto il modulo «Hai pagato? Segnalalo». Prima il pulsante diceva «Ho
+  pagato», e chi doveva ancora pagare non aveva motivo di premerlo per
+  scoprire come si fa. Dopo la segnalazione diventa «Correggi la
+  segnalazione».
+- Il pulsante «Paga con …» accanto alla quota (2.83.0) non c'e' piu': sta
+  nella scheda del suo metodo, dentro «Paga».
+
+### Aggiunto
+
+- **«Copia IBAN».** Se nelle istruzioni di un metodo c'e' un IBAN — anche
+  scritto a gruppi di quattro — la sua scheda ha il pulsante per copiarlo.
+  Si controlla la cifra di controllo, quindi una sigla qualsiasi non diventa
+  un IBAN.
+
 ## 2.83.0 — 23 settembre 2026
 
 ### Aggiunto

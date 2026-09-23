@@ -10,8 +10,8 @@ import { Invia } from '@/components/Bottone';
 import { dichiaraPagamento } from '@/actions/metodi';
 import { chiediRimborso } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
-import { Icona } from '@/components/Icona';
-import { primoLink } from '@/lib/link';
+import { MetodiPagamento, type MetodoDaMostrare } from '@/components/MetodiPagamento';
+import { primoIban, primoLink } from '@/lib/link';
 
 export default async function MieiPagamentiPage() {
   const me = await requireUser();
@@ -263,110 +263,90 @@ function Dichiara({
     return <span className="text-xs text-muted">Salda con {cassa ?? 'la segreteria'}</span>;
   }
 
-  // I metodi che hanno un link diventano un pulsante accanto a «Ho pagato»,
-  // non solo dentro: si paga prima di dirlo, e cercare come pagare aprendo la
-  // finestra che serve a dire che si è già pagato era un giro al contrario.
-  // Una volta segnalato il pagamento non servono più.
-  const perPagare = pagamento.dichiaratoIl
-    ? []
-    : metodi.flatMap((m) => {
-        const link = primoLink(m.istruzioni);
-        return link ? [{ id: m.id, nome: m.nome, link }] : [];
-      });
+  // I metodi con quello che serve per usarli: il link diventa «Paga con …»,
+  // l'IBAN «Copia IBAN». Si pescano qui, sul server, e al browser arrivano già
+  // pronti.
+  const comePagare: MetodoDaMostrare[] = metodi.map((m) => ({
+    id: m.id,
+    nome: m.nome,
+    istruzioni: m.istruzioni,
+    link: primoLink(m.istruzioni),
+    iban: primoIban(m.istruzioni),
+  }));
+  const giaSegnalato = !!pagamento.dichiaratoIl;
 
+  /*
+   * Un pulsante solo, «Paga», che apre tutto quello che serve a chi paga:
+   * prima come si paga, un metodo per scheda, e sotto il modulo per dire che
+   * lo si è fatto. Prima il pulsante diceva «Ho pagato», e chi doveva ancora
+   * pagare — cioè quasi tutti quelli che lo guardavano — non aveva motivo di
+   * premerlo per scoprire come si fa.
+   */
   return (
-    <span className="flex flex-wrap items-center justify-end gap-2">
-    {perPagare.map((m) => (
-      <a
-        key={m.id}
-        href={m.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn-primary btn-sm"
-      >
-        <Icona nome="apri" size={15} />
-        Paga con {m.nome}
-      </a>
-    ))}
     <BottoneModale
-      etichetta={pagamento.dichiaratoIl ? 'Correggi la segnalazione' : 'Ho pagato'}
+      etichetta={giaSegnalato ? 'Correggi la segnalazione' : 'Paga'}
       icona="incassa"
-      titolo={`Segnala il pagamento · ${pagamento.descrizione}`}
-      className="btn-ghost btn-sm"
+      titolo={`${giaSegnalato ? 'Correggi la segnalazione' : 'Paga'} · ${pagamento.descrizione}`}
+      className={giaSegnalato ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}
     >
-      <FormAzione azione={dichiaraPagamento}>
-        <input type="hidden" name="id" value={pagamento.id} />
-
-        <p className="text-sm text-muted">
-          Importo: <span className="text-ink num">{fmtEuro(Number(pagamento.importo))}</span>
-        </p>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Con quale metodo hai pagato *">
-            <select
-              name="metodoId"
-              required
-              className="input"
-              defaultValue={pagamento.metodoId ?? ''}
-            >
-              <option value="">— seleziona —</option>
-              {metodi.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.nome}
-                </option>
-              ))}
-            </select>
-          </Campo>
-
-          <Campo label="Quando hai pagato">
-            <input
-              type="date"
-              name="quando"
-              defaultValue={inputDate(pagamento.dichiaratoIl ?? new Date())}
-              className="input"
-            />
-          </Campo>
+      <div className="space-y-5">
+        <div>
+          <p className="titolo-sezione">Da pagare</p>
+          <p className="num mt-1 text-2xl font-semibold text-ink">
+            {fmtEuro(Number(pagamento.importo) - Number(pagamento.pagato))}
+          </p>
+          {Number(pagamento.pagato) > 0 && (
+            <p className="text-xs text-muted">
+              su {fmtEuro(Number(pagamento.importo))}: {fmtEuro(Number(pagamento.pagato))} già versati
+            </p>
+          )}
         </div>
 
-        {metodi.some((m) => m.istruzioni) && (
-          <div className="space-y-2 rounded-md border border-line bg-surface2 px-3 py-2 text-xs text-muted">
-            {metodi
-              .filter((m) => m.istruzioni)
-              .map((m) => {
-                // Se nelle istruzioni c'è un indirizzo — PayPal, Satispay, un
-                // link di pagamento — diventa un pulsante: dal telefono copiare
-                // una stringa da un riquadro grigio è il modo più sicuro per
-                // sbagliarla, e intanto la voglia di pagare passa.
-                const link = primoLink(m.istruzioni);
-                return (
-                  <div key={m.id}>
-                    <p>
-                      <span className="text-ink">{m.nome}:</span> {m.istruzioni}
-                    </p>
-                    {link && (
-                      <a
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary btn-sm mt-1.5 w-full justify-center sm:w-auto"
-                      >
-                        <Icona nome="apri" size={15} />
-                        Paga con {m.nome}
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
+        {!giaSegnalato && (
+          <div>
+            <p className="titolo-sezione mb-2">Come pagare</p>
+            <MetodiPagamento metodi={comePagare} />
           </div>
         )}
 
-        <Invia icona="incassa">Segnala il pagamento</Invia>
-        <p className="text-xs text-muted">
-          La quota risulterà saldata quando{' '}
-          {cassa ? `chi gestisce «${cassa}»` : 'la segreteria'} avrà verificato l’incasso.
-        </p>
-      </FormAzione>
+        <FormAzione azione={dichiaraPagamento} className="space-y-4 border-t border-line pt-4">
+          <input type="hidden" name="id" value={pagamento.id} />
+          <p className="titolo-sezione">{giaSegnalato ? 'La tua segnalazione' : 'Hai pagato? Segnalalo'}</p>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Campo label="Con quale metodo *">
+              <select
+                name="metodoId"
+                required
+                className="input"
+                defaultValue={pagamento.metodoId ?? ''}
+              >
+                <option value="">— seleziona —</option>
+                {metodi.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+
+            <Campo label="Quando">
+              <input
+                type="date"
+                name="quando"
+                defaultValue={inputDate(pagamento.dichiaratoIl ?? new Date())}
+                className="input"
+              />
+            </Campo>
+          </div>
+
+          <Invia icona="incassa">Segnala il pagamento</Invia>
+          <p className="text-xs text-muted">
+            La quota risulterà saldata quando{' '}
+            {cassa ? `chi gestisce «${cassa}»` : 'la segreteria'} avrà verificato l’incasso.
+          </p>
+        </FormAzione>
+      </div>
     </BottoneModale>
-    </span>
   );
 }
