@@ -445,8 +445,8 @@ function CardQuota({
 /**
  * Una quota composta al volo: importo a mano più voci del listino.
  *
- * Serve a chi aggiunge un nuovo a un'attività che non ha ancora un prezzo per
- * gli esterni: lo si decide lì, senza aprire il modulo dell'attività.
+ * Serve a chi aggiunge un nuovo a un'attività: il prezzo per gli esterni si
+ * decide o si corregge lì, senza aprire il modulo dell'attività.
  */
 export function Quota({
   titolo,
@@ -458,6 +458,7 @@ export function Quota({
   importo,
   iniziali,
   giorni = 1,
+  onCambia,
 }: {
   titolo: string;
   icona: NomeIcona;
@@ -468,19 +469,23 @@ export function Quota({
   importo?: number | null;
   iniziali: string[];
   giorni?: number;
+  /** Chi la usa vuole sapere se è stata toccata: una quota già compilata non si riscrive se nessuno l'ha cambiata. */
+  onCambia?: () => void;
 }) {
   const [scelte, setScelte] = useState<Set<string>>(
     () => new Set(iniziali.filter((id) => voci.some((v) => v.id === id))),
   );
   const [aMano, setAMano] = useState(importo != null ? String(importo) : '');
 
-  const commuta = (id: string) =>
+  const commuta = (id: string) => {
+    onCambia?.();
     setScelte((s) => {
       const n = new Set(s);
       if (n.has(id)) n.delete(id);
       else n.add(id);
       return n;
     });
+  };
 
   const volte = (v: VoceListino) => (v.perGiorno ? giorni : 1);
   const totale = voci
@@ -503,7 +508,10 @@ export function Quota({
           step="0.01"
           min="0"
           value={aMano}
-          onChange={(e) => setAMano(e.target.value)}
+          onChange={(e) => {
+            onCambia?.();
+            setAMano(e.target.value);
+          }}
           className="input"
           placeholder={scelte.size > 0 ? 'si aggiunge alle voci' : 'niente da pagare'}
         />

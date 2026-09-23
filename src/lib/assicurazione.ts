@@ -3,6 +3,7 @@ import { prisma } from './db';
 import { vedeAttivitaSquadra, type Tono } from './domain';
 import { iniziali, nomeCompleto } from './format';
 import { chiaveDaColonna, chiaveGiorno, dataLocale, giorniDi } from './giorni';
+import { quotaPer } from './quote';
 
 /**
  * Chi gioca da ospite va coperto con una giornaliera.
@@ -91,15 +92,33 @@ export const quotaOnorata = (
 /**
  * Chi non paga niente non si assicura.
  *
- * Quando un nuovo viene invitato con la quota a zero — l'open day offerto, la
- * riunione, la cena — la giornaliera non si propone: né il pallino rosso «non
- * assicurato» nell'attività, né la pagina delle polizze, né le polizze
- * automatiche, che ne avrebbero comprata una vera. Conta la somma di tutte le
- * sue quote, del club e delle altre casse: il Corso CQB che non chiede niente
- * al club ma quaranta euro a SAT & Gaming non è gratis. Nessuna quota è zero.
+ * Quando un nuovo viene invitato con la quota a zero — «Nessuna quota»,
+ * l'open day offerto, la riunione — la giornaliera non si propone: né il
+ * pallino rosso «non assicurato» nell'attività, né la pagina delle polizze, né
+ * le polizze automatiche, che ne avrebbero comprata una vera.
+ *
+ * Conta il **prezzo** dell'attività per quella persona, non le quote già
+ * nate: su una gara con lo schieramento la quota nasce quando il TL schiera,
+ * e un nuovo segnato ma non ancora schierato non ne ha — ma non per questo
+ * gioca gratis. Il prezzo è quello del club più quelli delle altre casse: il
+ * Corso CQB che non chiede niente al club ma quaranta euro a SAT & Gaming non
+ * è gratis.
  */
-export const quotaAZero = (quote: { importo: unknown }[]) =>
-  quote.reduce((t, q) => t + Number(q.importo), 0) === 0;
+export function nienteDaPagare(
+  e: {
+    costo: unknown;
+    costoEsterni: unknown;
+    quoteCasse: { importo: unknown; importoEsterni: unknown }[];
+  },
+  stato: StatoOperatore,
+): boolean {
+  const club = quotaPer(e, stato).importo;
+  const altre = e.quoteCasse.reduce(
+    (t, q) => t + quotaPer({ costo: q.importo, costoEsterni: q.importoEsterni }, stato).importo,
+    0,
+  );
+  return club + altre === 0;
+}
 
 /** Com'è composta la quota di un'attività, quanto serve a sapere cosa paga la polizza. */
 export type ComposizionePolizza = {
@@ -259,7 +278,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
         select: { userId: true, status: true, dichiaratoIl: true, cassaId: true, importo: true },
       },
       // com'è composta la quota: serve a sapere quale paga la polizza
-      quoteCasse: { select: { cassaId: true, importoEsterni: true } },
+      quoteCasse: { select: { cassaId: true, importo: true, importoEsterni: true } },
       vociAttivita: {
         select: { cassaId: true, perEsterni: true, scelta: true, perPolizza: true },
       },
@@ -312,7 +331,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     const nuovi = e.rsvps
       .filter((r) => !vedeAttivitaSquadra(r.user.stato))
       // invitato con la quota a zero: la polizza non si propone
-      .filter((r) => !quotaAZero(quote.get(r.userId) ?? []))
+      .filter((r) => !nienteDaPagare(e, r.user.stato))
       .map((r) => {
         // tutte le sue quote dicono se ha pagato; quelle con le voci che
         // pagano la polizza dicono se lo si può assicurare

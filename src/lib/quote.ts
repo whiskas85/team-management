@@ -31,6 +31,14 @@ export function quotaPer(
 }
 
 /**
+ * Il nome della quota aggiunta quando si sceglie «Nessuna quota» per chi viene
+ * da fuori: zero euro, spuntata, e senza polizza. Si scrive come quota e non
+ * come prezzo vuoto perché il modulo dell'attività la ritrovi com'era — un
+ * prezzo vuoto, là, vuol dire «pagano come la squadra».
+ */
+export const NESSUNA_QUOTA = 'Nessuna quota';
+
+/**
  * Il listino da mettere davanti a chi compone una quota: tutte le voci attive,
  * di ogni stagione. Quali valgano lo decide il modulo, che sa in che stagione
  * si sta lavorando.

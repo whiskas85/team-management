@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.86.0 — 23 settembre 2026
+
+### Aggiunto
+
+- **La quota dei nuovi si sceglie mentre li aggiungi, sempre.** Prima la card
+  «Quota esterni» nel selettore dei partecipanti compariva solo se
+  l'attivita' non aveva ancora un prezzo per chi viene da fuori. Adesso, per
+  l'admin, compare ogni volta che si sceglie un nuovo, gia' compilata con il
+  prezzo di oggi e con scritto quanto paga un nuovo adesso. Cambiarla cambia
+  il prezzo per tutti i nuovi dell'attivita', anche quelli gia' aggiunti, e
+  le loro quote si riallineano; non toccarla lascia tutto com'era.
+- **«Nessuna quota».** Nella stessa card, una scelta a parte: chi viene da
+  fuori non paga niente — nemmeno le quote delle altre casse, che per loro
+  diventano zero — e senza niente da pagare l'assicurazione giornaliera non
+  si propone. Sull'attivita' resta scritta come una quota da zero euro,
+  cosi' il modulo dell'attivita' la ritrova com'era.
+
+### Corretto
+
+- **«Quota zero» guarda il prezzo, non le quote gia' nate** (2.85.2). Su una
+  gara con lo schieramento la quota di un nuovo nasce quando il TL lo
+  schiera: prima di allora non ne ha, e la regola della 2.85.2 lo scambiava
+  per uno che non paga niente e non proponeva l'assicurazione. Adesso conta
+  il prezzo dell'attivita' per lui — club piu' altre casse — e l'assicurazione
+  sparisce solo quando quel prezzo e' davvero zero.
+
 ## 2.85.2 — 23 settembre 2026
 
 ### Corretto

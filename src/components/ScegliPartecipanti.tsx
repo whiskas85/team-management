@@ -23,7 +23,7 @@ export type Candidato = {
   gruppo: 'squadra' | 'nuovi';
 };
 
-/** Quello che serve per chiedere il prezzo per gli esterni, quando l'attività non ce l'ha. */
+/** Il prezzo per chi viene da fuori, da decidere o da correggere mentre si aggiunge un nuovo. */
 export type PrezzoEsterni = {
   listino: VoceListino[];
   stagioneId: string | null;
@@ -31,6 +31,18 @@ export type PrezzoEsterni = {
   giorni: number;
   /** Il prezzo lo decide l'admin: agli altri si dice a chi chiederlo. */
   puoImpostare: boolean;
+  /** L'attività non ha ancora un prezzo per gli esterni: va deciso adesso. */
+  daDecidere: boolean;
+  /** Com'è oggi, per ritrovare la card già compilata: le voci spuntate… */
+  vociIniziali: string[];
+  /** …l'importo scritto a mano… */
+  importoIniziale: number | null;
+  /** …o «nessuna quota». */
+  nessunaQuota: boolean;
+  /** Quanto paga oggi un nuovo, già detto a parole: «25,00 €», «niente». */
+  oggi: string;
+  /** Le altre casse che chiedono qualcosa agli esterni: «Nessuna quota» azzera anche quelle. */
+  altreCasse: string[];
 };
 
 /**
@@ -49,12 +61,14 @@ export type PrezzoEsterni = {
  * forzare uno, sapendo che lo si sta facendo. E se la ricerca ne trova
  * qualcuno lo dice, invece di rispondere «nessuno» mentre la persona c'è.
  *
- * **Se l'attività non ha un prezzo per chi viene da fuori**, scegliendo un
- * nuovo compare di fianco la card della quota esterni. Senza, il nuovo
- * giocherebbe gratis senza che nessuno l'abbia deciso — e la giornaliera, che
- * la paga il club, si potrebbe fare lo stesso. Il prezzo si sceglie lì e parte
- * insieme ai nomi: un gesto solo, invece di chiudere, andare a modificare
- * l'attività e tornare.
+ * **Scegliendo un nuovo compare di fianco la card della quota esterni**, già
+ * compilata con il prezzo di oggi. Se l'attività non ce l'ha va decisa lì:
+ * senza, il nuovo giocherebbe gratis senza che nessuno l'abbia deciso. Se ce
+ * l'ha, la si può correggere lì — vale per tutti i nuovi dell'attività — o
+ * mettere a «Nessuna quota»: non paga niente, e allora non gli si propone
+ * nemmeno l'assicurazione. Il prezzo parte insieme ai nomi: un gesto solo,
+ * invece di chiudere, andare a modificare l'attività e tornare. Se la card non
+ * la si tocca, il prezzo dell'attività resta com'era.
  */
 export function ScegliPartecipanti({
   eventId,
@@ -66,7 +80,7 @@ export function ScegliPartecipanti({
   candidati: Candidato[];
   /** Attività riservata alla squadra: i nuovi partono nascosti. */
   soloSquadra: boolean;
-  /** Presente solo se l'attività non ha ancora un prezzo per gli esterni. */
+  /** Presente per l'admin, e per gli altri solo se l'attività non ha ancora un prezzo per gli esterni. */
   prezzoEsterni?: PrezzoEsterni | null;
 }) {
   const [stato, azione] = useActionState(iscriviOperatori, {} as StatoForm);
@@ -95,7 +109,7 @@ export function ScegliPartecipanti({
   // il prezzo serve solo se si sta davvero aggiungendo un nuovo: per la
   // squadra la quota c'è già o è gratis per scelta
   const serveIlPrezzo = prezzoEsterni !== null && nuoviScelti > 0;
-  const bloccato = serveIlPrezzo && !prezzoEsterni!.puoImpostare;
+  const bloccato = serveIlPrezzo && prezzoEsterni!.daDecidere && !prezzoEsterni!.puoImpostare;
 
   const commuta = (id: string) =>
     setScelti((s) => {
@@ -229,13 +243,33 @@ export function ScegliPartecipanti({
 }
 
 /**
- * La card della quota esterni, quando l'attività non ce l'ha.
+ * La card della quota esterni.
  *
- * È la stessa del modulo dell'attività, con la giocata degli esterni già
- * spuntata come su un'attività nuova: il caso normale non si configura ogni
- * volta, e chi vuole regalarla scrive zero.
+ * Su un'attività senza prezzo per gli esterni la giocata è già spuntata, come
+ * su un'attività nuova: il caso normale non si configura ogni volta. Su una
+ * che il prezzo ce l'ha, la card lo mostra com'è: toccarla lo cambia per tutti
+ * i nuovi, non toccarla lo lascia stare — per questo si segna se è stata
+ * toccata, e il server riscrive il prezzo solo in quel caso.
+ *
+ * «Nessuna quota» è una scelta a parte, non uno zero da scrivere: chi viene da
+ * fuori non paga niente, e senza niente da pagare l'assicurazione giornaliera
+ * non si propone.
  */
-function PrezzoPerEsterni({ listino, stagioneId, giorni, puoImpostare }: PrezzoEsterni) {
+function PrezzoPerEsterni({
+  listino,
+  stagioneId,
+  giorni,
+  puoImpostare,
+  daDecidere,
+  vociIniziali,
+  importoIniziale,
+  nessunaQuota: nessunaAllInizio,
+  oggi,
+  altreCasse,
+}: PrezzoEsterni) {
+  const [toccato, setToccato] = useState(false);
+  const [nessuna, setNessuna] = useState(nessunaAllInizio);
+
   // qui si decide il prezzo del club per gli esterni: le voci di altre casse
   // hanno la loro quota, e si scelgono dal modulo dell'attività
   const voci = useMemo(
@@ -247,38 +281,75 @@ function PrezzoPerEsterni({ listino, stagioneId, giorni, puoImpostare }: PrezzoE
     [voci],
   );
 
+  // la card si riscrive solo se è stata toccata; da decidere, invece, va
+  // sempre: è il motivo per cui è comparsa
+  const invia = daDecidere || toccato;
+
   return (
     <div className="min-w-0 space-y-3">
-      <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-        {puoImpostare ? (
-          <>
-            Questa attività non ha un prezzo per chi viene da fuori. Senza, il nuovo non avrebbe
-            nessuna quota, e la giornaliera — che la paga il club — si potrebbe fare lo stesso.
-            Scegli qui quanto paga: vale per l’attività e per tutti i nuovi che ci aggiungerai.
-            Zero è una scelta, vuol dire offerta — e senza niente da pagare l’assicurazione
-            giornaliera non viene proposta.
-          </>
-        ) : (
-          <>
-            Questa attività non ha un prezzo per chi viene da fuori, e lo decide l’admin. Chiedigli
-            di impostarlo, poi potrai aggiungere il nuovo: senza, giocherebbe gratis senza che
-            nessuno l’abbia deciso.
-          </>
-        )}
-      </p>
+      {daDecidere ? (
+        <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+          {puoImpostare ? (
+            <>
+              Questa attività non ha un prezzo per chi viene da fuori. Scegli qui quanto paga, o
+              «Nessuna quota»: vale per l’attività e per tutti i nuovi che ci aggiungerai. Senza
+              niente da pagare l’assicurazione giornaliera non viene proposta.
+            </>
+          ) : (
+            <>
+              Questa attività non ha un prezzo per chi viene da fuori, e lo decide l’admin.
+              Chiedigli di impostarlo, poi potrai aggiungere il nuovo: senza, giocherebbe gratis
+              senza che nessuno l’abbia deciso.
+            </>
+          )}
+        </p>
+      ) : (
+        <p className="rounded-md border border-line bg-surface2 px-3 py-2 text-xs text-muted">
+          Oggi chi viene da fuori paga <strong className="text-ink">{oggi}</strong>. Se lo cambi
+          qui, cambia per tutti i nuovi dell’attività, anche quelli già aggiunti.
+        </p>
+      )}
 
       {puoImpostare && (
-        <Quota
-          titolo="Quota esterni"
-          icona="nuovi"
-          spiega="Quanto paga chi in squadra non è: importo e voci si sommano. Zero, senza voci: offerta."
-          campoImporto="costoEsterni"
-          campoVoci="tariffeEsterni"
-          voci={voci}
-          importo={null}
-          iniziali={giocate}
-          giorni={giorni}
-        />
+        <>
+          <input type="hidden" name="prezzoToccato" value={invia ? '1' : '0'} />
+          {nessuna && <input type="hidden" name="nessunaQuota" value="1" />}
+
+          <button
+            type="button"
+            onClick={() => {
+              setToccato(true);
+              setNessuna((n) => !n);
+            }}
+            className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+              nessuna
+                ? 'border-nvg/50 bg-nvg/10 text-nvg'
+                : 'border-line text-muted hover:border-nvgdim hover:text-ink'
+            }`}
+          >
+            {nessuna ? '✓ ' : '+ '}Nessuna quota
+            <span className="block text-[11px] opacity-80">
+              Chi viene da fuori non paga niente, e non va assicurato.
+              {altreCasse.length > 0 &&
+                ` Anche ${altreCasse.join(', ')} ${altreCasse.length === 1 ? 'diventa' : 'diventano'} zero per loro.`}
+            </span>
+          </button>
+
+          {!nessuna && (
+            <Quota
+              titolo="Quota esterni"
+              icona="nuovi"
+              spiega="Quanto paga chi in squadra non è: importo e voci si sommano."
+              campoImporto="costoEsterni"
+              campoVoci="tariffeEsterni"
+              voci={voci}
+              importo={daDecidere ? null : importoIniziale}
+              iniziali={daDecidere ? giocate : vociIniziali}
+              giorni={giorni}
+              onCambia={() => setToccato(true)}
+            />
+          )}
+        </>
       )}
     </div>
   );

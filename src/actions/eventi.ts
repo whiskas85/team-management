@@ -7,6 +7,7 @@ import { stagioneAttiva } from '@/lib/stagioni';
 import {
   componiQuota,
   leggiQuoteAttivita,
+  NESSUNA_QUOTA,
   quotaPer,
   sommaRighe,
   spaccatoRighe,
@@ -1110,64 +1111,133 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   // farlo giocare gratis senza averlo deciso — e poterlo assicurare senza che
   // abbia pagato. Il prezzo arriva allora insieme ai nomi, dal selettore, e lo
   // decide l'admin come ogni altra quota dell'attività.
+  //
+  // L'admin, dal selettore, lo può anche **correggere** su un'attività che il
+  // prezzo ce l'ha già, o metterlo a «Nessuna quota». Vale per tutti i nuovi
+  // dell'attività, anche quelli già aggiunti: le loro quote si riallineano. Il
+  // selettore dice se la card è stata toccata — se no, il prezzo resta com'era.
   const nuovi = ammessi.filter((u) => !vedeAttivitaSquadra(u.stato));
   // Il prezzo c'è se c'è una quota qualsiasi, del club o di un'altra cassa: il
   // Corso CQB non chiede niente al club ma 40 € a SAT & Gaming, e chiedere di
   // decidere un prezzo che esiste già era un errore.
   const altreCasse = await prisma.quotaCassa.findMany({
     where: { eventId },
-    select: { importo: true, importoEsterni: true },
+    select: { id: true, importo: true, importoEsterni: true },
   });
   const daDecidere =
     evento.costoEsterni === null &&
     !(Number(evento.costo ?? 0) > 0) &&
     !altreCasse.some((q) => Number(q.importo) > 0 || q.importoEsterni !== null);
+  const toccato = str(fd, 'prezzoToccato') === '1';
+  const nessunaQuota = str(fd, 'nessunaQuota') === '1';
+
   let prezzoFissato: number | null = null;
-  if (nuovi.length > 0 && daDecidere) {
+  let prezzoCambiato = false;
+  if (nuovi.length > 0 && (daDecidere || toccato)) {
     if (!isAdmin(me.roles)) {
-      return {
-        errore:
-          'L’attività non ha un prezzo per chi viene da fuori, e lo decide l’admin: chiediglielo, poi aggiungi i nuovi.',
-      };
-    }
-    const esterni = await componiQuota(fd, {
-      voci: 'tariffeEsterni',
-      importo: 'costoEsterni',
-      stagioneId: evento.stagioneId,
-      giorni: giorniDi(evento.inizio, evento.fine).length,
-      sommaAMano: true,
-    });
-    if (esterni.quota === null) {
-      return {
-        errore:
-          'Scegli quanto paga chi viene da fuori — dal listino o a mano, zero se è offerta — poi aggiungi.',
-      };
-    }
-    await prisma.event.update({
-      where: { id: eventId },
-      data: {
-        costoEsterni: esterni.quota,
-        dettaglioCostoEsterni: esterni.dettaglio,
-        // per ritrovarla uguale nel modulo dell'attività: le voci spuntate, e
-        // l'importo scritto a mano come una quota aggiunta
-        vociEsterni: vociSpuntate(fd, 'tariffeEsterni'),
-      },
-    });
-    const aMano = num(fd, 'costoEsterni');
-    if (aMano !== null) {
-      await prisma.voceAttivita.create({
-        data: {
-          eventId,
-          perEsterni: true,
-          nome: aMano === 0 ? 'Offerta' : 'Quota esterni',
-          importo: aMano,
-          scelta: true,
-          // è il prezzo della giocata di chi viene da fuori: paga la polizza
-          perPolizza: true,
-        },
+      if (daDecidere) {
+        return {
+          errore:
+            'L’attività non ha un prezzo per chi viene da fuori, e lo decide l’admin: chiediglielo, poi aggiungi i nuovi.',
+        };
+      }
+      // un prezzo che c'è già lo cambia solo l'admin: agli altri la card non
+      // compare nemmeno, e un modulo ritoccato a mano non passa
+    } else {
+      const aggiunteClub = await prisma.voceAttivita.findMany({
+        where: { eventId, perEsterni: true, cassaId: null, scelta: true },
       });
+
+      if (nessunaQuota) {
+        // Niente da pagare, per nessuna cassa: una quota da zero euro,
+        // spuntata e senza polizza, così il modulo dell'attività la ritrova
+        await prisma.event.update({
+          where: { id: eventId },
+          data: { costoEsterni: 0, dettaglioCostoEsterni: NESSUNA_QUOTA, vociEsterni: [] },
+        });
+        await prisma.voceAttivita.updateMany({
+          where: { id: { in: aggiunteClub.map((v) => v.id) } },
+          data: { scelta: false },
+        });
+        await prisma.voceAttivita.create({
+          data: {
+            eventId,
+            perEsterni: true,
+            nome: NESSUNA_QUOTA,
+            importo: 0,
+            scelta: true,
+            perPolizza: false,
+          },
+        });
+        if (altreCasse.length > 0) {
+          await prisma.quotaCassa.updateMany({
+            where: { id: { in: altreCasse.map((q) => q.id) } },
+            data: { importoEsterni: 0 },
+          });
+        }
+        prezzoFissato = 0;
+      } else {
+        const esterni = await componiQuota(fd, {
+          voci: 'tariffeEsterni',
+          importo: 'costoEsterni',
+          stagioneId: evento.stagioneId,
+          giorni: giorniDi(evento.inizio, evento.fine).length,
+          sommaAMano: true,
+        });
+        if (esterni.quota === null) {
+          return {
+            errore:
+              'Scegli quanto paga chi viene da fuori — dal listino, a mano, o «Nessuna quota» — poi aggiungi.',
+          };
+        }
+        await prisma.event.update({
+          where: { id: eventId },
+          data: {
+            costoEsterni: esterni.quota,
+            dettaglioCostoEsterni: esterni.dettaglio,
+            // per ritrovarla uguale nel modulo dell'attività: le voci spuntate, e
+            // l'importo scritto a mano come una quota aggiunta
+            vociEsterni: vociSpuntate(fd, 'tariffeEsterni'),
+          },
+        });
+
+        // L'importo a mano è la somma delle quote aggiunte con il + del club:
+        // se non è cambiato, quelle restano come sono — erano magari due, «campo»
+        // e «pranzo», e fonderle in una sola le avrebbe cancellate. Se è
+        // cambiato, prendono il suo posto in una quota sola. «Nessuna quota»,
+        // se c'era, si toglie comunque: adesso qualcosa si paga.
+        const aMano = num(fd, 'costoEsterni');
+        const prima = aggiunteClub.filter((v) => v.nome !== NESSUNA_QUOTA);
+        const primaAMano =
+          prima.length > 0 ? prima.reduce((t, v) => t + Number(v.importo), 0) : null;
+        const uguale = (aMano ?? 0) === (primaAMano ?? 0) && (aMano === null) === (primaAMano === null);
+        await prisma.voceAttivita.updateMany({
+          where: {
+            id: {
+              in: (uguale ? aggiunteClub.filter((v) => v.nome === NESSUNA_QUOTA) : aggiunteClub).map(
+                (v) => v.id,
+              ),
+            },
+          },
+          data: { scelta: false },
+        });
+        if (!uguale && aMano !== null) {
+          await prisma.voceAttivita.create({
+            data: {
+              eventId,
+              perEsterni: true,
+              nome: aMano === 0 ? 'Offerta' : 'Quota esterni',
+              importo: aMano,
+              scelta: true,
+              // è il prezzo della giocata di chi viene da fuori: paga la polizza
+              perPolizza: true,
+            },
+          });
+        }
+        prezzoFissato = esterni.quota;
+      }
+      prezzoCambiato = true;
     }
-    prezzoFissato = esterni.quota;
   }
 
   for (const u of ammessi) {
@@ -1176,8 +1246,11 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
       create: { eventId, userId: u.id, status: 'PRESENTE', note: NOTA_AGGIUNTO_STAFF },
       update: { status: 'PRESENTE' },
     });
-    await allineaQuota(evento.id, u.id);
+    if (!prezzoCambiato) await allineaQuota(evento.id, u.id);
   }
+  // il prezzo per gli esterni è cambiato: si riallineano tutti, anche i nuovi
+  // aggiunti prima — vale per l'attività, non per chi entra adesso
+  if (prezzoCambiato) await allineaQuoteEvento(evento.id);
 
   aggiorna(eventId);
   revalidatePath('/admin/pagamenti');
@@ -1189,16 +1262,21 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   }
 
   const quota = evento.costo ? Number(evento.costo) : 0;
+  // la quota della squadra la si dice solo se è entrato qualcuno della
+  // squadra: aggiungendo un nuovo con «Nessuna quota», «10 € a testa» era falso
+  const diSquadra = ammessi.length - nuovi.length;
   return {
     ok:
-      `Aggiunti ${ammessi.length} operatori` +
-      (quota > 0 ? `, con quota di ${quota} € a testa` : '') +
+      `Aggiunti ${ammessi.length} ${ammessi.length === 1 ? 'operatore' : 'operatori'}` +
+      (quota > 0 && diSquadra > 0 ? `, la squadra con quota di ${quota} € a testa` : '') +
       (scartati.length > 0
         ? `. Esclusi per il certificato: ${scartati.map((u) => u.nome).join(', ')}`
         : '') +
-      (prezzoFissato !== null
-        ? `. Chi viene da fuori paga ${prezzoFissato.toFixed(2)} €`
-        : '') +
+      (prezzoFissato === null
+        ? ''
+        : prezzoFissato === 0
+          ? '. Chi viene da fuori non paga niente, e non va assicurato'
+          : `. Chi viene da fuori paga ${prezzoFissato.toFixed(2)} €`) +
       '.',
   };
 }

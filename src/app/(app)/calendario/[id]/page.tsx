@@ -43,6 +43,7 @@ import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
+import { NESSUNA_QUOTA } from '@/lib/quote';
 import { genereAllegato } from '@/lib/allegati';
 import { linkEsternoAllegato } from '@/lib/allegati-link';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
@@ -75,7 +76,7 @@ import {
   giorniDi,
   quotaOnorata,
   cassePerPolizza,
-  quotaAZero,
+  nienteDaPagare,
   quotePerPolizza,
   tariffePolizza,
   serveGiornaliera,
@@ -922,7 +923,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // day offerto, la riunione — la polizza non si propone.
   const serveAssicurarlo = (r: Riga, giorno: string) =>
     serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, dataLocale(giorno)) &&
-    !quotaAZero(quoteDi(r.userId));
+    !nienteDaPagare(evento, r.user.stato);
 
   const scoperto = (r: Riga) =>
     giorniEvento.some(
@@ -937,6 +938,34 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // il selettore allora chiede il prezzo prima di aggiungerlo.
   // Conta anche una quota di un'altra cassa: il Corso CQB non chiede niente al
   // club, ma i suoi prezzi li ha — a SAT & Gaming e a chi tiene i nuovi.
+  /*
+   * Il prezzo per gli esterni com'è oggi, per la card del selettore: le voci
+   * del listino spuntate, l'importo aggiunto a mano (le quote aggiunte con il +
+   * del club), e quanto fa in tutto contando anche le altre casse. «Nessuna
+   * quota» è quando è stato deciso che non pagano niente — non quando il prezzo
+   * manca, che è un'altra cosa.
+   */
+  const aggiunteEsterni = evento.vociAttivita.filter(
+    (v) => v.perEsterni && v.scelta && !v.cassaId && v.nome !== NESSUNA_QUOTA,
+  );
+  const esterniClub =
+    evento.costoEsterni !== null ? Number(evento.costoEsterni) : Number(evento.costo ?? 0);
+  const esterniAltre = evento.quoteCasse.map((q) => ({
+    nome: `${q.descrizione} (${q.cassa.nome})`,
+    importo: Number(q.importoEsterni ?? q.importo),
+  }));
+  const esterniInTutto = esterniClub + esterniAltre.reduce((t, q) => t + q.importo, 0);
+  const prezzoEsterniOggi = {
+    vociIniziali: evento.vociEsterni,
+    importoIniziale:
+      aggiunteEsterni.length > 0
+        ? aggiunteEsterni.reduce((t, v) => t + Number(v.importo), 0)
+        : null,
+    nessunaQuota: evento.costoEsterni !== null && esterniInTutto === 0,
+    oggi: esterniInTutto > 0 ? fmtEuro(esterniInTutto) : 'niente',
+    altreCasse: esterniAltre.filter((q) => q.importo > 0).map((q) => q.nome),
+  };
+
   const prezzoEsterniDaDecidere =
     evento.costoEsterni === null &&
     !(Number(evento.costo ?? 0) > 0) &&
@@ -1504,12 +1533,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     candidati={candidati}
                     soloSquadra={evento.visibilita === 'TEAM'}
                     prezzoEsterni={
-                      prezzoEsterniDaDecidere
+                      // l'admin la card la vede sempre, per correggere il
+                      // prezzo mentre aggiunge; gli altri solo quando manca,
+                      // per sapere che va chiesto a lui
+                      admin || prezzoEsterniDaDecidere
                         ? {
                             listino,
                             stagioneId: evento.stagioneId,
                             giorni: giorniEvento.length,
                             puoImpostare: admin,
+                            daDecidere: prezzoEsterniDaDecidere,
+                            ...prezzoEsterniOggi,
                           }
                         : null
                     }
