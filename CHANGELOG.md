@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.85.0 — 23 settembre 2026
+
+### Cambiato
+
+- **Gli allegati di un'attivita' si aprono fuori, in una pagina nuova.** Un
+  PDF o un HTML, toccando il titolo o «Apri», si apre fuori
+  dall'applicazione col lettore del telefono — che ingrandisce e scorre
+  meglio — e chiudendolo si torna all'attivita' dov'eri. Il Markdown resta
+  dentro: e' un documento scritto qui, e la pagina del gestionale e' il suo
+  lettore.
+  - Sull'iPhone la finestra esterna non ha la sessione dell'applicazione
+    installata: il link porta con se' chi lo apre, firmato e valido un'ora.
+    Le regole per aprire l'allegato restano quelle di sempre.
+
 ## 2.84.2 — 23 settembre 2026
 
 ### Corretto

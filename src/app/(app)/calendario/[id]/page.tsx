@@ -43,6 +43,8 @@ import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
+import { genereAllegato } from '@/lib/allegati';
+import { linkEsternoAllegato } from '@/lib/allegati-link';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
 import { ContaRisposte } from '@/components/ContaRisposte';
 import { BottoneModale } from '@/components/Modale';
@@ -650,6 +652,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     caricatoDa: a.caricatoDa
       ? comeChiamare(a.caricatoDa, { incarico: false, diSquadra: false }).nome
       : null,
+    // PDF e HTML si aprono fuori, in una pagina nuova, col lettore del
+    // telefono. Il Markdown no: è un documento scritto qui, e il suo lettore
+    // è la pagina del gestionale
+    aperturaEsterna:
+      genereAllegato(a.mimeType) === 'md' ? null : linkEsternoAllegato(a.id, me.id),
   }));
 
   // Le tipologie segnate come riunione: se non ce n'è nessuna il pulsante non

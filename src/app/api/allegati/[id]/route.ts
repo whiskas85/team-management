@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { genereAllegato } from '@/lib/allegati';
 import { isAdmin, vedeAttivitaSquadra } from '@/lib/domain';
 import { percorsoAssoluto } from '@/lib/storage';
+import { chiDalLink } from '@/lib/allegati-link';
 
 /**
  * Il file di un allegato, servito a chi ha diritto di leggerlo.
@@ -48,7 +49,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       return new NextResponse('Non trovato', { status: 404 });
     }
   } else {
-    const me = await getCurrentUser();
+    // Da dentro: con la sessione, oppure con il link firmato con cui
+    // l'allegato si apre fuori dall'applicazione — sull'iPhone la finestra
+    // esterna la sessione non ce l'ha. La persona è quella scritta nel link, e
+    // da qui in giù le regole sono le stesse.
+    const daLink = chiDalLink(id, url);
+    const me =
+      (await getCurrentUser()) ??
+      (daLink
+        ? await prisma.user.findFirst({
+            where: { id: daLink, stato: { not: 'DISABILITATO' } },
+            select: { id: true, roles: true, stato: true },
+          })
+        : null);
     if (!me) return new NextResponse('Non autenticato', { status: 401 });
 
     const admin = isAdmin(me.roles);

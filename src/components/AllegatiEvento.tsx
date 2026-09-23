@@ -34,6 +34,11 @@ export type Allegato = {
   /** Già formattata: qui dentro non si fanno date. */
   aggiornatoIl: string;
   caricatoDa: string | null;
+  /**
+   * Il link firmato per aprirlo fuori, in una pagina nuova (PDF e HTML).
+   * Vuoto per i Markdown, che si leggono nella pagina del gestionale.
+   */
+  aperturaEsterna?: string | null;
 };
 
 const ACCETTA = ESTENSIONI_ALLEGATO.join(',');
@@ -42,11 +47,17 @@ const MEGA = Math.round(MAX_ALLEGATO_BYTES / 1024 / 1024);
 /**
  * Gli allegati dell'attività: il book di missione, e quello che gli sta intorno.
  *
- * **Si apre dentro il gestionale, non si scarica e basta.** Un book scaricato
- * è un file in mezzo ad altri file, che la domenica mattina nessuno ritrova, e
- * che resta fermo alla versione di quando l'hanno preso. Aperto da qui è
- * sempre quello giusto — se lo sostituiscono, cambia sotto lo stesso link.
- * Scaricarlo si può, e serve: in campo la rete non c'è.
+ * **Si apre da qui, non si scarica e basta.** Un book scaricato è un file in
+ * mezzo ad altri file, che la domenica mattina nessuno ritrova, e che resta
+ * fermo alla versione di quando l'hanno preso. Aperto da qui è sempre quello
+ * giusto — se lo sostituiscono, cambia sotto lo stesso link. Scaricarlo si
+ * può, e serve: in campo la rete non c'è.
+ *
+ * PDF e HTML si aprono **fuori dall'applicazione, in una pagina nuova**: il
+ * lettore del telefono ingrandisce e scorre meglio di una pagina di OPS, e
+ * chiudendolo si torna dove si era invece di dover risalire indietro. Il
+ * Markdown resta dentro: è un documento scritto qui, e la pagina del
+ * gestionale è il suo lettore.
  *
  * La spunta *anche fuori* è il motivo per cui questo riquadro esiste. Un book
  * si manda alle squadre che vengono a giocare, e finora lo si mandava per
@@ -240,15 +251,27 @@ function Riga({
   const genere = genereAllegato(a.mimeType);
   const indirizzo = `/calendario/${eventId}/allegati/${a.id}`;
 
+  /** Il collegamento che apre l'allegato: fuori in una pagina nuova, o qui dentro. */
+  const Apri = ({ className, children }: { className: string; children: React.ReactNode }) =>
+    a.aperturaEsterna ? (
+      <a href={a.aperturaEsterna} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    ) : (
+      <Link href={indirizzo} className={className}>
+        {children}
+      </Link>
+    );
+
   return (
     <CardRiga
       titolo={
-        <Link href={indirizzo} className="inline-flex items-start gap-2 hover:text-nvg">
+        <Apri className="inline-flex items-start gap-2 hover:text-nvg">
           <span className="mt-0.5 shrink-0 text-muted">
             <Icona nome="allegato" size={16} />
           </span>
           <span>{a.titolo}</span>
-        </Link>
+        </Apri>
       }
       sottotitolo={
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -271,10 +294,10 @@ function Riga({
       }
       azioni={
         <>
-          <Link href={indirizzo} className="btn-ghost btn-sm">
+          <Apri className="btn-ghost btn-sm">
             <Icona nome="apri" size={15} />
             Apri
-          </Link>
+          </Apri>
           {/* in campo la rete non c'è: il book portato via serve */}
           <a href={`/api/allegati/${a.id}?scarica=1`} className="btn-ghost btn-sm" download>
             <Icona nome="scarica" size={15} />
