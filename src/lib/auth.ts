@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import type { Role, StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
 import { identitaCorrente } from './identita';
+import { VERSIONE } from './versione';
 
 const COOKIE = 'zd_session';
 const DURATA_BREVE = 60 * 60 * 12; // sessione di lavoro
@@ -118,12 +119,17 @@ export async function requirePermesso(
 }
 
 /**
- * Segna che questa persona sta usando il gestionale, adesso.
+ * Segna che questa persona sta usando il gestionale, adesso — e con quale
+ * versione.
  *
  * Si scrive **al massimo una volta ogni cinque minuti**, non a ogni pagina: la
  * data serve a sapere se qualcuno è passato oggi o tre settimane fa, e per
  * quella domanda cinque minuti di approssimazione non cambiano niente — mentre
  * una scrittura per ogni schermata aperta sì.
+ *
+ * Insieme alla data si scrive la versione servita in quel momento: è quella
+ * che questa persona ha davvero visto, e il giorno che qualcosa non le
+ * funziona dice subito se sta guardando il gestionale di tre settimane fa.
  *
  * Se il database non risponde non succede niente: è un dato di comodo, e non
  * deve poter impedire a nessuno di aprire una pagina.
@@ -139,7 +145,7 @@ export async function segnaAttivita(user: {
   try {
     await prisma.user.update({
       where: { id: user.id },
-      data: { ultimaAttivita: new Date() },
+      data: { ultimaAttivita: new Date(), versioneApp: VERSIONE },
     });
   } catch {
     /* vedi sopra */

@@ -14,7 +14,36 @@ export type RigaNotifiche = {
   ultimaAttivita: string | null;
   /** Perché la domanda «le riceve?» abbia senso: chi non entra mai non conta. */
   maiEntrato: boolean;
+  /** La versione del gestionale che ha visto l'ultima volta. */
+  versione: string | null;
+  /** La versione del service worker sul suo dispositivo, come la dice lui. */
+  sw: string | null;
+  /** Il service worker non è quello di adesso: le notifiche si comportano da vecchie. */
+  swVecchio: boolean;
 };
+
+/**
+ * Le due versioni, sotto il nome.
+ *
+ * Quella del gestionale dice cos'ha visto l'ultima volta; quella del service
+ * worker dice cosa gli gira sul telefono adesso, ed è quella che decide come
+ * si comporta una notifica. Sono diverse apposta: il service worker si
+ * aggiorna per conto suo, quando gli pare il browser.
+ */
+function Versioni({ o }: { o: RigaNotifiche }) {
+  if (!o.versione && !o.sw) return null;
+  return (
+    <span className="text-[11px] num">
+      {o.versione && <span className="text-muted">app v{o.versione}</span>}
+      {o.sw && (
+        <span className={o.swVecchio ? 'text-warn' : 'text-muted'}>
+          {o.versione ? ' · ' : ''}
+          avvisi {o.sw === 'vecchia' ? 'versione vecchia' : `v${o.sw}`}
+        </span>
+      )}
+    </span>
+  );
+}
 
 /**
  * Chi riceve gli avvisi sul telefono, e chi no.
@@ -65,6 +94,9 @@ export function ElencoNotifiche({ righe }: { righe: RigaNotifiche[] }) {
                     <p className="text-xs num text-muted">
                       {o.ultimaAttivita ? `visto ${o.ultimaAttivita}` : 'mai entrato'}
                     </p>
+                    <p>
+                      <Versioni o={o} />
+                    </p>
                   </div>
                   <Badge tono={o.dispositivi.length > 0 ? 'ok' : o.maiEntrato ? 'neutro' : 'warn'}>
                     {o.dispositivi.length > 0
@@ -92,6 +124,7 @@ export function ElencoNotifiche({ righe }: { righe: RigaNotifiche[] }) {
                     <th>Avvisi</th>
                     <th>Dispositivi</th>
                     <th>Ultima volta</th>
+                    <th>Versioni</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -113,6 +146,9 @@ export function ElencoNotifiche({ righe }: { righe: RigaNotifiche[] }) {
                       </td>
                       <td className="num text-xs text-muted">
                         {o.ultimaAttivita ?? 'mai entrato'}
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <Versioni o={o} />
                       </td>
                     </tr>
                   ))}

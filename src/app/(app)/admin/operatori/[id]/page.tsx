@@ -180,6 +180,21 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
             {utente.ultimoAccesso && ` · ultimo accesso ${fmtDate(utente.ultimoAccesso)}`}
             {utente.disabledAt && ` · disabilitato il ${fmtDate(utente.disabledAt)}`}
           </p>
+          {/* Che gestionale ha in mano: quello servito l'ultima volta che è
+              passato, e il service worker che gli gira sul dispositivo — è
+              lui a decidere come si comportano le notifiche, e si aggiorna
+              per conto suo. */}
+          {(utente.versioneApp || utente.versioneSw) && (
+            <p className="mt-1 text-xs text-muted num">
+              {utente.versioneApp && `Gestionale v${utente.versioneApp}`}
+              {utente.versioneSw &&
+                `${utente.versioneApp ? ' · ' : ''}avvisi ${
+                  utente.versioneSw === 'vecchia'
+                    ? 'con un service worker vecchio'
+                    : `v${utente.versioneSw}`
+                }`}
+            </p>
+          )}
           {utente.cancellazioneChiesta && (
             <p className="mt-2 text-xs text-danger">
               Ha chiesto la cancellazione dei dati il {fmtDate(utente.cancellazioneChiesta)}.

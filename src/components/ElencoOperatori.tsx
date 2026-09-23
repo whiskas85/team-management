@@ -36,6 +36,10 @@ export type RigaOperatore = {
   ultimaAttivita: string | null;
   /** Lo stesso istante in millisecondi: la data formattata non si può ordinare. */
   ultimaAttivitaIl: number | null;
+  /** La versione del gestionale che ha visto l'ultima volta che è passato. */
+  versione: string | null;
+  /** Non è quella di adesso: ha in mano un gestionale di qualche rilascio fa. */
+  versioneVecchia: boolean;
   daSaldare: number;
   nato: string | null;
   anni: number | null;
@@ -322,9 +326,24 @@ export function ElencoOperatori({
       <span className="text-muted">—</span>
     );
 
+  /*
+   * Quando è passato, e con che versione.
+   *
+   * La versione sta sotto la data perché è la stessa informazione vista da
+   * un'altra parte: chi non apre OPS da tre settimane ha in mano il
+   * gestionale di tre settimane fa, e una cosa che «non gli funziona» spesso
+   * è solo una cosa che lui non ha ancora.
+   */
   const visto = (o: RigaOperatore) =>
     o.ultimaAttivita ? (
-      <span className="text-muted">{o.ultimaAttivita}</span>
+      <>
+        <span className="text-muted">{o.ultimaAttivita}</span>
+        {o.versione && (
+          <span className={`block text-[11px] ${o.versioneVecchia ? 'text-warn' : 'text-muted'}`}>
+            v{o.versione}
+          </span>
+        )}
+      </>
     ) : (
       <span className="text-warn">mai entrato</span>
     );
@@ -510,7 +529,15 @@ export function ElencoOperatori({
                     </p>
                     <p className="text-xs num">
                       {o.ultimaAttivita ? (
-                        <span className="text-muted">visto {o.ultimaAttivita}</span>
+                        <>
+                          <span className="text-muted">visto {o.ultimaAttivita}</span>
+                          {o.versione && (
+                            <span className={o.versioneVecchia ? 'text-warn' : 'text-muted'}>
+                              {' '}
+                              · v{o.versione}
+                            </span>
+                          )}
+                        </>
                       ) : (
                         <span className="text-warn">mai entrato</span>
                       )}
@@ -616,7 +643,18 @@ export function ElencoOperatori({
                       </td>
                       <td className="whitespace-nowrap text-xs num">
                         {o.ultimaAttivita ? (
-                          <span className="text-muted">{o.ultimaAttivita}</span>
+                          <>
+                            <span className="text-muted">{o.ultimaAttivita}</span>
+                            {o.versione && (
+                              <span
+                                className={`block text-[11px] ${
+                                  o.versioneVecchia ? 'text-warn' : 'text-muted'
+                                }`}
+                              >
+                                v{o.versione}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           <span className="text-warn">mai entrato</span>
                         )}

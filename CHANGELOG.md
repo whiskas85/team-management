@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.82.0 — 23 settembre 2026
+
+### Aggiunto
+
+- **Che versione ha in mano ogni operatore.** Accanto all'ultima volta che
+  una persona ha usato il gestionale adesso c'e' anche la versione che
+  girava in quel momento: chi non apre OPS da tre settimane ha in mano il
+  gestionale di tre settimane fa, e una cosa che «non gli funziona» spesso e'
+  solo una cosa che lui non ha ancora. Si vede nel Libro atleti, in Tutti e
+  sulla scheda della persona; in giallo quando non e' quella di adesso.
+- **La versione del service worker, in Operatori -> Avvisi.** E' il pezzo che
+  mancava il giorno delle notifiche che non arrivavano: il service worker
+  vive sul dispositivo, si aggiorna quando decide il browser e finche' resta
+  vecchio le notifiche si comportano da vecchie anche se il gestionale e'
+  nuovo. Ogni dispositivo dichiara la sua all'apertura — una volta per
+  sessione — e chi non sa rispondere e' precedente a questa versione: si
+  legge «versione vecchia».
+  - La versione servita si legge da `public/sw.js`, dove e' scritta una volta
+    sola: nessun numero da tenere allineato a mano.
+
 ## 2.81.0 — 22 settembre 2026
 
 ### Cambiato

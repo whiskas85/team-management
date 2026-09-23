@@ -12,7 +12,18 @@
  * mente.
  */
 
-const CACHE = 'zero-dark-statici-v1';
+/*
+ * La versione di QUESTO file, non del gestionale.
+ *
+ * Si alza quando si cambia qualcosa qui dentro, e serve a rispondere alla
+ * domanda «perche' a lui le notifiche non arrivano?»: il service worker si
+ * aggiorna per conto suo, con i suoi tempi, e finche' sul telefono resta
+ * quello vecchio le notifiche si comportano da vecchie anche se il resto del
+ * gestionale e' nuovo. Chi amministra la vede in Operatori -> Avvisi.
+ */
+const VERSIONE_SW = '2.82.0';
+
+const CACHE = `zero-dark-statici-${VERSIONE_SW}`;
 
 // da qui passa tutto: senza un gestore di fetch il telefono non considera
 // l'applicazione installabile
@@ -198,3 +209,11 @@ self.addEventListener('activate', (evento) => {
 });
 
 self.addEventListener('install', () => self.skipWaiting());
+
+// «tu chi sei?»: la pagina lo chiede appena aperta e lo dice al gestionale.
+// Un service worker precedente a questa versione non risponde, e il silenzio
+// e' gia' la risposta: e' vecchio.
+self.addEventListener('message', (evento) => {
+  if (evento.data?.tipo !== 'versione') return;
+  evento.ports[0]?.postMessage({ versione: VERSIONE_SW });
+});

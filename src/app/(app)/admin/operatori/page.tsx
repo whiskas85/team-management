@@ -12,6 +12,8 @@ import {
 } from '@/lib/domain';
 import { fmtDate, fmtDateTime, iniziali, nomeCompleto } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
+import { VERSIONE } from '@/lib/versione';
+import { versioneSwServita } from '@/lib/versione-sw';
 import { etaCompiuta } from '@/lib/messaggi';
 import { Intestazione, Statistica } from '@/components/ui';
 import { ElencoOperatori, type RigaOperatore } from '@/components/ElencoOperatori';
@@ -80,12 +82,18 @@ async function Notifiche() {
       cognome: true,
       callsign: true,
       ultimaAttivita: true,
+      versioneApp: true,
+      versioneSw: true,
       iscrizioniPush: {
         orderBy: { creatoIl: 'asc' },
         select: { id: true, dispositivo: true, creatoIl: true },
       },
     },
   });
+
+  // la versione del service worker che stiamo servendo adesso: quella sui
+  // dispositivi si confronta con lei
+  const swServito = versioneSwServita();
 
   const righe: RigaNotifiche[] = operatori.map((o) => ({
     id: o.id,
@@ -99,6 +107,11 @@ async function Notifiche() {
     ),
     ultimaAttivita: o.ultimaAttivita ? fmtDateTime(o.ultimaAttivita) : null,
     maiEntrato: o.ultimaAttivita === null,
+    versione: o.versioneApp,
+    sw: o.versioneSw,
+    // un service worker fermo a una versione precedente e' la spiegazione
+    // piu' comune di «a me la notifica non e' arrivata»
+    swVecchio: o.versioneSw !== null && swServito !== null && o.versioneSw !== swServito,
   }));
 
   const raggiunti = righe.filter((r) => r.dispositivi.length > 0).length;
@@ -204,6 +217,8 @@ async function Gestione({ tutti }: { tutti: boolean }) {
       // aprendolo tutti i giorni, e da qui sembrava sparito.
       ultimaAttivita: o.ultimaAttivita ? fmtDateTime(o.ultimaAttivita) : null,
       ultimaAttivitaIl: o.ultimaAttivita ? o.ultimaAttivita.getTime() : null,
+      versione: o.versioneApp,
+      versioneVecchia: o.versioneApp !== null && o.versioneApp !== VERSIONE,
       daSaldare: o.payments
         .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
         .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0),

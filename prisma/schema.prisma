@@ -171,6 +171,24 @@ model User {
   /// dalla sua scheda sembrava sparito. Questa data si aggiorna mentre si
   /// naviga, non al momento di entrare.
   ultimaAttivita       DateTime?
+  /// La versione del gestionale che girava l'ultima volta che questa persona
+  /// lo ha usato.
+  ///
+  /// Serve a spiegare le stranezze: chi non apre OPS da tre settimane ha sul
+  /// telefono l'applicazione di tre settimane fa, con il suo service worker,
+  /// e una funzione aggiunta dopo per lui non esiste ancora. Si scrive
+  /// insieme a `ultimaAttivita`, dallo stesso passaggio.
+  versioneApp          String?
+  /// La versione del service worker installato sul dispositivo, come la
+  /// dichiara lui stesso.
+  ///
+  /// E' quella che conta per le notifiche: il service worker si aggiorna per
+  /// conto suo, con i suoi tempi, e finche' resta vecchio le notifiche si
+  /// comportano da vecchie anche se il resto del gestionale e' nuovo.
+  /// «vecchia» vuol dire che c'e' ma non sa rispondere: e' precedente alla
+  /// versione in cui gli e' stato insegnato a dire chi e'.
+  versioneSw           String?
+  versioneSwIl         DateTime?
   /// Account admin creato dall'avvio per non restare chiusi fuori da
   /// un'installazione nuova. Se ne compare uno vero, questo se ne va da solo.
   /// Marcarlo è l'unico modo per riconoscerlo con certezza: l'email da sola
