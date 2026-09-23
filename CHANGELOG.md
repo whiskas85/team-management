@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.85.1 — 23 settembre 2026
+
+### Cambiato
+
+- **Gli allegati di un'attivita' non hanno piu' il pulsante «Apri».** Si
+  aprono toccando il titolo, e un pulsante che faceva la stessa cosa era
+  solo un bottone in piu' da leggere. Restano «Scarica» e, per chi li
+  gestisce, «Modifica».
+
 ## 2.85.0 — 23 settembre 2026
 
 ### Cambiato

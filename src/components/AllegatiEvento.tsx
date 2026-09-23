@@ -294,10 +294,9 @@ function Riga({
       }
       azioni={
         <>
-          <Apri className="btn-ghost btn-sm">
-            <Icona nome="apri" size={15} />
-            Apri
-          </Apri>
+          {/* Niente pulsante «Apri»: si apre toccando il titolo, e un
+              pulsante che fa la stessa cosa del titolo accanto era solo un
+              bottone in più da leggere. */}
           {/* in campo la rete non c'è: il book portato via serve */}
           <a href={`/api/allegati/${a.id}?scarica=1`} className="btn-ghost btn-sm" download>
             <Icona nome="scarica" size={15} />
