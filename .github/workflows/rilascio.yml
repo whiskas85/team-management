@@ -93,6 +93,14 @@ jobs:
           docker ps --format '{{.Names}}\t{{.Status}}'
           echo "== Disco"
           df -h /
+          echo "== Cosa occupa Docker (e quanto se ne potrebbe liberare)"
+          docker system df
+          echo "== Macchina"
+          echo "processori: $(nproc)"
+          uptime
+          free -h
+          echo "== Consumo dei container adesso"
+          docker stats --no-stream --format '{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}'
           SUL_SERVER
 
       - name: Rilascio
