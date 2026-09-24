@@ -191,6 +191,14 @@ rilascia() {
   zdt up -d --build
   proxy
   docker image prune -f --filter until=24h > /dev/null
+  # l'app appena ricreata impiega qualche secondo a rispondere: controllarla
+  # subito darebbe un 502 che non vuol dire niente. Si bussa dal proxy, che
+  # la vede sulla rete zd-bordo, per al massimo un minuto
+  local _
+  for _ in $(seq 1 30); do
+    docker exec zd-proxy wget -q -O /dev/null http://zd-test-app:3000/login 2>/dev/null && break
+    sleep 2
+  done
   stato
 }
 
