@@ -106,7 +106,6 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
       titolo: m.titolo,
       testo: m.testo,
       banner: m.bannerPath ? indirizzoBanner(m.id) : null,
-      conNotifica: m.conNotifica,
       autore: chi(m.autore),
       creatoIl: m.creatoIl,
       pubblicatoIl: m.pubblicatoIl,
@@ -184,6 +183,7 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                     pubblico: b.pubblico,
                     icona: b.icona,
                     moderatoreId: b.moderatoreId,
+                    conNotifica: b.conNotifica,
                     lettori: b.lettori.map((l) => l.userId),
                     scrittori: b.scrittori.map((s) => s.userId),
                   }}

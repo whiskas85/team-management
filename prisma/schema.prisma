@@ -2146,6 +2146,9 @@ model Bacheca {
   /// una sotto l'altra, e un'icona diversa si riconosce prima del nome.
   icona       String          @default("bacheca")
   ordine      Int             @default(0)
+  /// Al rilascio di un messaggio parte la notifica push. Spenta, la bacheca
+  /// resta silenziosa: chi la legge trova i messaggi col pallino nel menu.
+  conNotifica Boolean         @default(true)
   creataIl    DateTime        @default(now())
   creataDaId  String
   creataDa    User            @relation("BachecheCreate", fields: [creataDaId], references: [id], onDelete: Cascade)
@@ -2200,9 +2203,6 @@ model MessaggioBacheca {
   bannerTipo   String?
   creatoIl     DateTime  @default(now())
   pubblicatoIl DateTime?
-  /// Al rilascio parte la notifica push. Spento, il messaggio esce in
-  /// silenzio: chi lo deve leggere lo trova col pallino nel menu.
-  conNotifica  Boolean   @default(true)
   /// L'ultima modifica dopo il rilascio: prima del rilascio una bozza si
   /// corregge quante volte si vuole e non e' una modifica per nessuno.
   modificatoIl DateTime?

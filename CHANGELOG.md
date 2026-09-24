@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.101.1 — 24 settembre 2026
+
+### Cambiato
+
+- **La notifica push si sceglie per bacheca, non per messaggio.** In
+  «Configura la bacheca» c'è la casella «Manda la notifica push quando esce
+  un messaggio», accesa di serie: spenta, la bacheca è silenziosa e i
+  messaggi si trovano col pallino nel menu. La casella nel singolo messaggio
+  non c'è più.
+
 ## 2.101.0 — 24 settembre 2026
 
 ### Aggiunto

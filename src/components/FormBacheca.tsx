@@ -102,6 +102,7 @@ export function FormBacheca({
     pubblico: PubblicoBacheca;
     icona: string;
     moderatoreId: string | null;
+    conNotifica: boolean;
     lettori: string[];
     scrittori: string[];
   };
@@ -216,6 +217,21 @@ export function FormBacheca({
           Cancella messaggi e risposte di chiunque, quando serve rimettere ordine.
         </span>
       </Campo>
+
+      <label className="flex min-w-0 items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="conNotifica"
+          defaultChecked={bacheca?.conNotifica ?? true}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span className="min-w-0">
+          Manda la notifica push quando esce un messaggio
+          <span className="block text-xs text-muted">
+            Spenta, la bacheca è silenziosa: chi la legge trova i messaggi col pallino nel menu.
+          </span>
+        </span>
+      </label>
 
       <Invia icona="salva">{bacheca ? 'Salva' : 'Crea la bacheca'}</Invia>
     </FormAzione>

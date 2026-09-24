@@ -44,7 +44,6 @@ export type DatiMessaggio = {
   creatoIl: Date;
   pubblicatoIl: Date | null;
   modificatoIl: Date | null;
-  conNotifica: boolean;
   mio: boolean;
   puoModerare: boolean;
   spunte: Spunte | null;
@@ -139,15 +138,7 @@ export function FormMessaggio({
   citabili,
 }: {
   bachecaId: string;
-  messaggio?: {
-    id: string;
-    titolo: string | null;
-    testo: string;
-    banner: boolean;
-    conNotifica: boolean;
-    /** Già rilasciato: la notifica è andata come doveva, la casella non serve più. */
-    rilasciato: boolean;
-  };
+  messaggio?: { id: string; titolo: string | null; testo: string; banner: boolean };
   citabili: Citabile[];
 }) {
   return (
@@ -188,23 +179,6 @@ export function FormMessaggio({
           segnaposto="Scrivi qui. Con @ richiami una persona o un documento della bacheca."
         />
       </div>
-      {!messaggio?.rilasciato && (
-        <label className="flex min-w-0 items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="conNotifica"
-            defaultChecked={messaggio?.conNotifica ?? true}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
-          />
-          <span className="min-w-0">
-            Manda la notifica push al rilascio
-            <span className="block text-[11px] text-muted">
-              Spenta, il messaggio esce in silenzio: chi lo deve leggere lo trova col pallino nel
-              menu.
-            </span>
-          </span>
-        </label>
-      )}
       <Invia icona="salva">{messaggio ? 'Salva' : 'Salva la bozza'}</Invia>
       {!messaggio && (
         <p className="text-xs text-muted">
@@ -276,11 +250,7 @@ export function MessaggioBacheca({
                 valori={{ id: m.id }}
                 icona="rilascia"
                 className="btn-primary btn-sm"
-                conferma={
-                  m.conNotifica
-                    ? 'Rilasciare il messaggio? Da questo momento lo vedono tutti e parte la notifica.'
-                    : 'Rilasciare il messaggio? Da questo momento lo vedono tutti, senza notifica.'
-                }
+                conferma="Rilasciare il messaggio? Da questo momento lo vedono tutti e parte la notifica."
               >
                 Rilascia
               </AzioneBottone>
@@ -290,14 +260,7 @@ export function MessaggioBacheca({
                 <FormMessaggio
                   bachecaId={bachecaId}
                   citabili={citabili}
-                  messaggio={{
-                    id: m.id,
-                    titolo: m.titolo,
-                    testo: m.testo,
-                    banner: !!m.banner,
-                    conNotifica: m.conNotifica,
-                    rilasciato: !bozza,
-                  }}
+                  messaggio={{ id: m.id, titolo: m.titolo, testo: m.testo, banner: !!m.banner }}
                 />
               </BottoneModale>
             )}

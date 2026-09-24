@@ -123,6 +123,7 @@ export async function salvaBacheca(_prev: StatoForm, fd: FormData): Promise<Stat
     // solo fra quelle previste: un valore qualsiasi finirebbe nel menu di tutti
     icona: iconaBacheca(strOpt(fd, 'icona')),
     moderatoreId,
+    conNotifica: bool(fd, 'conNotifica'),
   };
 
   const bachecaId = await prisma.$transaction(async (tx) => {
@@ -227,8 +228,6 @@ export async function salvaMessaggio(_prev: StatoForm, fd: FormData): Promise<St
   const dati = {
     titolo: strOpt(fd, 'titolo'),
     testo,
-    // dopo il rilascio la casella non c'è più: la notifica è già partita (o no)
-    ...(esistente?.pubblicatoIl ? {} : { conNotifica: bool(fd, 'conNotifica') }),
     ...(banner ?? {}),
   };
 
@@ -283,10 +282,10 @@ export async function pubblicaMessaggio(_prev: StatoForm, fd: FormData): Promise
 
   const adesso = new Date();
   const persone = (await destinatariBacheca(m.bacheca)).filter((id) => id !== m.autoreId);
-  // senza notifica nessuno ha il push: le consegne nascono senza, e le spunte
+  // bacheca silenziosa: nessuno ha il push: le consegne nascono senza, e le spunte
   // si fermano a «pubblicato» finché non lo aprono
   const conPush = new Set(
-    m.conNotifica
+    m.bacheca.conNotifica
       ? (
           await prisma.iscrizionePush.findMany({
             where: { userId: { in: persone } },
@@ -338,7 +337,7 @@ export async function pubblicaMessaggio(_prev: StatoForm, fd: FormData): Promise
     ok:
       persone.length === 0
         ? 'Messaggio in bacheca. Non c’è nessun altro a cui mandarlo, per ora.'
-        : !m.conNotifica
+        : !m.bacheca.conNotifica
           ? 'Messaggio in bacheca, senza notifica: lo trovano col pallino nel menu.'
           : `Messaggio in bacheca: notifica partita a ${partiti.size} su ${persone.length}. Gli altri lo trovano col pallino nel menu.`,
   };
