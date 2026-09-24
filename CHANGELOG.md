@@ -10,12 +10,15 @@ accanto a ZERO DARK.
 ### Aggiunto
 
 - **I grafici delle tue presenze stanno nella home.** Le adesioni mese per
-  mese, l'anello della parola mantenuta e le giornate per tipologia si
-  vedevano solo nella scheda completa di un operatore, e per guardare i
-  propri bisognava arrivarci dal calendario. Adesso sono sotto ai numeri di
-  «com'è andata», appena si entra. Si contano a giornate come i riquadri
-  sopra, e sulla stagione in corso: i numeri e i grafici dicono la stessa
-  cosa.
+  mese si vedevano solo nella scheda completa di un operatore, e per guardare
+  le proprie bisognava arrivarci dal calendario. Adesso sono sotto ai numeri
+  di «com'è andata», appena si entra, e accanto c'è una torta con quello che
+  hai fatto: PLR, PCR, allenamenti, ognuno con la sua fetta e la
+  percentuale. Le fette hanno i colori delle tipologie nel calendario; se due
+  tipologie hanno la stessa tinta, la seconda ne prende una libera, perché
+  due fette uguali non si distinguerebbero. Si conta a giornate e sulla
+  stagione in corso, come i riquadri sopra: numeri e grafici dicono la
+  stessa cosa.
 
 ## 2.86.1 — 24 settembre 2026
 

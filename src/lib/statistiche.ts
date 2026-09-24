@@ -55,7 +55,7 @@ export async function quadroPersona(
             inizio: true,
             fine: true,
             collegatoAId: true,
-            tipo: { select: { nome: true } },
+            tipo: { select: { nome: true, colore: true } },
           },
         },
       },
@@ -91,6 +91,7 @@ export async function quadroPersona(
       finisce: r.event.fine,
       collegatoAId: r.event.collegatoAId,
       tipo: r.event.tipo?.nome ?? null,
+      colore: r.event.tipo?.colore ?? null,
     })),
     // a giornate, come tutto il resto: una domenica con due attività è una
     svolteTotali: new Set(impegni(svolte).values()).size,

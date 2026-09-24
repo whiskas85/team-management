@@ -493,15 +493,32 @@ export const POTERI_RUOLO: Record<Role, string[]> = {
   ],
 };
 
-/** Tinte disponibili per le tipologie di attività, usate nel calendario. */
-export const COLORI_TIPOLOGIA: Record<string, { bordo: string; etichetta: string }> = {
-  verde: { bordo: 'border-nvg/40 bg-nvg/20 text-nvg', etichetta: 'Verde' },
-  rosso: { bordo: 'border-itred/40 bg-itred/20 text-[#ff8a80]', etichetta: 'Rosso' },
-  ambra: { bordo: 'border-warn/40 bg-warn/20 text-warn', etichetta: 'Ambra' },
-  azzurro: { bordo: 'border-sky-400/40 bg-sky-400/15 text-sky-300', etichetta: 'Azzurro' },
-  viola: { bordo: 'border-violet-400/40 bg-violet-400/15 text-violet-300', etichetta: 'Viola' },
-  grigio: { bordo: 'border-line bg-surface2 text-muted', etichetta: 'Grigio' },
-};
+/**
+ * Tinte disponibili per le tipologie di attività, usate nel calendario.
+ * `tinta` è lo stesso colore in esadecimale, per i grafici disegnati in SVG
+ * dove una classe Tailwind non arriva.
+ */
+export const COLORI_TIPOLOGIA: Record<string, { bordo: string; etichetta: string; tinta: string }> =
+  {
+    verde: { bordo: 'border-nvg/40 bg-nvg/20 text-nvg', etichetta: 'Verde', tinta: '#4cff00' },
+    rosso: {
+      bordo: 'border-itred/40 bg-itred/20 text-[#ff8a80]',
+      etichetta: 'Rosso',
+      tinta: '#ff8a80',
+    },
+    ambra: { bordo: 'border-warn/40 bg-warn/20 text-warn', etichetta: 'Ambra', tinta: '#ffb300' },
+    azzurro: {
+      bordo: 'border-sky-400/40 bg-sky-400/15 text-sky-300',
+      etichetta: 'Azzurro',
+      tinta: '#7dd3fc',
+    },
+    viola: {
+      bordo: 'border-violet-400/40 bg-violet-400/15 text-violet-300',
+      etichetta: 'Viola',
+      tinta: '#c4b5fd',
+    },
+    grigio: { bordo: 'border-line bg-surface2 text-muted', etichetta: 'Grigio', tinta: '#7f8a7f' },
+  };
 
 export const classeColore = (colore?: string | null) =>
   COLORI_TIPOLOGIA[colore ?? 'grigio']?.bordo ?? COLORI_TIPOLOGIA.grigio.bordo;

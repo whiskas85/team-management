@@ -1,5 +1,6 @@
 import { Statistica } from './ui';
-import { Anello, Barre, mesiRecenti } from './Grafico';
+import { Barre, Torta, mesiRecenti, type Fetta } from './Grafico';
+import { COLORI_TIPOLOGIA } from '@/lib/domain';
 import { daQuanto, giorniA } from '@/lib/format';
 import { impegni } from '@/lib/impegni';
 
@@ -14,6 +15,8 @@ export type RigaPartecipazione = {
   finisce: Date | null;
   collegatoAId: string | null;
   tipo: string | null;
+  /** La tinta della tipologia nel calendario: la stessa nella torta. */
+  colore?: string | null;
 };
 
 /**
@@ -132,6 +135,26 @@ export function StatistichePersona({
   const preferita = classifica[0] ?? null;
 
   /*
+   * La torta delle tipologie, con i colori del calendario: PLR ha lo stesso
+   * colore qui e là. Le tinte però sono poche, e due tipologie possono avere
+   * la stessa: in una torta due fette uguali non si distinguono, quindi la
+   * seconda prende la prima tinta ancora libera.
+   */
+  const colorePerTipo = new Map<string, string | null>();
+  for (const r of righe) if (r.tipo && r.colore) colorePerTipo.set(r.tipo, r.colore);
+  const tinte = Object.values(COLORI_TIPOLOGIA).map((c) => c.tinta);
+  const usate = new Set<string>();
+  const fette: Fetta[] = classifica.map(([nome, giornate]) => {
+    const propria = COLORI_TIPOLOGIA[colorePerTipo.get(nome) ?? '']?.tinta;
+    const tinta =
+      propria && !usate.has(propria)
+        ? propria
+        : (tinte.find((t) => !usate.has(t)) ?? COLORI_TIPOLOGIA.grigio.tinta);
+    usate.add(tinta);
+    return { etichetta: nome, valore: giornate, colore: tinta };
+  });
+
+  /*
    * Le adesioni per mese, anche queste a giornate: una per impegno, con la
    * data della prima attività della giornata.
    */
@@ -210,23 +233,14 @@ export function StatistichePersona({
             </p>
             <Barre dati={mesiRecenti([...giornateAdesione.values()])} />
           </div>
-          <div className="card flex flex-col items-center justify-center gap-4">
-            {percentuale === null ? (
-              <p className="text-center text-xs text-muted">
-                L’anello della parola mantenuta compare dopo il primo appello.
+          <div className="card flex flex-col items-center gap-4">
+            <p className="titolo-sezione self-start">{tu ? 'Cosa hai fatto' : 'Cosa ha fatto'}</p>
+            {fette.length === 0 ? (
+              <p className="my-auto text-center text-xs text-muted">
+                La torta si riempie con le presenze segnate all’appello.
               </p>
             ) : (
-              <Anello percentuale={percentuale} etichetta="Parola mantenuta" />
-            )}
-            {classifica.length > 0 && (
-              <div className="w-full space-y-1.5">
-                {classifica.map(([nome, giornate]) => (
-                  <div key={nome} className="flex justify-between text-xs">
-                    <span className="text-muted">{nome}</span>
-                    <span className="num">{giornate}</span>
-                  </div>
-                ))}
-              </div>
+              <Torta fette={fette} sotto="presenze" />
             )}
           </div>
         </div>
