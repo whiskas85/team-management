@@ -231,7 +231,15 @@ stato() {
     echo "non ancora preparato"
   fi
   if [ -f "$SITO_CADDY" ]; then
-    echo "raggiungibile: https://$DOMINIO_TEST"
+    # da fuori, certificato compreso: 401 vuol dire che il proxy chiede la
+    # password, cioe' che e' tutto come deve essere
+    local codice
+    codice=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://$DOMINIO_TEST/" || true)
+    case "$codice" in
+      401) echo "raggiungibile: https://$DOMINIO_TEST (chiede la password, giusto)" ;;
+      000) echo "https://$DOMINIO_TEST non risponde, o il certificato non c'e' ancora" ;;
+      *) echo "https://$DOMINIO_TEST risponde $codice: senza password dovrebbe dare 401" ;;
+    esac
   else
     echo "non raggiungibile da fuori: manca il record DNS per $DOMINIO_TEST"
   fi
