@@ -21,11 +21,38 @@ export type MetodoDaMostrare = {
  * ancora farlo non ci entrava, e se ci entrava trovava da ricopiare a mano un
  * IBAN o un indirizzo PayPal. Adesso ogni metodo ha il suo pulsante: il link
  * si apre, l'IBAN si copia.
+ *
+ * **Il pulsante premuto dice anche come si è pagato.** Chi preme «Paga con
+ * PayPal», o copia l'IBAN del bonifico, ha appena scelto il metodo: se gli si
+ * chiede di sceglierlo di nuovo nel modulo qui sotto, lo si fa lavorare due
+ * volte — e chi ha fretta lascia il primo della lista. Allora il menu del
+ * modulo si mette da solo su quel metodo. Solo quello: non si paga niente e
+ * non si invia niente, e il menu resta da cambiare a mano se serve.
  */
-export function MetodiPagamento({ metodi }: { metodi: MetodoDaMostrare[] }) {
+export function MetodiPagamento({
+  metodi,
+  campoMetodo,
+}: {
+  metodi: MetodoDaMostrare[];
+  /** L'id del menu «Con quale metodo» del modulo da compilare, se c'è. */
+  campoMetodo?: string;
+}) {
   const [copiato, setCopiato] = useState<string | null>(null);
 
+  // Il menu è del modulo, che non è di questo componente: lo si cerca per id
+  // e gli si cambia il valore, come farebbe chi lo sceglie a mano. È un menu
+  // non controllato, quindi al momento di inviare vale quello che c'è scritto.
+  const scegli = (id: string) => {
+    if (!campoMetodo) return;
+    const menu = document.getElementById(campoMetodo);
+    if (!(menu instanceof HTMLSelectElement)) return;
+    if (![...menu.options].some((o) => o.value === id)) return;
+    menu.value = id;
+    menu.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
   const copia = async (id: string, iban: string) => {
+    scegli(id);
     try {
       await navigator.clipboard.writeText(iban);
       setCopiato(id);
@@ -60,6 +87,7 @@ export function MetodiPagamento({ metodi }: { metodi: MetodoDaMostrare[] }) {
                   href={m.link}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => scegli(m.id)}
                   className="btn-primary btn-sm flex-1 justify-center sm:flex-none"
                 >
                   <Icona nome="apri" size={15} />

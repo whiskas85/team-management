@@ -313,7 +313,7 @@ function Dichiara({
         {!giaSegnalato && (
           <div>
             <p className="titolo-sezione mb-2">Come pagare</p>
-            <MetodiPagamento metodi={comePagare} />
+            <MetodiPagamento metodi={comePagare} campoMetodo={`metodo-${pagamento.id}`} />
           </div>
         )}
 
@@ -324,6 +324,7 @@ function Dichiara({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Campo label="Con quale metodo *">
               <select
+                id={`metodo-${pagamento.id}`}
                 name="metodoId"
                 required
                 className="input"

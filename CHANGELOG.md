@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.91.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **Il pulsante con cui paghi compila il metodo da solo.** Nella finestra
+  «Paga», premere «Paga con PayPal» (o Satispay, o qualunque metodo con un
+  link) — oppure «Copia IBAN» per il bonifico — mette quel metodo nel menu
+  «Con quale metodo» del modulo qui sotto. Non si paga e non si invia niente:
+  il campo è solo già scelto, e si può sempre cambiare prima di premere
+  «Segnala il pagamento».
+
 ## 2.90.1 — 24 settembre 2026
 
 ### Corretto
