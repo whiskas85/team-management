@@ -61,21 +61,12 @@ type Props = {
     roles: Role[];
   };
   esci: () => Promise<void>;
-  /** Si è nell'ambiente di test: l'intestazione lo dice. */
+  /** Si è nell'ambiente di test: sopra l'intestazione compare la fascia gialla. */
   test?: boolean;
 };
 
-/** La pastiglia che dice «sei nel test», accanto al nome o alla ricerca. */
-function PastigliaTest() {
-  return (
-    <span
-      title="Ambiente di test: i dati qui non sono quelli veri"
-      className="shrink-0 rounded border border-warn/50 bg-warn/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.15em] text-warn"
-    >
-      Test
-    </span>
-  );
-}
+/** Dove si aggancia l'intestazione in test: sotto la fascia gialla, tacca compresa. */
+const TOP_TEST = 'calc(1.75rem + env(safe-area-inset-top))';
 
 const ETICHETTA_GRUPPO: Record<string, string> = {
   principale: 'Operativo',
@@ -263,15 +254,16 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
             avrebbe voluto dire due pulsanti «Esci» sulla stessa schermata. */}
       </aside>
 
-      {/* In test, una riga gialla sul bordo alto dello schermo, sempre: si
-          vede anche quando l'intestazione scorre via, e non copre niente. Prima
-          era una fascia a sé, attaccata in cima come l'intestazione e sopra di
-          lei, che scorrendo copriva la barra della ricerca. */}
+      {/* In test, la fascia gialla in cima a tutto, **sopra** l'intestazione.
+          Prima era attaccata in cima alla stessa altezza dell'intestazione e
+          le finiva davanti, coprendo la barra della ricerca: ora
+          l'intestazione si aggancia subito sotto la fascia (vedi TOP_TEST).
+          Il fondo è pieno, non trasparente: quando l'intestazione scorre via
+          sul telefono le passa dietro, e non deve trasparire. */}
       {test && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-[3px] bg-warn"
-        />
+        <div className="sticky top-0 z-40 flex h-[calc(1.75rem+env(safe-area-inset-top))] items-center justify-center border-b border-warn/50 bg-[#372904] pt-[env(safe-area-inset-top)] text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">
+          Ambiente di test
+        </div>
       )}
 
       {/* ---------------------------------------------------- header mobile */}
@@ -284,9 +276,15 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
            marchio e la versione finiscono dietro al notch — invisibili, come
            se la riga fosse tagliata. Dove la tacca non c'è, env() vale zero e
            non cambia niente. */
-        className={`sticky top-0 z-30 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] transition-transform duration-200 md:px-8 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top))] md:translate-y-0 ${
-          nascoste ? '-translate-y-full' : 'translate-y-0'
-        }`}
+        // In test si aggancia sotto la fascia gialla, che ha già preso lo
+        // spazio della tacca. La classe top-0 resta: è da lì che TestataFissa
+        // riconosce le barre in cima, e la misura la prende dove sono davvero.
+        style={test ? { top: TOP_TEST } : undefined}
+        className={`sticky top-0 z-30 px-4 pb-2.5 transition-transform duration-200 md:px-8 md:pb-3 md:translate-y-0 ${
+          test
+            ? 'pt-2.5 md:pt-3'
+            : 'pt-[calc(0.625rem+env(safe-area-inset-top))] md:pt-[calc(0.75rem+env(safe-area-inset-top))]'
+        } ${nascoste ? '-translate-y-full' : 'translate-y-0'}`}
       >
         {/*
           Lo sfondo sfocato **sfuma**, invece di finire di netto.
@@ -313,7 +311,6 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
             <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
               v{VERSIONE}
             </span>
-            {test && <PastigliaTest />}
           </Link>
 
           {/* La riga per saltare a una voce senza cercarla nella colonna: solo
@@ -331,7 +328,6 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
               schermo che, restando in fila, schiacciava il logo e il nome fino
               a ridurli a «ZE…». */}
           <div className="mx-auto hidden w-full max-w-6xl items-center gap-3 pr-24 md:flex xl:pr-0">
-            {test && <PastigliaTest />}
             <div className="min-w-0 flex-1">
               <Omnisearch voci={voci} />
             </div>

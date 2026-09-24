@@ -21,8 +21,7 @@ export function TestataFissa({ children }: { children: ReactNode }) {
     let finoA = 0;
 
     const misura = () => {
-      // le fasce fisse in cima: la barra dell'app (il test non ha più una
-      // striscia sua, sta dentro la barra)
+      // le fasce fisse in cima: la striscia del test e la barra dell'app
       const fasce = [...document.querySelectorAll<HTMLElement>('body > * [class*="sticky"][class*="top-0"]')]
         .filter((el) => el !== riga.current && !riga.current?.contains(el))
         .filter((el) => !el.closest('[role="dialog"]'));

@@ -605,8 +605,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }}
         esci={esci}
         // in test si deve vedere a colpo d'occhio: confondere i due ambienti
-        // vuol dire scrivere sui dati veri credendo di giocare. Lo dice
-        // l'intestazione stessa, senza una barra in più che le stia sopra
+        // vuol dire scrivere sui dati veri credendo di giocare. La fascia
+        // gialla la disegna Nav, sopra l'intestazione, così le due non si
+        // coprono
         test={inTest}
       />
 
