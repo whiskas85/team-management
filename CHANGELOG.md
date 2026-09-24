@@ -5,6 +5,28 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.97.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **I sondaggi hanno un gruppo loro nel menu**, come gli annunci: in cima
+  «Tutti i sondaggi», sotto uno per ogni sondaggio aperto, con il pallino
+  finché non hai risposto. Chiuso o scaduto, esce dal menu da solo.
+- **Quando un sondaggio si chiude arriva una notifica** — solo push, niente
+  WhatsApp — con il risultato: chi ha vinto e con quanti voti, o fra chi è
+  finita pari, o che nessuno ha risposto. Toccandola si apre il sondaggio.
+  Parte alla chiusura a mano, quando dal sondaggio nasce l'attività e alla
+  scadenza (dal giro automatico, ogni cinque minuti). Una volta sola; se lo
+  si riapre, alla chiusura successiva riparte. I sondaggi già chiusi prima di
+  questa versione non mandano niente.
+
+### Cambiato
+
+- **L'admin governa tutti i sondaggi**: li modifica, chiude, riapre ed
+  elimina anche se non li ha aperti lui. Per gli altri, eliminarlo tocca a
+  chi l'ha aperto, come modificarlo e chiuderlo.
+- Nel menu i nomi lunghi finiscono con i puntini invece di andare a capo.
+
 ## 2.96.4 — 24 settembre 2026
 
 ### Corretto

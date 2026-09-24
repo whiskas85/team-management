@@ -12,6 +12,7 @@ import {
   risultato,
 } from '@/lib/sondaggi';
 import { Badge, Intestazione } from '@/components/ui';
+import { isAdmin } from '@/lib/domain';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import { VotoSondaggio, BadgeSegreto } from '@/components/VotoSondaggio';
 import { AzioneBottone } from '@/components/AzioneBottone';
@@ -66,8 +67,10 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
   if (!s) notFound();
 
   const gestisce = puoFareSondaggi(me.roles);
-  // modificarlo, chiuderlo e riaprirlo tocca solo a chi l'ha aperto
+  // modificarlo, chiuderlo, riaprirlo ed eliminarlo tocca a chi l'ha aperto,
+  // e all'admin anche su quelli degli altri
   const autore = s.creatoDaId === me.id;
+  const governa = autore || isAdmin(me.roles);
   // chi non è fra i destinatari non deve nemmeno sapere che esiste — tranne
   // chi governa i sondaggi, che li deve poter rileggere tutti
   if (!loRiguarda(s.destinatari, me.stato) && !gestisce && s.creatoDaId !== me.id) notFound();
@@ -155,7 +158,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
           <div className="flex flex-wrap items-center gap-2">
             {/* un refuso nella domanda, una data sbagliata, una risposta che
                 manca: si corregge qui, senza buttare i voti già dati */}
-            {autore && (
+            {governa && (
               <BottoneModale
                 etichetta="Modifica"
                 icona="modifica"
@@ -202,7 +205,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
               </AzioneBottone>
             )}
 
-            {!autore ? null : aperto ? (
+            {!governa ? null : aperto ? (
               <AzioneBottone
                 azione={chiudiSondaggio}
                 valori={{ id: s.id }}
@@ -223,14 +226,16 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
               </AzioneBottone>
             )}
 
-            <span className="ml-auto">
-              <BottoneElimina
-                azione={eliminaSondaggio}
-                valori={{ id: s.id }}
-                conferma={`Eliminare «${s.domanda}» e tutte le risposte raccolte?`}
-                etichetta="Elimina il sondaggio"
-              />
-            </span>
+            {governa && (
+              <span className="ml-auto">
+                <BottoneElimina
+                  azione={eliminaSondaggio}
+                  valori={{ id: s.id }}
+                  conferma={`Eliminare «${s.domanda}» e tutte le risposte raccolte?`}
+                  etichetta="Elimina il sondaggio"
+                />
+              </span>
+            )}
           </div>
 
           <p className="mt-3 text-xs text-muted">

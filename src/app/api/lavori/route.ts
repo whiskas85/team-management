@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { assicuraInAnticipo, avvisaCertificatiInScadenza } from '@/lib/lavori';
+import { avvisaSondaggiScaduti } from '@/lib/sondaggi-chiusura';
 
 /**
  * La porta da cui si sveglia il gestionale.
@@ -32,9 +33,11 @@ export async function POST(req: Request) {
      * non sarebbe un buon motivo per non avvisare nessuno della sua visita
      * medica.
      */
-    const [assicurazioni, certificati] = await Promise.allSettled([
+    const [assicurazioni, certificati, sondaggi] = await Promise.allSettled([
       assicuraInAnticipo(),
       avvisaCertificatiInScadenza(),
+      // i sondaggi scaduti: l'avviso con il risultato a chi li ha ricevuti
+      avvisaSondaggiScaduti(),
     ]);
 
     const letto = <T,>(r: PromiseSettledResult<T>) =>
@@ -44,6 +47,7 @@ export async function POST(req: Request) {
       ok: true,
       assicurazioni: letto(assicurazioni),
       certificati: letto(certificati),
+      sondaggi: letto(sondaggi),
     });
   } catch (e) {
     // il cron non legge, ma il log della macchina sì: se qualcosa si rompe qui

@@ -19,6 +19,7 @@ export type VoceMenu = {
   gruppo:
     | 'principale'
     | 'annunci'
+    | 'sondaggi'
     | 'mercatino'
     | 'regolamenti'
     | 'persone'
@@ -71,6 +72,7 @@ const TOP_TEST = 'calc(1.75rem + env(safe-area-inset-top))';
 const ETICHETTA_GRUPPO: Record<string, string> = {
   principale: 'Operativo',
   annunci: 'Annunci',
+  sondaggi: 'Sondaggi',
   mercatino: 'Mercatino',
   regolamenti: 'Regolamenti',
   persone: 'Atleti & nuovi',
@@ -129,6 +131,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
   const gruppi = [
     'principale',
     'annunci',
+    'sondaggi',
     'mercatino',
     'regolamenti',
     'persone',
@@ -202,7 +205,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
                     }`}
                   >
                     <Icona nome={v.icona} size={18} />
-                    <span className="flex-1">{v.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{v.label}</span>
                     {!!v.badge && (
                       <span className="rounded-full bg-warn/20 px-1.5 py-0.5 num text-[10px] text-warn">
                         {v.badge}
@@ -234,7 +237,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
                         }`}
                       >
                         <Icona nome={v.icona} size={18} />
-                        <span className="flex-1">{v.label}</span>
+                        <span className="min-w-0 flex-1 truncate">{v.label}</span>
                         {!!v.badge && (
                           <span className="rounded-full bg-warn/20 px-1.5 py-0.5 num text-[10px] text-warn">
                             {v.badge}

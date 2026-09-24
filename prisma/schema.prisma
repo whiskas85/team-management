@@ -2054,6 +2054,9 @@ model Sondaggio {
   /// Chi risponde puo' aggiungere una risposta sua. Solo sulle domande a
   /// risposte scritte: sulle date e sui si/no non c'e' niente da proporre.
   proposteAperte Boolean              @default(false)
+  /// Quando e' partito l'avviso «il sondaggio si e' chiuso», con il
+  /// risultato. Serve a mandarlo una volta sola; riaprendo torna vuoto.
+  chiusuraAvvisataIl DateTime?
   creatoIl       DateTime             @default(now())
   creatoDaId     String
   creatoDa       User                 @relation("SondaggiScritti", fields: [creatoDaId], references: [id], onDelete: Cascade)

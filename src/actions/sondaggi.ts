@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { inSquadra } from '@/lib/domain';
+import { inSquadra, isAdmin } from '@/lib/domain';
+import type { Role } from '@prisma/client';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
 import {
   eAperto,
@@ -15,6 +16,7 @@ import {
   risultato,
 } from '@/lib/sondaggi';
 import { avvisaPersona } from '@/lib/avvisi';
+import { avvisaChiusuraSondaggio } from '@/lib/sondaggi-chiusura';
 
 const TIPI = ['TESTO', 'DATA', 'PRESENZE', 'DECISIONE'] as const;
 
@@ -23,11 +25,14 @@ const SI_NO = ['Sì', 'No'];
 const DESTINATARI = ['SQUADRA', 'NUOVI', 'TUTTI'] as const;
 
 /**
- * Modificare, chiudere e riaprire un sondaggio lo fa solo chi l'ha aperto: la
- * domanda è sua, e decide lui quando ha la risposta che cercava. Un altro che
- * lo chiude a metà gli toglie la decisione di mano.
+ * Modificare, chiudere, riaprire ed eliminare un sondaggio lo fa chi l'ha
+ * aperto: la domanda è sua, e decide lui quando ha la risposta che cercava. Un
+ * altro che lo chiude a metà gli toglie la decisione di mano. L'admin sì,
+ * anche su quelli degli altri: è chi rimette a posto quando serve.
  */
-const SOLO_AUTORE = 'Lo può fare solo chi ha aperto il sondaggio.';
+const SOLO_AUTORE = 'Lo può fare solo chi ha aperto il sondaggio, o l’admin.';
+const puoGovernare = (me: { id: string; roles: Role[] }, s: { creatoDaId: string }) =>
+  s.creatoDaId === me.id || isAdmin(me.roles);
 
 function aggiorna(id?: string) {
   revalidatePath('/sondaggi');
@@ -128,7 +133,7 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
     include: { opzioni: { select: { id: true } }, voti: { select: { userId: true } } },
   });
   if (!s) return { errore: 'Sondaggio non trovato.' };
-  if (s.creatoDaId !== me.id) return { errore: SOLO_AUTORE };
+  if (!puoGovernare(me, s)) return { errore: SOLO_AUTORE };
 
   const domanda = str(fd, 'domanda');
   if (!domanda) return { errore: 'La domanda non può restare vuota.' };
@@ -197,6 +202,11 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
         segreto,
         proposteAperte: s.tipo === 'TESTO' && bool(fd, 'proposteAperte'),
         scadeIl,
+        // una scadenza spostata avanti riapre il voto: alla prossima chiusura
+        // l'avviso riparte
+        ...(scadenzaCambiata && (!scadeIl || scadeIl > new Date())
+          ? { chiusuraAvvisataIl: null }
+          : {}),
       },
     }),
     // le risposte tolte si portano via i loro voti (in cascata)
@@ -353,10 +363,12 @@ export async function chiudiSondaggio(_prev: StatoForm, fd: FormData): Promise<S
   const id = str(fd, 'id');
   const s = await prisma.sondaggio.findUnique({ where: { id } });
   if (!s) return { errore: 'Sondaggio non trovato.' };
-  if (s.creatoDaId !== me.id) return { errore: SOLO_AUTORE };
+  if (!puoGovernare(me, s)) return { errore: SOLO_AUTORE };
   if (s.chiusoIl) return { errore: 'Era già chiuso.' };
 
   await prisma.sondaggio.update({ where: { id }, data: { chiusoIl: new Date() } });
+  // chi l'ha ricevuto sa com'è andata, senza tornare a guardare
+  await avvisaChiusuraSondaggio(id);
 
   aggiorna(id);
   return { ok: 'Sondaggio chiuso: resta nello storico con il suo risultato.' };
@@ -368,23 +380,26 @@ export async function riapriSondaggio(_prev: StatoForm, fd: FormData): Promise<S
   const id = str(fd, 'id');
   const s = await prisma.sondaggio.findUnique({ where: { id } });
   if (!s) return { errore: 'Sondaggio non trovato.' };
-  if (s.creatoDaId !== me.id) return { errore: SOLO_AUTORE };
+  if (!puoGovernare(me, s)) return { errore: SOLO_AUTORE };
   if (s.scadeIl && s.scadeIl <= new Date()) {
     return { errore: 'La scadenza è passata: per riaprirlo spostala più avanti.' };
   }
 
-  await prisma.sondaggio.update({ where: { id }, data: { chiusoIl: null } });
+  // riaperto, l'avviso di chiusura si rimanda con il risultato nuovo
+  await prisma.sondaggio.update({
+    where: { id },
+    data: { chiusoIl: null, chiusuraAvvisataIl: null },
+  });
   aggiorna(id);
   return { ok: 'Sondaggio riaperto.' };
 }
 
 export async function eliminaSondaggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoFareSondaggi(me.roles)) return { errore: 'Non puoi eliminare i sondaggi.' };
-
   const id = str(fd, 'id');
   const s = await prisma.sondaggio.findUnique({ where: { id } });
   if (!s) return { errore: 'Sondaggio non trovato.' };
+  if (!puoGovernare(me, s)) return { errore: SOLO_AUTORE };
 
   await prisma.sondaggio.delete({ where: { id } });
   revalidatePath('/sondaggi');
@@ -468,6 +483,8 @@ export async function creaEventoDaSondaggio(_prev: StatoForm, fd: FormData): Pro
     where: { id },
     data: { eventoId: evento.id, chiusoIl: s.chiusoIl ?? new Date() },
   });
+  // se l'ha chiuso questo, parte l'avviso; se era già chiuso, era già partito
+  await avvisaChiusuraSondaggio(id);
 
   aggiorna(id);
   revalidatePath('/calendario');

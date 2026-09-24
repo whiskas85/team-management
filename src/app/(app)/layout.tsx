@@ -177,16 +177,32 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const daLeggereIn = (id: string) =>
     bachecheDaLeggere.filter((c) => c.messaggio.bachecaId === id).length;
 
-  const sondaggiDaVotare = (
+  // I sondaggi aperti che questa persona vede: quelli rivolti a lei e quelli
+  // che ha aperto lei per altri. Ognuno è una voce del menu finché è aperto;
+  // il pallino c'è finché non ha risposto — su quelli per altri non vota, e
+  // un pallino che non si spegne mai insegnerebbe a ignorarlo.
+  const sondaggiAperti = (
     await prisma.sondaggio.findMany({
       where: {
         chiusoIl: null,
         OR: [{ scadeIl: null }, { scadeIl: { gt: new Date() } }],
-        voti: { none: { userId: utente.id } },
       },
-      select: { destinatari: true },
+      orderBy: [{ scadeIl: 'asc' }, { creatoIl: 'desc' }],
+      select: {
+        id: true,
+        domanda: true,
+        destinatari: true,
+        creatoDaId: true,
+        voti: { where: { userId: utente.id }, select: { id: true }, take: 1 },
+      },
     })
-  ).filter((s) => loRiguarda(s.destinatari, utente.stato)).length;
+  )
+    .filter((s) => loRiguarda(s.destinatari, utente.stato) || s.creatoDaId === utente.id)
+    .map((s) => ({
+      ...s,
+      daVotare: loRiguarda(s.destinatari, utente.stato) && s.voti.length === 0,
+    }));
+  const sondaggiDaVotare = sondaggiAperti.filter((s) => s.daVotare).length;
 
   // il carrello è uno solo e attraversa il catalogo: il pallino dice quanti
   // pezzi ci sono dentro, o uno lo dimentica pieno per settimane
@@ -313,14 +329,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
+    /*
+     * I sondaggi, in un gruppo loro come gli annunci: in cima tutti, poi uno
+     * per ogni sondaggio aperto, col suo pallino finché non si è risposto.
+     * Chiuso o scaduto, esce dal menu da solo: resta nello storico.
+     */
     {
       href: '/sondaggi',
-      label: 'Sondaggi',
-      icona: 'avvisi',
-      gruppo: 'principale',
+      label: 'Tutti i sondaggi',
+      icona: 'menu',
+      gruppo: 'sondaggi',
+      // la somma dei pallini qui sotto: non si conta due volte nel menu
       badge: sondaggiDaVotare,
+      riepilogo: true,
       sotto: [{ label: 'Storico', href: '/sondaggi?vista=storico' }],
     },
+    ...sondaggiAperti.map((s) => ({
+      href: `/sondaggi/${s.id}`,
+      label: s.domanda,
+      icona: 'avvisi' as const,
+      gruppo: 'sondaggi' as const,
+      badge: s.daVotare ? 1 : 0,
+    })),
     // vale per tutti: una chiave non dà poteri, eredita quelli di chi la crea
     { href: '/assistente', label: 'Assistente', icona: 'chiave', gruppo: 'principale' },
   ];
