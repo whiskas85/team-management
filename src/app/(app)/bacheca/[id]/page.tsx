@@ -290,8 +290,8 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                           <input type="hidden" name="id" value={a.id} />
                           <CampiDocumento documento={a} />
                           <p className="text-xs text-muted">
-                            La chiocciola resta @{a.maniglia}: i messaggi che la citano continuano
-                            a funzionare.
+                            Oggi si richiama con @{a.maniglia}. Cambiando il nome cambia anche la
+                            chiocciola, e i messaggi che la citano si aggiornano da soli.
                           </p>
                           <Invia icona="salva">Salva</Invia>
                         </FormAzione>

@@ -466,17 +466,7 @@ export async function caricaAllegatoBacheca(_prev: StatoForm, fd: FormData): Pro
   // nasce anche la chiocciola. Senza, vale il nome del file
   const titolo = strOpt(fd, 'titolo')?.slice(0, 120) ?? null;
   const descrizione = strOpt(fd, 'descrizione')?.slice(0, 500) ?? null;
-  const base = manigliaDocumento(titolo ?? salvato.fileName);
-  const prese = new Set(
-    (await prisma.allegatoBacheca.findMany({ where: { bachecaId: b.id }, select: { maniglia: true } })).map(
-      (a) => a.maniglia,
-    ),
-  );
-  let maniglia = base;
-  for (let n = 2; prese.has(maniglia); n++) {
-    const punto = base.lastIndexOf('.');
-    maniglia = punto > 0 ? `${base.slice(0, punto)}-${n}${base.slice(punto)}` : `${base}-${n}`;
-  }
+  const maniglia = await manigliaLibera(b.id, titolo ?? salvato.fileName);
 
   await prisma.allegatoBacheca.create({
     data: { ...salvato, bachecaId: b.id, maniglia, titolo, descrizione, caricatoDaId: me.id },
@@ -486,11 +476,34 @@ export async function caricaAllegatoBacheca(_prev: StatoForm, fd: FormData): Pro
   return { ok: `Caricato: lo richiami scrivendo @${maniglia}` };
 }
 
+/** Una chiocciola libera in questa bacheca, a partire da un nome. */
+async function manigliaLibera(bachecaId: string, nome: string, tranne?: string) {
+  const base = manigliaDocumento(nome);
+  const prese = new Set(
+    (
+      await prisma.allegatoBacheca.findMany({
+        where: { bachecaId, ...(tranne ? { id: { not: tranne } } : {}) },
+        select: { maniglia: true },
+      })
+    ).map((a) => a.maniglia),
+  );
+  let maniglia = base;
+  for (let n = 2; prese.has(maniglia); n++) {
+    const punto = base.lastIndexOf('.');
+    maniglia = punto > 0 ? `${base.slice(0, punto)}-${n}${base.slice(punto)}` : `${base}-${n}`;
+  }
+  return maniglia;
+}
+
 /**
  * Il nome e la descrizione di un documento, da correggere dopo averlo caricato.
  *
- * La chiocciola resta quella di prima: i messaggi già scritti la citano, e
- * cambiarla romperebbe i loro link. Cambia quello che si legge.
+ * **La chiocciola segue il nome**: chi lo chiama «Regolamento 2026» lo cerca
+ * scrivendo @regolamento-2026, non con il nome del file di prima. E i messaggi
+ * che citavano la chiocciola vecchia si riscrivono con quella nuova, nella
+ * stessa volta: il link resta vivo, e nessuno si ritrova un @ che non porta
+ * più a niente. Non conta come una modifica del messaggio — il testo dice la
+ * stessa cosa, cambia solo il nome di quello che cita.
  */
 export async function modificaAllegatoBacheca(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
@@ -502,15 +515,70 @@ export async function modificaAllegatoBacheca(_prev: StatoForm, fd: FormData): P
   if (a.caricatoDaId !== me.id && !moderaBacheca(a.bacheca, me)) {
     return { errore: 'Lo modifica chi l’ha caricato o chi modera la bacheca.' };
   }
-  await prisma.allegatoBacheca.update({
-    where: { id: a.id },
-    data: {
-      titolo: strOpt(fd, 'titolo')?.slice(0, 120) ?? null,
-      descrizione: strOpt(fd, 'descrizione')?.slice(0, 500) ?? null,
-    },
-  });
+
+  const titolo = strOpt(fd, 'titolo')?.slice(0, 120) ?? null;
+  const descrizione = strOpt(fd, 'descrizione')?.slice(0, 500) ?? null;
+
+  const vecchia = a.maniglia;
+  const nuova =
+    (titolo ?? null) === (a.titolo ?? null)
+      ? vecchia
+      : await manigliaLibera(a.bachecaId, titolo ?? a.fileName, a.id);
+
+  const riscritture = [];
+  if (nuova !== vecchia) {
+    // La chiocciola vecchia, intera: @regolamento non deve toccare
+    // @regolamento-2025. La punteggiatura in coda sì — «leggete
+    // @verbale.pdf.» la legge anche chi disegna il messaggio (Markdown.tsx)
+    const citata = new RegExp(
+      `@${vecchia.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[._-]*(?:[^a-z0-9._-]|$))`,
+      'gi',
+    );
+    const [messaggi, risposte] = await Promise.all([
+      prisma.messaggioBacheca.findMany({
+        where: { bachecaId: a.bachecaId, testo: { contains: `@${vecchia}`, mode: 'insensitive' } },
+        select: { id: true, testo: true },
+      }),
+      prisma.rispostaBacheca.findMany({
+        where: {
+          messaggio: { bachecaId: a.bachecaId },
+          testo: { contains: `@${vecchia}`, mode: 'insensitive' },
+        },
+        select: { id: true, testo: true },
+      }),
+    ]);
+    for (const m of messaggi) {
+      riscritture.push(
+        prisma.messaggioBacheca.update({
+          where: { id: m.id },
+          data: { testo: m.testo.replace(citata, `@${nuova}`) },
+        }),
+      );
+    }
+    for (const r of risposte) {
+      riscritture.push(
+        prisma.rispostaBacheca.update({
+          where: { id: r.id },
+          data: { testo: r.testo.replace(citata, `@${nuova}`) },
+        }),
+      );
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.allegatoBacheca.update({
+      where: { id: a.id },
+      data: { titolo, descrizione, maniglia: nuova },
+    }),
+    ...riscritture,
+  ]);
   aggiorna(a.bachecaId);
-  return { ok: 'Documento aggiornato.' };
+  return {
+    ok:
+      nuova === vecchia
+        ? 'Documento aggiornato.'
+        : `Documento aggiornato: ora si richiama con @${nuova}.`,
+  };
 }
 
 export async function eliminaAllegatoBacheca(_prev: StatoForm, fd: FormData): Promise<StatoForm> {

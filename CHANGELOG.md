@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.99.1 — 24 settembre 2026
+
+### Cambiato
+
+- **La chiocciola di un documento segue il suo nome.** Chiamato «Regolamento
+  2026», si richiama scrivendo @regolamento-2026 — al caricamento e anche
+  quando il nome si cambia dopo. I messaggi e le risposte della bacheca che
+  citavano la chiocciola vecchia si riscrivono con quella nuova nello stesso
+  momento, così nessun link si rompe.
+
 ## 2.99.0 — 24 settembre 2026
 
 ### Cambiato
