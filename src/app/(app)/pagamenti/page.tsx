@@ -10,6 +10,7 @@ import { Invia } from '@/components/Bottone';
 import { dichiaraPagamento } from '@/actions/metodi';
 import { chiediRimborso } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
+import { daSaldare } from '@/lib/da-saldare';
 import { MetodiPagamento, type MetodoDaMostrare } from '@/components/MetodiPagamento';
 import { primoIban, primoLink } from '@/lib/link';
 
@@ -36,7 +37,7 @@ export default async function MieiPagamentiPage() {
   ]);
 
   const aperti = pagamenti.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
-  const daSaldare = aperti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
+  const conto = daSaldare(pagamenti);
   const versato = pagamenti.reduce((t, p) => t + Number(p.pagato), 0);
 
   return (
@@ -49,9 +50,13 @@ export default async function MieiPagamentiPage() {
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Statistica
           etichetta="Da saldare"
-          valore={fmtEuro(daSaldare)}
-          dettaglio={`${aperti.length} voci aperte`}
-          tono={daSaldare > 0 ? 'warn' : 'ok'}
+          valore={fmtEuro(conto.importo)}
+          dettaglio={
+            conto.inVerifica > 0
+              ? `${fmtEuro(conto.inVerifica)} in verifica`
+              : `${conto.voci} ${conto.voci === 1 ? 'voce aperta' : 'voci aperte'}`
+          }
+          tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
         />
         <Statistica etichetta="Totale versato" valore={fmtEuro(versato)} tono="ok" />
         <Statistica etichetta="Movimenti" valore={pagamenti.length} />

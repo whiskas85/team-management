@@ -15,6 +15,7 @@ import {
 import { fmtDate, fmtEuro, iniziali, inputDate, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
 import { impegni } from '@/lib/impegni';
+import { daSaldare } from '@/lib/da-saldare';
 import { Avatar, Badge, Campo, Intestazione, Statistica } from '@/components/ui';
 import { Fisarmonica, FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -111,9 +112,7 @@ export default async function ProfiloPage() {
       .filter((r) => r.status === 'PRESENTE')
       .map((r) => gruppiImpegni.get(r.eventId) ?? r.eventId),
   ).size;
-  const daSaldare = utente.payments
-    .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
-    .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
+  const conto = daSaldare(utente.payments);
 
   return (
     <>
@@ -197,8 +196,10 @@ export default async function ProfiloPage() {
         )}
         <Statistica
           etichetta="Da saldare"
-          valore={fmtEuro(daSaldare)}
-          tono={daSaldare > 0 ? 'warn' : 'ok'}
+          valore={fmtEuro(conto.importo)}
+          dettaglio={conto.inVerifica > 0 ? `${fmtEuro(conto.inVerifica)} in verifica` : undefined}
+          tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
+          href="/pagamenti"
         />
       </div>
 

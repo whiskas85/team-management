@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.87.2 — 24 settembre 2026
+
+### Corretto
+
+- **Un versamento segnalato non sembra più da pagare di nuovo.** Dopo aver
+  detto «ho pagato», la quota restava nel riquadro «Da saldare» del profilo,
+  della home e della pagina dei pagamenti finché la cassa non la verificava:
+  sembrava ancora da pagare. Adesso esce subito dal totale, e il riquadro la
+  mostra a parte, «50,00 € in verifica», finché la cassa non la conferma.
+  Il conto è uno solo per le tre pagine. Dal profilo il riquadro porta alla
+  pagina dei pagamenti.
+
 ## 2.87.1 — 24 settembre 2026
 
 ### Corretto

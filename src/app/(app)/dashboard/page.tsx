@@ -19,6 +19,7 @@ import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { StatistichePersona } from '@/components/StatistichePersona';
 import { quadroPersona } from '@/lib/statistiche';
 import { CardEvento } from '@/components/CardEvento';
+import { daSaldare } from '@/lib/da-saldare';
 
 export default async function DashboardPage({
   searchParams,
@@ -86,12 +87,10 @@ export default async function DashboardPage({
   // Chi non è atleta il certificato non lo deve portare: se non ce l'ha, non
   // gli si dice che manca. Se l'ha caricato lo stesso, lo vede come tutti.
   const chiediCertificato = devePortareCertificato(me.roles) || !!certAttuale;
-  const daPagare = pagamenti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
-  // L'avviso in cima dice cosa devo fare io: una quota che ho già segnalato
-  // come pagata aspetta la cassa, non me. Il riquadro «Da saldare» più sotto
-  // invece la conta finché non è verificata, come l'elenco dei pagamenti.
-  const daFare = pagamenti.filter((p) => !p.dichiaratoIl);
-  const daPagareIo = daFare.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
+  // Una quota che ho già segnalato come pagata aspetta la cassa, non me: non
+  // conta in «Da saldare» né nell'avviso in cima, e il riquadro la mostra a
+  // parte come «in verifica» (lib/da-saldare)
+  const conto = daSaldare(pagamenti);
 
   // riquadri di back office, in base agli incarichi
   const amministra = puoAmministrare(me.roles);
@@ -222,10 +221,10 @@ export default async function DashboardPage({
               azione="Rinnova"
             />
           )}
-        {daPagareIo > 0 && (
+        {conto.importo > 0 && (
           <Avviso
             tono="warn"
-            testo={`Hai ${fmtEuro(daPagareIo)} da saldare su ${daFare.length} ${daFare.length === 1 ? 'voce' : 'voci'}.`}
+            testo={`Hai ${fmtEuro(conto.importo)} da saldare su ${conto.voci} ${conto.voci === 1 ? 'voce' : 'voci'}.`}
             href="/pagamenti"
             azione="Vedi"
           />
@@ -286,9 +285,13 @@ export default async function DashboardPage({
         )}
         <Statistica
           etichetta="Da saldare"
-          valore={fmtEuro(daPagare)}
-          dettaglio={`${pagamenti.length} voci aperte`}
-          tono={daPagare > 0 ? 'warn' : 'ok'}
+          valore={fmtEuro(conto.importo)}
+          dettaglio={
+            conto.inVerifica > 0
+              ? `${fmtEuro(conto.inVerifica)} in verifica`
+              : `${conto.voci} ${conto.voci === 1 ? 'voce aperta' : 'voci aperte'}`
+          }
+          tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
           href="/pagamenti"
         />
       </div>
