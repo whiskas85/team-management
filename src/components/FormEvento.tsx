@@ -5,7 +5,7 @@ import { QuoteEvento } from './QuoteEvento';
 import { CercaLuogo } from './CercaLuogo';
 import { SceltaReferenti } from './SceltaReferenti';
 import { InizioFine } from './InizioFine';
-import { limitiCampoData } from '@/lib/giorni';
+import { OraRitrovo } from './OraRitrovo';
 import type { VoceListino } from './CampiRichiesta';
 
 type CampoGioco = { id: string; nome: string; citta: string | null; attivo?: boolean };
@@ -225,16 +225,7 @@ export function FormEvento({
             aiuto="Scrivi il posto e premi Cerca, oppure incolla un link di Google Maps."
           />
 
-          <Campo label="Ora del ritrovo">
-            <input
-              type="datetime-local"
-              name="oraRitrovo"
-              min={limitiCampoData().min}
-              max={limitiCampoData().max}
-              defaultValue={inputDateTime(evento?.oraRitrovo)}
-              className="input"
-            />
-          </Campo>
+          <OraRitrovo valore={inputDateTime(evento?.oraRitrovo)} />
         </>
       )}
 

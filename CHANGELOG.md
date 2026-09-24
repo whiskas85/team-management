@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.92.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **Creata un'attività, ci si arriva dritti.** Dopo «Crea» si apre la
+  pagina dell'attività appena creata — dove la si rilascia e si aggiungono i
+  partecipanti — invece di restare sul calendario a cercarla.
+- **L'ora del ritrovo parte dall'inizio.** Entrando nel campo vuoto lo si
+  trova con la data e l'ora d'inizio dell'attività: basta spostare l'ora
+  indietro. Se l'inizio non c'è ancora, parte da oggi. Un ritrovo già scritto
+  non si tocca.
+
+### Corretto
+
+- **Nel test la fascia gialla «Ambiente di test» è tornata**, sopra
+  l'intestazione con la ricerca invece che sopra di lei a coprirla. La
+  pastiglia «Test» e la riga sottile della 2.90.1 sono state tolte.
+
 ## 2.91.0 — 24 settembre 2026
 
 ### Aggiunto

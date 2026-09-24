@@ -213,7 +213,9 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   if (quote) await salvaQuoteCasse(creato.id, quote);
   await salvaReferenti(creato.id, fd);
   aggiorna(creato.id);
-  return { ok: 'Attività creata in bozza. Rilasciala quando è pronta.' };
+  // dritti sull'attività appena creata, come per le riunioni: è lì che la si
+  // rilascia, si aggiungono i partecipanti e si guarda se è venuta come doveva
+  redirect(`/calendario/${creato.id}`);
 }
 
 /**

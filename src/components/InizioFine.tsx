@@ -5,7 +5,7 @@ import { Campo } from './ui';
 import { limitiCampoData } from '@/lib/giorni';
 
 /** Il giorno di oggi come lo vuole un datetime-local: aaaa-mm-gg, in ora locale. */
-function oggi() {
+export function oggi() {
   const d = new Date();
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
