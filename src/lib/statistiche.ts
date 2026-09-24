@@ -25,7 +25,50 @@ export type QuadroPersona = {
   /** Le giornate svolte in questa stagione, contate a impegni. */
   svolteTotali: number;
   stagione: string | null;
+  /**
+   * Le partecipazioni dell'anno solare, da gennaio a dicembre, comprese quelle
+   * che devono ancora venire: il grafico per mese guarda l'anno, non la
+   * stagione, e i mesi a venire mostrano quello a cui si è già detto sì.
+   */
+  righeAnno: RigaPartecipazione[];
 };
+
+const perRiga = {
+  eventId: true,
+  status: true,
+  presente: true,
+  event: {
+    select: {
+      inizio: true,
+      fine: true,
+      collegatoAId: true,
+      tipo: { select: { nome: true, colore: true } },
+    },
+  },
+} as const;
+
+type RispostaGrezza = {
+  eventId: string;
+  status: string;
+  presente: boolean | null;
+  event: {
+    inizio: Date;
+    fine: Date | null;
+    collegatoAId: string | null;
+    tipo: { nome: string; colore: string | null } | null;
+  };
+};
+
+const inRiga = (r: RispostaGrezza): RigaPartecipazione => ({
+  eventId: r.eventId,
+  status: r.status,
+  presente: r.presente,
+  quando: r.event.inizio,
+  finisce: r.event.fine,
+  collegatoAId: r.event.collegatoAId,
+  tipo: r.event.tipo?.nome ?? null,
+  colore: r.event.tipo?.colore ?? null,
+});
 
 export async function quadroPersona(
   userId: string,
@@ -37,7 +80,8 @@ export async function quadroPersona(
     select: { id: true, nome: true },
   });
 
-  const [risposte, svolte] = await Promise.all([
+  const anno = new Date().getFullYear();
+  const [risposte, svolte, risposteAnno] = await Promise.all([
     prisma.eventRsvp.findMany({
       where: {
         userId,
@@ -80,19 +124,22 @@ export async function quadroPersona(
       },
       select: { id: true, inizio: true, fine: true, collegatoAId: true },
     }),
+
+    prisma.eventRsvp.findMany({
+      where: {
+        userId,
+        event: {
+          status: { not: 'ANNULLATA' },
+          inizio: { gte: new Date(anno, 0, 1), lt: new Date(anno + 1, 0, 1) },
+        },
+      },
+      select: perRiga,
+    }),
   ]);
 
   return {
-    righe: risposte.map((r) => ({
-      eventId: r.eventId,
-      status: r.status,
-      presente: r.presente,
-      quando: r.event.inizio,
-      finisce: r.event.fine,
-      collegatoAId: r.event.collegatoAId,
-      tipo: r.event.tipo?.nome ?? null,
-      colore: r.event.tipo?.colore ?? null,
-    })),
+    righe: risposte.map(inRiga),
+    righeAnno: risposteAnno.map(inRiga),
     // a giornate, come tutto il resto: una domenica con due attività è una
     svolteTotali: new Set(impegni(svolte).values()).size,
     stagione: stagione?.nome ?? null,

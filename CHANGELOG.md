@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.102.0 — 24 settembre 2026
+
+### Cambiato
+
+- **Il grafico dei mesi in home guarda l'anno in corso**, da gennaio a
+  dicembre, compresi i mesi che devono ancora venire (il mese corrente è
+  evidenziato). Non più le sole adesioni, ma una pila a giornate: in basso le
+  **presenze** vere, sopra le adesioni **in programma**, e a parte i sì
+  rimasti senza presenza. Così si vede cosa si è fatto e cosa si farà.
+
 ## 2.101.1 — 24 settembre 2026
 
 ### Cambiato

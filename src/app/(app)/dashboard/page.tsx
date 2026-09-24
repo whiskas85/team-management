@@ -241,6 +241,7 @@ export default async function DashboardPage({
           righe={quadro.righe}
           svolteTotali={quadro.svolteTotali}
           stagione={quadro.stagione}
+          righeAnno={quadro.righeAnno}
           tu
           grafici
         />

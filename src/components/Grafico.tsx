@@ -33,6 +33,79 @@ export function Barre({ dati, unita = '' }: { dati: Punto[]; unita?: string }) {
   );
 }
 
+export type Serie = {
+  nome: string;
+  /** Classe Tailwind dello sfondo: scritta per intero, o il build la perde. */
+  classe: string;
+};
+export type PuntoImpilato = {
+  etichetta: string;
+  /** Un valore per serie, nello stesso ordine: la prima sta in fondo. */
+  valori: number[];
+  /** Il mese in cui siamo: l'etichetta si accende. */
+  adesso?: boolean;
+};
+
+/**
+ * Istogramma a pila: ogni barra è la somma delle serie, una sopra l'altra.
+ * Sopra il totale, sotto la legenda con le serie che hanno almeno un valore.
+ */
+export function BarreImpilate({ dati, serie }: { dati: PuntoImpilato[]; serie: Serie[] }) {
+  const totale = (d: PuntoImpilato) => d.valori.reduce((t, v) => t + v, 0);
+  const massimo = Math.max(1, ...dati.map(totale));
+  const usate = serie.filter((_, i) => dati.some((d) => (d.valori[i] ?? 0) > 0));
+
+  return (
+    <div>
+      <div className="flex h-44 gap-1.5">
+        {dati.map((d, i) => (
+          <div key={i} className="flex h-full min-w-0 flex-1 flex-col items-center gap-1.5">
+            <span className="num text-[10px] text-muted">{totale(d) || ''}</span>
+            <div className="flex w-full flex-1 flex-col justify-end">
+              <div
+                className="flex w-full flex-col-reverse overflow-hidden rounded-t"
+                style={{ height: `${(totale(d) / massimo) * 100}%` }}
+                title={`${d.etichetta}: ${serie
+                  .map((s, j) => `${s.nome} ${d.valori[j] ?? 0}`)
+                  .join(' · ')}`}
+              >
+                {serie.map((s, j) =>
+                  d.valori[j] ? (
+                    <div
+                      key={j}
+                      className={`w-full ${s.classe}`}
+                      style={{ height: `${(d.valori[j] / totale(d)) * 100}%` }}
+                    />
+                  ) : null,
+                )}
+              </div>
+              {/* la base, anche per i mesi vuoti: il mese c'è, è solo vuoto */}
+              <div className="h-px w-full bg-line" />
+            </div>
+            <span
+              className={`w-full truncate text-center num text-[10px] ${
+                d.adesso ? 'font-semibold text-nvg' : 'text-muted'
+              }`}
+            >
+              {d.etichetta}
+            </span>
+          </div>
+        ))}
+      </div>
+      {usate.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+          {usate.map((s) => (
+            <li key={s.nome} className="flex items-center gap-1.5 text-xs text-muted">
+              <span className={`h-2.5 w-2.5 rounded-sm ${s.classe}`} />
+              {s.nome}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /** Barre orizzontali: meglio delle verticali quando le etichette sono nomi. */
 export function BarreOrizzontali({ dati, unita = '' }: { dati: Punto[]; unita?: string }) {
   const massimo = Math.max(1, ...dati.map((d) => d.valore));

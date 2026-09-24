@@ -1,5 +1,5 @@
 import { Statistica } from './ui';
-import { Barre, Torta, mesiRecenti, type Fetta } from './Grafico';
+import { BarreImpilate, Torta, type Fetta, type PuntoImpilato } from './Grafico';
 import { tintaColore } from '@/lib/domain';
 import { daQuanto, giorniA } from '@/lib/format';
 import { impegni } from '@/lib/impegni';
@@ -37,6 +37,7 @@ export function StatistichePersona({
   stagione,
   tu = false,
   grafici = false,
+  righeAnno = [],
 }: {
   righe: RigaPartecipazione[];
   /**
@@ -56,6 +57,8 @@ export function StatistichePersona({
    * i propri bisognava passare dal calendario: sulla home si guardano entrando.
    */
   grafici?: boolean;
+  /** Le partecipazioni dell'anno solare, per il grafico dei mesi. */
+  righeAnno?: RigaPartecipazione[];
 }) {
   const adesso = new Date();
   const svolte = righe.filter((r) => r.quando < adesso);
@@ -149,16 +152,7 @@ export function StatistichePersona({
     colore: tintaColore(colorePerTipo.get(nome)),
   }));
 
-  /*
-   * Le adesioni per mese, anche queste a giornate: una per impegno, con la
-   * data della prima attività della giornata.
-   */
-  const giornateAdesione = new Map<string, Date>();
-  for (const r of righeAdesioni) {
-    const gruppo = gruppi.get(r.eventId) ?? r.eventId;
-    const gia = giornateAdesione.get(gruppo);
-    if (!gia || r.quando < gia) giornateAdesione.set(gruppo, r.quando);
-  }
+  const mesi = grafici ? mesiDellAnno(righeAnno, adesso) : [];
 
   return (
     <>
@@ -224,9 +218,9 @@ export function StatistichePersona({
         <div className="mb-6 grid gap-4 lg:grid-cols-3">
           <div className="card lg:col-span-2">
             <p className="titolo-sezione mb-4">
-              Adesioni per mese{stagione ? ` · ${stagione}` : ''}
+              {tu ? 'Il tuo' : 'Il suo'} {adesso.getFullYear()}, mese per mese
             </p>
-            <Barre dati={mesiRecenti([...giornateAdesione.values()])} />
+            <BarreImpilate dati={mesi} serie={SERIE_MESI} />
           </div>
           <div className="card flex flex-col items-center gap-4">
             <p className="titolo-sezione self-start">{tu ? 'Cosa hai fatto' : 'Cosa ha fatto'}</p>
@@ -242,4 +236,59 @@ export function StatistichePersona({
       )}
     </>
   );
+}
+
+/*
+ * Le tre parti di ogni mese, dal basso: quello che si è fatto davvero, quello
+ * a cui si è detto sì e deve ancora venire, e i sì rimasti senza presenza.
+ */
+const SERIE_MESI = [
+  { nome: 'Presenze', classe: 'bg-nvg' },
+  { nome: 'In programma', classe: 'bg-nvg/35' },
+  { nome: 'Sì senza presenza', classe: 'bg-muted/40' },
+];
+
+/**
+ * L'anno solare, gennaio–dicembre, a giornate come il resto: una per impegno,
+ * nel mese della sua prima attività.
+ *
+ * **Si divide quello che è stato da quello che sarà.** Una giornata passata
+ * in cui c'era è una presenza; una a cui ha detto sì e che deve ancora venire
+ * è in programma; una passata a cui aveva detto sì senza esserci — o senza
+ * appello — resta a parte, per non gonfiare né l'una né l'altra.
+ */
+function mesiDellAnno(righe: RigaPartecipazione[], adesso: Date): PuntoImpilato[] {
+  const anno = adesso.getFullYear();
+  const gruppi = impegni(
+    righe.map((r) => ({
+      id: r.eventId,
+      inizio: r.quando,
+      fine: r.finisce,
+      collegatoAId: r.collegatoAId,
+    })),
+  );
+
+  const giornate = new Map<string, { quando: Date; si: boolean; presente: boolean }>();
+  for (const r of righe) {
+    const chiave = gruppi.get(r.eventId) ?? r.eventId;
+    const g = giornate.get(chiave) ?? { quando: r.quando, si: false, presente: false };
+    if (r.quando < g.quando) g.quando = r.quando;
+    if (r.status === 'PRESENTE') g.si = true;
+    if (r.presente === true && r.quando < adesso) g.presente = true;
+    giornate.set(chiave, g);
+  }
+
+  const mesi: PuntoImpilato[] = Array.from({ length: 12 }, (_, m) => ({
+    etichetta: new Date(anno, m, 1).toLocaleDateString('it-IT', { month: 'short' }).replace('.', ''),
+    valori: [0, 0, 0],
+    adesso: m === adesso.getMonth(),
+  }));
+  for (const g of giornate.values()) {
+    if (g.quando.getFullYear() !== anno) continue;
+    const valori = mesi[g.quando.getMonth()].valori;
+    if (g.presente) valori[0]++;
+    else if (g.si && g.quando >= adesso) valori[1]++;
+    else if (g.si) valori[2]++;
+  }
+  return mesi;
 }
