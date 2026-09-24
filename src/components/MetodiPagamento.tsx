@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icona } from './Icona';
 
 export type MetodoDaMostrare = {
@@ -28,6 +28,12 @@ export type MetodoDaMostrare = {
  * volte — e chi ha fretta lascia il primo della lista. Allora il menu del
  * modulo si mette da solo su quel metodo. Solo quello: non si paga niente e
  * non si invia niente, e il menu resta da cambiare a mano se serve.
+ *
+ * Lo stesso vale per **tutto il riquadro** di un metodo, non solo per i suoi
+ * pulsanti: un bonifico con l'IBAN scritto per esteso, o «contanti al corso»,
+ * un pulsante non ce l'hanno, e toccarne il riquadro è il modo naturale di
+ * dire «pago così». Il riquadro scelto si accende, e segue il menu anche
+ * quando lo si cambia a mano.
  */
 export function MetodiPagamento({
   metodi,
@@ -38,6 +44,20 @@ export function MetodiPagamento({
   campoMetodo?: string;
 }) {
   const [copiato, setCopiato] = useState<string | null>(null);
+  // il metodo scelto nel menu del modulo: accende il suo riquadro
+  const [scelto, setScelto] = useState<string | null>(null);
+
+  // si legge dal menu, e lo si ascolta: così il riquadro acceso è sempre
+  // quello del menu, che lo si scelga da qui o dal menu stesso
+  useEffect(() => {
+    if (!campoMetodo) return;
+    const menu = document.getElementById(campoMetodo);
+    if (!(menu instanceof HTMLSelectElement)) return;
+    const leggi = () => setScelto(menu.value || null);
+    leggi();
+    menu.addEventListener('change', leggi);
+    return () => menu.removeEventListener('change', leggi);
+  }, [campoMetodo]);
 
   // Il menu è del modulo, che non è di questo componente: lo si cerca per id
   // e gli si cambia il valore, come farebbe chi lo sceglie a mano. È un menu
@@ -70,7 +90,29 @@ export function MetodiPagamento({
       {metodi.map((m) => (
         <div
           key={m.id}
-          className="rounded-lg border border-line bg-surface2 p-3 text-left sm:flex sm:items-center sm:justify-between sm:gap-4"
+          // tutto il riquadro sceglie il metodo; i pulsanti dentro fanno la
+          // loro cosa e, salendo fin qui, lo scelgono anche loro
+          {...(campoMetodo && {
+            role: 'button',
+            tabIndex: 0,
+            'aria-pressed': scelto === m.id,
+            title: `Pago con ${m.nome}`,
+            onClick: () => scegli(m.id),
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                scegli(m.id);
+              }
+            },
+          })}
+          className={`rounded-lg border p-3 text-left transition-colors sm:flex sm:items-center sm:justify-between sm:gap-4 ${
+            campoMetodo ? 'cursor-pointer' : ''
+          } ${
+            scelto === m.id
+              ? 'border-nvg/60 bg-nvg/5'
+              : 'border-line bg-surface2 hover:border-nvgdim'
+          }`}
         >
           <div className="min-w-0">
             <p className="font-medium text-ink">{m.nome}</p>

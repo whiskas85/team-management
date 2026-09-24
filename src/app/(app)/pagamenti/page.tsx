@@ -312,7 +312,10 @@ function Dichiara({
 
         {!giaSegnalato && (
           <div>
-            <p className="titolo-sezione mb-2">Come pagare</p>
+            <p className="titolo-sezione">Come pagare</p>
+            <p className="mb-2 mt-0.5 text-[11px] text-muted">
+              Tocca il metodo con cui paghi: lo trovi già scelto qui sotto.
+            </p>
             <MetodiPagamento metodi={comePagare} campoMetodo={`metodo-${pagamento.id}`} />
           </div>
         )}

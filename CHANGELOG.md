@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.92.1 — 24 settembre 2026
+
+### Cambiato
+
+- **Anche il riquadro di un metodo lo sceglie.** Nella finestra «Paga» basta
+  toccare il riquadro del metodo — anche uno senza pulsante, come un
+  bonifico con l'IBAN scritto o i contanti — perché il menu «Con quale
+  metodo» del modulo passi a quello. Il riquadro scelto si accende, e resta
+  allineato al menu anche se lo si cambia a mano.
+
 ## 2.92.0 — 24 settembre 2026
 
 ### Aggiunto
