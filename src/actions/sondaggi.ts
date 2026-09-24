@@ -22,6 +22,13 @@ const TIPI = ['TESTO', 'DATA', 'PRESENZE', 'DECISIONE'] as const;
 const SI_NO = ['Sì', 'No'];
 const DESTINATARI = ['SQUADRA', 'NUOVI', 'TUTTI'] as const;
 
+/**
+ * Modificare, chiudere e riaprire un sondaggio lo fa solo chi l'ha aperto: la
+ * domanda è sua, e decide lui quando ha la risposta che cercava. Un altro che
+ * lo chiude a metà gli toglie la decisione di mano.
+ */
+const SOLO_AUTORE = 'Lo può fare solo chi ha aperto il sondaggio.';
+
 function aggiorna(id?: string) {
   revalidatePath('/sondaggi');
   revalidatePath('/dashboard');
@@ -121,6 +128,7 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
     include: { opzioni: { select: { id: true } }, voti: { select: { userId: true } } },
   });
   if (!s) return { errore: 'Sondaggio non trovato.' };
+  if (s.creatoDaId !== me.id) return { errore: SOLO_AUTORE };
 
   const domanda = str(fd, 'domanda');
   if (!domanda) return { errore: 'La domanda non può restare vuota.' };
@@ -342,11 +350,10 @@ export async function proponiRisposta(sondaggioId: string, testo: string): Promi
 /** Chiude un sondaggio prima della scadenza: la decisione è già presa. */
 export async function chiudiSondaggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoFareSondaggi(me.roles)) return { errore: 'Non puoi chiudere i sondaggi.' };
-
   const id = str(fd, 'id');
   const s = await prisma.sondaggio.findUnique({ where: { id } });
   if (!s) return { errore: 'Sondaggio non trovato.' };
+  if (s.creatoDaId !== me.id) return { errore: SOLO_AUTORE };
   if (s.chiusoIl) return { errore: 'Era già chiuso.' };
 
   await prisma.sondaggio.update({ where: { id }, data: { chiusoIl: new Date() } });
@@ -358,11 +365,10 @@ export async function chiudiSondaggio(_prev: StatoForm, fd: FormData): Promise<S
 /** Riapre un sondaggio chiuso per sbaglio, se la scadenza non è passata. */
 export async function riapriSondaggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoFareSondaggi(me.roles)) return { errore: 'Non puoi riaprire i sondaggi.' };
-
   const id = str(fd, 'id');
   const s = await prisma.sondaggio.findUnique({ where: { id } });
   if (!s) return { errore: 'Sondaggio non trovato.' };
+  if (s.creatoDaId !== me.id) return { errore: SOLO_AUTORE };
   if (s.scadeIl && s.scadeIl <= new Date()) {
     return { errore: 'La scadenza è passata: per riaprirlo spostala più avanti.' };
   }

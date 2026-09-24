@@ -66,6 +66,8 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
   if (!s) notFound();
 
   const gestisce = puoFareSondaggi(me.roles);
+  // modificarlo, chiuderlo e riaprirlo tocca solo a chi l'ha aperto
+  const autore = s.creatoDaId === me.id;
   // chi non è fra i destinatari non deve nemmeno sapere che esiste — tranne
   // chi governa i sondaggi, che li deve poter rileggere tutti
   if (!loRiguarda(s.destinatari, me.stato) && !gestisce) notFound();
@@ -152,32 +154,34 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
           <div className="flex flex-wrap items-center gap-2">
             {/* un refuso nella domanda, una data sbagliata, una risposta che
                 manca: si corregge qui, senza buttare i voti già dati */}
-            <BottoneModale
-              etichetta="Modifica"
-              icona="modifica"
-              titolo="Modifica il sondaggio"
-              className="btn-ghost btn-sm"
-            >
-              <FormSondaggio
-                sondaggio={{
-                  id: s.id,
-                  tipo: s.tipo,
-                  domanda: s.domanda,
-                  dettaglio: s.dettaglio,
-                  destinatari: s.destinatari,
-                  sceltaMultipla: s.sceltaMultipla,
-                  segreto: s.segreto,
-                  proposteAperte: s.proposteAperte,
-                  conVoti: votanti > 0,
-                  scadeIl: inputDateTime(s.scadeIl),
-                  opzioni: s.opzioni.map((o) => ({
-                    id: o.id,
-                    testo: o.testo,
-                    quando: inputDateTime(o.quando),
-                  })),
-                }}
-              />
-            </BottoneModale>
+            {autore && (
+              <BottoneModale
+                etichetta="Modifica"
+                icona="modifica"
+                titolo="Modifica il sondaggio"
+                className="btn-ghost btn-sm"
+              >
+                <FormSondaggio
+                  sondaggio={{
+                    id: s.id,
+                    tipo: s.tipo,
+                    domanda: s.domanda,
+                    dettaglio: s.dettaglio,
+                    destinatari: s.destinatari,
+                    sceltaMultipla: s.sceltaMultipla,
+                    segreto: s.segreto,
+                    proposteAperte: s.proposteAperte,
+                    conVoti: votanti > 0,
+                    scadeIl: inputDateTime(s.scadeIl),
+                    opzioni: s.opzioni.map((o) => ({
+                      id: o.id,
+                      testo: o.testo,
+                      quando: inputDateTime(o.quando),
+                    })),
+                  }}
+                />
+              </BottoneModale>
+            )}
 
             {!s.evento && (s.tipo === 'DATA' || s.tipo === 'PRESENZE') && (
               <AzioneBottone
@@ -189,15 +193,15 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
                   s.tipo === 'PRESENZE' && s.segreto
                     ? 'Creo l’attività in bozza? Il voto era segreto: chi ha detto di esserci non viene segnato.'
                     : s.tipo === 'PRESENZE'
-                    ? 'Creo l’attività in bozza con dentro chi ha detto di esserci?'
-                    : 'Creo l’attività in bozza con la data che ha vinto?'
+                      ? 'Creo l’attività in bozza con dentro chi ha detto di esserci?'
+                      : 'Creo l’attività in bozza con la data che ha vinto?'
                 }
               >
                 Crea l’attività
               </AzioneBottone>
             )}
 
-            {aperto ? (
+            {!autore ? null : aperto ? (
               <AzioneBottone
                 azione={chiudiSondaggio}
                 valori={{ id: s.id }}

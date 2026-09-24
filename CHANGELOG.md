@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.96.2 — 24 settembre 2026
+
+### Cambiato
+
+- **Un sondaggio lo modifica, lo chiude e lo riapre solo chi l'ha aperto.**
+  Gli altri che possono fare sondaggi (admin, TL) non vedono più quei
+  pulsanti su un sondaggio non loro, e il server lo rifiuta comunque.
+  Eliminare e creare l'attività dal risultato restano come prima.
+
 ## 2.96.1 — 24 settembre 2026
 
 ### Cambiato
