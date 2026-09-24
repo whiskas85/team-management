@@ -10,11 +10,14 @@
 #
 # Le credenziali stanno nei secret del repository, mai qui: il repository e'
 # pubblico.
-#   SERVER_HOST          nome o indirizzo del server
 #   SERVER_USER          l'utente con cui si entra
 #   SERVER_SSH_KEY       la chiave privata, una fatta apposta per i rilasci
-#   SERVER_KNOWN_HOSTS   l'impronta del server (ssh-keyscan -t ed25519 <host>):
-#                        senza, ci si fiderebbe di chiunque risponda a quel nome
+#
+# Il nome del server e la sua impronta invece stanno qui: sono pubblici (il
+# server li mostra a chiunque si colleghi) e scritti nel file non si possono
+# sbagliare nel copia-incolla. L'impronta serve a non fidarsi di chiunque
+# risponda a quel nome; se un giorno il server viene rifatto, cambia e va
+# aggiornata qui (ssh-keygen -F ops.zerodarkteam.it dal PC di chi ci entra).
 
 name: Rilascio
 
@@ -35,6 +38,10 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  HOST: ops.zerodarkteam.it
+  IMPRONTA: ops.zerodarkteam.it ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOHXXfS9NeIXEadQBZip3Dc6mPcRLPxRSzmj8HVVpbrt
+
 jobs:
   server:
     runs-on: ubuntu-latest
@@ -43,24 +50,27 @@ jobs:
       - name: Chiave e impronta del server
         env:
           SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
         run: |
-          if [ -z "$SSH_KEY" ] || [ -z "$KNOWN_HOSTS" ]; then
-            echo "::error::Mancano i secret SERVER_SSH_KEY o SERVER_KNOWN_HOSTS"
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::Manca il secret SERVER_SSH_KEY"
             exit 1
           fi
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/rilascio
+          # incollata da Windows puo' portarsi dietro gli a capo \r: via
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/rilascio
           chmod 600 ~/.ssh/rilascio
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$IMPRONTA" > ~/.ssh/known_hosts
+          if ! ssh-keygen -y -f ~/.ssh/rilascio > /dev/null 2>&1; then
+            echo "::error::SERVER_SSH_KEY non e' una chiave privata leggibile, o ha una passphrase"
+            exit 1
+          fi
 
       - name: Prova (non cambia niente)
         if: inputs.modo == 'prova'
         env:
-          HOST: ${{ secrets.SERVER_HOST }}
           UTENTE: ${{ secrets.SERVER_USER }}
         run: |
-          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes \
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" 'bash -s' <<'SUL_SERVER'
           set -euo pipefail
           cd /opt/gestionale
@@ -88,10 +98,9 @@ jobs:
       - name: Rilascio
         if: inputs.modo == 'rilascio'
         env:
-          HOST: ${{ secrets.SERVER_HOST }}
           UTENTE: ${{ secrets.SERVER_USER }}
         run: |
-          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes \
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" 'bash -s' <<'SUL_SERVER'
           set -euo pipefail
           cd /opt/gestionale
