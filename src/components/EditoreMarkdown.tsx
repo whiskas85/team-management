@@ -22,7 +22,7 @@ import { Markdown, type Menzioni } from './Markdown';
  * Una persona ha solo il nome; un documento ha anche l'indirizzo, e nel testo
  * diventa un link che lo apre.
  */
-type Persona = { id: string; maniglia: string; nome: string; href?: string };
+type Persona = { id: string; maniglia: string; nome: string; href?: string; persona?: boolean };
 
 type Pulsante = {
   etichetta: string;
@@ -106,7 +106,10 @@ export function EditoreMarkdown({
 
   const menzioni: Menzioni | undefined = persone
     ? Object.fromEntries(
-        persone.map((p) => [p.maniglia, p.href ? { nome: p.nome, href: p.href } : p.nome]),
+        persone.map((p) => [
+          p.maniglia,
+          p.href ? { nome: p.nome, href: p.href, persona: p.persona } : p.nome,
+        ]),
       )
     : undefined;
 
@@ -373,7 +376,7 @@ export function EditoreMarkdown({
                 >
                   <span className="num text-nvg">@{p.maniglia}</span>
                   <span className="min-w-0 truncate text-xs text-muted">
-                    {p.href ? `📎 ${p.nome}` : p.nome}
+                    {p.href && !p.persona ? `📎 ${p.nome}` : p.nome}
                   </span>
                 </button>
               ))}

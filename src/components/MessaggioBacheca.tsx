@@ -18,7 +18,14 @@ import {
   salvaMessaggio,
 } from '@/actions/bacheche';
 
-export type Citabile = { id: string; maniglia: string; nome: string; href?: string };
+export type Citabile = {
+  id: string;
+  maniglia: string;
+  nome: string;
+  href?: string;
+  /** È una persona: la chiocciola porta alla sua pagina, non apre un file. */
+  persona?: boolean;
+};
 
 export type ConsegnaLeggibile = {
   nome: string;

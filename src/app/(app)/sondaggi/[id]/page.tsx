@@ -171,7 +171,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
               <div className="flex flex-wrap items-center gap-2">
                 {/* un refuso nella domanda, una data sbagliata, una risposta che
                     manca: si corregge qui, senza buttare i voti già dati */}
-                {governa && (
+                {governa && aperto && (
                   <BottoneModale
                     etichetta="Modifica"
                     icona="modifica"

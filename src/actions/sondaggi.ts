@@ -175,6 +175,9 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
   });
   if (!s) return { errore: 'Sondaggio non trovato.' };
   if (!puoGovernare(me, s)) return { errore: SOLO_AUTORE };
+  // chiuso è chiuso: il risultato non si ritocca a cose fatte. Chi deve
+  // correggere qualcosa lo riapre, e si vede che l'ha riaperto
+  if (!eAperto(s)) return { errore: 'Il sondaggio è chiuso: riaprilo per modificarlo.' };
 
   const domanda = str(fd, 'domanda');
   if (!domanda) return { errore: 'La domanda non può restare vuota.' };

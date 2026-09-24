@@ -90,7 +90,7 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
     },
   });
 
-  const { citabili, menzioni } = await chiocciole(b);
+  const { citabili, menzioni } = await chiocciole(b, me);
 
   const dati: DatiMessaggio[] = messaggi.map((m) => {
     const perEmoji = new Map<string, { chi: string[]; mia: boolean }>();

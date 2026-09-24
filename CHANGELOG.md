@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.100.1 — 24 settembre 2026
+
+### Cambiato
+
+- **Una @persona in bacheca porta alla sua pagina.** Toccando il nome si apre
+  la scheda della persona, se chi legge la può vedere (la stessa regola del
+  calendario: fra membri della squadra, e i nuovi per chi li segue); la
+  propria porta al profilo. Altrimenti resta un nome evidenziato.
+- **Un sondaggio chiuso non si modifica più.** Il pulsante sparisce, e il
+  server lo rifiuta: per correggere qualcosa va prima riaperto.
+
 ## 2.100.0 — 24 settembre 2026
 
 ### Cambiato

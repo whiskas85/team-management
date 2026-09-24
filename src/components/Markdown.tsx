@@ -6,7 +6,11 @@ import type { ReactNode } from 'react';
  * Una persona è un nome da mostrare al passaggio del mouse. Un documento è un
  * nome **e un indirizzo**: la chiocciola diventa un link che lo apre.
  */
-export type Menzioni = Record<string, string | { nome: string; href: string }>;
+/**
+ * Chi risponde a una chiocciola: solo un nome, o un nome con un indirizzo. Un
+ * documento si apre a parte (📎); una persona porta alla sua pagina, qui.
+ */
+export type Menzioni = Record<string, string | { nome: string; href: string; persona?: boolean }>;
 
 /**
  * Le immagini: solo da indirizzi sicuri o da casa nostra.
@@ -86,7 +90,19 @@ function inline(testo: string, chiave: string, menzioni?: Menzioni): ReactNode[]
       const pulito = scritto.replace(/[._-]+$/, '');
       const chi = menzioni?.[scritto] ?? menzioni?.[pulito];
       const avanzo = menzioni?.[scritto] ? '' : t.slice(1 + pulito.length);
-      if (chi && typeof chi === 'object') {
+      if (chi && typeof chi === 'object' && chi.persona) {
+        pezzi.push(
+          <a
+            key={k}
+            href={chi.href}
+            title={chi.nome}
+            className="rounded bg-nvg/15 px-1 font-medium text-nvg underline-offset-2 hover:underline"
+          >
+            @{menzioni?.[scritto] ? scritto : pulito}
+          </a>,
+          avanzo,
+        );
+      } else if (chi && typeof chi === 'object') {
         pezzi.push(
           <a
             key={k}
