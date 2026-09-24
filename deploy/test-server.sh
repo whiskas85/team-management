@@ -100,7 +100,8 @@ leggi() { grep "^$1=" "$TEST/.env.test" | cut -d= -f2-; }
 
 # --------------------------------------------------------------- il proxy
 
-indirizzo() { getent ahostsv4 "$1" 2>/dev/null | awk 'NR==1 {print $1}'; }
+# un nome che non esiste ancora nel DNS non e' un guasto: e' «nessun indirizzo»
+indirizzo() { { getent ahostsv4 "$1" 2>/dev/null || true; } | awk 'NR==1 {print $1}'; }
 
 proxy() {
   local qui la
