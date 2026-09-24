@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.93.1 — 24 settembre 2026
+
+### Corretto
+
+- **Senza metodi, «Come si paga» non ripete l'avviso.** Aprendo la card di
+  una cassa senza metodi l'avviso compariva due volte, nella riga del titolo
+  e dentro. Ora una card senza niente dentro non si apre — resta l'avviso e
+  «Aggiungi metodo» — e con il primo metodo aggiunto si apre da sola.
+
 ## 2.93.0 — 24 settembre 2026
 
 ### Cambiato

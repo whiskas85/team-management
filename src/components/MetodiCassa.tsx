@@ -144,7 +144,9 @@ export function MetodiCassa({
           </>
         }
       >
-        {elenco}
+        {/* senza metodi l'avviso sta già nell'intestazione: ripeterlo
+            dentro la card aperta lo faceva leggere due volte */}
+        {metodi.length > 0 ? elenco : null}
       </CardRichiudibile>
     );
   }

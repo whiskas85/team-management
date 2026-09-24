@@ -29,8 +29,11 @@ export function CardRichiudibile({
   azioni?: ReactNode;
   /** Quante cose ci sono dentro: se cresce, la card si apre. */
   conteggio: number;
-  children: ReactNode;
+  /** Il contenuto da aprire. Senza, la card è solo la sua intestazione. */
+  children?: ReactNode;
 }) {
+  // niente da aprire: non si apre, e non finge di poterlo fare
+  const apribile = children != null && children !== false;
   const [aperta, setAperta] = useState(false);
   const card = useRef<HTMLElement>(null);
   const prima = useRef(conteggio);
@@ -53,28 +56,32 @@ export function CardRichiudibile({
     <section
       ref={card}
       id={id}
-      onClick={() => setAperta(true)}
-      className={`card mb-6 transition-colors ${aperta ? '' : 'cursor-pointer hover:border-nvgdim'}`}
+      onClick={() => apribile && setAperta(true)}
+      className={`card mb-6 transition-colors ${
+        aperta || !apribile ? '' : 'cursor-pointer hover:border-nvgdim'
+      }`}
     >
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">{intestazione}</div>
         {azioni && <div className="shrink-0">{azioni}</div>}
-        <button
-          type="button"
-          aria-expanded={aperta}
-          aria-label={aperta ? 'Chiudi' : 'Apri'}
-          onClick={(e) => {
-            // la freccia apre e chiude; senza fermarlo, il clic salirebbe alla
-            // card e la riaprirebbe subito
-            e.stopPropagation();
-            setAperta((a) => !a);
-          }}
-          className="shrink-0 rounded-md p-1 text-muted hover:text-ink"
-        >
-          {aperta ? '▴' : '▾'}
-        </button>
+        {apribile && (
+          <button
+            type="button"
+            aria-expanded={aperta}
+            aria-label={aperta ? 'Chiudi' : 'Apri'}
+            onClick={(e) => {
+              // la freccia apre e chiude; senza fermarlo, il clic salirebbe alla
+              // card e la riaprirebbe subito
+              e.stopPropagation();
+              setAperta((a) => !a);
+            }}
+            className="shrink-0 rounded-md p-1 text-muted hover:text-ink"
+          >
+            {aperta ? '▴' : '▾'}
+          </button>
+        )}
       </div>
-      {aperta && <div className="mt-3 border-t border-line pt-3">{children}</div>}
+      {aperta && apribile && <div className="mt-3 border-t border-line pt-3">{children}</div>}
     </section>
   );
 }
