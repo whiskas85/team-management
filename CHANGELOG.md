@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.87.1 — 24 settembre 2026
+
+### Corretto
+
+- **La build non dipende più da Google Fonts.** I tre caratteri della pagina di
+  accesso si scaricavano da Google a ogni build, e dal server Google rispondeva
+  male una volta sì e una no: il rilascio si fermava con un errore di
+  `next/font` senza che il codice c'entrasse. Adesso i file stanno nel
+  repository, accanto alla pagina. La pagina è identica.
+
+### Aggiunto
+
+- **Un ambiente di test sul server**, su `test.zerodarkteam.it`, accanto alla
+  produzione ma separato da lei: database, allegati e chiavi suoi, una password
+  davanti, niente WhatsApp, polizze, lavori automatici e notifiche. Si aggiorna
+  a un ramo qualunque e si riempie con i dati veri dall'automazione Rilascio.
+  Come funziona sta in `deploy/DEPLOY.md`.
+
 ## 2.87.0 — 24 settembre 2026
 
 ### Aggiunto

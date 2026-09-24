@@ -1,4 +1,4 @@
-import { Orbitron, Share_Tech_Mono, Silkscreen } from 'next/font/google';
+import localFont from 'next/font/local';
 import { Logo } from '@/components/Logo';
 import { FormLogin, type RigaTerminale } from '@/components/FormLogin';
 import { AccessoRapido, type Figura } from '@/components/AccessoRapido';
@@ -7,23 +7,29 @@ import { inTest } from '@/lib/ambiente';
 
 // Tre caratteri, e solo qui. Il resto del gestionale il monospazio non ce l'ha,
 // ed è voluto: si legge per ore e deve stancare poco. La porta d'ingresso
-// invece si guarda per tre secondi, e può fare scena. next/font li scarica
-// durante la build e li serve dal nostro server: chi apre la pagina non manda
-// niente a Google.
-const pixel = Silkscreen({
-  subsets: ['latin'],
+// invece si guarda per tre secondi, e può fare scena.
+//
+// I file stanno qui accanto, in font/, e non si scaricano da Google durante la
+// build: dal server Google Fonts rispondeva male una volta sì e una no, e ogni
+// volta la build si fermava sulla pagina di accesso. Sono gli stessi caratteri
+// (licenza OFL, nei file LICENSE-*), solo latino, solo i pesi che servono.
+// Chi apre la pagina li riceve dal nostro server e non manda niente a Google.
+const pixel = localFont({
+  src: './font/silkscreen-latin-700-normal.woff2',
   weight: '700',
   variable: '--font-pixel',
   display: 'swap',
 });
-const titoli = Orbitron({
-  subsets: ['latin'],
-  weight: ['500', '700'],
+const titoli = localFont({
+  src: [
+    { path: './font/orbitron-latin-500-normal.woff2', weight: '500' },
+    { path: './font/orbitron-latin-700-normal.woff2', weight: '700' },
+  ],
   variable: '--font-display',
   display: 'swap',
 });
-const terminale = Share_Tech_Mono({
-  subsets: ['latin'],
+const terminale = localFont({
+  src: './font/share-tech-mono-latin-400-normal.woff2',
   weight: '400',
   variable: '--font-terminale',
   display: 'swap',
