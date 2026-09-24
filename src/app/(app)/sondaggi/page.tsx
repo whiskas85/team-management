@@ -122,7 +122,7 @@ export default async function SondaggiPage({
           </span>
         </div>
 
-        <Anteprima opzioni={s.opzioni} votanti={votanti} />
+        <Anteprima opzioni={s.opzioni} votanti={votanti} chiuso={storico} />
 
         {/* Il tempo che resta scorre davvero: qui dentro non è una
                     fotografia come nella notifica. */}
@@ -208,17 +208,50 @@ export default async function SondaggiPage({
 function Anteprima({
   opzioni,
   votanti,
+  chiuso = false,
 }: {
   opzioni: { id: string; testo: string; quando: Date | null; voti: unknown[] }[];
   votanti: number;
+  /** Nello storico la risposta che ha vinto si dice per prima, in chiaro. */
+  chiuso?: boolean;
 }) {
   if (opzioni.length === 0) return null;
   const esito = risultato(opzioni);
   const mostrate = opzioni.slice(0, 4);
   const altre = opzioni.length - mostrate.length;
+  const nome = (o: (typeof opzioni)[number]) => (o.quando ? fmtDateTime(o.quando) : o.testo);
+  const vinta = opzioni.find((o) => o.id === esito.vincitrice);
 
   return (
     <div className="mt-3 space-y-1.5 border-t border-line pt-3">
+      {chiuso && votanti > 0 && (
+        <p className="mb-2 text-sm">
+          {vinta ? (
+            <>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-nvg">
+                Ha vinto
+              </span>{' '}
+              <span className="font-semibold text-ink">{nome(vinta)}</span>
+              <span className="num text-muted">
+                {' '}
+                · {vinta.voti.length} su {votanti}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-warn">
+                Pari
+              </span>{' '}
+              <span className="font-semibold text-ink">
+                {opzioni
+                  .filter((o) => o.voti.length === esito.massimo)
+                  .map(nome)
+                  .join(' · ')}
+              </span>
+            </>
+          )}
+        </p>
+      )}
       {mostrate.map((o) => {
         const quota = votanti > 0 ? Math.round((o.voti.length / votanti) * 100) : 0;
         const vince = esito.vincitrice === o.id;

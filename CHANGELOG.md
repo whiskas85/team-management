@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.99.0 — 24 settembre 2026
+
+### Cambiato
+
+- **L'attività nata da un sondaggio ha già dentro chi ha votato la risposta
+  vincente**, anche sui sondaggi di data: chi ha detto «posso sabato» è
+  segnato presente alla giocata di sabato. Entra però solo chi potrebbe
+  entrare anche aggiunto a mano — atleta, con il certificato valido — e i
+  nuovi restano fuori finché l'admin non decide il loro prezzo. Se qualcuno
+  resta fuori, si resta sul sondaggio con l'elenco di chi e perché; se sono
+  entrati tutti, si va dritti all'attività. Sul voto segreto non entra
+  nessuno, come prima.
+- **Un sondaggio chiuso dice in grande com'è finita**: in cima «Ha vinto» con
+  la risposta, i voti e la percentuale, o «Pari» fra quali; sotto, le
+  risposte con chi le ha date — a cose fatte li vede chiunque guardi il
+  sondaggio, tranne sul voto segreto. Anche nello storico la card mette in
+  evidenza la risposta vincente.
+
 ## 2.98.0 — 24 settembre 2026
 
 ### Aggiunto

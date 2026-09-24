@@ -4,7 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { inSquadra, isAdmin } from '@/lib/domain';
+import {
+  eAtleta,
+  idoneoPer,
+  inSquadra,
+  isAdmin,
+  serveCertificato,
+  vedeAttivitaSquadra,
+} from '@/lib/domain';
 import type { Role } from '@prisma/client';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
 import {
@@ -505,22 +512,60 @@ export async function creaEventoDaSondaggio(_prev: StatoForm, fd: FormData): Pro
   });
 
   /*
-   * Chi ha detto di esserci entra già segnato.
+   * Chi ha votato la risposta che vale entra già segnato come presente.
    *
-   * Solo sui sondaggi di presenza, e solo chi ha votato l'opzione scelta: su
-   * una domanda di data, aver detto «posso sabato» non vuol dire essersi
-   * iscritti — vuol dire che quel giorno era libero.
+   * Sui sondaggi di presenza è chi ha detto «ci sono»; su quelli di data è chi
+   * ha detto di poter venire quel giorno — e quel giorno è la giocata. Iscriverli
+   * a mano uno per uno, dopo averglielo appena chiesto, era lavoro doppio; chi
+   * poi non viene si toglie dall'attività come sempre.
    */
-  // su un voto segreto i nomi non escono nemmeno da qui: chi ha detto «ci
-  // sono» l'ha detto contando che restasse fra sé e il conteggio
-  if (s.tipo === 'PRESENZE' && !s.segreto) {
-    const chi = scelta.voti.map((v) => v.userId);
-    if (chi.length > 0) {
+  // su un voto segreto i nomi non escono nemmeno da qui: chi ha risposto l'ha
+  // fatto contando che restasse fra sé e il conteggio
+  const esclusi: string[] = [];
+  let segnati = 0;
+  if (!s.segreto && scelta.voti.length > 0) {
+    /*
+     * Entra solo chi potrebbe entrare anche aggiunto a mano: le stesse regole
+     * di «Aggiungi partecipanti» (iscriviOperatori). Chi resta fuori si dice,
+     * con il perché, e lo si aggiunge a mano quando è a posto.
+     *
+     * - chi è del club ma non è atleta in campo non ci va;
+     * - chi è in squadra ci va con il certificato valido: l'attività nasce
+     *   senza tipologia, e senza tipologia il certificato si chiede;
+     * - i nuovi entrano con un prezzo deciso dall'admin, e un'attività appena
+     *   nata un prezzo non ce l'ha ancora.
+     */
+    const persone = await prisma.user.findMany({
+      where: {
+        id: { in: scelta.voti.map((v) => v.userId) },
+        stato: { notIn: ['DISABILITATO', 'RIFIUTATO', 'REGISTRATO'] },
+      },
+      select: {
+        id: true,
+        nome: true,
+        cognome: true,
+        callsign: true,
+        stato: true,
+        roles: true,
+        certificates: { select: { status: true, scadeIl: true, tipo: true } },
+      },
+    });
+    const chi = (u: (typeof persone)[number]) => u.callsign ?? `${u.nome} ${u.cognome}`;
+    const ammessi: string[] = [];
+    for (const u of persone) {
+      if (!vedeAttivitaSquadra(u.stato)) esclusi.push(`${chi(u)} (nuovo: prima il prezzo)`);
+      else if (!eAtleta(u.roles)) esclusi.push(`${chi(u)} (non è atleta)`);
+      else if (inSquadra(u.stato) && serveCertificato(null) && !idoneoPer(u.certificates, false))
+        esclusi.push(`${chi(u)} (certificato)`);
+      else ammessi.push(u.id);
+    }
+    if (ammessi.length > 0) {
       await prisma.eventRsvp.createMany({
-        data: chi.map((userId) => ({ eventId: evento.id, userId, status: 'PRESENTE' as const })),
+        data: ammessi.map((userId) => ({ eventId: evento.id, userId, status: 'PRESENTE' as const })),
         skipDuplicates: true,
       });
     }
+    segnati = ammessi.length;
   }
 
   await prisma.sondaggio.update({
@@ -532,6 +577,13 @@ export async function creaEventoDaSondaggio(_prev: StatoForm, fd: FormData): Pro
 
   aggiorna(id);
   revalidatePath('/calendario');
+  // se qualcuno è rimasto fuori lo si dice qui, sul sondaggio — che ha già il
+  // link all'attività: portarci dritti farebbe perdere il perché
+  if (esclusi.length > 0) {
+    return {
+      ok: `Attività creata in bozza con ${segnati} ${segnati === 1 ? 'persona' : 'persone'} dentro. Non segnati: ${esclusi.join(', ')}. Aggiungili dall'attività quando sono a posto.`,
+    };
+  }
   redirect(`/calendario/${evento.id}`);
 }
 

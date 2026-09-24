@@ -125,6 +125,8 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
             </div>
           )}
 
+          {!aperto && <Verdetto esito={esito} opzioni={s.opzioni} votanti={votanti} />}
+
           <VotoSondaggio
             sondaggioId={s.id}
             aperto={aperto}
@@ -138,10 +140,12 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
               testo: o.quando ? fmtDateTime(o.quando) : o.testo,
               voti: o.voti.length,
               vince: esito.vincitrice === o.id,
-              // chi ha fatto la domanda vede i nomi: è lui che deve richiamare
-              // quelli che non hanno risposto. Non sul voto segreto: lì nessuno
+              // Chi ha fatto la domanda vede i nomi mentre è aperto: è lui che
+              // deve richiamare quelli che mancano. Chiuso, li vede chiunque
+              // lo guardi — a cose fatte «chi ha risposto cosa» è la
+              // decisione stessa. Sul voto segreto mai, per nessuno.
               chi:
-                gestisce && !s.segreto
+                (gestisce || !aperto) && !s.segreto
                   ? o.voti.map((v) => v.utente.callsign ?? `${v.utente.nome} ${v.utente.cognome}`)
                   : null,
               // chi l'ha proposta si vede, tranne sul voto segreto: la proposta
@@ -205,11 +209,11 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
                     icona="calendario"
                     className="btn-primary btn-sm"
                     conferma={
-                      s.tipo === 'PRESENZE' && s.segreto
-                        ? 'Creo l’attività in bozza? Il voto era segreto: chi ha detto di esserci non viene segnato.'
+                      s.segreto
+                        ? 'Creo l’attività in bozza? Il voto era segreto: chi ha votato non viene segnato.'
                         : s.tipo === 'PRESENZE'
                           ? 'Creo l’attività in bozza con dentro chi ha detto di esserci?'
-                          : 'Creo l’attività in bozza con la data che ha vinto?'
+                          : 'Creo l’attività in bozza con la data che ha vinto, e dentro chi l’ha votata?'
                     }
                   >
                     Crea l’attività
@@ -278,5 +282,59 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * Com'è finita, detto grande in cima a un sondaggio chiuso.
+ *
+ * A cose fatte la domanda che interessa è una: cosa si è deciso. Le barre la
+ * dicono, ma bisogna confrontarle; qui la si legge senza pensarci — la risposta
+ * che ha vinto e con quanti voti, o fra chi è finita pari. Sotto, le risposte
+ * con i nomi di chi le ha date.
+ */
+function Verdetto({
+  esito,
+  opzioni,
+  votanti,
+}: {
+  esito: { vincitrice: string | null; pari: boolean; massimo: number };
+  opzioni: { id: string; testo: string; quando: Date | null; voti: unknown[] }[];
+  votanti: number;
+}) {
+  const nome = (o: (typeof opzioni)[number]) => (o.quando ? fmtDateTime(o.quando) : o.testo);
+  const vinta = opzioni.find((o) => o.id === esito.vincitrice);
+
+  if (votanti === 0) {
+    return (
+      <div className="card mb-5 text-sm text-muted">Chiuso senza risposte: non si è deciso niente.</div>
+    );
+  }
+
+  if (vinta) {
+    return (
+      <div className="mb-5 rounded-lg border border-nvg/60 bg-nvg/10 px-4 py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-nvg">Ha vinto</p>
+        <p className="mt-1 break-words text-2xl font-semibold text-ink">{nome(vinta)}</p>
+        <p className="num mt-1 text-sm text-muted">
+          {vinta.voti.length} su {votanti} {votanti === 1 ? 'persona' : 'persone'} ·{' '}
+          {Math.round((vinta.voti.length / votanti) * 100)}%
+        </p>
+      </div>
+    );
+  }
+
+  const pari = opzioni.filter((o) => o.voti.length === esito.massimo);
+  return (
+    <div className="mb-5 rounded-lg border border-warn/50 bg-warn/10 px-4 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-warn">Pari</p>
+      <p className="mt-1 break-words text-xl font-semibold text-ink">
+        {pari.map(nome).join(' · ')}
+      </p>
+      <p className="num mt-1 text-sm text-muted">
+        {esito.massimo} {esito.massimo === 1 ? 'voto' : 'voti'} ciascuna, su {votanti}{' '}
+        {votanti === 1 ? 'persona' : 'persone'}
+      </p>
+    </div>
   );
 }
