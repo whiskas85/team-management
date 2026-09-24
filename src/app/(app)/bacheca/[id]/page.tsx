@@ -17,7 +17,7 @@ import {
   vedeBacheca,
 } from '@/lib/bacheche';
 import { chiocciole, personeSceglibili } from '@/lib/bacheche-persone';
-import { Badge, Vuoto } from '@/components/ui';
+import { Badge, Campo, Vuoto } from '@/components/ui';
 import { Stellina } from '@/components/Preferiti';
 import { TestataFissa } from '@/components/TestataFissa';
 import { iconaBacheca } from '@/lib/icone-bacheca';
@@ -33,6 +33,7 @@ import { Icona } from '@/components/Icona';
 import {
   caricaAllegatoBacheca,
   eliminaAllegatoBacheca,
+  modificaAllegatoBacheca,
   eliminaBacheca,
 } from '@/actions/bacheche';
 
@@ -246,6 +247,7 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                       maxBytes={REGOLE_ALLEGATO_BACHECA.maxBytes ?? 20 * 1024 * 1024}
                       aiuto="PDF, Markdown, testo, immagini, Word, Excel o PowerPoint. Poi lo richiami nei messaggi con la chiocciola."
                     />
+                    <CampiDocumento />
                     <Invia icona="carica">Carica</Invia>
                   </FormAzione>
                 </BottoneModale>
@@ -265,17 +267,41 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                         rel="noreferrer"
                         className="block break-words hover:text-nvg"
                       >
-                        {a.fileName}
+                        {a.titolo ?? a.fileName}
                       </a>
+                      {a.descrizione && (
+                        <span className="mt-0.5 block whitespace-pre-line break-words text-xs text-ink/80">
+                          {a.descrizione}
+                        </span>
+                      )}
                       <span className="block text-[11px] text-muted num">
                         @{a.maniglia} · {peso(a.fileSize)} · {fmtDate(a.caricatoIl)}
                       </span>
                     </div>
                     {(a.caricatoDaId === me.id || modera) && (
+                      <BottoneModale
+                        etichetta="Modifica"
+                        icona="modifica"
+                        titolo={`Modifica «${a.titolo ?? a.fileName}»`}
+                        className="btn-ghost btn-sm"
+                        compatto
+                      >
+                        <FormAzione azione={modificaAllegatoBacheca}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <CampiDocumento documento={a} />
+                          <p className="text-xs text-muted">
+                            La chiocciola resta @{a.maniglia}: i messaggi che la citano continuano
+                            a funzionare.
+                          </p>
+                          <Invia icona="salva">Salva</Invia>
+                        </FormAzione>
+                      </BottoneModale>
+                    )}
+                    {(a.caricatoDaId === me.id || modera) && (
                       <BottoneElimina
                         azione={eliminaAllegatoBacheca}
                         valori={{ id: a.id }}
-                        conferma={`Togliere «${a.fileName}»? I messaggi che lo citano mostreranno solo il nome.`}
+                        conferma={`Togliere «${a.titolo ?? a.fileName}»? I messaggi che lo citano mostreranno solo il nome.`}
                         etichetta={`Togli ${a.fileName}`}
                         piccolo
                       />
@@ -294,6 +320,37 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
           )}
         </aside>
       </div>
+    </>
+  );
+}
+
+/** Come si chiamerà il documento e cos'è: al caricamento e quando lo si corregge. */
+function CampiDocumento({
+  documento,
+}: {
+  documento?: { titolo: string | null; descrizione: string | null; fileName: string };
+}) {
+  return (
+    <>
+      <Campo label="Come si chiamerà" span>
+        <input
+          name="titolo"
+          maxLength={120}
+          defaultValue={documento?.titolo ?? ''}
+          className="input"
+          placeholder={documento?.fileName ?? 'es. Regolamento 2026 — vuoto, vale il nome del file'}
+        />
+      </Campo>
+      <Campo label="Descrizione" span>
+        <textarea
+          name="descrizione"
+          rows={2}
+          maxLength={500}
+          defaultValue={documento?.descrizione ?? ''}
+          className="input"
+          placeholder="Cos'è, e perché lo si trova qui"
+        />
+      </Campo>
     </>
   );
 }

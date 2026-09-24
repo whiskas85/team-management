@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.98.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **La copertina dei sondaggi.** Creando o modificando un sondaggio si può
+  allegare una foto con il suo titolo: nella pagina del sondaggio compare a
+  destra, come una locandina, e sul telefono scende in fondo. Senza foto il
+  sondaggio resta com'è. Si cambia o si toglie dalla modifica.
+- **Documenti di bacheca con nome e descrizione.** Caricando un documento si
+  sceglie come si chiamerà — «Regolamento 2026» invece del nome del file — e
+  una descrizione, che si leggono nell'elenco dei documenti. Si correggono
+  dopo con la matita accanto al documento. Il file scaricato prende il nome
+  scelto; la chiocciola nasce dal nome scelto e, una volta data, non cambia,
+  così i messaggi che la citano continuano a funzionare.
+
+### Cambiato
+
+- **L'admin vede anche i sondaggi per i nuovi aperti da altri**, nel gruppo
+  «Per altri: li vedi, non voti» e nel menu, tratteggiati e senza votare.
+
 ## 2.97.0 — 24 settembre 2026
 
 ### Aggiunto

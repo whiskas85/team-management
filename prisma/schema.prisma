@@ -2057,6 +2057,11 @@ model Sondaggio {
   /// Quando e' partito l'avviso «il sondaggio si e' chiuso», con il
   /// risultato. Serve a mandarlo una volta sola; riaprendo torna vuoto.
   chiusuraAvvisataIl DateTime?
+  /// La copertina: una foto con il suo titolo, mostrata accanto al sondaggio
+  /// come la locandina di una serata. Senza, il sondaggio resta com'e'.
+  copertinaPath   String?
+  copertinaTipo   String?
+  copertinaTitolo String?
   creatoIl       DateTime             @default(now())
   creatoDaId     String
   creatoDa       User                 @relation("SondaggiScritti", fields: [creatoDaId], references: [id], onDelete: Cascade)
@@ -2259,6 +2264,11 @@ model AllegatoBacheca {
   bacheca      Bacheca  @relation(fields: [bachecaId], references: [id], onDelete: Cascade)
   /// Come lo si scrive dopo la chiocciola: unica dentro la bacheca.
   maniglia     String
+  /// Come lo si vede in bacheca, scelto da chi lo carica: «Regolamento 2026»
+  /// invece di «reg_def_v3 (2).pdf». Vuoto, si mostra il nome del file.
+  titolo       String?
+  /// Due righe per dire cos'e': si scrivono al caricamento e si correggono dopo.
+  descrizione  String?
   fileName     String
   filePath     String
   mimeType     String

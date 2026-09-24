@@ -38,7 +38,9 @@ export async function personeSceglibili(): Promise<PersonaScelta[]> {
  * documenti sono quelli della bacheca, e la chiocciola diventa un link.
  */
 export async function chiocciole(
-  b: BachecaPerRegole & { allegati: { id: string; maniglia: string; fileName: string }[] },
+  b: BachecaPerRegole & {
+    allegati: { id: string; maniglia: string; fileName: string; titolo: string | null }[];
+  },
 ): Promise<{ citabili: Citabile[]; menzioni: Menzioni }> {
   const persone = await prisma.user.findMany({
     where: { stato: { not: 'DISABILITATO' } },
@@ -50,7 +52,7 @@ export async function chiocciole(
     ...b.allegati.map((a) => ({
       id: a.id,
       maniglia: a.maniglia,
-      nome: a.fileName,
+      nome: a.titolo ?? a.fileName,
       href: indirizzoAllegato(a.id),
     })),
     ...persone

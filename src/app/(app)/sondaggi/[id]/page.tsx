@@ -107,149 +107,176 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
         }
       />
 
-      {s.evento && (
-        <div className="mb-5 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-3 text-sm">
-          Da questo sondaggio è nata un’attività:{' '}
-          <Link href={`/calendario/${s.evento.id}`} className="text-nvg hover:underline">
-            {s.evento.titolo}
-          </Link>
-        </div>
-      )}
-
-      <VotoSondaggio
-        sondaggioId={s.id}
-        aperto={aperto}
-        sceltaMultipla={s.sceltaMultipla}
-        puoProporre={s.proposteAperte && loRiguarda(s.destinatari, me.stato)}
-        soloOsservo={!loRiguarda(s.destinatari, me.stato)}
-        miei={miei}
-        totale={votanti}
-        opzioni={s.opzioni.map((o) => ({
-          id: o.id,
-          testo: o.quando ? fmtDateTime(o.quando) : o.testo,
-          voti: o.voti.length,
-          vince: esito.vincitrice === o.id,
-          // chi ha fatto la domanda vede i nomi: è lui che deve richiamare
-          // quelli che non hanno risposto. Non sul voto segreto: lì nessuno
-          chi:
-            gestisce && !s.segreto
-              ? o.voti.map((v) => v.utente.callsign ?? `${v.utente.nome} ${v.utente.cognome}`)
-              : null,
-          // chi l'ha proposta si vede, tranne sul voto segreto: la proposta
-          // vale anche come voto, e il nome direbbe per cosa ha votato
-          proposta:
-            o.propostaDa && !s.segreto
-              ? (o.propostaDa.callsign ?? `${o.propostaDa.nome} ${o.propostaDa.cognome}`)
-              : null,
-        }))}
-      />
-
-      {/* ------------------------------------------------ cosa se ne fa */}
-      {gestisce && (
-        <div className="card mt-6">
-          <p className="titolo-sezione mb-3">Cosa se ne fa</p>
-
-          {esito.pari && (
-            <p className="mb-3 text-sm text-warn">
-              Due risposte sono a pari merito: l’attività non nasce da sola, scegli tu quale vale.
-            </p>
+      {/* Con la copertina il sondaggio si apre in due: a sinistra la domanda
+          e le risposte, a destra la locandina con il suo titolo. Sul telefono
+          una colonna sola, e la locandina scende in fondo: prima si vota. */}
+      <div
+        className={
+          s.copertinaPath ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start' : ''
+        }
+      >
+        <div className="min-w-0">
+          {s.evento && (
+            <div className="mb-5 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-3 text-sm">
+              Da questo sondaggio è nata un’attività:{' '}
+              <Link href={`/calendario/${s.evento.id}`} className="text-nvg hover:underline">
+                {s.evento.titolo}
+              </Link>
+            </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* un refuso nella domanda, una data sbagliata, una risposta che
-                manca: si corregge qui, senza buttare i voti già dati */}
-            {governa && (
-              <BottoneModale
-                etichetta="Modifica"
-                icona="modifica"
-                titolo="Modifica il sondaggio"
-                className="btn-ghost btn-sm"
-              >
-                <FormSondaggio
-                  sondaggio={{
-                    id: s.id,
-                    tipo: s.tipo,
-                    domanda: s.domanda,
-                    dettaglio: s.dettaglio,
-                    destinatari: s.destinatari,
-                    sceltaMultipla: s.sceltaMultipla,
-                    segreto: s.segreto,
-                    proposteAperte: s.proposteAperte,
-                    conVoti: votanti > 0,
-                    scadeIl: inputDateTime(s.scadeIl),
-                    opzioni: s.opzioni.map((o) => ({
-                      id: o.id,
-                      testo: o.testo,
-                      quando: inputDateTime(o.quando),
-                    })),
-                  }}
-                />
-              </BottoneModale>
-            )}
+          <VotoSondaggio
+            sondaggioId={s.id}
+            aperto={aperto}
+            sceltaMultipla={s.sceltaMultipla}
+            puoProporre={s.proposteAperte && loRiguarda(s.destinatari, me.stato)}
+            soloOsservo={!loRiguarda(s.destinatari, me.stato)}
+            miei={miei}
+            totale={votanti}
+            opzioni={s.opzioni.map((o) => ({
+              id: o.id,
+              testo: o.quando ? fmtDateTime(o.quando) : o.testo,
+              voti: o.voti.length,
+              vince: esito.vincitrice === o.id,
+              // chi ha fatto la domanda vede i nomi: è lui che deve richiamare
+              // quelli che non hanno risposto. Non sul voto segreto: lì nessuno
+              chi:
+                gestisce && !s.segreto
+                  ? o.voti.map((v) => v.utente.callsign ?? `${v.utente.nome} ${v.utente.cognome}`)
+                  : null,
+              // chi l'ha proposta si vede, tranne sul voto segreto: la proposta
+              // vale anche come voto, e il nome direbbe per cosa ha votato
+              proposta:
+                o.propostaDa && !s.segreto
+                  ? (o.propostaDa.callsign ?? `${o.propostaDa.nome} ${o.propostaDa.cognome}`)
+                  : null,
+            }))}
+          />
 
-            {!s.evento && (s.tipo === 'DATA' || s.tipo === 'PRESENZE') && (
-              <AzioneBottone
-                azione={creaEventoDaSondaggio}
-                valori={{ id: s.id }}
-                icona="calendario"
-                className="btn-primary btn-sm"
-                conferma={
-                  s.tipo === 'PRESENZE' && s.segreto
-                    ? 'Creo l’attività in bozza? Il voto era segreto: chi ha detto di esserci non viene segnato.'
-                    : s.tipo === 'PRESENZE'
-                      ? 'Creo l’attività in bozza con dentro chi ha detto di esserci?'
-                      : 'Creo l’attività in bozza con la data che ha vinto?'
-                }
-              >
-                Crea l’attività
-              </AzioneBottone>
-            )}
+          {/* ------------------------------------------------ cosa se ne fa */}
+          {gestisce && (
+            <div className="card mt-6">
+              <p className="titolo-sezione mb-3">Cosa se ne fa</p>
 
-            {!governa ? null : aperto ? (
-              <AzioneBottone
-                azione={chiudiSondaggio}
-                valori={{ id: s.id }}
-                icona="concludi"
-                className="btn-ghost btn-sm"
-                conferma="Chiudere il sondaggio? Non si vota più, e scende nello storico."
-              >
-                Chiudi
-              </AzioneBottone>
-            ) : (
-              <AzioneBottone
-                azione={riapriSondaggio}
-                valori={{ id: s.id }}
-                icona="riapri"
-                className="btn-ghost btn-sm"
-              >
-                Riapri
-              </AzioneBottone>
-            )}
+              {esito.pari && (
+                <p className="mb-3 text-sm text-warn">
+                  Due risposte sono a pari merito: l’attività non nasce da sola, scegli tu quale vale.
+                </p>
+              )}
 
-            {governa && (
-              <span className="ml-auto">
-                <BottoneElimina
-                  azione={eliminaSondaggio}
-                  valori={{ id: s.id }}
-                  conferma={`Eliminare «${s.domanda}» e tutte le risposte raccolte?`}
-                  etichetta="Elimina il sondaggio"
-                />
-              </span>
-            )}
-          </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* un refuso nella domanda, una data sbagliata, una risposta che
+                    manca: si corregge qui, senza buttare i voti già dati */}
+                {governa && (
+                  <BottoneModale
+                    etichetta="Modifica"
+                    icona="modifica"
+                    titolo="Modifica il sondaggio"
+                    className="btn-ghost btn-sm"
+                  >
+                    <FormSondaggio
+                      sondaggio={{
+                        id: s.id,
+                        tipo: s.tipo,
+                        domanda: s.domanda,
+                        dettaglio: s.dettaglio,
+                        destinatari: s.destinatari,
+                        sceltaMultipla: s.sceltaMultipla,
+                        segreto: s.segreto,
+                        proposteAperte: s.proposteAperte,
+                        conVoti: votanti > 0,
+                  copertina: !!s.copertinaPath,
+                  copertinaTitolo: s.copertinaTitolo,
+                        scadeIl: inputDateTime(s.scadeIl),
+                        opzioni: s.opzioni.map((o) => ({
+                          id: o.id,
+                          testo: o.testo,
+                          quando: inputDateTime(o.quando),
+                        })),
+                      }}
+                    />
+                  </BottoneModale>
+                )}
 
-          <p className="mt-3 text-xs text-muted">
-            L’attività nasce <strong className="text-ink">in bozza</strong>: le manca il campo, la
-            quota, chi ne risponde. La rilasci tu quando è completa.
+                {!s.evento && (s.tipo === 'DATA' || s.tipo === 'PRESENZE') && (
+                  <AzioneBottone
+                    azione={creaEventoDaSondaggio}
+                    valori={{ id: s.id }}
+                    icona="calendario"
+                    className="btn-primary btn-sm"
+                    conferma={
+                      s.tipo === 'PRESENZE' && s.segreto
+                        ? 'Creo l’attività in bozza? Il voto era segreto: chi ha detto di esserci non viene segnato.'
+                        : s.tipo === 'PRESENZE'
+                          ? 'Creo l’attività in bozza con dentro chi ha detto di esserci?'
+                          : 'Creo l’attività in bozza con la data che ha vinto?'
+                    }
+                  >
+                    Crea l’attività
+                  </AzioneBottone>
+                )}
+
+                {!governa ? null : aperto ? (
+                  <AzioneBottone
+                    azione={chiudiSondaggio}
+                    valori={{ id: s.id }}
+                    icona="concludi"
+                    className="btn-ghost btn-sm"
+                    conferma="Chiudere il sondaggio? Non si vota più, e scende nello storico."
+                  >
+                    Chiudi
+                  </AzioneBottone>
+                ) : (
+                  <AzioneBottone
+                    azione={riapriSondaggio}
+                    valori={{ id: s.id }}
+                    icona="riapri"
+                    className="btn-ghost btn-sm"
+                  >
+                    Riapri
+                  </AzioneBottone>
+                )}
+
+                {governa && (
+                  <span className="ml-auto">
+                    <BottoneElimina
+                      azione={eliminaSondaggio}
+                      valori={{ id: s.id }}
+                      conferma={`Eliminare «${s.domanda}» e tutte le risposte raccolte?`}
+                      etichetta="Elimina il sondaggio"
+                    />
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-3 text-xs text-muted">
+                L’attività nasce <strong className="text-ink">in bozza</strong>: le manca il campo, la
+                quota, chi ne risponde. La rilasci tu quando è completa.
+              </p>
+            </div>
+          )}
+
+          {/* Chi l'ha aperto e quando: è lui che lo modifica e lo chiude, e a lui
+              si chiede se qualcosa non torna. */}
+          <p className="num mt-6 border-t border-line pt-3 text-xs text-muted">
+            Aperto da {autore ? 'te' : nomeCompleto(s.creatoDa)} il {fmtDateTime(s.creatoIl)}
           </p>
         </div>
-      )}
 
-      {/* Chi l'ha aperto e quando: è lui che lo modifica e lo chiude, e a lui
-          si chiede se qualcosa non torna. */}
-      <p className="num mt-6 border-t border-line pt-3 text-xs text-muted">
-        Aperto da {autore ? 'te' : nomeCompleto(s.creatoDa)} il {fmtDateTime(s.creatoIl)}
-      </p>
+        {s.copertinaPath && (
+          <figure className="card overflow-hidden p-0 lg:sticky lg:top-24">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/sondaggi/copertina/${s.id}`}
+              alt={s.copertinaTitolo ?? s.domanda}
+              className="block w-full object-cover"
+            />
+            {s.copertinaTitolo && (
+              <figcaption className="px-4 py-3 text-sm font-medium">{s.copertinaTitolo}</figcaption>
+            )}
+          </figure>
+        )}
+      </div>
     </>
   );
 }

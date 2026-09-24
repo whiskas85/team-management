@@ -44,10 +44,20 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const scarica =
     new URL(req.url).searchParams.get('scarica') === '1' || !(markdown || siApreNelBrowser(a.mimeType));
 
+  // scaricato, si chiama come lo si legge in bacheca: il titolo scelto da chi
+  // l'ha caricato, con l'estensione dell'originale
+  const punto = a.fileName.lastIndexOf('.');
+  const estensione = punto > 0 ? a.fileName.slice(punto) : '';
+  const nome = a.titolo
+    ? a.titolo.toLowerCase().endsWith(estensione.toLowerCase())
+      ? a.titolo
+      : `${a.titolo}${estensione}`
+    : a.fileName;
+
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': tipo,
-      'Content-Disposition': `${scarica ? 'attachment' : 'inline'}; filename="${encodeURIComponent(a.fileName)}"`,
+      'Content-Disposition': `${scarica ? 'attachment' : 'inline'}; filename="${encodeURIComponent(nome)}"`,
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'private, no-store',
     },

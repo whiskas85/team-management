@@ -17,6 +17,8 @@ import {
 } from '@/lib/sondaggi';
 import { avvisaPersona } from '@/lib/avvisi';
 import { avvisaChiusuraSondaggio } from '@/lib/sondaggi-chiusura';
+import { eliminaAllegato as cancellaDalDisco, salvaAllegato } from '@/lib/storage';
+import { REGOLE_BANNER } from '@/lib/bacheche';
 
 const TIPI = ['TESTO', 'DATA', 'PRESENZE', 'DECISIONE'] as const;
 
@@ -38,6 +40,34 @@ function aggiorna(id?: string) {
   revalidatePath('/sondaggi');
   revalidatePath('/dashboard');
   if (id) revalidatePath(`/sondaggi/${id}`);
+}
+
+/**
+ * La copertina che arriva dal modulo: una foto nuova prende il posto della
+ * vecchia, «togli» la toglie, altrimenti resta com'è. Il titolo va con lei.
+ */
+async function copertinaDalModulo(
+  fd: FormData,
+): Promise<
+  | { errore: string }
+  | { dati: { copertinaPath?: string | null; copertinaTipo?: string | null; copertinaTitolo: string | null } }
+> {
+  const copertinaTitolo = strOpt(fd, 'copertinaTitolo')?.slice(0, 120) ?? null;
+  const file = fd.get('copertina');
+  if (file instanceof File && file.size > 0) {
+    try {
+      const salvato = await salvaAllegato(file, 'sondaggi', REGOLE_BANNER);
+      return {
+        dati: { copertinaPath: salvato.filePath, copertinaTipo: salvato.mimeType, copertinaTitolo },
+      };
+    } catch (e) {
+      return { errore: e instanceof Error ? e.message : 'Copertina non caricata.' };
+    }
+  }
+  if (bool(fd, 'togliCopertina')) {
+    return { dati: { copertinaPath: null, copertinaTipo: null, copertinaTitolo: null } };
+  }
+  return { dati: { copertinaTitolo } };
 }
 
 /**
@@ -88,8 +118,12 @@ export async function creaSondaggio(_prev: StatoForm, fd: FormData): Promise<Sta
     return { errore: 'Servono almeno due risposte possibili: con una sola non c’è niente da scegliere.' };
   }
 
+  const copertina = await copertinaDalModulo(fd);
+  if ('errore' in copertina) return { errore: copertina.errore };
+
   const sondaggio = await prisma.sondaggio.create({
     data: {
+      ...copertina.dati,
       domanda,
       dettaglio: strOpt(fd, 'dettaglio'),
       tipo,
@@ -188,6 +222,12 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
     return { errore: 'Servono almeno due risposte possibili: con una sola non c’è niente da scegliere.' };
   }
 
+  const copertina = await copertinaDalModulo(fd);
+  if ('errore' in copertina) return { errore: copertina.errore };
+  // la foto vecchia se ne va dal disco quando ne arriva un'altra o la si toglie
+  const vecchiaCopertina =
+    copertina.dati.copertinaPath !== undefined ? s.copertinaPath : null;
+
   const tenute = new Set(righe.flatMap((r) => (r.id ? [r.id] : [])));
   const tolte = s.opzioni.filter((o) => !tenute.has(o.id)).map((o) => o.id);
 
@@ -195,6 +235,7 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
     prisma.sondaggio.update({
       where: { id },
       data: {
+        ...copertina.dati,
         domanda,
         dettaglio: strOpt(fd, 'dettaglio'),
         destinatari: enumVal(fd, 'destinatari', DESTINATARI, s.destinatari),
@@ -223,6 +264,8 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
           }),
     ),
   ]);
+
+  if (vecchiaCopertina) await cancellaDalDisco(vecchiaCopertina);
 
   aggiorna(id);
   return { ok: 'Sondaggio aggiornato.' };
@@ -402,6 +445,7 @@ export async function eliminaSondaggio(_prev: StatoForm, fd: FormData): Promise<
   if (!puoGovernare(me, s)) return { errore: SOLO_AUTORE };
 
   await prisma.sondaggio.delete({ where: { id } });
+  if (s.copertinaPath) await cancellaDalDisco(s.copertinaPath);
   revalidatePath('/sondaggi');
   revalidatePath('/dashboard');
   redirect('/sondaggi');

@@ -462,7 +462,11 @@ export async function caricaAllegatoBacheca(_prev: StatoForm, fd: FormData): Pro
     return { errore: e instanceof Error ? e.message : 'Caricamento non riuscito.' };
   }
 
-  const base = manigliaDocumento(salvato.fileName);
+  // il nome lo sceglie chi carica: è quello che si legge in bacheca, e da lì
+  // nasce anche la chiocciola. Senza, vale il nome del file
+  const titolo = strOpt(fd, 'titolo')?.slice(0, 120) ?? null;
+  const descrizione = strOpt(fd, 'descrizione')?.slice(0, 500) ?? null;
+  const base = manigliaDocumento(titolo ?? salvato.fileName);
   const prese = new Set(
     (await prisma.allegatoBacheca.findMany({ where: { bachecaId: b.id }, select: { maniglia: true } })).map(
       (a) => a.maniglia,
@@ -475,11 +479,38 @@ export async function caricaAllegatoBacheca(_prev: StatoForm, fd: FormData): Pro
   }
 
   await prisma.allegatoBacheca.create({
-    data: { ...salvato, bachecaId: b.id, maniglia, caricatoDaId: me.id },
+    data: { ...salvato, bachecaId: b.id, maniglia, titolo, descrizione, caricatoDaId: me.id },
   });
 
   aggiorna(b.id);
   return { ok: `Caricato: lo richiami scrivendo @${maniglia}` };
+}
+
+/**
+ * Il nome e la descrizione di un documento, da correggere dopo averlo caricato.
+ *
+ * La chiocciola resta quella di prima: i messaggi già scritti la citano, e
+ * cambiarla romperebbe i loro link. Cambia quello che si legge.
+ */
+export async function modificaAllegatoBacheca(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const a = await prisma.allegatoBacheca.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { bacheca: { include: conRegole } },
+  });
+  if (!a) return { errore: 'Documento non trovato.' };
+  if (a.caricatoDaId !== me.id && !moderaBacheca(a.bacheca, me)) {
+    return { errore: 'Lo modifica chi l’ha caricato o chi modera la bacheca.' };
+  }
+  await prisma.allegatoBacheca.update({
+    where: { id: a.id },
+    data: {
+      titolo: strOpt(fd, 'titolo')?.slice(0, 120) ?? null,
+      descrizione: strOpt(fd, 'descrizione')?.slice(0, 500) ?? null,
+    },
+  });
+  aggiorna(a.bachecaId);
+  return { ok: 'Documento aggiornato.' };
 }
 
 export async function eliminaAllegatoBacheca(_prev: StatoForm, fd: FormData): Promise<StatoForm> {

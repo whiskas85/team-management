@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
+import { isAdmin } from '@/lib/domain';
 import { prisma } from '@/lib/db';
 import { fmtDateTime } from '@/lib/format';
 import {
@@ -58,8 +59,10 @@ export default async function SondaggiPage({
 
   // I sondaggi rivolti a me, e quelli che ho aperto io per altri: chi fa una
   // domanda ai nuovi non è un nuovo, ma il suo sondaggio lo deve ritrovare.
+  // L'admin li vede tutti, anche quelli per altri aperti da altri.
+  const admin = isAdmin(me.roles);
   const perMe = (s: (typeof tutti)[number]) => loRiguarda(s.destinatari, me.stato);
-  const miei = tutti.filter((s) => perMe(s) || s.creatoDaId === me.id);
+  const miei = tutti.filter((s) => perMe(s) || s.creatoDaId === me.id || admin);
   const elenco = miei.filter((s) => (storico ? !eAperto(s) : eAperto(s)));
 
   const haVotato = (s: (typeof elenco)[number]) =>
@@ -72,7 +75,7 @@ export default async function SondaggiPage({
     : [
         { titolo: 'Da rispondere', sondaggi: elenco.filter((s) => perMe(s) && !haVotato(s)) },
         { titolo: 'Hai risposto', sondaggi: elenco.filter((s) => perMe(s) && haVotato(s)) },
-        { titolo: 'Aperti da te per altri', sondaggi: elenco.filter((s) => !perMe(s)) },
+        { titolo: 'Per altri: li vedi, non voti', sondaggi: elenco.filter((s) => !perMe(s)) },
       ];
 
   const scheda = (s: (typeof elenco)[number]) => {

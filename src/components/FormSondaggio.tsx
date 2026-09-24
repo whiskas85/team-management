@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Campo } from './ui';
+import { CampoFile } from './CampoFile';
 import { Icona, type NomeIcona } from './Icona';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
@@ -74,6 +75,9 @@ export type SondaggioDaModificare = {
   proposteAperte: boolean;
   /** Se qualcuno ha già votato: il segreto allora non si può più spegnere. */
   conVoti: boolean;
+  /** Ha già una copertina: si può tenere, cambiare o togliere. */
+  copertina: boolean;
+  copertinaTitolo: string | null;
   scadeIl: string;
   opzioni: { id: string; testo: string; quando: string }[];
 };
@@ -289,6 +293,36 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
           </button>
         </Campo>
       )}
+
+      {/* ----------------------------------------------------- la copertina */}
+      <div className="space-y-3 rounded-lg border border-line p-3">
+        <p className="text-sm font-medium">
+          Copertina <span className="font-normal text-muted">— facoltativa</span>
+        </p>
+        <CampoFile
+          label={sondaggio?.copertina ? 'Cambia la foto' : 'Foto'}
+          name="copertina"
+          accept="image/jpeg,image/png,image/webp"
+          estensioni={['.jpg', '.jpeg', '.png', '.webp']}
+          maxBytes={10 * 1024 * 1024}
+          aiuto="Si vede accanto al sondaggio, come una locandina; sul telefono in fondo. JPG, PNG o WEBP."
+        />
+        <Campo label="Titolo della copertina">
+          <input
+            name="copertinaTitolo"
+            maxLength={120}
+            defaultValue={sondaggio?.copertinaTitolo ?? ''}
+            className="input"
+            placeholder="es. Operazione Fallout — 18 ottobre"
+          />
+        </Campo>
+        {sondaggio?.copertina && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="togliCopertina" className="h-4 w-4" />
+            Togli la copertina
+          </label>
+        )}
+      </div>
 
       <Campo label="Chi risponde" span>
         <select

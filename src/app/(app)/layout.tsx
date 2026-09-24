@@ -197,7 +197,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       },
     })
   )
-    .filter((s) => loRiguarda(s.destinatari, utente.stato) || s.creatoDaId === utente.id)
+    // l'admin li vede tutti, anche quelli per altri aperti da altri
+    .filter(
+      (s) =>
+        loRiguarda(s.destinatari, utente.stato) ||
+        s.creatoDaId === utente.id ||
+        isAdmin(utente.roles),
+    )
     .map((s) => ({
       ...s,
       daVotare: loRiguarda(s.destinatari, utente.stato) && s.voti.length === 0,
