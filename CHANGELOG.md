@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.90.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **Chi gestisce una cassa ne gestisce anche i metodi di pagamento.** Nella
+  pagina *Cassa*, in fondo, c'è «Come si paga»: si aggiungono, si cambiano e
+  si spengono i metodi della propria cassa — l'IBAN, il Satispay, i contanti
+  al corso — senza chiederlo alla segreteria. Solo della propria: le casse
+  degli altri e i metodi del club restano a chi li gestiva prima. Se la cassa
+  non ha metodi attivi, l'avviso in cima porta lì.
+
 ## 2.89.0 — 24 settembre 2026
 
 ### Cambiato

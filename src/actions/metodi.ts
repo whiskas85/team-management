@@ -1,10 +1,25 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { Role } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
+import { puoGestireCassa } from '@/lib/casse';
 import { bool, data, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
+
+/**
+ * Chi può toccare i metodi di questa cassa.
+ *
+ * Quelli del club sono dati di base dell'admin. Quelli di un'altra cassa li
+ * configura la segreteria — e **chi gestisce quella cassa**: l'IBAN su cui
+ * arrivano i soldi del corso è di Mario, e deve poterlo cambiare lui senza
+ * chiederlo a nessuno. Solo della sua, però: le casse degli altri no.
+ */
+async function puoGestireMetodi(me: { id: string; roles: Role[] }, cassaId: string | null) {
+  if (!cassaId) return isAdmin(me.roles);
+  return puoGestirePagamenti(me.roles) || (await puoGestireCassa(me, cassaId));
+}
 
 function aggiorna() {
   revalidatePath('/admin/metodi');
@@ -19,16 +34,16 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
   const me = await requireUser();
 
   const id = str(fd, 'id');
-  // I metodi del club sono dati di base dell'admin; quelli di un'altra cassa li
-  // configura la segreteria, insieme alla cassa. Un metodo non cambia cassa:
-  // quella di uno esistente si legge dal database, non dal modulo
+  // Un metodo non cambia cassa: quella di uno esistente si legge dal
+  // database, non dal modulo — altrimenti il gestore di una cassa potrebbe
+  // spostare un metodo nella sua, o nella cassa del club
   const esistente = id ? await prisma.metodoPagamento.findUnique({ where: { id } }) : null;
   if (id && !esistente) return { errore: 'Metodo non trovato.' };
   const cassaId = esistente ? esistente.cassaId : strOpt(fd, 'cassaId');
-  if (cassaId ? !puoGestirePagamenti(me.roles) : !isAdmin(me.roles)) {
+  if (!(await puoGestireMetodi(me, cassaId))) {
     return {
       errore: cassaId
-        ? 'I metodi delle altre casse li configurano admin e segreteria.'
+        ? 'I metodi di questa cassa li configurano chi la gestisce e la segreteria.'
         : 'Solo l’admin gestisce i dati di base.',
     };
   }
@@ -72,7 +87,7 @@ export async function eliminaMetodo(_prev: StatoForm, fd: FormData): Promise<Sta
     select: { cassaId: true },
   });
   if (!metodo) return { errore: 'Metodo non trovato.' };
-  if (metodo.cassaId ? !puoGestirePagamenti(me.roles) : !isAdmin(me.roles)) {
+  if (!(await puoGestireMetodi(me, metodo.cassaId))) {
     return { errore: 'Non puoi gestire questo metodo.' };
   }
 

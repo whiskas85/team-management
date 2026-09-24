@@ -15,6 +15,7 @@ import { Invia } from '@/components/Bottone';
 import { segnaNonGestito, segnaPagato, tornaDaGestire } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
+import { MetodiCassa } from '@/components/MetodiCassa';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,7 +79,7 @@ export default async function CassaPage({
             ? { status: 'NON_GESTITO' }
             : {};
 
-  const [pagamenti, tutti, metodi] = await Promise.all([
+  const [pagamenti, tutti, tuttiMetodi] = await Promise.all([
     prisma.payment.findMany({
       where: { ...dellaCassa, ...dove },
       orderBy: [{ scadenza: 'asc' }, { createdAt: 'desc' }],
@@ -101,12 +102,14 @@ export default async function CassaPage({
       where: dellaCassa,
       select: { importo: true, pagato: true, status: true, tipo: true, dichiaratoIl: true },
     }),
+    // tutti, anche quelli spenti: qui chi gestisce la cassa li configura
     prisma.metodoPagamento.findMany({
-      where: { ...dellaCassa, attivo: true },
-      orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, istruzioni: true, selfService: true },
+      where: dellaCassa,
+      orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }],
     }),
   ]);
+  // per incassare e per il sollecito servono solo quelli accesi
+  const metodi = tuttiMetodi.filter((m) => m.attivo);
 
   const quote = tutti.filter((p) => p.tipo !== 'RIMBORSO');
   const aperte = quote.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
@@ -194,8 +197,11 @@ export default async function CassaPage({
 
       {metodi.length === 0 && (
         <p className="mb-5 rounded-md border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">
-          Questa cassa non ha ancora metodi di pagamento: chi deve pagare non sa come farlo. Li
-          aggiunge la segreteria.
+          Questa cassa non ha ancora metodi di pagamento attivi: chi deve pagare non sa come farlo.{' '}
+          <a href="#come-si-paga" className="underline underline-offset-4">
+            Aggiungili in «Come si paga»
+          </a>
+          , in fondo alla pagina.
         </p>
       )}
 
@@ -296,6 +302,13 @@ export default async function CassaPage({
           ))}
         </div>
       )}
+
+      {/* I metodi li configura chi gestisce la cassa: l'IBAN è il suo, e sa
+          lui dove vuole i soldi. Stanno in fondo perché si toccano di rado;
+          l'avviso in cima ci porta quando mancano. */}
+      <section id="come-si-paga" className="card mt-8 scroll-mt-20">
+        <MetodiCassa cassa={cassa} metodi={tuttiMetodi} />
+      </section>
     </>
   );
 }
