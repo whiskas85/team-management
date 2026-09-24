@@ -494,34 +494,126 @@ export const POTERI_RUOLO: Record<Role, string[]> = {
 };
 
 /**
- * Tinte disponibili per le tipologie di attività, usate nel calendario.
- * `tinta` è lo stesso colore in esadecimale, per i grafici disegnati in SVG
- * dove una classe Tailwind non arriva.
+ * I colori delle tipologie di attività: **un colore solo per voce**, e da lì
+ * tutto il resto.
+ *
+ * - `tinta`: il colore, in esadecimale. È quello della fetta nella torta
+ *   della home, e quello dei quadratini.
+ * - `bordo`: la scheda di un'attività nel calendario, con fondo velato, bordo
+ *   e testo della stessa tinta.
+ * - `pieno`: il quadratino della legenda e del selettore, a tinta piena.
+ *
+ * Prima le schede mescolavano due famiglie di colore (un fondo rosso scuro
+ * con il testo rosa, un bordo azzurro con il testo di un altro azzurro), i
+ * quadratini erano velati e la torta a tinta piena: la stessa PLR aveva tre
+ * facce diverse. Ora le tre classi ripetono la stessa tinta, e vanno cambiate
+ * insieme. Le classi sono scritte per intero perché Tailwind le trova solo
+ * così: costruite a pezzi a runtime non esisterebbero nel CSS.
+ *
+ * Il nome della chiave è quello salvato nel database: si possono aggiungere
+ * colori, ma una chiave già usata non si rinomina.
  */
-export const COLORI_TIPOLOGIA: Record<string, { bordo: string; etichetta: string; tinta: string }> =
-  {
-    verde: { bordo: 'border-nvg/40 bg-nvg/20 text-nvg', etichetta: 'Verde', tinta: '#4cff00' },
-    rosso: {
-      bordo: 'border-itred/40 bg-itred/20 text-[#ff8a80]',
-      etichetta: 'Rosso',
-      tinta: '#ff8a80',
-    },
-    ambra: { bordo: 'border-warn/40 bg-warn/20 text-warn', etichetta: 'Ambra', tinta: '#ffb300' },
-    azzurro: {
-      bordo: 'border-sky-400/40 bg-sky-400/15 text-sky-300',
-      etichetta: 'Azzurro',
-      tinta: '#7dd3fc',
-    },
-    viola: {
-      bordo: 'border-violet-400/40 bg-violet-400/15 text-violet-300',
-      etichetta: 'Viola',
-      tinta: '#c4b5fd',
-    },
-    grigio: { bordo: 'border-line bg-surface2 text-muted', etichetta: 'Grigio', tinta: '#7f8a7f' },
-  };
+export const COLORI_TIPOLOGIA: Record<
+  string,
+  { etichetta: string; tinta: string; bordo: string; pieno: string }
+> = {
+  verde: {
+    etichetta: 'Verde',
+    tinta: '#4cff00',
+    bordo: 'border-[#4cff00]/40 bg-[#4cff00]/20 text-[#4cff00]',
+    pieno: 'bg-[#4cff00]',
+  },
+  turchese: {
+    etichetta: 'Turchese',
+    tinta: '#2dd4bf',
+    bordo: 'border-[#2dd4bf]/40 bg-[#2dd4bf]/20 text-[#2dd4bf]',
+    pieno: 'bg-[#2dd4bf]',
+  },
+  azzurro: {
+    etichetta: 'Azzurro',
+    tinta: '#38bdf8',
+    bordo: 'border-[#38bdf8]/40 bg-[#38bdf8]/20 text-[#38bdf8]',
+    pieno: 'bg-[#38bdf8]',
+  },
+  blu: {
+    etichetta: 'Blu',
+    tinta: '#5b8def',
+    bordo: 'border-[#5b8def]/40 bg-[#5b8def]/20 text-[#5b8def]',
+    pieno: 'bg-[#5b8def]',
+  },
+  viola: {
+    etichetta: 'Viola',
+    tinta: '#a78bfa',
+    bordo: 'border-[#a78bfa]/40 bg-[#a78bfa]/20 text-[#a78bfa]',
+    pieno: 'bg-[#a78bfa]',
+  },
+  fucsia: {
+    etichetta: 'Fucsia',
+    tinta: '#e879f9',
+    bordo: 'border-[#e879f9]/40 bg-[#e879f9]/20 text-[#e879f9]',
+    pieno: 'bg-[#e879f9]',
+  },
+  rosa: {
+    etichetta: 'Rosa',
+    tinta: '#f9a8d4',
+    bordo: 'border-[#f9a8d4]/40 bg-[#f9a8d4]/20 text-[#f9a8d4]',
+    pieno: 'bg-[#f9a8d4]',
+  },
+  rosso: {
+    etichetta: 'Rosso',
+    tinta: '#ff5a4f',
+    bordo: 'border-[#ff5a4f]/40 bg-[#ff5a4f]/20 text-[#ff5a4f]',
+    pieno: 'bg-[#ff5a4f]',
+  },
+  arancione: {
+    etichetta: 'Arancione',
+    tinta: '#fb923c',
+    bordo: 'border-[#fb923c]/40 bg-[#fb923c]/20 text-[#fb923c]',
+    pieno: 'bg-[#fb923c]',
+  },
+  ambra: {
+    etichetta: 'Ambra',
+    tinta: '#ffb300',
+    bordo: 'border-[#ffb300]/40 bg-[#ffb300]/20 text-[#ffb300]',
+    pieno: 'bg-[#ffb300]',
+  },
+  giallo: {
+    etichetta: 'Giallo',
+    tinta: '#fde047',
+    bordo: 'border-[#fde047]/40 bg-[#fde047]/20 text-[#fde047]',
+    pieno: 'bg-[#fde047]',
+  },
+  sabbia: {
+    etichetta: 'Sabbia',
+    tinta: '#d4b483',
+    bordo: 'border-[#d4b483]/40 bg-[#d4b483]/20 text-[#d4b483]',
+    pieno: 'bg-[#d4b483]',
+  },
+  bianco: {
+    etichetta: 'Bianco',
+    tinta: '#e7ede7',
+    bordo: 'border-[#e7ede7]/40 bg-[#e7ede7]/20 text-[#e7ede7]',
+    pieno: 'bg-[#e7ede7]',
+  },
+  grigio: {
+    etichetta: 'Grigio',
+    tinta: '#7f8a7f',
+    bordo: 'border-[#7f8a7f]/40 bg-[#7f8a7f]/20 text-[#7f8a7f]',
+    pieno: 'bg-[#7f8a7f]',
+  },
+};
 
+/** La scheda di un'attività nel calendario. */
 export const classeColore = (colore?: string | null) =>
   COLORI_TIPOLOGIA[colore ?? 'grigio']?.bordo ?? COLORI_TIPOLOGIA.grigio.bordo;
+
+/** Il quadratino a tinta piena: legenda, selettore, elenco delle tipologie. */
+export const classePiena = (colore?: string | null) =>
+  COLORI_TIPOLOGIA[colore ?? 'grigio']?.pieno ?? COLORI_TIPOLOGIA.grigio.pieno;
+
+/** La tinta in esadecimale, per quello che si disegna in SVG (la torta). */
+export const tintaColore = (colore?: string | null) =>
+  COLORI_TIPOLOGIA[colore ?? 'grigio']?.tinta ?? COLORI_TIPOLOGIA.grigio.tinta;
 
 /** Portale federale da cui si recupera il codice tessera. */
 export const URL_ASNWG = 'https://www.intranetasnwg.it/';

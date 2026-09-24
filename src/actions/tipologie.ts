@@ -3,10 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdmin } from '@/lib/domain';
+import { COLORI_TIPOLOGIA, isAdmin } from '@/lib/domain';
 import { bool, enumVal, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 
-const COLORI = ['verde', 'rosso', 'ambra', 'azzurro', 'viola', 'grigio'] as const;
+// i colori ammessi sono quelli della palette, e basta aggiungerli lì
+const COLORI = Object.keys(COLORI_TIPOLOGIA);
 const QUOTE = [
   'ISCRIZIONE',
   'TESSERA_FIGT',

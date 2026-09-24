@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { classeColore } from '@/lib/domain';
+import { classeColore, classePiena } from '@/lib/domain';
 
 export type GiornoEvento = {
   id: string;
@@ -196,7 +196,7 @@ export function CalendarioMese({
         <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-muted">
           {legenda.map((t) => (
             <span key={t.nome} className="flex items-center gap-1.5">
-              <span className={`h-2.5 w-2.5 rounded-sm border ${classeColore(t.colore)}`} />
+              <span className={`h-2.5 w-2.5 rounded-sm ${classePiena(t.colore)}`} />
               {t.nome}
             </span>
           ))}

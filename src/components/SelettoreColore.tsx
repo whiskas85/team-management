@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { COLORI_TIPOLOGIA, classeColore } from '@/lib/domain';
+import { COLORI_TIPOLOGIA, classePiena } from '@/lib/domain';
 
 /**
  * Tendina dei colori con il quadratino dentro. Un `<select>` nativo non può
@@ -55,7 +55,7 @@ export function SelettoreColore({
         aria-expanded={aperto}
         className="input flex w-full items-center gap-2 text-left"
       >
-        <span className={`h-4 w-4 shrink-0 rounded-sm border ${classeColore(valore)}`} />
+        <span className={`h-4 w-4 shrink-0 rounded-sm ${classePiena(valore)}`} />
         <span className="min-w-0 flex-1 truncate">{scelto.etichetta}</span>
         <span className="shrink-0 text-muted">{aperto ? '▴' : '▾'}</span>
       </button>
@@ -79,7 +79,7 @@ export function SelettoreColore({
                   chiave === valore ? 'text-nvg' : 'text-ink'
                 }`}
               >
-                <span className={`h-4 w-4 shrink-0 rounded-sm border ${classeColore(chiave)}`} />
+                <span className={`h-4 w-4 shrink-0 rounded-sm ${classePiena(chiave)}`} />
                 <span className="min-w-0 flex-1 truncate">{c.etichetta}</span>
                 {chiave === valore && <span className="shrink-0 text-nvg">✓</span>}
               </button>

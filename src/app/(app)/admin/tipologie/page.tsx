@@ -1,6 +1,6 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { classeColore, isAdmin } from '@/lib/domain';
+import { classePiena, isAdmin } from '@/lib/domain';
 import { umanizza } from '@/lib/format';
 import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
@@ -75,7 +75,7 @@ export default async function TipologiePage() {
                   <div className="min-w-0 flex-1">
                     <span className="flex items-start gap-2">
                       <span
-                        className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
+                        className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-sm ${classePiena(t.colore)}`}
                         title={`Colore nel calendario: ${t.colore}`}
                       />
                       <span className="break-words font-medium">{t.nome}</span>
@@ -109,7 +109,7 @@ export default async function TipologiePage() {
                 <td>
                   <span className="flex items-center gap-2">
                     <span
-                      className={`h-3.5 w-3.5 shrink-0 rounded-sm border ${classeColore(t.colore)}`}
+                      className={`h-3.5 w-3.5 shrink-0 rounded-sm ${classePiena(t.colore)}`}
                       title={`Colore nel calendario: ${t.colore}`}
                     />
                     <span className="font-medium">{t.nome}</span>

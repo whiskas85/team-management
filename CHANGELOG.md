@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.88.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **Quattordici colori per le tipologie di attività**, invece di sei: oltre a
+  verde, azzurro, viola, rosso, ambra e grigio ci sono turchese, blu, fucsia,
+  rosa, arancione, giallo, sabbia e bianco. Si scelgono dal solito selettore
+  in *Tipologie*.
+
+### Corretto
+
+- **Una tipologia ha lo stesso colore dappertutto.** La torta della home, la
+  legenda del calendario, le schede delle attività e l'elenco delle tipologie
+  usano la stessa identica tinta: prima i quadratini erano velati, la torta a
+  tinta piena, e le schede mescolavano due sfumature (un fondo rosso scuro con
+  il testo rosa). La torta non cambia più colore a una tipologia che lo divide
+  con un'altra. Rosso, azzurro e viola sono diventati un po' più vivi per
+  essere un colore solo.
+
 ## 2.87.3 — 24 settembre 2026
 
 ### Aggiunto
