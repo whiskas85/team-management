@@ -227,6 +227,8 @@ export async function salvaMessaggio(_prev: StatoForm, fd: FormData): Promise<St
   const dati = {
     titolo: strOpt(fd, 'titolo'),
     testo,
+    // dopo il rilascio la casella non c'è più: la notifica è già partita (o no)
+    ...(esistente?.pubblicatoIl ? {} : { conNotifica: bool(fd, 'conNotifica') }),
     ...(banner ?? {}),
   };
 
@@ -281,13 +283,17 @@ export async function pubblicaMessaggio(_prev: StatoForm, fd: FormData): Promise
 
   const adesso = new Date();
   const persone = (await destinatariBacheca(m.bacheca)).filter((id) => id !== m.autoreId);
+  // senza notifica nessuno ha il push: le consegne nascono senza, e le spunte
+  // si fermano a «pubblicato» finché non lo aprono
   const conPush = new Set(
-    (
-      await prisma.iscrizionePush.findMany({
-        where: { userId: { in: persone } },
-        select: { userId: true },
-      })
-    ).map((i) => i.userId),
+    m.conNotifica
+      ? (
+          await prisma.iscrizionePush.findMany({
+            where: { userId: { in: persone } },
+            select: { userId: true },
+          })
+        ).map((i) => i.userId)
+      : [],
   );
 
   await prisma.$transaction([
@@ -332,7 +338,9 @@ export async function pubblicaMessaggio(_prev: StatoForm, fd: FormData): Promise
     ok:
       persone.length === 0
         ? 'Messaggio in bacheca. Non c’è nessun altro a cui mandarlo, per ora.'
-        : `Messaggio in bacheca: notifica partita a ${partiti.size} su ${persone.length}. Gli altri lo trovano col pallino nel menu.`,
+        : !m.conNotifica
+          ? 'Messaggio in bacheca, senza notifica: lo trovano col pallino nel menu.'
+          : `Messaggio in bacheca: notifica partita a ${partiti.size} su ${persone.length}. Gli altri lo trovano col pallino nel menu.`,
   };
 }
 
@@ -618,4 +626,26 @@ export async function segnaBachecaLetta(bachecaId: string): Promise<void> {
     data: { lettaIl: new Date() },
   });
   if (fatto.count > 0) aggiorna(bachecaId);
+}
+
+/**
+ * «Leggi tutto»: segna letti i messaggi di tutte le bacheche, in un colpo.
+ *
+ * Per chi torna dopo giorni e non vuole aprire le bacheche una a una solo per
+ * spegnere i pallini. Solo i messaggi rilasciati e solo i suoi: le spunte
+ * degli altri non si toccano.
+ */
+export async function segnaTutteLette(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const fatto = await prisma.consegnaBacheca.updateMany({
+    where: { userId: me.id, lettaIl: null, messaggio: { pubblicatoIl: { not: null } } },
+    data: { lettaIl: new Date() },
+  });
+  aggiorna();
+  return {
+    ok:
+      fatto.count === 1
+        ? 'Un messaggio segnato come letto.'
+        : `${fatto.count} messaggi segnati come letti.`,
+  };
 }

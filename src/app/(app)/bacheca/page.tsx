@@ -6,6 +6,8 @@ import { etichettaPubblico, filtroBacheche, puoCreareBacheche } from '@/lib/bach
 import { personeSceglibili } from '@/lib/bacheche-persone';
 import { Badge, Intestazione, Vuoto } from '@/components/ui';
 import { BottoneModale } from '@/components/Modale';
+import { AzioneBottone } from '@/components/AzioneBottone';
+import { segnaTutteLette } from '@/actions/bacheche';
 import { FormBacheca } from '@/components/FormBacheca';
 import { Icona } from '@/components/Icona';
 import { iconaBacheca } from '@/lib/icone-bacheca';
@@ -58,10 +60,21 @@ export default async function BachechePage() {
         titolo="Bacheca"
         sottotitolo="Le comunicazioni che restano: si sa quando sono uscite e chi le ha lette"
         azioni={
-          crea ? (
-            <BottoneModale etichetta="Nuova bacheca" icona="aggiungi" titolo="Nuova bacheca" larga>
-              <FormBacheca persone={await personeSceglibili()} moderatorePredefinito={me.id} />
-            </BottoneModale>
+          daLeggere.length > 0 || crea ? (
+            <>
+              {/* per chi torna dopo giorni: spegne tutti i pallini senza
+                  aprire le bacheche una a una */}
+              {daLeggere.length > 0 && (
+                <AzioneBottone azione={segnaTutteLette} valori={{}} icona="concludi">
+                  Leggi tutto
+                </AzioneBottone>
+              )}
+              {crea && (
+                <BottoneModale etichetta="Nuova bacheca" icona="aggiungi" titolo="Nuova bacheca" larga>
+                  <FormBacheca persone={await personeSceglibili()} moderatorePredefinito={me.id} />
+                </BottoneModale>
+              )}
+            </>
           ) : undefined
         }
       />

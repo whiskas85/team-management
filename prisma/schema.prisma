@@ -2200,6 +2200,9 @@ model MessaggioBacheca {
   bannerTipo   String?
   creatoIl     DateTime  @default(now())
   pubblicatoIl DateTime?
+  /// Al rilascio parte la notifica push. Spento, il messaggio esce in
+  /// silenzio: chi lo deve leggere lo trova col pallino nel menu.
+  conNotifica  Boolean   @default(true)
   /// L'ultima modifica dopo il rilascio: prima del rilascio una bozza si
   /// corregge quante volte si vuole e non e' una modifica per nessuno.
   modificatoIl DateTime?

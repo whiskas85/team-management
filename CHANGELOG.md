@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.101.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **Un messaggio di bacheca può uscire senza notifica.** Nel modulo c'è la
+  casella «Manda la notifica push al rilascio», accesa di serie: spenta, il
+  messaggio si rilascia in silenzio e chi lo deve leggere lo trova col
+  pallino nel menu. Dopo il rilascio la casella sparisce.
+- **«Leggi tutto» in cima alla bacheca.** Quando ci sono messaggi da leggere,
+  un pulsante li segna tutti come letti, senza aprire le bacheche una a una.
+
 ## 2.100.1 — 24 settembre 2026
 
 ### Cambiato
