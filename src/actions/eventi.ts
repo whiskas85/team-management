@@ -15,7 +15,7 @@ import {
   type QuoteAttivita,
   type RigaQuota,
 } from '@/lib/quote';
-import { giorniDi } from '@/lib/giorni';
+import { annoCredibile, annoSbagliato, giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
 import {
@@ -74,6 +74,15 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
 
   const fine = data(fd, 'fine');
   if (fine && inizio && fine < inizio) return { errore: 'La fine non può precedere l’inizio.' };
+  // un anno a tre cifre il browser lo lascia passare: qui si ferma, prima che
+  // un'attività lunga secoli finisca nelle statistiche di tutti
+  for (const [campo, d] of [
+    ['Inizio', inizio],
+    ['Fine', fine],
+    ['Ora del ritrovo', data(fd, 'oraRitrovo')],
+  ] as const) {
+    if (d && !annoCredibile(d)) return { errore: annoSbagliato(campo, d) };
+  }
 
   const esistente = id ? await prisma.event.findUnique({ where: { id } }) : null;
   if (id && !esistente) return { errore: 'Attività non trovata.' };
@@ -927,6 +936,7 @@ export async function creaRiunione(_prev: StatoForm, fd: FormData): Promise<Stat
   const inizio = data(fd, 'inizio');
   if (!titolo) return { errore: 'Serve un titolo.' };
   if (!inizio) return { errore: 'Serve giorno e ora.' };
+  if (!annoCredibile(inizio)) return { errore: annoSbagliato('Giorno e ora', inizio) };
 
   // la tipologia deve essere una di quelle segnate come riunione: senza questo
   // controllo il modulo diventerebbe una scorciatoia per creare una gara

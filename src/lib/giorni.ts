@@ -10,6 +10,33 @@
 /** Oltre questo, un'attività non è di più giorni: è una data di fine sbagliata. */
 const MAX_GIORNI = 7;
 
+/**
+ * Gli anni in cui una data d'attività è credibile: dal 2020 a cinque anni da
+ * oggi.
+ *
+ * Nasce da «Op. Fallout 2226», salvata con l'inizio nell'anno **206** — un
+ * 2026 a cui è scappata una cifra — e la fine nel 2026 giusto: per il
+ * gestionale durava milleottocento anni, si sovrapponeva a tutto quello che
+ * c'era prima e nelle statistiche schiacciava in una giornata sola le presenze
+ * di mezza stagione. Il campo del browser un anno a tre cifre lo accetta; qui
+ * no.
+ */
+const PRIMO_ANNO = 2020;
+const ANNI_AVANTI = 5;
+
+export const annoCredibile = (d: Date, adesso = new Date()) =>
+  d.getFullYear() >= PRIMO_ANNO && d.getFullYear() <= adesso.getFullYear() + ANNI_AVANTI;
+
+/** Gli stessi limiti per un campo datetime-local: il browser avvisa prima di inviare. */
+export const limitiCampoData = (adesso = new Date()) => ({
+  min: `${PRIMO_ANNO}-01-01T00:00`,
+  max: `${adesso.getFullYear() + ANNI_AVANTI}-12-31T23:59`,
+});
+
+/** Il messaggio quando l'anno non torna: dice quale campo, e l'anno letto. */
+export const annoSbagliato = (campo: string, d: Date) =>
+  `${campo}: l’anno ${d.getFullYear()} non sembra giusto. Controlla la data — un’attività sta fra il ${PRIMO_ANNO} e il ${new Date().getFullYear() + ANNI_AVANTI}.`;
+
 /** «2026-09-12»: il giorno letto sull'ora di qui, come lo vuole il portale nel modulo. */
 export const chiaveGiorno = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

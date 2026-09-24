@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { Campo } from './ui';
+import { limitiCampoData } from '@/lib/giorni';
 
 /** Il giorno di oggi come lo vuole un datetime-local: aaaa-mm-gg, in ora locale. */
 function oggi() {
@@ -76,6 +77,10 @@ export function InizioFine({
     f.value = valore < nuovo ? nuovo : valore;
   };
 
+  // un anno a tre cifre — 206 invece di 2026 — il campo lo prende: con i
+  // limiti il browser lo segnala prima ancora di inviare
+  const limiti = limitiCampoData();
+
   return (
     <>
       <Campo label={etichettaInizio}>
@@ -83,6 +88,8 @@ export function InizioFine({
           type="datetime-local"
           name="inizio"
           required
+          min={limiti.min}
+          max={limiti.max}
           defaultValue={inizio}
           className="input"
           onFocus={(e) => {
@@ -97,6 +104,8 @@ export function InizioFine({
           ref={campoFine}
           type="datetime-local"
           name="fine"
+          min={limiti.min}
+          max={limiti.max}
           defaultValue={fine}
           className="input"
           onFocus={(e) => {

@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.86.1 — 24 settembre 2026
+
+### Corretto
+
+- **Un'attività non può più avere un anno assurdo.** «Op. Fallout 2226» era
+  stata salvata con l'inizio nell'anno 206 — un 2026 a cui è scappata una
+  cifra — e la fine nel 2026: per il gestionale durava milleottocento anni,
+  si sovrapponeva a tutte le attività prima del 19 aprile e nella home le
+  presenze di mezza stagione diventavano una giornata sola («7 su 9» invece
+  di 14). Adesso inizio, fine e ora del ritrovo devono stare fra il 2020 e
+  cinque anni da oggi: il campo del modulo lo segnala prima di inviare, e il
+  server lo rifiuta comunque — anche per le riunioni e per l'assistente.
+  - La data di Op. Fallout in produzione è stata corretta a mano: 18 aprile
+    2026.
+
 ## 2.86.0 — 23 settembre 2026
 
 ### Aggiunto
