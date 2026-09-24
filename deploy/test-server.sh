@@ -233,11 +233,19 @@ stato() {
   if [ -f "$SITO_CADDY" ]; then
     # da fuori, certificato compreso: 401 vuol dire che il proxy chiede la
     # password, cioe' che e' tutto come deve essere
-    local codice
-    codice=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://$DOMINIO_TEST/" || true)
+    # --resolve: il nome con l'indirizzo che vede internet, non con quello che
+    # il DNS del server magari si ricorda ancora come «non esiste»
+    local codice ip
+    ip=$(indirizzo "$DOMINIO_TEST")
+    codice=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+      ${ip:+--resolve "$DOMINIO_TEST:443:$ip"} "https://$DOMINIO_TEST/" || true)
     case "$codice" in
       401) echo "raggiungibile: https://$DOMINIO_TEST (chiede la password, giusto)" ;;
-      000) echo "https://$DOMINIO_TEST non risponde, o il certificato non c'e' ancora" ;;
+      000)
+        echo "https://$DOMINIO_TEST non risponde, o il certificato non c'e' ancora. Dal proxy:"
+        docker logs zd-proxy --since 2h 2>&1 | grep "$DOMINIO_TEST" \
+          | grep -iE 'obtain|error|fail' | tail -5 || true
+        ;;
       *) echo "https://$DOMINIO_TEST risponde $codice: senza password dovrebbe dare 401" ;;
     esac
   else
