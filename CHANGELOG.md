@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.96.4 — 24 settembre 2026
+
+### Corretto
+
+- **Chi apre un sondaggio per altri lo ritrova.** Un sondaggio per i nuovi
+  spariva dall'elenco di chi l'aveva aperto, che nuovo non è. Ora gli
+  compare in «Aperti da te per altri», con il bordo tratteggiato e il badge
+  «non voti»: lo apre, vede risultato e conti, ma non vota — la domanda non
+  è rivolta a lui.
+
 ## 2.96.3 — 24 settembre 2026
 
 ### Cambiato

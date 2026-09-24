@@ -52,6 +52,7 @@ export function VotoSondaggio({
   sceltaMultipla,
   totale,
   puoProporre = false,
+  soloOsservo = false,
 }: {
   sondaggioId: string;
   opzioni: OpzioneVoto[];
@@ -63,6 +64,11 @@ export function VotoSondaggio({
   totale: number;
   /** Si può aggiungere una risposta propria. */
   puoProporre?: boolean;
+  /**
+   * Lo guarda chi l'ha aperto per altri: vede tutto, ma non vota — la
+   * domanda non è rivolta a lui.
+   */
+  soloOsservo?: boolean;
 }) {
   const [scelte, setScelte] = useState<string[]>(miei);
   const [proposta, setProposta] = useState('');
@@ -76,7 +82,7 @@ export function VotoSondaggio({
   const [inCorso, avvia] = useTransition();
 
   const spunta = (id: string) => {
-    if (!aperto) return;
+    if (!aperto || soloOsservo) return;
     const prima = scelte;
     const nuove = sceltaMultipla
       ? prima.includes(id)
@@ -105,7 +111,7 @@ export function VotoSondaggio({
             key={o.id}
             className={`block rounded-lg border px-3 py-2.5 transition-colors ${
               scelta ? 'border-nvg bg-nvg/10' : 'border-line bg-surface'
-            } ${aperto ? 'cursor-pointer hover:border-nvgdim' : ''}`}
+            } ${aperto && !soloOsservo ? 'cursor-pointer hover:border-nvgdim' : ''}`}
           >
             <span className="flex items-center gap-2.5">
               <input
@@ -114,7 +120,7 @@ export function VotoSondaggio({
                 value={o.id}
                 checked={scelta}
                 onChange={() => spunta(o.id)}
-                disabled={!aperto}
+                disabled={!aperto || soloOsservo}
                 className="h-4 w-4 shrink-0"
               />
               <span className="min-w-0 flex-1 break-words text-sm">
@@ -149,13 +155,15 @@ export function VotoSondaggio({
     </div>
   );
 
-  if (!aperto) {
+  if (!aperto || soloOsservo) {
     return (
       <div>
         {righe}
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
-          <Icona nome="concludi" size={14} />
-          Il sondaggio è chiuso: il risultato resta, le risposte non si cambiano più.
+          <Icona nome={aperto ? 'apri' : 'concludi'} size={14} />
+          {aperto
+            ? 'Non è rivolto a te: lo vedi perché l’hai aperto, ma non voti.'
+            : 'Il sondaggio è chiuso: il risultato resta, le risposte non si cambiano più.'}
         </p>
       </div>
     );

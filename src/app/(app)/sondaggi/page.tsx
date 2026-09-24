@@ -56,7 +56,10 @@ export default async function SondaggiPage({
     },
   });
 
-  const miei = tutti.filter((s) => loRiguarda(s.destinatari, me.stato));
+  // I sondaggi rivolti a me, e quelli che ho aperto io per altri: chi fa una
+  // domanda ai nuovi non è un nuovo, ma il suo sondaggio lo deve ritrovare.
+  const perMe = (s: (typeof tutti)[number]) => loRiguarda(s.destinatari, me.stato);
+  const miei = tutti.filter((s) => perMe(s) || s.creatoDaId === me.id);
   const elenco = miei.filter((s) => (storico ? !eAperto(s) : eAperto(s)));
 
   const haVotato = (s: (typeof elenco)[number]) =>
@@ -67,26 +70,32 @@ export default async function SondaggiPage({
   const gruppi = storico
     ? [{ titolo: '', sondaggi: elenco }]
     : [
-        { titolo: 'Da rispondere', sondaggi: elenco.filter((s) => !haVotato(s)) },
-        { titolo: 'Hai risposto', sondaggi: elenco.filter(haVotato) },
+        { titolo: 'Da rispondere', sondaggi: elenco.filter((s) => perMe(s) && !haVotato(s)) },
+        { titolo: 'Hai risposto', sondaggi: elenco.filter((s) => perMe(s) && haVotato(s)) },
+        { titolo: 'Aperti da te per altri', sondaggi: elenco.filter((s) => !perMe(s)) },
       ];
 
   const scheda = (s: (typeof elenco)[number]) => {
     const hoVotato = s.opzioni.some((o) => o.voti.some((v) => v.userId === me.id));
     const votanti = new Set(s.opzioni.flatMap((o) => o.voti.map((v) => v.userId))).size;
+    // aperto da me per altri: lo vedo, non lo voto. Il bordo tratteggiato lo
+    // dice prima ancora di leggere
+    const soloOsservo = !perMe(s);
 
     return (
       <Link
         key={s.id}
         href={`/sondaggi/${s.id}`}
-        className="card block transition-colors hover:border-nvgdim"
+        className={`card block transition-colors hover:border-nvgdim ${
+          soloOsservo ? 'border-dashed opacity-75' : ''
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="break-words font-medium">{s.domanda}</h3>
-              {s.dettaglio && (
-                <p className="mt-0.5 line-clamp-2 break-words text-sm text-ink/80">{s.dettaglio}</p>
-              )}
+            {s.dettaglio && (
+              <p className="mt-0.5 line-clamp-2 break-words text-sm text-ink/80">{s.dettaglio}</p>
+            )}
             <p className="mt-1 text-xs text-muted">
               {etichettaDestinatari[s.destinatari]} ·{' '}
               {s.creatoDa.callsign ?? `${s.creatoDa.nome} ${s.creatoDa.cognome}`} ·{' '}
@@ -99,7 +108,8 @@ export default async function SondaggiPage({
           <span className="flex shrink-0 flex-col items-end gap-1.5">
             {/* Chi ha già risposto lo sa: il verde dice «fatto», e serve
                         a non riaprire per controllare. */}
-            {!storico && (
+            {!storico && soloOsservo && <Badge tono="neutro">non voti</Badge>}
+            {!storico && !soloOsservo && (
               <Badge tono={hoVotato ? 'ok' : 'warn'}>
                 {hoVotato ? 'hai risposto' : 'da rispondere'}
               </Badge>

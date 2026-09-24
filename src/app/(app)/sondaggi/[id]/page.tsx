@@ -70,7 +70,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
   const autore = s.creatoDaId === me.id;
   // chi non è fra i destinatari non deve nemmeno sapere che esiste — tranne
   // chi governa i sondaggi, che li deve poter rileggere tutti
-  if (!loRiguarda(s.destinatari, me.stato) && !gestisce) notFound();
+  if (!loRiguarda(s.destinatari, me.stato) && !gestisce && s.creatoDaId !== me.id) notFound();
 
   const aperto = eAperto(s);
   const esito = risultato(s.opzioni);
@@ -118,6 +118,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
         aperto={aperto}
         sceltaMultipla={s.sceltaMultipla}
         puoProporre={s.proposteAperte && loRiguarda(s.destinatari, me.stato)}
+        soloOsservo={!loRiguarda(s.destinatari, me.stato)}
         miei={miei}
         totale={votanti}
         opzioni={s.opzioni.map((o) => ({
