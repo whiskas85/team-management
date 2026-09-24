@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.95.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **I sondaggi si modificano.** Nella card «Cosa se ne fa» c'è **Modifica**,
+  con lo stesso modulo della creazione già compilato: la domanda, il
+  dettaglio, le risposte (correggerle, aggiungerne, toglierle), chi risponde,
+  la scadenza e la scelta multipla. Il tipo non si cambia. Correggere una
+  risposta tiene i voti che ha; toglierla li cancella. Salvare non manda un
+  nuovo avviso. La scelta multipla non si toglie se qualcuno ha già
+  spuntato più risposte.
+
+### Cambiato
+
+- **Nei sondaggi si risponde al clic.** Niente più pulsante «Rispondi»: la
+  risposta si salva appena la tocchi, e si può cambiare finché il sondaggio
+  è aperto. Sulle domande a scelta multipla, togliere l'ultima spunta
+  ritira la risposta.
+
 ## 2.94.0 — 24 settembre 2026
 
 ### Cambiato

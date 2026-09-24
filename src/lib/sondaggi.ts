@@ -115,6 +115,12 @@ export async function registraVoto(
   persona: { id: string; stato: StatoOperatore },
   sondaggioId: string,
   scelte: string[],
+  /**
+   * Nessuna scelta vuol dire «tolgo la mia risposta», invece di un errore. Lo
+   * chiede la pagina, dove si vota al clic: togliere l'ultima spunta è il
+   * modo di ritirarsi. Dalla notifica una scelta c'è sempre.
+   */
+  ritiroAmmesso = false,
 ): Promise<EsitoVoto> {
   const s = await prisma.sondaggio.findUnique({
     where: { id: sondaggioId },
@@ -133,7 +139,11 @@ export async function registraVoto(
   // form, e fidarsene vorrebbe dire lasciar votare un'altra domanda.
   const valide = scelte.filter((id) => s.opzioni.some((o) => o.id === id));
 
-  if (valide.length === 0) return { ok: false, errore: 'Scegli almeno una risposta.' };
+  if (valide.length === 0) {
+    if (!ritiroAmmesso) return { ok: false, errore: 'Scegli almeno una risposta.' };
+    await prisma.votoSondaggio.deleteMany({ where: { sondaggioId, userId: persona.id } });
+    return { ok: true };
+  }
   if (!s.sceltaMultipla && valide.length > 1) {
     return { ok: false, errore: 'Su questa domanda si sceglie una risposta sola.' };
   }

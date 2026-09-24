@@ -89,6 +89,102 @@ export async function creaSondaggio(_prev: StatoForm, fd: FormData): Promise<Sta
 }
 
 /**
+ * Corregge un sondaggio già aperto.
+ *
+ * Si cambia tutto tranne il tipo: le risposte date a «chi viene?» non vogliono
+ * dire niente sotto «quando giochiamo?». Ogni risposta del modulo porta il suo
+ * id: **correggerla tiene i voti** — un refuso nella data non deve far
+ * rivotare tutti — mentre toglierla li cancella con lei.
+ *
+ * Non si riannuncia: chi aveva la notifica ci ritrova il sondaggio corretto, e
+ * una seconda notifica per un refuso è rumore.
+ */
+export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoFareSondaggi(me.roles)) {
+    return { errore: 'Solo l’admin e chi schiera la squadra possono modificare un sondaggio.' };
+  }
+
+  const id = str(fd, 'id');
+  const s = await prisma.sondaggio.findUnique({
+    where: { id },
+    include: { opzioni: { select: { id: true } }, voti: { select: { userId: true } } },
+  });
+  if (!s) return { errore: 'Sondaggio non trovato.' };
+
+  const domanda = str(fd, 'domanda');
+  if (!domanda) return { errore: 'La domanda non può restare vuota.' };
+
+  const scadeIl = data(fd, 'scadeIl');
+  const scadenzaCambiata = (scadeIl?.getTime() ?? null) !== (s.scadeIl?.getTime() ?? null);
+  if (scadeIl && scadenzaCambiata && scadeIl <= new Date()) {
+    return { errore: 'La scadenza è già passata: mettila più avanti, o lasciala vuota.' };
+  }
+
+  const sceltaMultipla = bool(fd, 'sceltaMultipla');
+  if (s.sceltaMultipla && !sceltaMultipla) {
+    // chi ha spuntato due risposte ne avrebbe due su una domanda a scelta
+    // singola: il conto non tornerebbe più
+    const perPersona = new Map<string, number>();
+    for (const v of s.voti) perPersona.set(v.userId, (perPersona.get(v.userId) ?? 0) + 1);
+    if ([...perPersona.values()].some((n) => n > 1)) {
+      return {
+        errore: 'Qualcuno ha già spuntato più risposte: la scelta multipla non si può più togliere.',
+      };
+    }
+  }
+
+  const ids = fd.getAll('opzioneId').map((v) => v.toString());
+  const testi = fd.getAll('opzioneTesto').map((v) => v.toString().trim());
+  const quandi = fd.getAll('opzioneQuando').map((v) => v.toString().trim());
+  const sue = new Set(s.opzioni.map((o) => o.id));
+
+  const righe = ids
+    .map((oid, i) => {
+      const quando = s.tipo === 'DATA' && quandi[i] ? new Date(quandi[i]) : null;
+      const testo = s.tipo === 'DATA' ? (quando ? quando.toLocaleString('it-IT') : '') : testi[i];
+      // un id che non è di questo sondaggio vale come risposta nuova
+      return { id: sue.has(oid) ? oid : null, testo: testo ?? '', quando };
+    })
+    .filter((r) => r.testo !== '');
+
+  if (righe.length < 2) {
+    return { errore: 'Servono almeno due risposte possibili: con una sola non c’è niente da scegliere.' };
+  }
+
+  const tenute = new Set(righe.flatMap((r) => (r.id ? [r.id] : [])));
+  const tolte = s.opzioni.filter((o) => !tenute.has(o.id)).map((o) => o.id);
+
+  await prisma.$transaction([
+    prisma.sondaggio.update({
+      where: { id },
+      data: {
+        domanda,
+        dettaglio: strOpt(fd, 'dettaglio'),
+        destinatari: enumVal(fd, 'destinatari', DESTINATARI, s.destinatari),
+        sceltaMultipla,
+        scadeIl,
+      },
+    }),
+    // le risposte tolte si portano via i loro voti (in cascata)
+    prisma.opzioneSondaggio.deleteMany({ where: { id: { in: tolte } } }),
+    ...righe.map((r, ordine) =>
+      r.id
+        ? prisma.opzioneSondaggio.update({
+            where: { id: r.id },
+            data: { testo: r.testo, quando: r.quando, ordine },
+          })
+        : prisma.opzioneSondaggio.create({
+            data: { sondaggioId: id, testo: r.testo, quando: r.quando, ordine },
+          }),
+    ),
+  ]);
+
+  aggiorna(id);
+  return { ok: 'Sondaggio aggiornato.' };
+}
+
+/**
  * L'annuncio a chi riguarda, con dentro quanto manca.
  *
  * Il conto alla rovescia nella notifica è una fotografia: dice «mancano 3
@@ -152,26 +248,22 @@ Rispondi dal gestionale, in «Sondaggi».`,
 }
 
 /**
- * Il voto di una persona.
+ * Il voto di una persona, mandato dalla pagina a ogni clic.
  *
  * **Si riscrive tutto ogni volta.** Votare di nuovo cancella le scelte di
  * prima e mette quelle nuove: cambiare idea è normale — uno scopre di essere
  * libero anche sabato — e la differenza fra «ha cambiato idea» e «ha votato
- * due volte» non la deve fare chi legge il risultato.
+ * due volte» non la deve fare chi legge il risultato. Nessuna scelta vuol dire
+ * che la risposta si ritira: è l'ultima spunta tolta.
  */
-export async function vota(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+export async function vota(sondaggioId: string, scelte: string[]): Promise<StatoForm> {
   const me = await requireUser();
-  const sondaggioId = str(fd, 'sondaggioId');
 
-  const esito = await registraVoto(
-    me,
-    sondaggioId,
-    fd.getAll('opzione').map((v) => v.toString()),
-  );
+  const esito = await registraVoto(me, sondaggioId, scelte, true);
   if (!esito.ok) return { errore: esito.errore };
 
   aggiorna(sondaggioId);
-  return { ok: 'Risposta registrata. Puoi cambiarla finché il sondaggio è aperto.' };
+  return { ok: scelte.length > 0 ? 'Salvato.' : 'Risposta tolta.' };
 }
 
 /** Chiude un sondaggio prima della scadenza: la decisione è già presa. */

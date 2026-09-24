@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { fmtDateTime, nomeCompleto } from '@/lib/format';
+import { fmtDateTime, inputDateTime, nomeCompleto } from '@/lib/format';
 import {
   comeEFinito,
   eAperto,
@@ -16,6 +16,8 @@ import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import { VotoSondaggio } from '@/components/VotoSondaggio';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { BottoneElimina } from '@/components/CardRiga';
+import { BottoneModale } from '@/components/Modale';
+import { FormSondaggio } from '@/components/FormSondaggio';
 import {
   chiudiSondaggio,
   creaEventoDaSondaggio,
@@ -139,6 +141,32 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
           )}
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* un refuso nella domanda, una data sbagliata, una risposta che
+                manca: si corregge qui, senza buttare i voti già dati */}
+            <BottoneModale
+              etichetta="Modifica"
+              icona="modifica"
+              titolo="Modifica il sondaggio"
+              className="btn-ghost btn-sm"
+            >
+              <FormSondaggio
+                sondaggio={{
+                  id: s.id,
+                  tipo: s.tipo,
+                  domanda: s.domanda,
+                  dettaglio: s.dettaglio,
+                  destinatari: s.destinatari,
+                  sceltaMultipla: s.sceltaMultipla,
+                  scadeIl: inputDateTime(s.scadeIl),
+                  opzioni: s.opzioni.map((o) => ({
+                    id: o.id,
+                    testo: o.testo,
+                    quando: inputDateTime(o.quando),
+                  })),
+                }}
+              />
+            </BottoneModale>
+
             {!s.evento && (s.tipo === 'DATA' || s.tipo === 'PRESENZE') && (
               <AzioneBottone
                 azione={creaEventoDaSondaggio}

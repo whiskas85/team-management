@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { FormAzione } from './Form';
-import { Invia } from './Bottone';
+import { useState, useTransition } from 'react';
 import { Icona } from './Icona';
 import { vota } from '@/actions/sondaggi';
 
@@ -27,6 +25,11 @@ export type OpzioneVoto = {
  * La barra sotto a ogni riga è lunga quanto i voti sul totale di chi ha
  * risposto, non sulla squadra intera: quello che si guarda è «di quelli che
  * hanno risposto, quanti dicono sabato».
+ *
+ * **Si salva al clic**, senza un pulsante «Rispondi» da trovare dopo: chi
+ * sceglie ha già risposto, e un voto spuntato ma non inviato è un voto perso.
+ * La spunta cambia subito; se il server non accetta, torna com'era e si dice
+ * perché. Togliere l'ultima spunta ritira la risposta.
  */
 export function VotoSondaggio({
   sondaggioId,
@@ -46,16 +49,26 @@ export function VotoSondaggio({
   totale: number;
 }) {
   const [scelte, setScelte] = useState<string[]>(miei);
+  const [esito, setEsito] = useState<{ ok?: string; errore?: string }>({});
+  const [inCorso, avvia] = useTransition();
 
   const spunta = (id: string) => {
     if (!aperto) return;
-    setScelte((prima) =>
-      sceltaMultipla
-        ? prima.includes(id)
-          ? prima.filter((x) => x !== id)
-          : [...prima, id]
-        : [id],
-    );
+    const prima = scelte;
+    const nuove = sceltaMultipla
+      ? prima.includes(id)
+        ? prima.filter((x) => x !== id)
+        : [...prima, id]
+      : [id];
+    if (nuove.join() === prima.join()) return;
+
+    setScelte(nuove);
+    setEsito({});
+    avvia(async () => {
+      const r = await vota(sondaggioId, nuove);
+      if (r.errore) setScelte(prima);
+      setEsito(r);
+    });
   };
 
   const righe = (
@@ -122,18 +135,15 @@ export function VotoSondaggio({
   }
 
   return (
-    <FormAzione azione={vota}>
-      <input type="hidden" name="sondaggioId" value={sondaggioId} />
+    <div>
       {righe}
-      <Invia className="btn-primary w-full justify-center sm:w-auto" icona="salva">
-        {miei.length > 0 ? 'Cambia la risposta' : 'Rispondi'}
-      </Invia>
-      <p className="text-xs text-muted">
-        {sceltaMultipla
-          ? 'Puoi spuntarne più di una. '
-          : 'Si sceglie una risposta sola. '}
-        Finché il sondaggio è aperto puoi cambiare idea.
+      <p className="mt-3 text-xs text-muted">
+        {sceltaMultipla ? 'Puoi spuntarne più di una. ' : 'Si sceglie una risposta sola. '}
+        Si salva appena tocchi, e finché il sondaggio è aperto puoi cambiare idea.
+        {inCorso && <span className="ml-2">salvo…</span>}
+        {!inCorso && esito.ok && <span className="ml-2 text-nvg">{esito.ok}</span>}
+        {!inCorso && esito.errore && <span className="ml-2 text-danger">{esito.errore}</span>}
       </p>
-    </FormAzione>
+    </div>
   );
 }

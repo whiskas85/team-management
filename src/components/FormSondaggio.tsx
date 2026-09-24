@@ -5,7 +5,7 @@ import { Campo } from './ui';
 import { Icona, type NomeIcona } from './Icona';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
-import { creaSondaggio } from '@/actions/sondaggi';
+import { creaSondaggio, modificaSondaggio } from '@/actions/sondaggi';
 
 /**
  * Il modulo di un sondaggio, che comincia chiedendo **a cosa serve**.
@@ -55,15 +55,45 @@ const PRECABLATO: Record<Forma, { domanda: string; opzioni: string[]; multipla: 
   TESTO: { domanda: '', opzioni: ['', ''], multipla: false },
 };
 
-export function FormSondaggio() {
-  const [forma, setForma] = useState<Forma | null>(null);
-  const [righe, setRighe] = useState<string[]>([]);
-  const [date, setDate] = useState<string[]>(['', '']);
+/** Un sondaggio già aperto, da modificare. Le date arrivano come aaaa-mm-ggThh:mm. */
+export type SondaggioDaModificare = {
+  id: string;
+  tipo: Forma;
+  domanda: string;
+  dettaglio: string | null;
+  destinatari: string;
+  sceltaMultipla: boolean;
+  scadeIl: string;
+  opzioni: { id: string; testo: string; quando: string }[];
+};
+
+/** Una risposta del modulo: con l'id se c'era già, senza se è nuova. */
+type Riga = { id: string; valore: string };
+
+export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare } = {}) {
+  const modifica = !!sondaggio;
+  const [forma, setForma] = useState<Forma | null>(sondaggio?.tipo ?? null);
+  const [righe, setRighe] = useState<Riga[]>(
+    sondaggio && sondaggio.tipo !== 'DATA'
+      ? sondaggio.opzioni.map((o) => ({ id: o.id, valore: o.testo }))
+      : [],
+  );
+  const [date, setDate] = useState<Riga[]>(
+    sondaggio && sondaggio.tipo === 'DATA'
+      ? sondaggio.opzioni.map((o) => ({ id: o.id, valore: o.quando }))
+      : [
+          { id: '', valore: '' },
+          { id: '', valore: '' },
+        ],
+  );
 
   const scegli = (f: Forma) => {
     setForma(f);
-    setRighe(PRECABLATO[f].opzioni);
-    setDate(['', '']);
+    setRighe(PRECABLATO[f].opzioni.map((valore) => ({ id: '', valore })));
+    setDate([
+      { id: '', valore: '' },
+      { id: '', valore: '' },
+    ]);
   };
 
   if (!forma) {
@@ -93,16 +123,21 @@ export function FormSondaggio() {
   const base = PRECABLATO[forma];
 
   return (
-    <FormAzione azione={creaSondaggio}>
+    <FormAzione azione={modifica ? modificaSondaggio : creaSondaggio}>
       <input type="hidden" name="tipo" value={forma} />
+      {sondaggio && <input type="hidden" name="id" value={sondaggio.id} />}
 
-      <button
-        type="button"
-        onClick={() => setForma(null)}
-        className="text-xs text-muted hover:text-nvg"
-      >
-        ← cambia tipo di sondaggio
-      </button>
+      {/* il tipo non si cambia a sondaggio aperto: le risposte date a «chi
+          viene?» non vogliono dire niente sotto «quando giochiamo?» */}
+      {!modifica && (
+        <button
+          type="button"
+          onClick={() => setForma(null)}
+          className="text-xs text-muted hover:text-nvg"
+        >
+          ← cambia tipo di sondaggio
+        </button>
+      )}
 
       <Campo label="La domanda *" span>
         <input
@@ -110,7 +145,7 @@ export function FormSondaggio() {
           className="input"
           required
           maxLength={200}
-          defaultValue={base.domanda}
+          defaultValue={sondaggio?.domanda ?? base.domanda}
           placeholder="es. Quando giochiamo a ottobre?"
         />
         <p className="mt-1 text-xs text-muted">
@@ -122,6 +157,7 @@ export function FormSondaggio() {
         <textarea
           name="dettaglio"
           rows={2}
+          defaultValue={sondaggio?.dettaglio ?? ''}
           className="input"
           placeholder="Perché lo chiedi, cosa comporta rispondere"
         />
@@ -131,16 +167,17 @@ export function FormSondaggio() {
       {forma === 'DATA' ? (
         <Campo label="Le date fra cui scegliere *" span>
           <div className="space-y-2">
-            {date.map((v, i) => (
-              <div key={i} className="flex gap-2">
+            {date.map((r, i) => (
+              <div key={r.id || `nuova-${i}`} className="flex gap-2">
+                <input type="hidden" name="opzioneId" value={r.id} />
                 <input
                   type="datetime-local"
                   name="opzioneQuando"
                   className="input"
-                  value={v}
+                  value={r.valore}
                   onChange={(e) => {
                     const copia = [...date];
-                    copia[i] = e.target.value;
+                    copia[i] = { ...r, valore: e.target.value };
                     setDate(copia);
                   }}
                 />
@@ -162,7 +199,7 @@ export function FormSondaggio() {
           </div>
           <button
             type="button"
-            onClick={() => setDate([...date, ''])}
+            onClick={() => setDate([...date, { id: '', valore: '' }])}
             className="btn-ghost btn-sm mt-2"
           >
             <Icona nome="aggiungi" size={15} /> Aggiungi una data
@@ -171,16 +208,17 @@ export function FormSondaggio() {
       ) : (
         <Campo label="Le risposte possibili *" span>
           <div className="space-y-2">
-            {righe.map((v, i) => (
-              <div key={i} className="flex gap-2">
+            {righe.map((r, i) => (
+              <div key={r.id || `nuova-${i}`} className="flex gap-2">
+                <input type="hidden" name="opzioneId" value={r.id} />
                 <input
                   name="opzioneTesto"
                   className="input"
                   maxLength={120}
-                  value={v}
+                  value={r.valore}
                   onChange={(e) => {
                     const copia = [...righe];
-                    copia[i] = e.target.value;
+                    copia[i] = { ...r, valore: e.target.value };
                     setRighe(copia);
                   }}
                   placeholder={`Risposta ${i + 1}`}
@@ -201,7 +239,7 @@ export function FormSondaggio() {
           </div>
           <button
             type="button"
-            onClick={() => setRighe([...righe, ''])}
+            onClick={() => setRighe([...righe, { id: '', valore: '' }])}
             className="btn-ghost btn-sm mt-2"
           >
             <Icona nome="aggiungi" size={15} /> Aggiungi una risposta
@@ -210,7 +248,11 @@ export function FormSondaggio() {
       )}
 
       <Campo label="Chi risponde" span>
-        <select name="destinatari" className="input" defaultValue="SQUADRA">
+        <select
+          name="destinatari"
+          className="input"
+          defaultValue={sondaggio?.destinatari ?? 'SQUADRA'}
+        >
           <option value="SQUADRA">La squadra</option>
           <option value="NUOVI">I nuovi</option>
           <option value="TUTTI">Tutti, squadra e nuovi</option>
@@ -221,7 +263,12 @@ export function FormSondaggio() {
       </Campo>
 
       <Campo label="Entro quando" span>
-        <input type="datetime-local" name="scadeIl" className="input" />
+        <input
+          type="datetime-local"
+          name="scadeIl"
+          className="input"
+          defaultValue={sondaggio?.scadeIl ?? ''}
+        />
         <p className="mt-1 text-xs text-muted">
           Passata la scadenza il sondaggio si chiude da solo e scende nello storico. La notifica
           dice quanto manca.
@@ -232,7 +279,7 @@ export function FormSondaggio() {
         <input
           type="checkbox"
           name="sceltaMultipla"
-          defaultChecked={base.multipla}
+          defaultChecked={sondaggio?.sceltaMultipla ?? base.multipla}
           className="mt-0.5 h-4 w-4 shrink-0"
         />
         <span>
@@ -243,7 +290,17 @@ export function FormSondaggio() {
         </span>
       </label>
 
-      <Invia icona="aggiungi">Apri il sondaggio e avvisa</Invia>
+      {modifica ? (
+        <>
+          <p className="text-xs text-muted">
+            Correggere una risposta tiene i voti che ha; toglierla li cancella. Salvare non
+            manda un nuovo avviso.
+          </p>
+          <Invia icona="salva">Salva le modifiche</Invia>
+        </>
+      ) : (
+        <Invia icona="aggiungi">Apri il sondaggio e avvisa</Invia>
+      )}
     </FormAzione>
   );
 }
