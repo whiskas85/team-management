@@ -227,6 +227,8 @@ stato() {
   if [ -d "$TEST/.git" ]; then
     echo "codice: $(git -C "$TEST" log --oneline -1)"
     docker ps --filter name=zd-test- --format '{{.Names}}\t{{.Status}}'
+    echo "-- ultime righe dell'app di test"
+    docker logs zd-test-app --tail 15 2>&1 || true
   else
     echo "non ancora preparato"
   fi
@@ -240,7 +242,15 @@ stato() {
     codice=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
       ${ip:+--resolve "$DOMINIO_TEST:443:$ip"} "https://$DOMINIO_TEST/" || true)
     case "$codice" in
-      401) echo "raggiungibile: https://$DOMINIO_TEST (chiede la password, giusto)" ;;
+      401)
+        echo "raggiungibile: https://$DOMINIO_TEST (chiede la password, giusto)"
+        # e con la password: la pagina di accesso del gestionale deve rispondere
+        local dentro
+        dentro=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+          -u "$(leggi PROXY_UTENTE):$(leggi PROXY_PASSWORD)" \
+          ${ip:+--resolve "$DOMINIO_TEST:443:$ip"} "https://$DOMINIO_TEST/login" || true)
+        echo "con la password del proxy, /login risponde $dentro (200 e' giusto)"
+        ;;
       000)
         echo "https://$DOMINIO_TEST non risponde, o il certificato non c'e' ancora. Dal proxy:"
         docker logs zd-proxy --since 2h 2>&1 | grep "$DOMINIO_TEST" \
