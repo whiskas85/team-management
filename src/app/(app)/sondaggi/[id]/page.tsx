@@ -88,7 +88,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
         // la descrizione sta in testata, con la domanda: è la seconda metà di
         // quello che si chiede, e staccata sotto si perdeva
         descrizione={s.dettaglio}
-        sottotitolo={`${etichettaDestinatari[s.destinatari]} · ${nomeCompleto(s.creatoDa)}`}
+        sottotitolo={etichettaDestinatari[s.destinatari]}
         azioni={
           <>
             {aperto && s.scadeIl && (
@@ -238,6 +238,12 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
           </p>
         </div>
       )}
+
+      {/* Chi l'ha aperto e quando: è lui che lo modifica e lo chiude, e a lui
+          si chiede se qualcosa non torna. */}
+      <p className="num mt-6 border-t border-line pt-3 text-xs text-muted">
+        Aperto da {autore ? 'te' : nomeCompleto(s.creatoDa)} il {fmtDateTime(s.creatoIl)}
+      </p>
     </>
   );
 }

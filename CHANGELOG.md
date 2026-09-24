@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.96.3 — 24 settembre 2026
+
+### Cambiato
+
+- **In fondo al sondaggio c'è chi l'ha aperto e quando** («Aperto da Zero il
+  24 set 2026, 21:10», o «da te»): è lui che lo modifica e lo chiude. In
+  testata resta solo a chi è rivolto.
+
 ## 2.96.2 — 24 settembre 2026
 
 ### Cambiato
