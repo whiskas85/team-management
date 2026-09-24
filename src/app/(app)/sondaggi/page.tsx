@@ -84,6 +84,9 @@ export default async function SondaggiPage({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="break-words font-medium">{s.domanda}</h3>
+              {s.dettaglio && (
+                <p className="mt-0.5 line-clamp-2 break-words text-sm text-ink/80">{s.dettaglio}</p>
+              )}
             <p className="mt-1 text-xs text-muted">
               {etichettaDestinatari[s.destinatari]} ·{' '}
               {s.creatoDa.callsign ?? `${s.creatoDa.nome} ${s.creatoDa.cognome}`} ·{' '}

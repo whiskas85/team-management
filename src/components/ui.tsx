@@ -18,10 +18,16 @@ export function Badge({ tono = 'neutro', children }: { tono?: Tono; children: Re
 export function Intestazione({
   titolo,
   sottotitolo,
+  descrizione,
   azioni,
 }: {
   titolo: string;
   sottotitolo?: string;
+  /**
+   * Due righe che spiegano il titolo, lette subito dopo: più grandi del
+   * sottotitolo, che resta per i dati di contorno (chi, per chi).
+   */
+  descrizione?: string | null;
   azioni?: ReactNode;
 }) {
   return (
@@ -35,6 +41,11 @@ export function Intestazione({
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{titolo}</h1>
           <Stellina />
         </div>
+        {descrizione && (
+          <p className="mt-2 whitespace-pre-wrap break-words text-base text-ink/90">
+            {descrizione}
+          </p>
+        )}
         {sottotitolo && <p className="mt-1 text-sm text-muted">{sottotitolo}</p>}
       </div>
 

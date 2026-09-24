@@ -83,6 +83,9 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
 
       <Intestazione
         titolo={s.domanda}
+        // la descrizione sta in testata, con la domanda: è la seconda metà di
+        // quello che si chiede, e staccata sotto si perdeva
+        descrizione={s.dettaglio}
         sottotitolo={`${etichettaDestinatari[s.destinatari]} · ${nomeCompleto(s.creatoDa)}`}
         azioni={
           <>
@@ -98,10 +101,6 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
           </>
         }
       />
-
-      {s.dettaglio && (
-        <p className="mb-5 whitespace-pre-wrap text-sm text-ink/90">{s.dettaglio}</p>
-      )}
 
       {s.evento && (
         <div className="mb-5 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-3 text-sm">
