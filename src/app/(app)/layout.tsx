@@ -604,14 +604,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           roles: utente.roles,
         }}
         esci={esci}
+        // in test si deve vedere a colpo d'occhio: confondere i due ambienti
+        // vuol dire scrivere sui dati veri credendo di giocare. Lo dice
+        // l'intestazione stessa, senza una barra in più che le stia sopra
+        test={inTest}
       />
-      {/* in test si deve vedere a colpo d'occhio: confondere i due ambienti
-          vuol dire scrivere sui dati veri credendo di giocare */}
-      {inTest && (
-        <div className="sticky top-0 z-40 border-b border-warn/50 bg-warn/20 px-4 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">
-          Ambiente di test
-        </div>
-      )}
 
       <ContenitoreToast />
       {/* tiene il diario di bordo e raccoglie i guasti che nessuno vedrebbe */}

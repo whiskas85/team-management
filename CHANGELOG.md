@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.90.1 — 24 settembre 2026
+
+### Corretto
+
+- **Nel test la fascia gialla non copre più la barra della ricerca.** Era una
+  barra a sé, attaccata in cima come l'intestazione e sopra di lei: scorrendo
+  ci finiva davanti. Adesso l'avviso sta nell'intestazione — la pastiglia
+  «Test» accanto alla ricerca, o accanto alla versione sul telefono — più una
+  riga gialla sottile sul bordo alto dello schermo, che resta anche quando
+  l'intestazione scorre via. In produzione non cambia niente.
+
 ## 2.90.0 — 24 settembre 2026
 
 ### Aggiunto

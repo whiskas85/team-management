@@ -61,7 +61,21 @@ type Props = {
     roles: Role[];
   };
   esci: () => Promise<void>;
+  /** Si è nell'ambiente di test: l'intestazione lo dice. */
+  test?: boolean;
 };
+
+/** La pastiglia che dice «sei nel test», accanto al nome o alla ricerca. */
+function PastigliaTest() {
+  return (
+    <span
+      title="Ambiente di test: i dati qui non sono quelli veri"
+      className="shrink-0 rounded border border-warn/50 bg-warn/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.15em] text-warn"
+    >
+      Test
+    </span>
+  );
+}
 
 const ETICHETTA_GRUPPO: Record<string, string> = {
   principale: 'Operativo',
@@ -88,7 +102,7 @@ function voceAttiva(pathname: string, voci: VoceMenu[]) {
   return candidate.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
-export function Nav({ voci, preferiti, utente, esci }: Props) {
+export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
@@ -249,6 +263,17 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
             avrebbe voluto dire due pulsanti «Esci» sulla stessa schermata. */}
       </aside>
 
+      {/* In test, una riga gialla sul bordo alto dello schermo, sempre: si
+          vede anche quando l'intestazione scorre via, e non copre niente. Prima
+          era una fascia a sé, attaccata in cima come l'intestazione e sopra di
+          lei, che scorrendo copriva la barra della ricerca. */}
+      {test && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-[3px] bg-warn"
+        />
+      )}
+
       {/* ---------------------------------------------------- header mobile */}
       {/* un solo accesso al menu: quello della barra in basso, dove arriva il
           pollice. Un secondo hamburger qui sopra ripeteva la stessa strada */}
@@ -288,6 +313,7 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
             <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
               v{VERSIONE}
             </span>
+            {test && <PastigliaTest />}
           </Link>
 
           {/* La riga per saltare a una voce senza cercarla nella colonna: solo
@@ -304,8 +330,11 @@ export function Nav({ voci, preferiti, utente, esci }: Props) {
               già nascosta da sé: è questo contenitore largo quanto tutto lo
               schermo che, restando in fila, schiacciava il logo e il nome fino
               a ridurli a «ZE…». */}
-          <div className="mx-auto hidden w-full max-w-6xl pr-24 md:block xl:pr-0">
-            <Omnisearch voci={voci} />
+          <div className="mx-auto hidden w-full max-w-6xl items-center gap-3 pr-24 md:flex xl:pr-0">
+            {test && <PastigliaTest />}
+            <div className="min-w-0 flex-1">
+              <Omnisearch voci={voci} />
+            </div>
           </div>
 
           {/* Il nick e la faccia, in alto a destra su tutt'e due i formati.
