@@ -105,6 +105,10 @@ indirizzo() { { getent ahostsv4 "$1" 2>/dev/null || true; } | awk 'NR==1 {print 
 
 proxy() {
   local qui la
+  # Il DNS locale di Ubuntu si ricorda per un'ora anche i «non esiste»: se il
+  # nome e' stato cercato prima di crearlo nel DNS, senza questa riga il test
+  # resterebbe fuori dal proxy per un'ora anche con il record gia' a posto.
+  resolvectl flush-caches 2>/dev/null || true
   qui=$(indirizzo "$DOMINIO_PROD")
   la=$(indirizzo "$DOMINIO_TEST")
   if [ -z "$la" ] || [ "$la" != "$qui" ]; then
