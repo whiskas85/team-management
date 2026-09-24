@@ -5,7 +5,13 @@ import { eventiPerLista, filtroVisibilita } from '@/lib/query';
 import { etichettaEvento, isAdmin, puoSchierare, tonoEvento } from '@/lib/domain';
 import { fmtDateLong, fmtDateTime, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Elenco, Vuoto } from '@/components/ui';
-import { CardEvento, CardStorico, ContoAdesioni, RigaStorico } from '@/components/CardEvento';
+import {
+  BadgeNuova,
+  CardEvento,
+  CardStorico,
+  ContoAdesioni,
+  RigaStorico,
+} from '@/components/CardEvento';
 import { Naviga } from '@/components/Naviga';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { FormAzione, Fisarmonica } from '@/components/Form';
@@ -370,21 +376,17 @@ export default async function CalendarioPage({
                   >
                   <Link href={`/calendario/${e.id}`} className="block">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
-                        {/* mai aperta: il pallino sta attaccato al titolo, che è
-                            quello che si legge per decidere se entrare */}
-                        {e.nuovo && (
-                          <span
-                            title="Non l’hai ancora aperta"
-                            className="h-2 w-2 shrink-0 rounded-full bg-nvg"
-                          />
-                        )}
-                        <span className="break-words">{e.titolo}</span>
+                      <p className="min-w-0 flex-1 break-words text-sm font-medium">
+                        {e.titolo}
                       </p>
-                      {e.status !== 'RILASCIATA' && (
+                      {/* come nelle schede della home: niente «Rilasciata»,
+                          ma «Nuova» finché non l'hai aperta */}
+                      {e.status !== 'RILASCIATA' ? (
                         <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
                           {etichettaEvento[e.status]}
                         </Badge>
+                      ) : (
+                        e.nuovo && <BadgeNuova />
                       )}
                     </div>
                     <p className="mt-0.5 text-[11px] text-muted num">{fmtDateTime(e.inizio)}</p>

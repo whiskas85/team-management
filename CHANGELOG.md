@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.89.0 — 24 settembre 2026
+
+### Cambiato
+
+- **Al posto di «Rilasciata», «Nuova».** Le schede delle attività nella home,
+  nel calendario e nello storico non scrivono più «Rilasciata»: è lo stato di
+  quasi tutto quello che si vede, e un badge uguale su ogni scheda non diceva
+  niente. Un'attività rilasciata che non hai ancora aperto porta invece il
+  badge **Nuova**, che sparisce appena la apri. Prende il posto del pallino
+  verde accanto al titolo. Bozze, annullate e concluse tengono il loro badge;
+  il riepilogo delle stagioni per l'admin mostra ancora lo stato di tutte.
+
 ## 2.88.0 — 24 settembre 2026
 
 ### Aggiunto

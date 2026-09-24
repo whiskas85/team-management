@@ -43,6 +43,18 @@ export type EventoLista = {
 };
 
 /**
+ * Un'attività rilasciata che non hai ancora aperto. Sparisce la prima volta
+ * che la apri: lo segna la pagina dell'attività (SegnaEventoLetto).
+ */
+export function BadgeNuova() {
+  return (
+    <span title="Non l'hai ancora aperta">
+      <Badge tono="ok">Nuova</Badge>
+    </span>
+  );
+}
+
+/**
  * Le tre risposte in un colpo d'occhio. Il numero dei presenti porta anche il
  * limite di posti, che è l'unico dato con un tetto.
  */
@@ -141,27 +153,22 @@ export function CardEvento({
               {e.visibilita === 'TEAM' && <span className="text-muted"> · squadra</span>}
               {e.visibilita === 'INVITO' && <span className="text-muted"> · su invito</span>}
             </p>
-            {/* Il pallino sta attaccato al titolo e non in un angolo: si
-                legge insieme al nome dell'attività, che è quello che si guarda
-                per decidere se aprirla. */}
-            <h3 className="mt-1 flex items-start gap-2 font-medium">
-              {e.nuovo && (
-                <span
-                  title="Non l'hai ancora aperta"
-                  className="mt-2 h-2 w-2 shrink-0 rounded-full bg-nvg"
-                />
-              )}
-              <span className="break-words">{e.titolo}</span>
-            </h3>
+            <h3 className="mt-1 break-words font-medium">{e.titolo}</h3>
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
             {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
           </div>
           {/* una rilasciata già cominciata dice a che punto è: in corso, o
               finita e ancora da chiudere */}
+          {/* «Rilasciata» non si scrive: è lo stato normale di tutto quello
+              che si vede, e un badge uguale su ogni scheda non dice niente. Si
+              scrive invece «Nuova» finché non l'hai aperta — è quella la cosa
+              che fa venire voglia di entrare — e sparisce appena lo fai. */}
           {e.fase ? (
             <Badge tono={e.fase === 'in corso' ? 'ok' : 'warn'}>
               {e.fase === 'in corso' ? 'In corso' : 'Terminata'}
             </Badge>
+          ) : e.status === 'RILASCIATA' ? (
+            e.nuovo && <BadgeNuova />
           ) : (
             <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
               {etichettaEvento[e.status] ?? umanizza(e.status)}
@@ -300,7 +307,7 @@ export function CardStorico({ e }: { e: EventoLista }) {
           <Badge tono="ok">c'eri</Badge>
         ) : e.mioPresente === false ? (
           <Badge tono="danger">non c'eri</Badge>
-        ) : (
+        ) : e.status === 'RILASCIATA' ? null : (
           <Badge tono={tonoEvento[e.status] ?? 'neutro'}>
             {etichettaEvento[e.status] ?? umanizza(e.status)}
           </Badge>
