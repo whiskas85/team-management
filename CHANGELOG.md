@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.87.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **I grafici delle tue presenze stanno nella home.** Le adesioni mese per
+  mese, l'anello della parola mantenuta e le giornate per tipologia si
+  vedevano solo nella scheda completa di un operatore, e per guardare i
+  propri bisognava arrivarci dal calendario. Adesso sono sotto ai numeri di
+  «com'è andata», appena si entra. Si contano a giornate come i riquadri
+  sopra, e sulla stagione in corso: i numeri e i grafici dicono la stessa
+  cosa.
+
 ## 2.86.1 — 24 settembre 2026
 
 ### Corretto

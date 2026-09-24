@@ -243,6 +243,7 @@ export default async function DashboardPage({
           svolteTotali={quadro.svolteTotali}
           stagione={quadro.stagione}
           tu
+          grafici
         />
       )}
 

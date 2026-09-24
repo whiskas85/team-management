@@ -1,4 +1,5 @@
 import { Statistica } from './ui';
+import { Anello, Barre, mesiRecenti } from './Grafico';
 import { daQuanto, giorniA } from '@/lib/format';
 import { impegni } from '@/lib/impegni';
 
@@ -32,6 +33,7 @@ export function StatistichePersona({
   svolteTotali,
   stagione,
   tu = false,
+  grafici = false,
 }: {
   righe: RigaPartecipazione[];
   /**
@@ -45,6 +47,12 @@ export function StatistichePersona({
   stagione: string | null;
   /** Cambia solo le parole: «hai detto sì» invece di «ha detto sì». */
   tu?: boolean;
+  /**
+   * Sotto ai numeri anche i grafici: le adesioni mese per mese e l'anello
+   * della parola mantenuta. Stavano solo nella scheda completa, e per vedere
+   * i propri bisognava passare dal calendario: sulla home si guardano entrando.
+   */
+  grafici?: boolean;
 }) {
   const adesso = new Date();
   const svolte = righe.filter((r) => r.quando < adesso);
@@ -68,7 +76,8 @@ export function StatistichePersona({
   const quanti = (elenco: RigaPartecipazione[]) =>
     new Set(elenco.map((r) => gruppi.get(r.eventId) ?? r.eventId)).size;
 
-  const adesioni = quanti(righe.filter((r) => r.status === 'PRESENTE'));
+  const righeAdesioni = righe.filter((r) => r.status === 'PRESENTE');
+  const adesioni = quanti(righeAdesioni);
   const presenze = quanti(svolte.filter((r) => r.presente === true));
 
   /*
@@ -117,58 +126,111 @@ export function StatistichePersona({
     const gruppo = gruppi.get(r.eventId) ?? r.eventId;
     perTipo.set(r.tipo, (perTipo.get(r.tipo) ?? new Set()).add(gruppo));
   }
-  const preferita =
-    [...perTipo.entries()]
-      .map(([nome, giornate]) => [nome, giornate.size] as const)
-      .sort((a, b) => b[1] - a[1])[0] ?? null;
+  const classifica = [...perTipo.entries()]
+    .map(([nome, giornate]) => [nome, giornate.size] as const)
+    .sort((a, b) => b[1] - a[1]);
+  const preferita = classifica[0] ?? null;
+
+  /*
+   * Le adesioni per mese, anche queste a giornate: una per impegno, con la
+   * data della prima attività della giornata.
+   */
+  const giornateAdesione = new Map<string, Date>();
+  for (const r of righeAdesioni) {
+    const gruppo = gruppi.get(r.eventId) ?? r.eventId;
+    const gia = giornateAdesione.get(gruppo);
+    if (!gia || r.quando < gia) giornateAdesione.set(gruppo, r.quando);
+  }
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Statistica
-        etichetta="Presenze"
-        valore={presenze}
-        dettaglio={`su ${svolteTotali} ${
-          svolteTotali === 1 ? 'giornata' : 'giornate'
-        }${stagione ? ` · ${stagione}` : ''}`}
-        tono={presenze > 0 ? 'ok' : 'neutro'}
-      />
+    <>
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Statistica
+          etichetta="Presenze"
+          valore={presenze}
+          dettaglio={`su ${svolteTotali} ${
+            svolteTotali === 1 ? 'giornata' : 'giornate'
+          }${stagione ? ` · ${stagione}` : ''}`}
+          tono={presenze > 0 ? 'ok' : 'neutro'}
+        />
 
-      <Statistica
-        etichetta="Parola mantenuta"
-        valore={percentuale === null ? '—' : `${percentuale}%`}
-        dettaglio={
-          percentuale === null
-            ? 'nessun appello ancora fatto'
-            : `${tu ? 'hai detto sì' : 'ha detto sì'} ${attese} ${
-                attese === 1 ? 'volta' : 'volte'
-              }, ${
-                // «sempre presente» invece di «mai mancato»: il participio
-                // vorrebbe sapere se è un lui o una lei, e il gestionale non
-                // lo chiede a nessuno
-                mancate === 0
-                  ? 'sempre presente'
-                  : `${mancate} ${mancate === 1 ? 'volta' : 'volte'} no`
-              }`
-        }
-        tono={percentuale === null ? 'neutro' : percentuale >= 80 ? 'ok' : percentuale >= 50 ? 'warn' : 'danger'}
-      />
+        <Statistica
+          etichetta="Parola mantenuta"
+          valore={percentuale === null ? '—' : `${percentuale}%`}
+          dettaglio={
+            percentuale === null
+              ? 'nessun appello ancora fatto'
+              : `${tu ? 'hai detto sì' : 'ha detto sì'} ${attese} ${
+                  attese === 1 ? 'volta' : 'volte'
+                }, ${
+                  // «sempre presente» invece di «mai mancato»: il participio
+                  // vorrebbe sapere se è un lui o una lei, e il gestionale non
+                  // lo chiede a nessuno
+                  mancate === 0
+                    ? 'sempre presente'
+                    : `${mancate} ${mancate === 1 ? 'volta' : 'volte'} no`
+                }`
+          }
+          tono={
+            percentuale === null
+              ? 'neutro'
+              : percentuale >= 80
+                ? 'ok'
+                : percentuale >= 50
+                  ? 'warn'
+                  : 'danger'
+          }
+        />
 
-      <Statistica
-        etichetta="Ultima volta in campo"
-        valore={daUltima === null ? 'mai' : (daQuanto(daUltima) ?? '—')}
-        dettaglio={daUltima === null ? 'nessuna presenza registrata' : 'fa'}
-        tono={daUltima === null ? 'neutro' : daUltima > 90 ? 'danger' : daUltima > 30 ? 'warn' : 'ok'}
-      />
+        <Statistica
+          etichetta="Ultima volta in campo"
+          valore={daUltima === null ? 'mai' : (daQuanto(daUltima) ?? '—')}
+          dettaglio={daUltima === null ? 'nessuna presenza registrata' : 'fa'}
+          tono={
+            daUltima === null ? 'neutro' : daUltima > 90 ? 'danger' : daUltima > 30 ? 'warn' : 'ok'
+          }
+        />
 
-      <Statistica
-        etichetta="Dove si va più spesso"
-        valore={preferita ? preferita[0] : '—'}
-        dettaglio={
-          preferita
-            ? `${preferita[1]} ${preferita[1] === 1 ? 'giornata' : 'giornate'} su ${presenze}`
-            : `${adesioni} ${adesioni === 1 ? 'adesione' : 'adesioni'} in tutto`
-        }
-      />
-    </div>
+        <Statistica
+          etichetta="Dove si va più spesso"
+          valore={preferita ? preferita[0] : '—'}
+          dettaglio={
+            preferita
+              ? `${preferita[1]} ${preferita[1] === 1 ? 'giornata' : 'giornate'} su ${presenze}`
+              : `${adesioni} ${adesioni === 1 ? 'adesione' : 'adesioni'} in tutto`
+          }
+        />
+      </div>
+
+      {grafici && (
+        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <div className="card lg:col-span-2">
+            <p className="titolo-sezione mb-4">
+              Adesioni per mese{stagione ? ` · ${stagione}` : ''}
+            </p>
+            <Barre dati={mesiRecenti([...giornateAdesione.values()])} />
+          </div>
+          <div className="card flex flex-col items-center justify-center gap-4">
+            {percentuale === null ? (
+              <p className="text-center text-xs text-muted">
+                L’anello della parola mantenuta compare dopo il primo appello.
+              </p>
+            ) : (
+              <Anello percentuale={percentuale} etichetta="Parola mantenuta" />
+            )}
+            {classifica.length > 0 && (
+              <div className="w-full space-y-1.5">
+                {classifica.map(([nome, giornate]) => (
+                  <div key={nome} className="flex justify-between text-xs">
+                    <span className="text-muted">{nome}</span>
+                    <span className="num">{giornate}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
