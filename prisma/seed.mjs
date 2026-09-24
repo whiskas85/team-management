@@ -201,7 +201,9 @@ async function main() {
   if (DEBUG) {
     let n = 0;
     for (const f of FIGURE) if (await creaSeNonEsiste(f)) n++;
-    if (n > 0) console.log(`[seed] creati ${n} account di prova (password: ${PASSWORD})`);
+    // la password non si stampa: è quella dell'admin di partenza, e i log
+    // finiscono in posti (l'automazione di rilascio) che non sono segreti
+    if (n > 0) console.log(`[seed] creati ${n} account di prova, con la password dell'admin di partenza`);
   }
 
   // tipologie di partenza: sono dati di base, l'admin poi le modifica

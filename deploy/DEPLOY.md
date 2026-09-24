@@ -354,6 +354,11 @@ cat /opt/gestionale-test/ACCESSO.txt
   restano cifrate con la chiave vera: illeggibili, ed è voluto.
 - `AMBIENTE=test`: la fascia di avviso in cima, e l'attivazione delle polizze
   sul portale rifiutata.
+- `DEBUG_LOGIN=1`: sulla pagina di accesso i pulsanti per entrare come una
+  figura qualunque, senza password, con i loro account di prova. «Admin»
+  entra come il primo amministratore che trova. Senza password vuol dire che
+  il vero lucchetto del test è quello del proxy: la sua password va data solo
+  a chi prova.
 - Niente ponte WhatsApp (l'indirizzo del ponte non esiste), niente lavori
   automatici (`SEGRETO_LAVORI` vuoto, e il cron sveglia solo la produzione),
   niente notifiche push (nessuna chiave VAPID).

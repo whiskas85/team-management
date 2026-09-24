@@ -16,6 +16,8 @@
 #     quindi le credenziali del portale federale copiate da prod restano
 #     illeggibili, e le sessioni di un ambiente non valgono nell'altro;
 #   - AMBIENTE=test: fascia di avviso, e niente polizze sul portale vero;
+#   - DEBUG_LOGIN=1: i pulsanti di accesso rapido, protetti dalla password
+#     del proxy;
 #   - niente ponte WhatsApp, niente lavori automatici, niente notifiche push;
 #   - tetti di memoria più bassi: un guaio in test non affama la produzione.
 
@@ -55,8 +57,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
       SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione, diversa da quella di prod}
       COOKIE_SECURE: "1"
-      # con i dati veri dentro, niente scorciatoie di accesso nemmeno qui
-      DEBUG_LOGIN: "0"
+      # I pulsanti di accesso rapido, uno per figura, e i loro account di
+      # prova: il test serve a guardare il gestionale con gli occhi di ognuno.
+      # Entrano senza password, ed è per questo che davanti a tutto il test
+      # c'è quella del proxy: chi non la sa non arriva nemmeno a vederli.
+      DEBUG_LOGIN: "1"
       AMBIENTE: test
       UPLOAD_DIR: /data/uploads
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?serve un'email per l'admin di partenza}

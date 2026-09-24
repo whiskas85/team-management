@@ -228,7 +228,9 @@ stato() {
     echo "codice: $(git -C "$TEST" log --oneline -1)"
     docker ps --filter name=zd-test- --format '{{.Names}}\t{{.Status}}'
     echo "-- ultime righe dell'app di test"
-    docker logs zd-test-app --tail 15 2>&1 || true
+    # senza le righe che parlano di password: questo finisce nel log
+    # dell'automazione, che su un repository pubblico è pubblico
+    docker logs zd-test-app --tail 15 2>&1 | grep -vi 'password' || true
   else
     echo "non ancora preparato"
   fi

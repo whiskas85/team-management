@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.87.3 — 24 settembre 2026
+
+### Aggiunto
+
+- **Nel test sul server ci sono i pulsanti di accesso rapido**, uno per
+  figura, per guardare il gestionale con gli occhi di ognuno. «Admin» entra
+  come il primo amministratore che trova: nel test l'admin di prova con
+  l'email di sempre non c'è. In produzione restano spenti.
+
+### Corretto
+
+- **Il seed non stampa più la password degli account di prova.** È la stessa
+  dell'admin di partenza, e il log dell'app finisce anche nel resoconto
+  dell'automazione di rilascio, che è pubblico.
+
 ## 2.87.2 — 24 settembre 2026
 
 ### Corretto

@@ -84,7 +84,17 @@ export async function accessoDebug(_prev: StatoForm, fd: FormData): Promise<Stat
   if (process.env.DEBUG_LOGIN !== '1') return { errore: 'Accesso rapido disattivato.' };
 
   const email = testo(fd, 'email');
-  const user = await prisma.user.findUnique({ where: { email } });
+  // L'admin di prova non c'è sempre: nel test sul server l'admin di partenza
+  // ha un'altra email, e dopo una copia dei dati veri ci sono solo gli admin
+  // veri. Allora si entra come il primo amministratore che c'è.
+  const user =
+    (await prisma.user.findUnique({ where: { email } })) ??
+    (email === 'admin@zerodark.team'
+      ? await prisma.user.findFirst({
+          where: { roles: { has: 'ADMIN' } },
+          orderBy: { createdAt: 'asc' },
+        })
+      : null);
   if (!user) return { errore: `Account di prova ${email} non trovato.` };
 
   await createSession(user.id, false);
