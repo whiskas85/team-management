@@ -284,7 +284,7 @@ export default async function BachecaPage({ params }: { params: Promise<{ id: st
                         icona="modifica"
                         titolo={`Modifica «${a.titolo ?? a.fileName}»`}
                         className="btn-ghost btn-sm"
-                        compatto
+                        soloIcona
                       >
                         <FormAzione azione={modificaAllegatoBacheca}>
                           <input type="hidden" name="id" value={a.id} />

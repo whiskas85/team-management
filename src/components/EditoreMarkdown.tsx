@@ -129,9 +129,12 @@ export function EditoreMarkdown({
         .join('\n');
       const nuovo = testo.slice(0, inizioRiga) + rifatte + testo.slice(fineRiga);
       setTesto(nuovo);
+      // il cursore in fondo alle righe toccate, non sopra di loro selezionate:
+      // la prima lettera scritta dopo le cancellerebbe tutte
+      const fine = inizioRiga + rifatte.length;
       requestAnimationFrame(() => {
         el.focus();
-        el.setSelectionRange(inizioRiga, inizioRiga + rifatte.length);
+        el.setSelectionRange(fine, fine);
       });
       return;
     }
@@ -157,11 +160,101 @@ export function EditoreMarkdown({
     const nuovo = testo.slice(0, da) + b.prima + scelto + b.dopo + testo.slice(a);
     setTesto(nuovo);
 
-    // senza questo il cursore salta in fondo e si perde il filo del discorso
+    /*
+     * Dove va il cursore, e **niente resta selezionato**: con del testo
+     * selezionato la prima lettera che si scrive lo cancella, ed era proprio
+     * quello che succedeva premendo «B» e poi scrivendo.
+     *
+     * - senza selezione: dentro i simboli, `**|**`, pronto a scrivere in
+     *   grassetto;
+     * - con una selezione: in fondo a quello che si è appena formattato, per
+     *   continuare a scrivere dopo.
+     */
+    const posizione = scelto
+      ? da + b.prima.length + scelto.length + b.dopo.length
+      : da + b.prima.length;
     requestAnimationFrame(() => {
       el.focus();
-      el.setSelectionRange(da + b.prima.length, da + b.prima.length + scelto.length);
+      el.setSelectionRange(posizione, posizione);
     });
+  };
+
+  /**
+   * Invio dentro un elenco o una tabella: la riga dopo nasce già pronta.
+   *
+   * In un elenco puntato arriva il trattino, in uno numerato il numero dopo,
+   * in una lista di cose da fare la casella vuota; in una tabella una riga
+   * con tante celle quante colonne ha l'intestazione. Invio su una voce vuota
+   * — solo il trattino, o una riga di celle vuote — esce dall'elenco, come in
+   * qualunque programma di scrittura. Restituisce vero se se n'è occupato.
+   */
+  const aCapo = (el: HTMLTextAreaElement): boolean => {
+    const { selectionStart: da, selectionEnd: a } = el;
+    if (da !== a) return false;
+
+    const inizioRiga = testo.lastIndexOf('\n', da - 1) + 1;
+    const fineRiga = testo.indexOf('\n', da) === -1 ? testo.length : testo.indexOf('\n', da);
+    // solo con il cursore in fondo alla riga: a metà, Invio spezza la riga
+    if (testo.slice(da, fineRiga).trim() !== '') return false;
+    const riga = testo.slice(inizioRiga, da);
+
+    const metti = (nuovo: string, cursore: number) => {
+      setTesto(nuovo);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(cursore, cursore);
+      });
+    };
+    /** La voce era vuota: via il segno, e fuori dall'elenco. */
+    const esci = () => metti(testo.slice(0, inizioRiga) + testo.slice(da), inizioRiga);
+    const continua = (segno: string) => {
+      const inserito = `\n${segno}`;
+      metti(testo.slice(0, da) + inserito + testo.slice(da), da + inserito.length);
+    };
+
+    // cose da fare: - [ ] …
+    let m = riga.match(/^(\s*)([-*+]) \[[ xX]\] (.*)$/);
+    if (m) {
+      if (!m[3].trim()) esci();
+      else continua(`${m[1]}${m[2]} [ ] `);
+      return true;
+    }
+    // elenco puntato: - …
+    m = riga.match(/^(\s*)([-*+]) (.*)$/);
+    if (m) {
+      if (!m[3].trim()) esci();
+      else continua(`${m[1]}${m[2]} `);
+      return true;
+    }
+    // elenco numerato: 1. … (o 1) …)
+    m = riga.match(/^(\s*)(\d+)([.)]) (.*)$/);
+    if (m) {
+      if (!m[4].trim()) esci();
+      else continua(`${m[1]}${Number(m[2]) + 1}${m[3]} `);
+      return true;
+    }
+    // tabella: una riga che comincia e finisce con |
+    const pulita = riga.trim();
+    if (pulita.startsWith('|') && pulita.endsWith('|') && pulita.length > 1) {
+      // l'intestazione è la prima riga del blocco di righe con le barre
+      const righe = testo.slice(0, inizioRiga).split('\n');
+      righe.pop(); // la parte vuota dopo l'ultimo a capo
+      let intestazione = pulita;
+      for (let i = righe.length - 1; i >= 0 && righe[i].trim().startsWith('|'); i--) {
+        intestazione = righe[i].trim();
+      }
+      const colonne = Math.max(1, intestazione.slice(1, -1).split('|').length);
+      const celle = pulita.slice(1, -1).split('|');
+      // una riga di celle vuote (e non la riga dei trattini) chiude la tabella
+      if (celle.every((c) => c.trim() === '') && !/-/.test(pulita)) {
+        esci();
+        return true;
+      }
+      const nuova = `\n|${' |'.repeat(colonne)}`;
+      metti(testo.slice(0, da) + nuova + testo.slice(da), da + 3);
+      return true;
+    }
+    return false;
   };
 
   /** Guarda se il cursore sta scrivendo una chiocciola, per proporre i nomi. */
@@ -249,6 +342,19 @@ export function EditoreMarkdown({
               if (e.key === 'Escape' && cerca) {
                 e.preventDefault();
                 setCerca(null);
+                return;
+              }
+              // Invio in un elenco o in una tabella: la riga dopo nasce pronta.
+              // Non mentre si sceglie una chiocciola, né con Maiusc (a capo
+              // semplice) o durante la composizione di un carattere
+              if (
+                e.key === 'Enter' &&
+                !e.shiftKey &&
+                !e.nativeEvent.isComposing &&
+                proposte.length === 0 &&
+                aCapo(e.currentTarget)
+              ) {
+                e.preventDefault();
               }
             }}
             onBlur={() => setTimeout(() => setCerca(null), 150)}

@@ -23,6 +23,7 @@ export function BottoneModale({
   className = 'btn-primary',
   larga = false,
   compatto = false,
+  soloIcona = false,
 }: {
   etichetta: string;
   icona?: NomeIcona;
@@ -38,6 +39,12 @@ export function BottoneModale({
    * il titolo, e il titolo è la cosa che quella riga esiste per mostrare.
    */
   compatto?: boolean;
+  /**
+   * Solo l'icona, sempre: per le righe strette dove accanto ci sono già
+   * altre icone (la matita vicino al cestino). Il nome resta per chi passa
+   * sopra col mouse e per chi legge lo schermo con la voce.
+   */
+  soloIcona?: boolean;
 }) {
   const [aperto, setAperto] = useState(false);
   const chiudi = () => setAperto(false);
@@ -59,10 +66,14 @@ export function BottoneModale({
         type="button"
         onClick={() => setAperto(true)}
         className={className}
-        {...(compatto ? { 'aria-label': etichetta, title: etichetta } : {})}
+        {...(compatto || soloIcona ? { 'aria-label': etichetta, title: etichetta } : {})}
       >
         {icona && <Icona nome={icona} size={15} />}
-        {compatto ? <span className="hidden sm:inline">{etichetta}</span> : etichetta}
+        {soloIcona ? null : compatto ? (
+          <span className="hidden sm:inline">{etichetta}</span>
+        ) : (
+          etichetta
+        )}
       </button>
 
       {aperto && (

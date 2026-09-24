@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.100.0 — 24 settembre 2026
+
+### Cambiato
+
+- **L'editor dei messaggi non lascia più il testo selezionato.** Premendo B,
+  I e gli altri pulsanti senza aver selezionato niente, il cursore va dentro
+  i simboli (`**|**`) pronto a scrivere; con del testo selezionato va in
+  fondo a quello appena formattato. Prima restava tutto selezionato, e la
+  prima lettera scritta lo cancellava.
+- **Invio continua elenchi e tabelle.** In un elenco puntato arriva il
+  trattino, in uno numerato il numero dopo, nelle cose da fare la casella
+  vuota; in una tabella una riga con tante celle quante colonne ha
+  l'intestazione. Invio su una voce vuota esce dall'elenco (o dalla tabella).
+  Maiusc+Invio va a capo e basta.
+- **La modifica di un documento di bacheca è solo la matita**, accanto al
+  cestino.
+
 ## 2.99.1 — 24 settembre 2026
 
 ### Cambiato
