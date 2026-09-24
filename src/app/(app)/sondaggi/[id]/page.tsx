@@ -13,7 +13,7 @@ import {
 } from '@/lib/sondaggi';
 import { Badge, Intestazione } from '@/components/ui';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
-import { VotoSondaggio } from '@/components/VotoSondaggio';
+import { VotoSondaggio, BadgeSegreto } from '@/components/VotoSondaggio';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { BottoneElimina } from '@/components/CardRiga';
 import { BottoneModale } from '@/components/Modale';
@@ -51,6 +51,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
       opzioni: {
         orderBy: { ordine: 'asc' },
         include: {
+          propostaDa: { select: { nome: true, cognome: true, callsign: true } },
           voti: {
             select: {
               userId: true,
@@ -93,6 +94,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
               />
             )}
             {!aperto && <Badge tono="neutro">{comeEFinito(s)}</Badge>}
+            {s.segreto && <BadgeSegreto />}
           </>
         }
       />
@@ -114,6 +116,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
         sondaggioId={s.id}
         aperto={aperto}
         sceltaMultipla={s.sceltaMultipla}
+        puoProporre={s.proposteAperte && loRiguarda(s.destinatari, me.stato)}
         miei={miei}
         totale={votanti}
         opzioni={s.opzioni.map((o) => ({
@@ -122,10 +125,17 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
           voti: o.voti.length,
           vince: esito.vincitrice === o.id,
           // chi ha fatto la domanda vede i nomi: è lui che deve richiamare
-          // quelli che non hanno risposto
-          chi: gestisce
-            ? o.voti.map((v) => v.utente.callsign ?? `${v.utente.nome} ${v.utente.cognome}`)
-            : null,
+          // quelli che non hanno risposto. Non sul voto segreto: lì nessuno
+          chi:
+            gestisce && !s.segreto
+              ? o.voti.map((v) => v.utente.callsign ?? `${v.utente.nome} ${v.utente.cognome}`)
+              : null,
+          // chi l'ha proposta si vede, tranne sul voto segreto: la proposta
+          // vale anche come voto, e il nome direbbe per cosa ha votato
+          proposta:
+            o.propostaDa && !s.segreto
+              ? (o.propostaDa.callsign ?? `${o.propostaDa.nome} ${o.propostaDa.cognome}`)
+              : null,
         }))}
       />
 
@@ -157,6 +167,9 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
                   dettaglio: s.dettaglio,
                   destinatari: s.destinatari,
                   sceltaMultipla: s.sceltaMultipla,
+                  segreto: s.segreto,
+                  proposteAperte: s.proposteAperte,
+                  conVoti: votanti > 0,
                   scadeIl: inputDateTime(s.scadeIl),
                   opzioni: s.opzioni.map((o) => ({
                     id: o.id,
@@ -174,7 +187,9 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
                 icona="calendario"
                 className="btn-primary btn-sm"
                 conferma={
-                  s.tipo === 'PRESENZE'
+                  s.tipo === 'PRESENZE' && s.segreto
+                    ? 'Creo l’attività in bozza? Il voto era segreto: chi ha detto di esserci non viene segnato.'
+                    : s.tipo === 'PRESENZE'
                     ? 'Creo l’attività in bozza con dentro chi ha detto di esserci?'
                     : 'Creo l’attività in bozza con la data che ha vinto?'
                 }

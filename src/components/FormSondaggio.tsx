@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Campo } from './ui';
 import { Icona, type NomeIcona } from './Icona';
 import { FormAzione } from './Form';
@@ -21,7 +21,7 @@ import { creaSondaggio, modificaSondaggio } from '@/actions/sondaggi';
  * trova, chi viene, e la scelta fra cose.
  */
 
-type Forma = 'DATA' | 'PRESENZE' | 'TESTO';
+type Forma = 'DATA' | 'PRESENZE' | 'DECISIONE' | 'TESTO';
 
 const STRADE: { forma: Forma; titolo: string; sotto: string; icona: NomeIcona }[] = [
   {
@@ -35,6 +35,12 @@ const STRADE: { forma: Forma; titolo: string; sotto: string; icona: NomeIcona }[
     titolo: 'Sapere chi viene',
     sotto: 'Ci sono, forse, non ci sono. Dal risultato nasce l’attività con già segnato chi ha detto di esserci.',
     icona: 'presente',
+  },
+  {
+    forma: 'DECISIONE',
+    titolo: 'Prendere una decisione',
+    sotto: 'Sì o no, a maggioranza. Come «chi viene», ma senza il forse: si risponde anche dai pulsanti della notifica.',
+    icona: 'approva',
   },
   {
     forma: 'TESTO',
@@ -52,6 +58,7 @@ const PRECABLATO: Record<Forma, { domanda: string; opzioni: string[]; multipla: 
     opzioni: ['Ci sono', 'Forse', 'Non ci sono'],
     multipla: false,
   },
+  DECISIONE: { domanda: '', opzioni: ['Sì', 'No'], multipla: false },
   TESTO: { domanda: '', opzioni: ['', ''], multipla: false },
 };
 
@@ -63,6 +70,10 @@ export type SondaggioDaModificare = {
   dettaglio: string | null;
   destinatari: string;
   sceltaMultipla: boolean;
+  segreto: boolean;
+  proposteAperte: boolean;
+  /** Se qualcuno ha già votato: il segreto allora non si può più spegnere. */
+  conVoti: boolean;
   scadeIl: string;
   opzioni: { id: string; testo: string; quando: string }[];
 };
@@ -86,6 +97,16 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
           { id: '', valore: '' },
         ],
   );
+
+  // dopo «Aggiungi» il cursore va nella casella nuova: la si aggiunge per
+  // scriverci, e andarla a cercare col dito è un passaggio in più
+  const elenco = useRef<HTMLDivElement>(null);
+  const [daRiempire, setDaRiempire] = useState(0);
+  useEffect(() => {
+    if (!daRiempire) return;
+    const caselle = elenco.current?.querySelectorAll<HTMLInputElement>('input:not([type=hidden])');
+    caselle?.[caselle.length - 1]?.focus();
+  }, [daRiempire]);
 
   const scegli = (f: Forma) => {
     setForma(f);
@@ -166,7 +187,7 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
       {/* --------------------------------------------------------- le risposte */}
       {forma === 'DATA' ? (
         <Campo label="Le date fra cui scegliere *" span>
-          <div className="space-y-2">
+          <div ref={elenco} className="space-y-2">
             {date.map((r, i) => (
               <div key={r.id || `nuova-${i}`} className="flex gap-2">
                 <input type="hidden" name="opzioneId" value={r.id} />
@@ -199,15 +220,34 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
           </div>
           <button
             type="button"
-            onClick={() => setDate([...date, { id: '', valore: '' }])}
+            onClick={() => {
+              setDate([...date, { id: '', valore: '' }]);
+              setDaRiempire((n) => n + 1);
+            }}
             className="btn-ghost btn-sm mt-2"
           >
             <Icona nome="aggiungi" size={15} /> Aggiungi una data
           </button>
         </Campo>
+      ) : forma === 'DECISIONE' ? (
+        // sì o no, sempre: non c'è niente da scrivere
+        <Campo label="Le risposte" span>
+          <div className="flex gap-2">
+            {(righe.length ? righe : base.opzioni.map((valore) => ({ id: '', valore }))).map(
+              (r) => (
+                <span
+                  key={r.valore}
+                  className="rounded-md border border-line bg-surface2 px-3 py-1.5 text-sm"
+                >
+                  {r.valore}
+                </span>
+              ),
+            )}
+          </div>
+        </Campo>
       ) : (
         <Campo label="Le risposte possibili *" span>
-          <div className="space-y-2">
+          <div ref={elenco} className="space-y-2">
             {righe.map((r, i) => (
               <div key={r.id || `nuova-${i}`} className="flex gap-2">
                 <input type="hidden" name="opzioneId" value={r.id} />
@@ -239,7 +279,10 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
           </div>
           <button
             type="button"
-            onClick={() => setRighe([...righe, { id: '', valore: '' }])}
+            onClick={() => {
+              setRighe([...righe, { id: '', valore: '' }]);
+              setDaRiempire((n) => n + 1);
+            }}
             className="btn-ghost btn-sm mt-2"
           >
             <Icona nome="aggiungi" size={15} /> Aggiungi una risposta
@@ -275,17 +318,60 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
         </p>
       </Campo>
 
+      {forma !== 'DECISIONE' && (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="sceltaMultipla"
+            defaultChecked={sondaggio?.sceltaMultipla ?? base.multipla}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            Si possono spuntare più risposte
+            <span className="block text-xs text-muted">
+              Su una domanda di date serve quasi sempre: uno può esserci sia sabato sia domenica.
+            </span>
+          </span>
+        </label>
+      )}
+
+      {forma === 'TESTO' && (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="proposteAperte"
+            defaultChecked={sondaggio?.proposteAperte ?? false}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            Chi risponde può aggiungere una proposta
+            <span className="block text-xs text-muted">
+              Le tue risposte restano; in più ognuno può scriverne una sua, che vale anche come suo
+              voto.
+            </span>
+          </span>
+        </label>
+      )}
+
       <label className="flex items-start gap-2 text-sm">
         <input
           type="checkbox"
-          name="sceltaMultipla"
-          defaultChecked={sondaggio?.sceltaMultipla ?? base.multipla}
+          name="segreto"
+          defaultChecked={sondaggio?.segreto ?? false}
+          // acceso con dei voti dentro, spegnerlo svelerebbe chi ha votato cosa
+          disabled={!!sondaggio?.segreto && sondaggio.conVoti}
           className="mt-0.5 h-4 w-4 shrink-0"
         />
+        {/* una casella disabilitata non viaggia col modulo: il valore lo porta questa */}
+        {sondaggio?.segreto && sondaggio.conVoti && (
+          <input type="hidden" name="segreto" value="on" />
+        )}
         <span>
-          Si possono spuntare più risposte
+          Voto segreto
           <span className="block text-xs text-muted">
-            Su una domanda di date serve quasi sempre: uno può esserci sia sabato sia domenica.
+            {sondaggio?.segreto && sondaggio.conVoti
+              ? 'Qualcuno ha già votato in segreto: non si può più togliere.'
+              : 'Si vedono i conti, non chi ha votato cosa — nemmeno tu.'}
           </span>
         </span>
       </label>

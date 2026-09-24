@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Icona } from './Icona';
-import { vota } from '@/actions/sondaggi';
+import { proponiRisposta, vota } from '@/actions/sondaggi';
 
 export type OpzioneVoto = {
   id: string;
@@ -12,7 +12,20 @@ export type OpzioneVoto = {
   vince: boolean;
   /** I nomi di chi l'ha scelta, per chi ha fatto la domanda. */
   chi: string[] | null;
+  /** Chi l'ha aggiunta, se è una proposta di chi risponde (e il voto non è segreto). */
+  proposta?: string | null;
 };
+
+/** Il voto è segreto: si dice sempre, prima di votare, dove si guarda il sondaggio. */
+export function BadgeSegreto() {
+  return (
+    <span title="Si vedono i conti, non chi ha votato cosa — nemmeno chi ha fatto la domanda">
+      <span className="badge border-violet-400/40 bg-violet-400/15 text-violet-300">
+        voto segreto
+      </span>
+    </span>
+  );
+}
 
 /**
  * Le risposte, con il conto sotto.
@@ -38,6 +51,7 @@ export function VotoSondaggio({
   aperto,
   sceltaMultipla,
   totale,
+  puoProporre = false,
 }: {
   sondaggioId: string;
   opzioni: OpzioneVoto[];
@@ -47,8 +61,17 @@ export function VotoSondaggio({
   sceltaMultipla: boolean;
   /** Quante persone hanno risposto: è il denominatore delle barre. */
   totale: number;
+  /** Si può aggiungere una risposta propria. */
+  puoProporre?: boolean;
 }) {
   const [scelte, setScelte] = useState<string[]>(miei);
+  const [proposta, setProposta] = useState('');
+  // dopo una proposta la pagina si ricarica con la risposta nuova già votata:
+  // le spunte seguono quello che dice il server
+  const firma = miei.join();
+  useEffect(() => {
+    setScelte(firma ? firma.split(',') : []);
+  }, [firma]);
   const [esito, setEsito] = useState<{ ok?: string; errore?: string }>({});
   const [inCorso, avvia] = useTransition();
 
@@ -112,6 +135,10 @@ export function VotoSondaggio({
               />
             </span>
 
+            {o.proposta && (
+              <span className="mt-1 block text-[11px] text-muted">proposta da {o.proposta}</span>
+            )}
+
             {/* I nomi, per chi deve richiamare quelli che mancano. */}
             {o.chi && o.chi.length > 0 && (
               <span className="mt-1.5 block text-[11px] text-muted">{o.chi.join(' · ')}</span>
@@ -134,9 +161,44 @@ export function VotoSondaggio({
     );
   }
 
+  const proponi = () => {
+    const testo = proposta.trim();
+    if (!testo) return;
+    setEsito({});
+    avvia(async () => {
+      const r = await proponiRisposta(sondaggioId, testo);
+      setEsito(r);
+      if (!r.errore) setProposta('');
+    });
+  };
+
   return (
     <div>
       {righe}
+      {puoProporre && (
+        <form
+          className="mt-2 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            proponi();
+          }}
+        >
+          <input
+            value={proposta}
+            onChange={(e) => setProposta(e.target.value)}
+            maxLength={120}
+            className="input"
+            placeholder="Non c’è la tua? Scrivila qui"
+          />
+          <button
+            type="submit"
+            disabled={inCorso || !proposta.trim()}
+            className="btn-ghost btn-sm shrink-0"
+          >
+            <Icona nome="aggiungi" size={15} /> Proponi
+          </button>
+        </form>
+      )}
       <p className="mt-3 text-xs text-muted">
         {sceltaMultipla ? 'Puoi spuntarne più di una. ' : 'Si sceglie una risposta sola. '}
         Si salva appena tocchi, e finché il sondaggio è aperto puoi cambiare idea.

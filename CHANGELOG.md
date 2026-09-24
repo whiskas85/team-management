@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.96.0 — 24 settembre 2026
+
+### Aggiunto
+
+- **Sondaggi: «Prendere una decisione».** Un tipo nuovo, sì o no a
+  maggioranza: come «Sapere chi viene» ma senza il forse. Si risponde anche
+  dai due pulsanti della notifica.
+- **Voto segreto, su ogni sondaggio.** Si vedono i conti, non chi ha votato
+  cosa — nemmeno chi ha fatto la domanda. Un badge viola «voto segreto» lo
+  dice nell'elenco e nella pagina del sondaggio. Si può accendere anche
+  dopo; spegnerlo no, se qualcuno ha già votato. Da un «chi viene?» segreto
+  l'attività nasce senza segnare nessuno.
+- **Proposte di chi risponde.** Su «Scegliere fra cose» si può permettere a
+  chi risponde di aggiungere una risposta sua: la scrive sotto le altre,
+  preme «Proponi», e la proposta vale anche come suo voto. Una proposta
+  uguale a una che c'è già vota quella. Sotto la risposta si legge chi l'ha
+  proposta (non sul voto segreto).
+- **Anteprima del risultato nell'elenco.** Ogni sondaggio mostra, senza
+  aprirlo, le prime quattro risposte con i voti e la barra.
+
+### Cambiato
+
+- **Gli aperti sono divisi in «Da rispondere» e «Hai risposto».**
+- **Nel modulo del sondaggio**, dopo «Aggiungi una risposta» o «Aggiungi una
+  data» il cursore è già nella casella nuova.
+
 ## 2.95.0 — 24 settembre 2026
 
 ### Aggiunto

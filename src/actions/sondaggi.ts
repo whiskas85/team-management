@@ -16,7 +16,10 @@ import {
 } from '@/lib/sondaggi';
 import { avvisaPersona } from '@/lib/avvisi';
 
-const TIPI = ['TESTO', 'DATA', 'PRESENZE'] as const;
+const TIPI = ['TESTO', 'DATA', 'PRESENZE', 'DECISIONE'] as const;
+
+/** Le due risposte di una decisione: sempre queste, in quest'ordine. */
+const SI_NO = ['Sì', 'No'];
 const DESTINATARI = ['SQUADRA', 'NUOVI', 'TUTTI'] as const;
 
 function aggiorna(id?: string) {
@@ -65,7 +68,11 @@ export async function creaSondaggio(_prev: StatoForm, fd: FormData): Promise<Sta
       testo: o.testo || (o.quando ? o.quando.toLocaleString('it-IT') : ''),
     }));
 
-  if (opzioni.length < 2) {
+  // una decisione è sì o no, sempre: le risposte non passano dal modulo
+  const risposte =
+    tipo === 'DECISIONE' ? SI_NO.map((testo, ordine) => ({ testo, quando: null, ordine })) : opzioni;
+
+  if (risposte.length < 2) {
     return { errore: 'Servono almeno due risposte possibili: con una sola non c’è niente da scegliere.' };
   }
 
@@ -75,10 +82,13 @@ export async function creaSondaggio(_prev: StatoForm, fd: FormData): Promise<Sta
       dettaglio: strOpt(fd, 'dettaglio'),
       tipo,
       destinatari: enumVal(fd, 'destinatari', DESTINATARI, 'SQUADRA'),
-      sceltaMultipla: bool(fd, 'sceltaMultipla'),
+      // su una decisione si risponde una volta sola
+      sceltaMultipla: tipo === 'DECISIONE' ? false : bool(fd, 'sceltaMultipla'),
+      segreto: bool(fd, 'segreto'),
+      proposteAperte: tipo === 'TESTO' && bool(fd, 'proposteAperte'),
       scadeIl,
       creatoDaId: me.id,
-      opzioni: { create: opzioni },
+      opzioni: { create: risposte },
     },
   });
 
@@ -121,7 +131,15 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
     return { errore: 'La scadenza è già passata: mettila più avanti, o lasciala vuota.' };
   }
 
-  const sceltaMultipla = bool(fd, 'sceltaMultipla');
+  const sceltaMultipla = s.tipo === 'DECISIONE' ? false : bool(fd, 'sceltaMultipla');
+
+  // spegnere il segreto con dei voti dentro svelerebbe chi ha votato cosa:
+  // chi ha risposto l'ha fatto contando che restasse segreto
+  const segreto = bool(fd, 'segreto');
+  if (s.segreto && !segreto && s.voti.length > 0) {
+    return { errore: 'Qualcuno ha già votato in segreto: il voto segreto non si può più togliere.' };
+  }
+
   if (s.sceltaMultipla && !sceltaMultipla) {
     // chi ha spuntato due risposte ne avrebbe due su una domanda a scelta
     // singola: il conto non tornerebbe più
@@ -148,6 +166,11 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
     })
     .filter((r) => r.testo !== '');
 
+  // una decisione resta sì o no: le sue due risposte non si toccano
+  if (s.tipo === 'DECISIONE') {
+    righe.splice(0, righe.length, ...s.opzioni.map((o) => ({ id: o.id, testo: '', quando: null })));
+  }
+
   if (righe.length < 2) {
     return { errore: 'Servono almeno due risposte possibili: con una sola non c’è niente da scegliere.' };
   }
@@ -163,6 +186,8 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
         dettaglio: strOpt(fd, 'dettaglio'),
         destinatari: enumVal(fd, 'destinatari', DESTINATARI, s.destinatari),
         sceltaMultipla,
+        segreto,
+        proposteAperte: s.tipo === 'TESTO' && bool(fd, 'proposteAperte'),
         scadeIl,
       },
     }),
@@ -172,7 +197,8 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
       r.id
         ? prisma.opzioneSondaggio.update({
             where: { id: r.id },
-            data: { testo: r.testo, quando: r.quando, ordine },
+            // di una decisione si tiene il testo com'è: si riscrive solo l'ordine
+            data: s.tipo === 'DECISIONE' ? { ordine } : { testo: r.testo, quando: r.quando, ordine },
           })
         : prisma.opzioneSondaggio.create({
             data: { sondaggioId: id, testo: r.testo, quando: r.quando, ordine },
@@ -221,7 +247,7 @@ async function annuncia(id: string) {
    * di chi ci deve pensare — chi ci pensa apre.
    */
   const azioni =
-    s.tipo === 'PRESENZE'
+    s.tipo === 'PRESENZE' || s.tipo === 'DECISIONE'
       ? [s.opzioni.at(0), s.opzioni.at(-1)]
           .filter((o) => o !== undefined)
           .map((o) => ({ id: o.id, testo: o.testo }))
@@ -264,6 +290,53 @@ export async function vota(sondaggioId: string, scelte: string[]): Promise<Stato
 
   aggiorna(sondaggioId);
   return { ok: scelte.length > 0 ? 'Salvato.' : 'Risposta tolta.' };
+}
+
+/**
+ * Una risposta aggiunta da chi risponde, sui sondaggi che lo permettono.
+ *
+ * Chi la propone la vuole: la proposta vale anche come suo voto — su una
+ * domanda a risposta singola prende il posto di quello di prima. Una proposta
+ * uguale a una che c'è già non si aggiunge due volte: si vota quella.
+ */
+export async function proponiRisposta(sondaggioId: string, testo: string): Promise<StatoForm> {
+  const me = await requireUser();
+  const pulito = testo.trim().replace(/\s+/g, ' ').slice(0, 120);
+  if (!pulito) return { errore: 'Scrivi la tua proposta.' };
+
+  const s = await prisma.sondaggio.findUnique({
+    where: { id: sondaggioId },
+    include: {
+      opzioni: { select: { id: true, testo: true, ordine: true } },
+      voti: { where: { userId: me.id }, select: { opzioneId: true } },
+    },
+  });
+  if (!s) return { errore: 'Sondaggio non trovato.' };
+  if (!s.proposteAperte) return { errore: 'Su questo sondaggio non si aggiungono risposte.' };
+  if (!loRiguarda(s.destinatari, me.stato)) return { errore: 'Questo sondaggio non è per te.' };
+  if (!eAperto(s)) return { errore: 'Il sondaggio è chiuso.' };
+
+  const uguale = s.opzioni.find((o) => o.testo.toLowerCase() === pulito.toLowerCase());
+  const opzioneId =
+    uguale?.id ??
+    (
+      await prisma.opzioneSondaggio.create({
+        data: {
+          sondaggioId,
+          testo: pulito,
+          ordine: Math.max(-1, ...s.opzioni.map((o) => o.ordine)) + 1,
+          propostaDaId: me.id,
+        },
+      })
+    ).id;
+
+  const miei = s.voti.map((v) => v.opzioneId);
+  const scelte = s.sceltaMultipla ? [...new Set([...miei, opzioneId])] : [opzioneId];
+  const esito = await registraVoto(me, sondaggioId, scelte);
+  if (!esito.ok) return { errore: esito.errore };
+
+  aggiorna(sondaggioId);
+  return { ok: uguale ? 'C’era già: l’hai votata.' : 'Proposta aggiunta, e votata.' };
 }
 
 /** Chiude un sondaggio prima della scadenza: la decisione è già presa. */
@@ -373,7 +446,9 @@ export async function creaEventoDaSondaggio(_prev: StatoForm, fd: FormData): Pro
    * una domanda di data, aver detto «posso sabato» non vuol dire essersi
    * iscritti — vuol dire che quel giorno era libero.
    */
-  if (s.tipo === 'PRESENZE') {
+  // su un voto segreto i nomi non escono nemmeno da qui: chi ha detto «ci
+  // sono» l'ha detto contando che restasse fra sé e il conteggio
+  if (s.tipo === 'PRESENZE' && !s.segreto) {
     const chi = scelta.voti.map((v) => v.userId);
     if (chi.length > 0) {
       await prisma.eventRsvp.createMany({
@@ -397,6 +472,8 @@ export async function creaEventoDaSondaggio(_prev: StatoForm, fd: FormData): Pro
 export async function chiHaVotato(sondaggioId: string) {
   const me = await requireUser();
   if (!puoFareSondaggi(me.roles)) return null;
+  const s = await prisma.sondaggio.findUnique({ where: { id: sondaggioId }, select: { segreto: true } });
+  if (!s || s.segreto) return null;
 
   const voti = await prisma.votoSondaggio.findMany({
     where: { sondaggioId },

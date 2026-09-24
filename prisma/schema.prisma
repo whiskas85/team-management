@@ -250,6 +250,7 @@ model User {
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   sondaggiScritti       Sondaggio[]             @relation("SondaggiScritti")
   votiSondaggi          VotoSondaggio[]         @relation("VotiSondaggi")
+  opzioniProposte       OpzioneSondaggio[]      @relation("OpzioniProposte")
   bachecheCreate        Bacheca[]               @relation("BachecheCreate")
   bachecheModerate      Bacheca[]               @relation("BachecheModerate")
   bachecheLette         LettoreBacheca[]        @relation("BachecheLette")
@@ -2013,6 +2014,9 @@ enum TipoSondaggio {
   /// «Chi c'e'?» su una proposta: dal risultato nasce l'attivita' con gia'
   /// dentro chi ha detto di esserci.
   PRESENZE
+  /// Si o no: una decisione da prendere a maggioranza. Come PRESENZE ma senza
+  /// il forse, e senza un'attivita' che ne nasce.
+  DECISIONE
 }
 
 /// A chi si rivolge il sondaggio: decide chi lo vede e chi puo' votare.
@@ -2043,6 +2047,13 @@ model Sondaggio {
   scadeIl        DateTime?
   /// Chiuso a mano, prima della scadenza: la decisione e' gia' presa.
   chiusoIl       DateTime?
+  /// Voto segreto: i conti si vedono, chi ha votato cosa no — nemmeno chi ha
+  /// fatto la domanda. Si accende quando si vuole; si spegne solo finche'
+  /// nessuno ha votato, altrimenti svelerebbe chi ha votato cosa.
+  segreto        Boolean              @default(false)
+  /// Chi risponde puo' aggiungere una risposta sua. Solo sulle domande a
+  /// risposte scritte: sulle date e sui si/no non c'e' niente da proporre.
+  proposteAperte Boolean              @default(false)
   creatoIl       DateTime             @default(now())
   creatoDaId     String
   creatoDa       User                 @relation("SondaggiScritti", fields: [creatoDaId], references: [id], onDelete: Cascade)
@@ -2072,6 +2083,9 @@ model OpzioneSondaggio {
   fino        DateTime?
   ordine      Int       @default(0)
   voti        VotoSondaggio[]
+  /// Chi l'ha proposta, se non e' fra quelle di chi ha fatto la domanda.
+  propostaDaId String?
+  propostaDa   User?     @relation("OpzioniProposte", fields: [propostaDaId], references: [id], onDelete: SetNull)
 
   @@index([sondaggioId])
 }
