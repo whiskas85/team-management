@@ -75,7 +75,7 @@ jobs:
           set -euo pipefail
           cd /opt/gestionale
           echo "== Versione in linea"
-          curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9.]*' | head -1 || true
+          curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || true
           echo "== Codice sul server"
           git log --oneline -1
           echo "== Modifiche locali sul server (deve essere vuoto, o il pull si ferma)"
@@ -124,7 +124,7 @@ jobs:
 
           echo "== Controllo"
           sleep 15
-          curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9.]*' | head -1 || true
+          curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || true
           docker logs zd-app --tail 20
           docker exec zd-proxy caddy validate --config /etc/caddy/Caddyfile
           df -h /

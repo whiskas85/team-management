@@ -289,7 +289,7 @@ Le quattro righe, una per una:
 Per il controllo finale non basta che il sito risponda:
 
 ```bash
-curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9.]*' | head -1   # la versione nuova
+curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1   # la versione nuova
 docker logs zd-app --tail 20                                              # migrazioni e avvio
 docker exec zd-proxy caddy validate --config /etc/caddy/Caddyfile         # "Valid configuration"
 df -h /                                                                   # quanto è rimasto
