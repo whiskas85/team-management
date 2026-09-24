@@ -105,7 +105,8 @@ export default async function CassaPage({
     // tutti, anche quelli spenti: qui chi gestisce la cassa li configura
     prisma.metodoPagamento.findMany({
       where: dellaCassa,
-      orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }],
+      // nell'ordine scelto trascinando, spenti compresi: è quello che si riordina
+      orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
     }),
   ]);
   // per incassare e per il sollecito servono solo quelli accesi

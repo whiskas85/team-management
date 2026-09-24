@@ -1,11 +1,12 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin } from '@/lib/domain';
-import { Badge, Campo, Elenco, Intestazione, Vuoto } from '@/components/ui';
+import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
-import { eliminaMetodo, salvaMetodo } from '@/actions/metodi';
+import { eliminaMetodo, ordinaMetodi, salvaMetodo } from '@/actions/metodi';
+import { ElencoOrdinabile } from '@/components/ElencoOrdinabile';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
 type Metodo = {
@@ -24,7 +25,8 @@ export default async function MetodiPage() {
   // solo quelli del club: i metodi delle altre casse stanno con la loro cassa
   const metodi = await prisma.metodoPagamento.findMany({
     where: { cassaId: null },
-    orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }],
+    // nell'ordine scelto trascinando: è quello della tendina di chi paga
+    orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
     include: { _count: { select: { payments: true } } },
   });
 
@@ -46,73 +48,39 @@ export default async function MetodiPage() {
       {metodi.length === 0 ? (
         <Vuoto testo="Nessun metodo definito." />
       ) : (
-        <Elenco
-          cards={metodi.map((m) => (
-            <CardRiga
-              key={m.id}
-              card
-              className={m.attivo ? '' : 'opacity-60'}
-              titolo={m.nome}
-              sottotitolo={
-                <>
-                  {m.descrizione && <span className="block">{m.descrizione}</span>}
-                  <span className="num">{m._count.payments} movimenti</span>
-                </>
-              }
-              elimina={<EliminaMetodo metodo={m} />}
-              azioni={<Azioni metodo={m} />}
-            >
-              {(m.selfService || !m.attivo) && (
-                <span className="flex flex-wrap gap-2">
-                  {m.selfService && <Badge tono="ok">Dichiarabile</Badge>}
-                  {!m.attivo && <Badge tono="neutro">Disattivato</Badge>}
-                </span>
-              )}
-            </CardRiga>
-          ))}
-          tabella={
-            <table className="tabella">
-              <thead>
-                <tr>
-                  <th>Metodo</th>
-                  <th>Descrizione</th>
-                  <th>Istruzioni per chi paga</th>
-                  <th>Dichiarabile</th>
-                  <th>Movimenti</th>
-                  <th>Stato</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metodi.map((m) => (
-                  <tr key={m.id} className={m.attivo ? '' : 'opacity-50'}>
-                    <td className="font-medium">{m.nome}</td>
-                    <td className="text-muted">{m.descrizione ?? '—'}</td>
-                    <td className="text-muted">{m.istruzioni ?? '—'}</td>
-                    <td>
-                      {m.selfService ? (
-                        <Badge tono="ok">Sì</Badge>
-                      ) : (
-                        <span className="text-xs text-muted">solo segreteria</span>
-                      )}
-                    </td>
-                    <td className="text-muted num">{m._count.payments}</td>
-                    <td>
-                      <Badge tono={m.attivo ? 'ok' : 'neutro'}>
-                        {m.attivo ? 'Attivo' : 'Disattivato'}
-                      </Badge>
-                    </td>
-                    <td className="whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Azioni metodo={m} />
-                        <EliminaMetodo metodo={m} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          }
+        // Un elenco di card che si riordina dalla maniglia: l'ordine è quello
+        // in cui chi paga trova i metodi. Prima c'era un numero da scrivere a
+        // mano in ogni metodo, e per spostarne uno si rinumeravano tutti.
+        <ElencoOrdinabile
+          azione={ordinaMetodi}
+          elementi={metodi.map((m) => ({
+            id: m.id,
+            contenuto: (
+              <CardRiga
+                card
+                className={m.attivo ? '' : 'opacity-60'}
+                titolo={m.nome}
+                sottotitolo={
+                  <>
+                    {m.descrizione && <span className="block">{m.descrizione}</span>}
+                    {m.istruzioni && (
+                      <span className="block whitespace-pre-line">{m.istruzioni}</span>
+                    )}
+                    <span className="num">{m._count.payments} movimenti</span>
+                  </>
+                }
+                elimina={<EliminaMetodo metodo={m} />}
+                azioni={<Azioni metodo={m} />}
+              >
+                {(m.selfService || !m.attivo) && (
+                  <span className="flex flex-wrap gap-2">
+                    {m.selfService && <Badge tono="ok">Dichiarabile</Badge>}
+                    {!m.attivo && <Badge tono="neutro">Disattivato</Badge>}
+                  </span>
+                )}
+              </CardRiga>
+            ),
+          }))}
         />
       )}
     </>
@@ -153,12 +121,8 @@ function EliminaMetodo({ metodo }: { metodo: Metodo }) {
 function CampiMetodo({ metodo }: { metodo?: Metodo }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Campo label="Nome *">
+      <Campo label="Nome *" span>
         <input name="nome" required defaultValue={metodo?.nome} className="input" />
-      </Campo>
-
-      <Campo label="Ordine nella tendina">
-        <input name="ordine" type="number" defaultValue={metodo?.ordine ?? 0} className="input" />
       </Campo>
 
       <Campo label="Descrizione" span>

@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
 import { puoGestireCassa } from '@/lib/casse';
-import { bool, data, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
+import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
 
 /**
  * Chi può toccare i metodi di questa cassa.
@@ -58,12 +58,12 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
     return { errore: `Esiste già un metodo chiamato "${nome}" in questa cassa.` };
   }
 
+  // l'ordine non passa dal modulo: si dà trascinando (ordinaMetodi)
   const valori = {
     nome,
     descrizione: strOpt(fd, 'descrizione'),
     istruzioni: strOpt(fd, 'istruzioni'),
     selfService: bool(fd, 'selfService'),
-    ordine: intOpt(fd, 'ordine') ?? 0,
     attivo: bool(fd, 'attivo'),
   };
 
@@ -73,9 +73,43 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
     return { ok: 'Metodo aggiornato.' };
   }
 
-  await prisma.metodoPagamento.create({ data: { ...valori, cassaId } });
+  // un metodo nuovo va in fondo: in cima scavalcherebbe l'ordine già scelto
+  const ultimo = await prisma.metodoPagamento.aggregate({
+    where: { cassaId },
+    _max: { ordine: true },
+  });
+  await prisma.metodoPagamento.create({
+    data: { ...valori, cassaId, ordine: (ultimo._max.ordine ?? -1) + 1 },
+  });
   aggiorna();
   return { ok: 'Metodo aggiunto.' };
+}
+
+/**
+ * Il nuovo ordine dei metodi di una cassa, come sono stati trascinati.
+ *
+ * È l'ordine in cui chi paga li trova nella finestra «Paga» e nella tendina.
+ * L'elenco si accetta solo se parla esattamente dei metodi di quella cassa —
+ * né uno in meno né uno di un'altra — e lo può dare chi può modificarli.
+ */
+export async function ordinaMetodi(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const cassaId = strOpt(fd, 'cassaId');
+  if (!(await puoGestireMetodi(me, cassaId))) return { errore: 'Non puoi riordinare questi metodi.' };
+
+  const suoi = await prisma.metodoPagamento.findMany({ where: { cassaId }, select: { id: true } });
+  const sue = new Set(suoi.map((m) => m.id));
+  const nuovo = str(fd, 'ids').split(',').filter((id) => sue.has(id));
+  if (nuovo.length !== suoi.length || new Set(nuovo).size !== suoi.length) {
+    return { errore: 'L’elenco è cambiato mentre lo spostavi: ricarica la pagina.' };
+  }
+
+  await prisma.$transaction(
+    nuovo.map((id, i) => prisma.metodoPagamento.update({ where: { id }, data: { ordine: i } })),
+  );
+
+  aggiorna();
+  return {};
 }
 
 export async function eliminaMetodo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {

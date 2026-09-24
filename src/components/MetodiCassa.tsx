@@ -3,7 +3,8 @@ import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
-import { eliminaMetodo, salvaMetodo } from '@/actions/metodi';
+import { eliminaMetodo, ordinaMetodi, salvaMetodo } from '@/actions/metodi';
+import { ElencoOrdinabile } from '@/components/ElencoOrdinabile';
 import { CardRichiudibile } from '@/components/CardRichiudibile';
 
 export type MetodoCassa = {
@@ -71,7 +72,9 @@ export function MetodiCassa({
           Nessun metodo: chi paga una quota di questa cassa non sa come farlo.
         </p>
       ) : (
-        <div className="space-y-2">
+        // l'ordine è quello in cui li vede chi paga: si dà trascinando dalla
+        // maniglia, e con un metodo solo non c'è niente da ordinare
+        <OrdineMetodi cassaId={cassa.id} ordinabile={metodi.length > 1}>
           {metodi.map((m) => (
             <CardRiga
               key={m.id}
@@ -109,7 +112,7 @@ export function MetodiCassa({
               )}
             </CardRiga>
           ))}
-        </div>
+        </OrdineMetodi>
       )}
       {metodi.length > 0 && dichiarabili === 0 && (
         <p className="mt-2 text-xs text-warn">
@@ -134,9 +137,13 @@ export function MetodiCassa({
               // tanti nomi quanti ne stanno in una riga: quelli che non ci
               // entrano vanno a capo, e la seconda riga resta nascosta
               <div className="mt-1.5 flex max-h-[22px] flex-wrap gap-1.5 overflow-hidden">
+                {/* il colore dice come lo si usa: verde lo segnala chi paga,
+                    azzurro lo registra solo chi incassa, grigio è spento */}
                 {metodi.map((m) => (
                   <span key={m.id} className={m.attivo ? '' : 'opacity-50'}>
-                    <Badge tono="neutro">{m.nome}</Badge>
+                    <Badge tono={!m.attivo ? 'neutro' : m.selfService ? 'ok' : 'info'}>
+                      {m.nome}
+                    </Badge>
                   </span>
                 ))}
               </div>
@@ -166,7 +173,7 @@ export function MetodiCassa({
 function CampiMetodo({ metodo }: { metodo?: MetodoCassa }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Campo label="Nome *">
+      <Campo label="Nome *" span>
         <input
           name="nome"
           required
@@ -174,10 +181,6 @@ function CampiMetodo({ metodo }: { metodo?: MetodoCassa }) {
           className="input"
           placeholder="es. Bonifico a Mario"
         />
-      </Campo>
-
-      <Campo label="Ordine nella tendina">
-        <input name="ordine" type="number" defaultValue={metodo?.ordine ?? 0} className="input" />
       </Campo>
 
       <Campo label="Descrizione" span>
@@ -231,5 +234,28 @@ function CampiMetodo({ metodo }: { metodo?: MetodoCassa }) {
         Attivo
       </label>
     </div>
+  );
+}
+
+/**
+ * L'elenco dei metodi, riordinabile dalla maniglia quando ce n'è più d'uno.
+ * Le card arrivano già fatte: qui si aggiunge solo la maniglia.
+ */
+function OrdineMetodi({
+  cassaId,
+  ordinabile,
+  children,
+}: {
+  cassaId: string | null;
+  ordinabile: boolean;
+  children: React.ReactElement[];
+}) {
+  if (!ordinabile) return <div className="space-y-2">{children}</div>;
+  return (
+    <ElencoOrdinabile
+      azione={ordinaMetodi}
+      valori={cassaId ? { cassaId } : {}}
+      elementi={children.map((c) => ({ id: String(c.key), contenuto: c }))}
+    />
   );
 }

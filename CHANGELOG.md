@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.94.0 — 24 settembre 2026
+
+### Cambiato
+
+- **I metodi di pagamento si ordinano trascinando.** Niente più campo
+  «Ordine nella tendina» con i numeri: nell'elenco dei metodi — del club,
+  delle altre casse e nella propria Cassa — ogni card ha una maniglia ⠿, e
+  la si sposta trascinando da lì, col mouse o col dito. Solo dalla maniglia:
+  il resto della card resta ai suoi pulsanti. L'ordine si salva da solo ed è
+  quello in cui chi paga trova i metodi. Un metodo nuovo va in fondo.
+- **I badge dei metodi sono colorati** nella riga di «Come si paga»: verde
+  se chi paga può segnalarlo da sé, azzurro se lo registra solo chi incassa,
+  grigio se è spento.
+
 ## 2.93.1 — 24 settembre 2026
 
 ### Corretto

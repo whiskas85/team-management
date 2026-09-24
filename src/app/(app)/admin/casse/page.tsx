@@ -32,7 +32,7 @@ export default async function AltreCassePage() {
           select: { id: true, nome: true, cognome: true, callsign: true },
           orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
         },
-        metodi: { orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }] },
+        metodi: { orderBy: [{ ordine: 'asc' }, { nome: 'asc' }] },
       },
     }),
     elencoOperatori(false),
