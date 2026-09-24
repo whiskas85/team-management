@@ -100,15 +100,24 @@ leggi() { grep "^$1=" "$TEST/.env.test" | cut -d= -f2-; }
 
 # --------------------------------------------------------------- il proxy
 
-# un nome che non esiste ancora nel DNS non e' un guasto: e' «nessun indirizzo»
-indirizzo() { { getent ahostsv4 "$1" 2>/dev/null || true; } | awk 'NR==1 {print $1}'; }
+# L'indirizzo di un nome come lo vede internet, non come se lo ricorda questa
+# macchina: il DNS che usa il server tiene in memoria per un'ora anche i «non
+# esiste», e un nome cercato prima di crearlo restava fuori dal proxy per
+# niente. Si chiede a Cloudflare con il nslookup che sta nel container di
+# Caddy; se quella strada non c'e', si torna al DNS del server.
+# Un nome che non esiste ancora non e' un guasto: e' «nessun indirizzo».
+indirizzo() {
+  local ip
+  ip=$({ docker exec zd-proxy nslookup "$1" 1.1.1.1 2>/dev/null || true; } \
+    | awk '/^Address/ && $2 !~ /:/ {print $2; exit}')
+  if [ -z "$ip" ]; then
+    ip=$({ getent ahostsv4 "$1" 2>/dev/null || true; } | awk 'NR==1 {print $1}')
+  fi
+  printf '%s' "$ip"
+}
 
 proxy() {
   local qui la
-  # Il DNS locale di Ubuntu si ricorda per un'ora anche i «non esiste»: se il
-  # nome e' stato cercato prima di crearlo nel DNS, senza questa riga il test
-  # resterebbe fuori dal proxy per un'ora anche con il record gia' a posto.
-  resolvectl flush-caches 2>/dev/null || true
   qui=$(indirizzo "$DOMINIO_PROD")
   la=$(indirizzo "$DOMINIO_TEST")
   if [ -z "$la" ] || [ "$la" != "$qui" ]; then
