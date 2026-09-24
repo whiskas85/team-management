@@ -173,6 +173,11 @@ export default async function CassaPage({
         }
       />
 
+      {/* I metodi li configura chi gestisce la cassa: l'IBAN è il suo, e sa
+          lui dove vuole i soldi. In cima ma chiusi, con i loro nomi in vista:
+          si toccano di rado, e se mancano lo dice la card stessa. */}
+      <MetodiCassa cassa={cassa} metodi={tuttiMetodi} richiudibile />
+
       {!cassa.attiva && (
         <p className="mb-4 rounded-md border border-line bg-surface2 px-4 py-2.5 text-xs text-muted">
           Questa cassa è spenta: non riceve quote nuove, ma quelle che ci sono restano qui.
@@ -194,16 +199,6 @@ export default async function CassaPage({
         />
         <Statistica etichetta="Incassato" valore={fmtEuro(incassato)} tono="ok" />
       </div>
-
-      {metodi.length === 0 && (
-        <p className="mb-5 rounded-md border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">
-          Questa cassa non ha ancora metodi di pagamento attivi: chi deve pagare non sa come farlo.{' '}
-          <a href="#come-si-paga" className="underline underline-offset-4">
-            Aggiungili in «Come si paga»
-          </a>
-          , in fondo alla pagina.
-        </p>
-      )}
 
       <div className="mb-5 flex flex-wrap gap-2">
         {(Object.keys(FILTRI) as Filtro[]).map((f) => (
@@ -302,13 +297,6 @@ export default async function CassaPage({
           ))}
         </div>
       )}
-
-      {/* I metodi li configura chi gestisce la cassa: l'IBAN è il suo, e sa
-          lui dove vuole i soldi. Stanno in fondo perché si toccano di rado;
-          l'avviso in cima ci porta quando mancano. */}
-      <section id="come-si-paga" className="card mt-8 scroll-mt-20">
-        <MetodiCassa cassa={cassa} metodi={tuttiMetodi} />
-      </section>
     </>
   );
 }

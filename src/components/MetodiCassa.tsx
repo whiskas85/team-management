@@ -4,6 +4,7 @@ import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 import { eliminaMetodo, salvaMetodo } from '@/actions/metodi';
+import { CardRichiudibile } from '@/components/CardRichiudibile';
 
 export type MetodoCassa = {
   id: string;
@@ -28,30 +29,43 @@ export type MetodoCassa = {
 export function MetodiCassa({
   cassa,
   metodi,
+  richiudibile = false,
 }: {
   cassa: { id: string; nome: string };
   metodi: MetodoCassa[];
+  /**
+   * Chiusa finché non la si tocca, con i nomi dei metodi in vista: per la
+   * pagina di chi gestisce la cassa, dove sta in cima ma si tocca di rado.
+   */
+  richiudibile?: boolean;
 }) {
   const dichiarabili = metodi.filter((m) => m.attivo && m.selfService).length;
+  const attivi = metodi.filter((m) => m.attivo).length;
+  // l'avviso che conta: si vede anche a card chiusa
+  const avviso =
+    metodi.length === 0
+      ? 'Nessun metodo: chi paga una quota di questa cassa non sa come farlo.'
+      : attivi === 0
+        ? 'Nessun metodo attivo: chi paga una quota di questa cassa non sa come farlo.'
+        : null;
 
-  return (
+  const aggiungi = (
+    <BottoneModale
+      etichetta="Aggiungi metodo"
+      icona="aggiungi"
+      titolo={`Nuovo metodo per «${cassa.nome}»`}
+      className="btn-ghost btn-sm"
+    >
+      <FormAzione azione={salvaMetodo}>
+        <input type="hidden" name="cassaId" value={cassa.id} />
+        <CampiMetodo />
+        <Invia icona="salva">Aggiungi</Invia>
+      </FormAzione>
+    </BottoneModale>
+  );
+
+  const elenco = (
     <>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="titolo-sezione">Come si paga</p>
-        <BottoneModale
-          etichetta="Aggiungi metodo"
-          icona="aggiungi"
-          titolo={`Nuovo metodo per «${cassa.nome}»`}
-          className="btn-ghost btn-sm"
-        >
-          <FormAzione azione={salvaMetodo}>
-            <input type="hidden" name="cassaId" value={cassa.id} />
-            <CampiMetodo />
-            <Invia icona="salva">Aggiungi</Invia>
-          </FormAzione>
-        </BottoneModale>
-      </div>
-
       {metodi.length === 0 ? (
         <p className="text-xs text-warn">
           Nessun metodo: chi paga una quota di questa cassa non sa come farlo.
@@ -102,6 +116,46 @@ export function MetodiCassa({
           Nessun metodo dichiarabile: chi paga non può segnalare il pagamento da solo.
         </p>
       )}
+    </>
+  );
+
+  if (richiudibile) {
+    return (
+      <CardRichiudibile
+        id="come-si-paga"
+        conteggio={metodi.length}
+        azioni={aggiungi}
+        intestazione={
+          <>
+            <p className="titolo-sezione">Come si paga</p>
+            {avviso ? (
+              <p className="mt-1 text-xs text-warn">{avviso}</p>
+            ) : (
+              // tanti nomi quanti ne stanno in una riga: quelli che non ci
+              // entrano vanno a capo, e la seconda riga resta nascosta
+              <div className="mt-1.5 flex max-h-[22px] flex-wrap gap-1.5 overflow-hidden">
+                {metodi.map((m) => (
+                  <span key={m.id} className={m.attivo ? '' : 'opacity-50'}>
+                    <Badge tono="neutro">{m.nome}</Badge>
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        }
+      >
+        {elenco}
+      </CardRichiudibile>
+    );
+  }
+
+  return (
+    <>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="titolo-sezione">Come si paga</p>
+        {aggiungi}
+      </div>
+      {elenco}
     </>
   );
 }

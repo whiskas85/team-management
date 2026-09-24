@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.93.0 — 24 settembre 2026
+
+### Cambiato
+
+- **«Come si paga» in cima alla pagina Cassa, chiusa.** Per chi gestisce una
+  cassa la card dei metodi di pagamento sta in testa alla pagina e mostra
+  solo il titolo e i nomi dei metodi, tanti quanti ne entrano in una riga.
+  Toccandola si apre con l'elenco completo; toccando fuori si richiude.
+  «Aggiungi metodo» è sempre in vista, e dopo un'aggiunta la card si apre da
+  sola per far vedere il metodo nuovo. Se la cassa non ha metodi attivi,
+  l'avviso sta dentro la card e si legge anche da chiusa. In *Altre casse*
+  la segreteria continua a vederli sempre aperti.
+
 ## 2.92.1 — 24 settembre 2026
 
 ### Cambiato
