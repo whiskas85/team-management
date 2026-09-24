@@ -251,6 +251,7 @@ docker cp zd-db:/tmp/prima.dump /root/backup/prod-$(date +%F-%H%M).dump
 
 # 2. il codice nuovo e la ricostruzione
 git pull --ff-only
+docker network inspect zd-bordo >/dev/null 2>&1 || docker network create zd-bordo
 zd up -d --build
 
 # 3. il proxy, che da solo non se ne accorge
@@ -258,8 +259,12 @@ zd restart proxy
 
 # 4. la scia del rilascio, prima di andarsene
 docker image prune -f --filter until=24h
-docker builder prune -f --filter until=168h
+docker builder prune -f --max-used-space 10gb 2>/dev/null || docker builder prune -f --keep-storage 10gb
 ```
+
+> Gli stessi passi li fa l'automazione **Rilascio** su GitHub (Actions →
+> Rilascio → Run workflow → «rilascio»), che è il modo normale di farli. Questi
+> restano per quando GitHub non c'è.
 
 Le quattro righe, una per una:
 
@@ -278,10 +283,17 @@ Le quattro righe, una per una:
 - **La pulizia.** Ogni ricostruzione lascia dietro l'immagine vecchia senza tag
   e la sua cache di build. Il 20 settembre 2026 erano diventate 41 immagini e
   57 GB di cache: **l'80% del disco**, accumulato in quattro giorni di rilasci.
-  `image prune` toglie le immagini senza tag, `builder prune` la cache più
-  vecchia di una settimana — quella dell'ultima si tiene, perché è lei che fa
-  durare una ricostruzione due minuti invece di sette.
-  **I due `until` non sono decorazioni.** Senza quello sulle immagini, la
+  `image prune` toglie le immagini senza tag, `builder prune` tiene la cache
+  sotto i 10 GB — quella recente resta, perché è lei che fa durare una
+  ricostruzione due minuti invece di sette. Prima il limite era una settimana,
+  e il 24 settembre una settimana di rilasci era tornata a 57 GB: un tetto in
+  gigabyte non si sfonda comunque si rilasci. Il nome dell'opzione è cambiato
+  fra le versioni di Docker (`--max-used-space`, prima `--keep-storage`), per
+  questo la riga ne prova due.
+- **La rete `zd-bordo`** è quella che il proxy divide con l'ambiente di test
+  (capitolo qui sotto). È esterna ai due compose, quindi va creata prima
+  dell'`up`: la riga non fa niente se c'è già.
+  **L'`until` sulle immagini non è una decorazione.** Senza, la
   pulizia si porta via anche la build appena sostituita, che è il paracadute
   del punto qui sotto: con `until=24h` il ritorno indietro resta possibile per
   tutta la giornata, che è il tempo in cui un guaio salta fuori.
@@ -299,6 +311,74 @@ df -h /                                                                   # quan
 (`docker images -f dangling=true`): si riparte da quella con
 `docker run` o rimettendola nel compose, senza aspettare una ricompilazione. E
 il database si rimette com'era con il dump del passo 1.
+
+## L'ambiente di test, sulla stessa macchina
+
+Da fine settembre 2026 il test non gira più solo sul PC di chi sviluppa: c'è
+anche qui, su **https://test.zerodarkteam.it**, con una sua copia del codice
+che può stare su un ramo qualunque. Si comanda dall'automazione **Rilascio**:
+
+| modo | cosa fa |
+|---|---|
+| `test` | porta il test al ramo scritto nel campo «ramo» e lo ricostruisce. La prima volta lo crea da zero |
+| `test-copia-dati` | copia database e allegati della produzione nel test. La produzione la legge soltanto |
+| `prova` | alla fine dice anche su che codice è il test e se si raggiunge da fuori |
+
+Il lavoro lo fa `deploy/test-server.sh`, che si può lanciare anche a mano dal
+server (`bash /opt/gestionale/deploy/test-server.sh stato`).
+
+| | |
+|---|---|
+| codice | `/opt/gestionale-test`, staccato dal ramo scelto |
+| configurazione | `/opt/gestionale-test/.env.test`, chiavi generate lì la prima volta, permessi 600 |
+| password | `/opt/gestionale-test/ACCESSO.txt`: quella del proxy e quella dell'admin di partenza |
+| container | `zd-test-app` (1 GB di tetto), `zd-test-db` (512 MB) |
+| volumi | `gestionale-test_db-data`, `gestionale-test_uploads` |
+| proxy | lo stesso Caddy della produzione, con `siti/test.caddy` scritto dallo script |
+
+**Le password non passano dall'automazione.** Su un repository pubblico i log
+di GitHub li legge chiunque: per questo lo script le scrive in `ACCESSO.txt`, e
+si leggono entrando sulla macchina:
+
+```bash
+cat /opt/gestionale-test/ACCESSO.txt
+```
+
+**Perché il test non tocca la produzione.**
+
+- Ha il suo database e i suoi allegati. Il proxy vede l'app di test sulla rete
+  `zd-bordo`, dove ci sono soltanto loro due: il database vero sta nella rete
+  del gestionale, e dal test non si raggiunge.
+- Ha un'altra `SESSION_SECRET`. Le sessioni di un ambiente non valgono
+  nell'altro, e le credenziali del portale federale copiate dalla produzione
+  restano cifrate con la chiave vera: illeggibili, ed è voluto.
+- `AMBIENTE=test`: la fascia di avviso in cima, e l'attivazione delle polizze
+  sul portale rifiutata.
+- Niente ponte WhatsApp (l'indirizzo del ponte non esiste), niente lavori
+  automatici (`SEGRETO_LAVORI` vuoto, e il cron sveglia solo la produzione),
+  niente notifiche push (nessuna chiave VAPID).
+- Tetti di memoria più bassi della produzione: se il test impazzisce, a cadere
+  è lui.
+
+**Dentro ci sono i dati veri**, dopo una copia: anagrafiche e certificati
+medici. Per questo davanti al gestionale c'è una password del proxy, e chi non
+la conosce non vede nemmeno la pagina di accesso. La si dà solo a chi prova.
+
+**Il nome nel DNS.** Serve un record per `test.zerodarkteam.it` che porti a
+questa macchina: un `CNAME` verso `ops.zerodarkteam.it`, oppure un `A` con lo
+stesso indirizzo. Finché il nome non punta qui, lo script non scrive la voce
+per Caddy: chiederebbe un certificato che non può avere, e Let's Encrypt conta
+i tentativi falliti. Il test gira lo stesso, e al primo «test» dopo il DNS il
+proxy lo prende da solo.
+
+**Per toglierlo:**
+
+```bash
+cd /opt/gestionale-test
+docker compose -p gestionale-test -f docker-compose.test.yml --env-file .env.test down   # -v per cancellare anche i dati
+rm /opt/gestionale/siti/test.caddy
+docker exec zd-proxy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+```
 
 ## Il sito pubblico su www
 

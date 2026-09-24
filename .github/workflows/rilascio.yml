@@ -1,12 +1,20 @@
 # Il rilascio in produzione, lanciato a mano da GitHub (Actions → Rilascio →
 # Run workflow). Non parte mai da solo: un push su main non tocca il server.
 #
-# Due modi:
-#   prova     si collega al server e guarda soltanto: che versione gira, cosa
-#             arriverebbe con il prossimo rilascio, se il codice sul server e'
-#             pulito, quanto disco resta. Non cambia niente.
-#   rilascio  i passi di deploy/DEPLOY.md: backup, pull, ricostruzione,
-#             riavvio del proxy, pulizia e controllo della versione.
+# I modi:
+#   prova            si collega al server e guarda soltanto: che versione gira,
+#                    cosa arriverebbe con il prossimo rilascio, se il codice sul
+#                    server e' pulito, disco, memoria, e com'e' messo il test.
+#                    Non cambia niente.
+#   rilascio         la produzione, con i passi di deploy/DEPLOY.md: backup,
+#                    pull, ricostruzione, riavvio del proxy, pulizia, controllo.
+#   test             l'ambiente di test (https://test.zerodarkteam.it) portato
+#                    al ramo scelto qui sotto. La prima volta lo crea da zero.
+#                    La produzione non la tocca.
+#   test-copia-dati  database e allegati della produzione copiati nel test. La
+#                    produzione la legge soltanto.
+#
+# Il lavoro del test lo fa deploy/test-server.sh, mandato al server da qui.
 #
 # Le credenziali stanno nei secret del repository, mai qui: il repository e'
 # pubblico.
@@ -25,12 +33,17 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: 'prova = guarda soltanto · rilascio = aggiorna la produzione'
+        description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test'
         type: choice
-        options: [prova, rilascio]
+        options: [prova, rilascio, test, test-copia-dati]
         default: prova
+      ramo:
+        description: 'Solo per «test»: il ramo da mettere nel test'
+        type: string
+        default: main
 
-# mai due rilasci insieme sulla stessa macchina
+# mai due lavori insieme sulla stessa macchina: due build in parallelo non
+# ci stanno nei suoi 4 GB
 concurrency:
   group: rilascio-produzione
   cancel-in-progress: false
@@ -47,6 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Il repository, per gli script da mandare al server
+        uses: actions/checkout@v4
+
       - name: Chiave e impronta del server
         env:
           SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
@@ -102,6 +118,8 @@ jobs:
           echo "== Consumo dei container adesso"
           docker stats --no-stream --format '{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}'
           SUL_SERVER
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" 'bash -s -- stato' < deploy/test-server.sh
 
       - name: Rilascio
         if: inputs.modo == 'rilascio'
@@ -121,6 +139,8 @@ jobs:
 
           echo "== 2. Codice nuovo e ricostruzione"
           git pull --ff-only
+          # la rete che il proxy divide con l'ambiente di test
+          docker network inspect zd-bordo > /dev/null 2>&1 || docker network create zd-bordo
           zd up -d --build
 
           echo "== 3. Proxy"
@@ -128,7 +148,11 @@ jobs:
 
           echo "== 4. Pulizia"
           docker image prune -f --filter until=24h
-          docker builder prune -f --filter until=168h
+          # la cache delle build con un tetto, non con una data: a settimana
+          # erano diventati 57 GB. Il nome dell'opzione e' cambiato fra le
+          # versioni di Docker, per questo la seconda riga
+          docker builder prune -f --max-used-space 10gb 2>/dev/null \
+            || docker builder prune -f --keep-storage 10gb
 
           echo "== Controllo"
           sleep 15
@@ -137,6 +161,28 @@ jobs:
           docker exec zd-proxy caddy validate --config /etc/caddy/Caddyfile
           df -h /
           SUL_SERVER
+
+      - name: Test
+        if: inputs.modo == 'test'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+          RAMO: ${{ inputs.ramo }}
+        run: |
+          # il nome del ramo finisce in un comando sul server: solo caratteri da ramo
+          if ! printf '%s' "$RAMO" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+            echo "::error::Nome di ramo non valido: $RAMO"
+            exit 1
+          fi
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" "bash -s -- rilascia $RAMO" < deploy/test-server.sh
+
+      - name: Test, copia dei dati dalla produzione
+        if: inputs.modo == 'test-copia-dati'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" 'bash -s -- copia-dati' < deploy/test-server.sh
 
       - name: Via la chiave
         if: always()

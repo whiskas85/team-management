@@ -1,0 +1,96 @@
+# L'ambiente di test sulla stessa macchina della produzione.
+#
+# Gira da una copia a parte del codice, /opt/gestionale-test, che può stare su
+# un ramo qualunque: si prova lì quello che non è ancora in produzione. Lo si
+# raggiunge da https://test.zerodarkteam.it, attraverso lo stesso Caddy della
+# produzione, con una password del proxy davanti a tutto.
+#
+#   docker compose -p gestionale-test -f docker-compose.test.yml --env-file .env.test up -d --build
+#
+# Non lo si lancia a mano: lo prepara e lo aggiorna deploy/test-server.sh,
+# chiamato dall'automazione Rilascio (modo «test»). Lì c'è anche la copia dei
+# dati da produzione.
+#
+# Che cosa lo separa dalla produzione, e perché non si pestano i piedi:
+#   - database, allegati e chiavi suoi: .env.test ha un'altra SESSION_SECRET,
+#     quindi le credenziali del portale federale copiate da prod restano
+#     illeggibili, e le sessioni di un ambiente non valgono nell'altro;
+#   - AMBIENTE=test: fascia di avviso, e niente polizze sul portale vero;
+#   - niente ponte WhatsApp, niente lavori automatici, niente notifiche push;
+#   - tetti di memoria più bassi: un guaio in test non affama la produzione.
+
+name: gestionale-test
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zd-test-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?serve un utente per il database}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?serve una password per il database}
+      POSTGRES_DB: ${POSTGRES_DB:-zerodark}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-zerodark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  app:
+    build:
+      context: .
+    container_name: zd-test-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione, diversa da quella di prod}
+      COOKIE_SECURE: "1"
+      # con i dati veri dentro, niente scorciatoie di accesso nemmeno qui
+      DEBUG_LOGIN: "0"
+      AMBIENTE: test
+      UPLOAD_DIR: /data/uploads
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?serve un'email per l'admin di partenza}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?serve una password per l'admin di partenza}
+      NODE_ENV: production
+      TZ: ${TZ:-Europe/Rome}
+      # Nessun ponte: il nome non esiste, quindi un messaggio partito dal test
+      # fallisce invece di finire nel gruppo vero della squadra. Lasciandolo
+      # vuoto il gestionale userebbe "whatsapp:3001", che è un nome da evitare.
+      WHATSAPP_URL: http://ponte-assente.invalid:3001
+      SEGRETO_WHATSAPP: ""
+      # senza questa chiave /api/lavori non esiste: niente polizze automatiche
+      SEGRETO_LAVORI: ""
+      # senza chiavi il gestionale non propone nemmeno le notifiche
+      VAPID_PUBLIC_KEY: ""
+      VAPID_PRIVATE_KEY: ""
+      VAPID_SUBJECT: ""
+    volumes:
+      - uploads:/data/uploads
+    # default per parlare col suo database, bordo per farsi raggiungere dal
+    # proxy della produzione (vedi docker-compose.prod.yml)
+    networks:
+      - default
+      - bordo
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+networks:
+  bordo:
+    external: true
+    name: zd-bordo
+
+volumes:
+  db-data:
+  uploads:

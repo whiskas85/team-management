@@ -5,13 +5,14 @@ che aspettano una decisione o qualcosa che ancora non c'è.
 
 ## Copiare i dati veri dentro al test
 
-**Perché:** `.\zd.ps1 copia-da-prod` prendeva i dati dal database di produzione
-che girava su questo stesso computer. Da quando la produzione sta sul server in
-rete, quel comando non ha più niente da cui copiare e si ferma.
+**Sul server è fatto:** il test su https://test.zerodarkteam.it si riempie con
+i dati della produzione dall'automazione Rilascio, modo `test-copia-dati` (vedi
+`deploy/DEPLOY.md`).
 
-**Cosa serve:** rifarlo in modo che il dump lo chieda al server via SSH e lo
-versi nel test locale. Nel frattempo, per provare sui dati veri si scarica a
-mano un dump dal server e si ripristina nel test.
+**Resta il test sul PC:** `.\zd.ps1 copia-da-prod` prendeva i dati dal database
+di produzione che girava su questo stesso computer, e da quando la produzione
+sta sul server non ha più niente da cui copiare. Andrebbe rifatto perché il dump
+lo chieda al server via SSH. Con il test sul server può anche non servire più.
 
 ## Numero dedicato per WhatsApp
 
