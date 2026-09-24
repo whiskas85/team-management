@@ -1,0 +1,126 @@
+# Il rilascio in produzione, lanciato a mano da GitHub (Actions → Rilascio →
+# Run workflow). Non parte mai da solo: un push su main non tocca il server.
+#
+# Due modi:
+#   prova     si collega al server e guarda soltanto: che versione gira, cosa
+#             arriverebbe con il prossimo rilascio, se il codice sul server e'
+#             pulito, quanto disco resta. Non cambia niente.
+#   rilascio  i passi di deploy/DEPLOY.md: backup, pull, ricostruzione,
+#             riavvio del proxy, pulizia e controllo della versione.
+#
+# Le credenziali stanno nei secret del repository, mai qui: il repository e'
+# pubblico.
+#   SERVER_HOST          nome o indirizzo del server
+#   SERVER_USER          l'utente con cui si entra
+#   SERVER_SSH_KEY       la chiave privata, una fatta apposta per i rilasci
+#   SERVER_KNOWN_HOSTS   l'impronta del server (ssh-keyscan -t ed25519 <host>):
+#                        senza, ci si fiderebbe di chiunque risponda a quel nome
+
+name: Rilascio
+
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'prova = guarda soltanto · rilascio = aggiorna la produzione'
+        type: choice
+        options: [prova, rilascio]
+        default: prova
+
+# mai due rilasci insieme sulla stessa macchina
+concurrency:
+  group: rilascio-produzione
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Chiave e impronta del server
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$SSH_KEY" ] || [ -z "$KNOWN_HOSTS" ]; then
+            echo "::error::Mancano i secret SERVER_SSH_KEY o SERVER_KNOWN_HOSTS"
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/rilascio
+          chmod 600 ~/.ssh/rilascio
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Prova (non cambia niente)
+        if: inputs.modo == 'prova'
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "$UTENTE@$HOST" 'bash -s' <<'SUL_SERVER'
+          set -euo pipefail
+          cd /opt/gestionale
+          echo "== Versione in linea"
+          curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9.]*' | head -1 || true
+          echo "== Codice sul server"
+          git log --oneline -1
+          echo "== Modifiche locali sul server (deve essere vuoto, o il pull si ferma)"
+          git status --short
+          # fetch soltanto: aggiorna i riferimenti, non il codice che gira
+          git fetch -q origin
+          echo "== Cosa arriverebbe con il rilascio"
+          git log --oneline HEAD..origin/main || true
+          if git merge-base --is-ancestor HEAD origin/main; then
+            echo "Il pull --ff-only andrebbe liscio."
+          else
+            echo "ATTENZIONE: il pull --ff-only si fermerebbe (il server ha commit che main non ha)."
+          fi
+          echo "== Container"
+          docker ps --format '{{.Names}}\t{{.Status}}'
+          echo "== Disco"
+          df -h /
+          SUL_SERVER
+
+      - name: Rilascio
+        if: inputs.modo == 'rilascio'
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "$UTENTE@$HOST" 'bash -s' <<'SUL_SERVER'
+          set -euo pipefail
+          cd /opt/gestionale
+          zd() { docker compose -p gestionale -f docker-compose.prod.yml --env-file .env.prod "$@"; }
+
+          echo "== 1. Backup"
+          mkdir -p /root/backup
+          docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/prima.dump'
+          docker cp zd-db:/tmp/prima.dump /root/backup/prod-$(date +%F-%H%M).dump
+
+          echo "== 2. Codice nuovo e ricostruzione"
+          git pull --ff-only
+          zd up -d --build
+
+          echo "== 3. Proxy"
+          zd restart proxy
+
+          echo "== 4. Pulizia"
+          docker image prune -f --filter until=24h
+          docker builder prune -f --filter until=168h
+
+          echo "== Controllo"
+          sleep 15
+          curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9.]*' | head -1 || true
+          docker logs zd-app --tail 20
+          docker exec zd-proxy caddy validate --config /etc/caddy/Caddyfile
+          df -h /
+          SUL_SERVER
+
+      - name: Via la chiave
+        if: always()
+        run: rm -f ~/.ssh/rilascio
