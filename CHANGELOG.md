@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.103.0 — 25 settembre 2026
+
+### Cambiato
+
+- **Il grafico dei mesi in home racconta le presenze sull'anno.** Ogni mese è
+  una pila di tutte le giornate che erano in programma per te: in verde lime
+  quelle in cui c'eri, in verde scuro quelle disponibili (passate senza di te
+  o ancora da venire), in grigio quelle annullate. La somma è tutto quello che
+  era stato programmato. Attività parallele contano come una giornata; le
+  bozze restano fuori.
+
 ## 2.102.0 — 24 settembre 2026
 
 ### Cambiato

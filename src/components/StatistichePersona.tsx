@@ -3,6 +3,7 @@ import { BarreImpilate, Torta, type Fetta, type PuntoImpilato } from './Grafico'
 import { tintaColore } from '@/lib/domain';
 import { daQuanto, giorniA } from '@/lib/format';
 import { impegni } from '@/lib/impegni';
+import type { AnnoPersona } from '@/lib/statistiche';
 
 export type RigaPartecipazione = {
   eventId: string;
@@ -37,7 +38,7 @@ export function StatistichePersona({
   stagione,
   tu = false,
   grafici = false,
-  righeAnno = [],
+  anno,
 }: {
   righe: RigaPartecipazione[];
   /**
@@ -57,8 +58,8 @@ export function StatistichePersona({
    * i propri bisognava passare dal calendario: sulla home si guardano entrando.
    */
   grafici?: boolean;
-  /** Le partecipazioni dell'anno solare, per il grafico dei mesi. */
-  righeAnno?: RigaPartecipazione[];
+  /** L'anno solare, per il grafico dei mesi. */
+  anno?: AnnoPersona;
 }) {
   const adesso = new Date();
   const svolte = righe.filter((r) => r.quando < adesso);
@@ -152,7 +153,7 @@ export function StatistichePersona({
     colore: tintaColore(colorePerTipo.get(nome)),
   }));
 
-  const mesi = grafici ? mesiDellAnno(righeAnno, adesso) : [];
+  const mesi = grafici && anno ? mesiDellAnno(anno, adesso) : [];
 
   return (
     <>
@@ -239,56 +240,52 @@ export function StatistichePersona({
 }
 
 /*
- * Le tre parti di ogni mese, dal basso: quello che si è fatto davvero, quello
- * a cui si è detto sì e deve ancora venire, e i sì rimasti senza presenza.
+ * Le tre parti di ogni mese, dal basso. Sommate fanno tutte le giornate che
+ * erano in programma per questa persona.
  */
 const SERIE_MESI = [
   { nome: 'Presenze', classe: 'bg-nvg' },
-  { nome: 'In programma', classe: 'bg-nvg/35' },
-  { nome: 'Sì senza presenza', classe: 'bg-muted/40' },
+  { nome: 'Disponibili', classe: 'bg-nvg/35' },
+  { nome: 'Annullate', classe: 'bg-muted/40' },
 ];
 
 /**
- * L'anno solare, gennaio–dicembre, a giornate come il resto: una per impegno,
- * nel mese della sua prima attività.
+ * L'anno solare, gennaio–dicembre: le giornate in programma, mese per mese.
  *
- * **Si divide quello che è stato da quello che sarà.** Una giornata passata
- * in cui c'era è una presenza; una a cui ha detto sì e che deve ancora venire
- * è in programma; una passata a cui aveva detto sì senza esserci — o senza
- * appello — resta a parte, per non gonfiare né l'una né l'altra.
+ * A **giornate**, come il resto: attività parallele o collegate sono una sola
+ * giornata, nel mese della prima. Una giornata è una presenza se c'era in
+ * almeno una delle sue attività; è annullata se lo sono tutte; altrimenti è
+ * disponibile: c'era (o ci sarà) e si poteva andare — i mesi a venire sono
+ * tutti qui, finché non si fanno.
  */
-function mesiDellAnno(righe: RigaPartecipazione[], adesso: Date): PuntoImpilato[] {
-  const anno = adesso.getFullYear();
-  const gruppi = impegni(
-    righe.map((r) => ({
-      id: r.eventId,
-      inizio: r.quando,
-      fine: r.finisce,
-      collegatoAId: r.collegatoAId,
-    })),
-  );
+function mesiDellAnno(anno: AnnoPersona, adesso: Date): PuntoImpilato[] {
+  const numero = adesso.getFullYear();
+  const gruppi = impegni(anno.eventi);
+  const presente = new Set(anno.presente);
 
-  const giornate = new Map<string, { quando: Date; si: boolean; presente: boolean }>();
-  for (const r of righe) {
-    const chiave = gruppi.get(r.eventId) ?? r.eventId;
-    const g = giornate.get(chiave) ?? { quando: r.quando, si: false, presente: false };
-    if (r.quando < g.quando) g.quando = r.quando;
-    if (r.status === 'PRESENTE') g.si = true;
-    if (r.presente === true && r.quando < adesso) g.presente = true;
+  const giornate = new Map<string, { quando: Date; presente: boolean; tutteAnnullate: boolean }>();
+  for (const e of anno.eventi) {
+    const chiave = gruppi.get(e.id) ?? e.id;
+    const g = giornate.get(chiave) ?? { quando: e.inizio, presente: false, tutteAnnullate: true };
+    if (e.inizio < g.quando) g.quando = e.inizio;
+    if (presente.has(e.id)) g.presente = true;
+    if (!e.annullato) g.tutteAnnullate = false;
     giornate.set(chiave, g);
   }
 
   const mesi: PuntoImpilato[] = Array.from({ length: 12 }, (_, m) => ({
-    etichetta: new Date(anno, m, 1).toLocaleDateString('it-IT', { month: 'short' }).replace('.', ''),
+    etichetta: new Date(numero, m, 1)
+      .toLocaleDateString('it-IT', { month: 'short' })
+      .replace('.', ''),
     valori: [0, 0, 0],
     adesso: m === adesso.getMonth(),
   }));
   for (const g of giornate.values()) {
-    if (g.quando.getFullYear() !== anno) continue;
+    if (g.quando.getFullYear() !== numero) continue;
     const valori = mesi[g.quando.getMonth()].valori;
     if (g.presente) valori[0]++;
-    else if (g.si && g.quando >= adesso) valori[1]++;
-    else if (g.si) valori[2]++;
+    else if (g.tutteAnnullate) valori[2]++;
+    else valori[1]++;
   }
   return mesi;
 }

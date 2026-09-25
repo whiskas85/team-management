@@ -26,11 +26,23 @@ export type QuadroPersona = {
   svolteTotali: number;
   stagione: string | null;
   /**
-   * Le partecipazioni dell'anno solare, da gennaio a dicembre, comprese quelle
-   * che devono ancora venire: il grafico per mese guarda l'anno, non la
-   * stagione, e i mesi a venire mostrano quello a cui si è già detto sì.
+   * L'anno solare, da gennaio a dicembre, per il grafico della home: tutte le
+   * attività in programma che questa persona poteva fare — annullate
+   * comprese, e quelle che devono ancora venire — e quelle in cui c'era.
    */
-  righeAnno: RigaPartecipazione[];
+  anno: AnnoPersona;
+};
+
+export type AnnoPersona = {
+  eventi: {
+    id: string;
+    inizio: Date;
+    fine: Date | null;
+    collegatoAId: string | null;
+    annullato: boolean;
+  }[];
+  /** Le attività dell'anno in cui è stata presente all'appello. */
+  presente: string[];
 };
 
 const perRiga = {
@@ -81,7 +93,7 @@ export async function quadroPersona(
   });
 
   const anno = new Date().getFullYear();
-  const [risposte, svolte, risposteAnno] = await Promise.all([
+  const [risposte, svolte, eventiAnno] = await Promise.all([
     prisma.eventRsvp.findMany({
       where: {
         userId,
@@ -90,19 +102,7 @@ export async function quadroPersona(
           ...(stagione ? { stagioneId: stagione.id } : {}),
         },
       },
-      select: {
-        eventId: true,
-        status: true,
-        presente: true,
-        event: {
-          select: {
-            inizio: true,
-            fine: true,
-            collegatoAId: true,
-            tipo: { select: { nome: true, colore: true } },
-          },
-        },
-      },
+      select: perRiga,
     }),
 
     /*
@@ -125,21 +125,41 @@ export async function quadroPersona(
       select: { id: true, inizio: true, fine: true, collegatoAId: true },
     }),
 
-    prisma.eventRsvp.findMany({
+    /*
+     * Le attività dell'anno che poteva fare: la regola del calendario per chi
+     * non vede le bozze — una bozza non è in programma per nessuno, nemmeno
+     * nel grafico dell'admin. Le annullate ci sono: erano in programma.
+     */
+    prisma.event.findMany({
       where: {
-        userId,
-        event: {
-          status: { not: 'ANNULLATA' },
-          inizio: { gte: new Date(anno, 0, 1), lt: new Date(anno + 1, 0, 1) },
-        },
+        AND: [
+          filtroVisibilita(stato, false, userId),
+          { inizio: { gte: new Date(anno, 0, 1), lt: new Date(anno + 1, 0, 1) } },
+        ],
       },
-      select: perRiga,
+      select: {
+        id: true,
+        inizio: true,
+        fine: true,
+        collegatoAId: true,
+        status: true,
+        rsvps: { where: { userId, presente: true }, select: { eventId: true } },
+      },
     }),
   ]);
 
   return {
     righe: risposte.map(inRiga),
-    righeAnno: risposteAnno.map(inRiga),
+    anno: {
+      eventi: eventiAnno.map((e) => ({
+        id: e.id,
+        inizio: e.inizio,
+        fine: e.fine,
+        collegatoAId: e.collegatoAId,
+        annullato: e.status === 'ANNULLATA',
+      })),
+      presente: eventiAnno.filter((e) => e.rsvps.length > 0).map((e) => e.id),
+    },
     // a giornate, come tutto il resto: una domenica con due attività è una
     svolteTotali: new Set(impegni(svolte).values()).size,
     stagione: stagione?.nome ?? null,
