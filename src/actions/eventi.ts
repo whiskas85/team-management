@@ -509,6 +509,39 @@ export async function cambiaStatoEvento(_prev: StatoForm, fd: FormData): Promise
   return { ok: messaggi[status] };
 }
 
+/**
+ * Blocca (o riapre) le iscrizioni: l'attività resta viva, ma da sé non ci si
+ * segna più.
+ *
+ * È la chiusura delle iscrizioni portata ad adesso — la stessa che si scrive
+ * nel modulo — così vale ovunque già valeva: il pulsante «ci sono», le card,
+ * le notifiche. Chi schiera può ancora aggiungere a mano. Riaprendo la
+ * scadenza si toglie: se ne serve una nuova, si rimette dal modulo.
+ */
+export async function bloccaIscrizioni(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può bloccare le iscrizioni.' };
+
+  const id = str(fd, 'id');
+  const blocca = str(fd, 'blocca') === '1';
+  const evento = await prisma.event.findUnique({ where: { id }, select: { status: true } });
+  if (!evento) return { errore: 'Attività non trovata.' };
+  if (evento.status !== 'RILASCIATA') {
+    return { errore: 'Le iscrizioni si bloccano solo su un’attività rilasciata.' };
+  }
+
+  await prisma.event.update({
+    where: { id },
+    data: { chiusuraIscrizioni: blocca ? new Date() : null },
+  });
+  aggiorna(id);
+  return {
+    ok: blocca
+      ? 'Iscrizioni bloccate: l’attività resta attiva, ma non ci si può più segnare.'
+      : 'Iscrizioni riaperte.',
+  };
+}
+
 export async function eliminaEvento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può eliminare gli eventi.' };

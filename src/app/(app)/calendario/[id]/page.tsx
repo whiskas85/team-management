@@ -1458,6 +1458,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       status={evento.status}
                       visibilita={evento.visibilita}
                       soloInterno={evento.tipo?.soloInterno ?? false}
+                      iscrizioniChiuse={
+                        !!evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date()
+                      }
                       compatto
                     />
                   )}

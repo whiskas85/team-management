@@ -1,7 +1,7 @@
 import { AzioneBottone } from './AzioneBottone';
 import { AnnullaEvento } from './AnnullaEvento';
 import { BottoneElimina } from './CardRiga';
-import { cambiaStatoEvento, eliminaEvento, rilasciaEvento } from '@/actions/eventi';
+import { bloccaIscrizioni, cambiaStatoEvento, eliminaEvento, rilasciaEvento } from '@/actions/eventi';
 
 /**
  * Governo dello stato dell'attività a pulsanti: ogni transizione è un gesto
@@ -16,6 +16,7 @@ export function AzioniEvento({
   soloInterno = false,
   compatto = false,
   soloRilascio = false,
+  iscrizioniChiuse = false,
 }: {
   id: string;
   titolo: string;
@@ -38,6 +39,8 @@ export function AzioniEvento({
    * fa non la vede nessuno.
    */
   soloRilascio?: boolean;
+  /** Le iscrizioni sono chiuse (bloccate o scadute): il pulsante le riapre. */
+  iscrizioniChiuse?: boolean;
 }) {
   const dim = compatto ? 'btn-sm' : '';
   if (soloRilascio && status !== 'CREATA') return null;
@@ -119,6 +122,28 @@ export function AzioniEvento({
 
           {!compatto && <span className="w-full" />}
 
+          {/* attiva, ma non ci si segna più: chi schiera aggiunge ancora a mano */}
+          {iscrizioniChiuse ? (
+            <AzioneBottone
+              azione={bloccaIscrizioni}
+              valori={{ id, blocca: '0' }}
+              conferma={`Riaprire le iscrizioni di "${titolo}"? Se c'era una scadenza, si toglie.`}
+              icona="chiave"
+              className={`btn-ghost ${dim} border-warn/40 text-warn`}
+            >
+              Riapri iscrizioni
+            </AzioneBottone>
+          ) : (
+            <AzioneBottone
+              azione={bloccaIscrizioni}
+              valori={{ id, blocca: '1' }}
+              conferma={`Bloccare le iscrizioni di "${titolo}"? L'attività resta attiva, ma nessuno si può più segnare da sé.`}
+              icona="chiave"
+              className={`btn-ghost ${dim}`}
+            >
+              Blocca iscrizioni
+            </AzioneBottone>
+          )}
           <AzioneBottone
             azione={cambiaStatoEvento}
             valori={{ id, status: 'CONCLUSA' }}

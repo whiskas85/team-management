@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.105.0 — 25 settembre 2026
+
+### Aggiunto
+
+- **«Blocca iscrizioni» sulle attività rilasciate**, accanto a Concludi e
+  Annulla. L'attività resta attiva, ma nessuno si può più segnare da sé
+  (compare «adesioni chiuse»); chi schiera può ancora aggiungere a mano.
+  Lo stesso pulsante diventa «Riapri iscrizioni». Bloccare porta la chiusura
+  delle iscrizioni ad adesso; riaprire la toglie.
+
 ## 2.104.0 — 25 settembre 2026
 
 ### Cambiato
