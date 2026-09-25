@@ -157,16 +157,16 @@ export function FormMessaggio({
         />
       </Campo>
       <CampoFile
-        label={messaggio?.banner ? 'Cambia l’immagine in cima' : 'Immagine in cima'}
+        label={messaggio?.banner ? 'Cambia la foto banner' : 'Foto banner'}
         name="banner"
         accept="image/jpeg,image/png,image/webp"
         estensioni={['.jpg', '.jpeg', '.png', '.webp']}
         maxBytes={10 * 1024 * 1024}
-        aiuto="Facoltativa: come la foto sopra un messaggio WhatsApp."
+        aiuto="Facoltativa: sta in cima all’annuncio come la foto di un messaggio WhatsApp, larga quanto l’annuncio e alta quanto la foto. JPG, PNG o WEBP."
       />
       {messaggio?.banner && (
         <label className="flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" name="togliBanner" /> Togli l’immagine
+          <input type="checkbox" name="togliBanner" /> Togli la foto banner
         </label>
       )}
       <div>
@@ -209,9 +209,12 @@ export function MessaggioBacheca({
 
   return (
     <article id={`m-${m.id}`} className={`card scroll-mt-20 overflow-hidden p-0 ${bozza ? 'border-dashed border-warn/60' : ''}`}>
+      {/* il banner come su WhatsApp: largo quanto il messaggio, alto quanto
+          la foto. Prima si tagliava a un'altezza fissa, e di una locandina
+          restava una striscia */}
       {m.banner && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={m.banner} alt="" className="block max-h-72 w-full object-cover" />
+        <img src={m.banner} alt="" className="block h-auto w-full" />
       )}
 
       <div className="p-4">

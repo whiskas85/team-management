@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.106.1 — 25 settembre 2026
+
+### Cambiato
+
+- **La foto banner degli annunci si vede intera**, come su WhatsApp: larga
+  quanto l'annuncio, alta quanto la foto. Prima si tagliava a un'altezza
+  fissa. Nel modulo il campo si chiama ora «Foto banner».
+
 ## 2.106.0 — 25 settembre 2026
 
 ### Aggiunto
