@@ -127,6 +127,10 @@ export async function eventiPerLista({
     // si può rispondere solo su un'attività rilasciata e non ancora chiusa
     adesioniAperte:
       e.status === 'RILASCIATA' && (!e.chiusuraIscrizioni || e.chiusuraIscrizioni > ora),
+    // attiva, ma le iscrizioni sono chiuse (bloccate o scadute): al posto dei
+    // pulsanti per rispondere ci va un badge che lo dice
+    iscrizioniChiuse:
+      e.status === 'RILASCIATA' && !!e.chiusuraIscrizioni && e.chiusuraIscrizioni <= ora,
     // la mia quota per questa attività, se prevista
     quotaDovuta:
       e.payments.length > 0 ? e.payments.reduce((t, p) => t + Number(p.importo), 0) : null,

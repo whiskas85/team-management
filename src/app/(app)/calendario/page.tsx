@@ -11,6 +11,7 @@ import {
   CardStorico,
   ContoAdesioni,
   RigaStorico,
+  BadgeIscrizioniChiuse,
 } from '@/components/CardEvento';
 import { Naviga } from '@/components/Naviga';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
@@ -407,6 +408,11 @@ export default async function CalendarioPage({
                     </div>
                   )}
 
+                  {e.iscrizioniChiuse && (
+                    <div className="mt-2 border-t border-line pt-2">
+                      <BadgeIscrizioniChiuse />
+                    </div>
+                  )}
                   {e.adesioniAperte && (
                     <div className="mt-2 border-t border-line pt-2">
                       <AdesioneEvento

@@ -55,6 +55,7 @@ import { metaNaviga } from '@/components/Naviga';
 import { ComeArrivare, type Tappa } from '@/components/ComeArrivare';
 import { Quando } from '@/components/Quando';
 import { AzioneBottone } from '@/components/AzioneBottone';
+import { BadgeIscrizioniChiuse } from '@/components/CardEvento';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
@@ -995,7 +996,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
             {/* quanto manca per decidere: una data costringe a fare il conto a
                 mente, un conto alla rovescia no */}
-            {evento.status === 'RILASCIATA' && evento.chiusuraIscrizioni && (
+            {/* chiuse, lo dice il badge al posto dei pulsanti: qui sarebbe doppio */}
+            {evento.status === 'RILASCIATA' &&
+              evento.chiusuraIscrizioni &&
+              evento.chiusuraIscrizioni > new Date() && (
               <ContoAllaRovescia scadenza={evento.chiusuraIscrizioni.toISOString()} />
             )}
 {/* Il team leader può sistemare la logistica: è lui che il sabato sera
@@ -2079,6 +2083,18 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 <Link href="/certificati" className="btn-primary w-full btn-sm">
                   Carica il certificato
                 </Link>
+              </div>
+            ) : chiuso && evento.status === 'RILASCIATA' ? (
+              // attiva, ma non ci si segna più: il badge al posto dei pulsanti,
+              // e sotto quello che avevi risposto, se l'avevi fatto
+              <div className="flex flex-wrap items-center gap-2">
+                <BadgeIscrizioniChiuse />
+                {mio && (
+                  <span className="text-sm text-muted">
+                    Avevi risposto:{' '}
+                    <Badge tono={tonoRsvp[mio.status]}>{etichettaRisposta[mio.status]}</Badge>
+                  </span>
+                )}
               </div>
             ) : chiuso ? (
               <p className="text-sm text-muted">

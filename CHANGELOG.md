@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.105.1 — 25 settembre 2026
+
+### Cambiato
+
+- **Iscrizioni chiuse: un badge al posto dei pulsanti.** Su un'attività
+  rilasciata con le iscrizioni bloccate (o scadute), nelle card, nella
+  colonna delle prossime attività e dentro l'attività, al posto di «Ci sono /
+  Forse / No» compare il badge «Iscrizioni chiuse»; dentro l'attività, accanto,
+  quello che avevi risposto.
+
 ## 2.105.0 — 25 settembre 2026
 
 ### Aggiunto

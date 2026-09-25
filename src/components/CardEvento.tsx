@@ -33,6 +33,8 @@ export type EventoLista = {
   mioStato: string | null;
   miaNota: string | null;
   adesioniAperte: boolean;
+  /** Rilasciata, ma non ci si segna più: il badge prende il posto dei pulsanti. */
+  iscrizioniChiuse?: boolean;
   /** Chi c'era davvero, dopo l'appello. Serve allo storico. */
   presenze: number;
   mancati: number;
@@ -136,7 +138,7 @@ export function CardEvento({
    * area cliccabile, perché il corpo è tutto un link all'attività.
    */
   const striscia = puoNavigare || (quota && e.adesioniAperte);
-  const piede = e.adesioniAperte || azioni;
+  const piede = e.adesioniAperte || e.iscrizioniChiuse || azioni;
 
   return (
     <div className="relative flex h-full flex-col rounded-lg border border-line bg-surface">
@@ -219,6 +221,7 @@ export function CardEvento({
               compatta
             />
           )}
+          {e.iscrizioniChiuse && <BadgeIscrizioniChiuse />}
           {azioni}
         </div>
       )}
@@ -327,5 +330,14 @@ export function CardStorico({ e }: { e: EventoLista }) {
         {e.costo !== null && <span className="num text-muted">{fmtEuro(e.costo)}</span>}
       </div>
     </Link>
+  );
+}
+
+/** Le iscrizioni sono chiuse: al posto dei pulsanti con cui si risponde. */
+export function BadgeIscrizioniChiuse() {
+  return (
+    <Badge tono="danger">
+      <Icona nome="chiave" size={12} /> Iscrizioni chiuse
+    </Badge>
   );
 }
