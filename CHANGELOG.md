@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.107.0 — 25 settembre 2026
+
+### Aggiunto
+
+- **In home, un riquadro per le notifiche spente.** Se su questo dispositivo
+  le notifiche non sono attive, in cima alla home compare un avviso con il
+  pulsante «Attiva le notifiche»; sparisce appena si accendono. Se sono state
+  bloccate dice come sbloccarle dalle impostazioni del browser, e su iPhone
+  ricorda di installare prima il gestionale dalla schermata iniziale. In home
+  l'invito piccolo nell'angolo non compare più, per non doppiarlo.
+
 ## 2.106.4 — 25 settembre 2026
 
 ### Aggiunto

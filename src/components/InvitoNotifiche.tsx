@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Icona } from './Icona';
 import { mostraToast } from './Toast';
 import { giaIscritto, iscriviDispositivo, supportate } from '@/lib/push-browser';
@@ -32,6 +33,8 @@ const CHIAVE = 'zd-notifiche-rinviate';
 export function InvitoNotifiche() {
   const [mostra, setMostra] = useState(false);
   const [attesa, setAttesa] = useState(false);
+  // in home c'è già il riquadro in cima: due inviti insieme sarebbero uno di troppo
+  const inHome = usePathname() === '/dashboard';
 
   useEffect(() => {
     if (!supportate() || Notification.permission === 'denied') return;
@@ -61,7 +64,7 @@ export function InvitoNotifiche() {
     };
   }, []);
 
-  if (!mostra) return null;
+  if (!mostra || inHome) return null;
 
   const rinvia = () => {
     try {

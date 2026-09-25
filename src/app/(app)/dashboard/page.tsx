@@ -20,6 +20,7 @@ import { StatistichePersona } from '@/components/StatistichePersona';
 import { quadroPersona } from '@/lib/statistiche';
 import { CardEvento } from '@/components/CardEvento';
 import { daSaldare } from '@/lib/da-saldare';
+import { RiquadroNotifiche } from '@/components/RiquadroNotifiche';
 
 export default async function DashboardPage({
   searchParams,
@@ -167,6 +168,9 @@ export default async function DashboardPage({
           Non hai i permessi per accedere a quella sezione.
         </div>
       )}
+
+      {/* le notifiche spente su questo dispositivo: in cima, finché non si accendono */}
+      <RiquadroNotifiche />
 
       {/* ------------------------------------------------ avvisi personali */}
       <div className="mb-6 space-y-3">
