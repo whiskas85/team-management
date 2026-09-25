@@ -23,7 +23,7 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { BottoneModale } from '@/components/Modale';
 import { EditoreMarkdown } from '@/components/EditoreMarkdown';
 import { FormSondaggio } from '@/components/FormSondaggio';
-import { BadgeAnonima } from '@/components/ElencoSegnalazioni';
+import { BadgeAnonima, BadgeNominale } from '@/components/ElencoSegnalazioni';
 import { SegnaSegnalazioneVista } from '@/components/SegnaSegnalazioneVista';
 
 export const dynamic = 'force-dynamic';
@@ -59,13 +59,7 @@ export default async function SegnalazionePage({ params }: { params: Promise<{ i
   const { persone, menzioni } = await personeCitabili(me);
 
   // chi ha scritto, come lo legge chi guarda: mai il nome se è anonima
-  const firma = mia
-    ? s.anonima
-      ? 'Tu, in forma anonima'
-      : 'Tu'
-    : s.anonima
-      ? 'Chi ha segnalato (anonimo)'
-      : nomeCompleto(s.autore);
+  const firma = mia ? 'te' : nomeCompleto(s.autore);
 
   const foto = s.allegati.filter((a) => a.mimeType.startsWith('image/'));
   const documenti = s.allegati.filter((a) => !a.mimeType.startsWith('image/'));
@@ -120,21 +114,25 @@ export default async function SegnalazionePage({ params }: { params: Promise<{ i
         }
       />
 
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="space-y-4">
         <article className="card">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Badge tono={tonoStatoSegnalazione[s.stato]}>
               {etichettaStatoSegnalazione[s.stato]}
             </Badge>
-            {s.anonima ? (
-              <BadgeAnonima />
-            ) : (
-              <Badge tono="neutro">
-                <Icona nome="profilo" size={11} /> col nome
-              </Badge>
-            )}
-            <span className="text-xs text-muted">{firma}</span>
+            {s.anonima ? <BadgeAnonima /> : <BadgeNominale chi={firma} />}
           </div>
+
+          {/* anonima: detto per intero, non solo col badge — chi gestisce deve
+              sapere perché non trova un nome, chi l'ha scritta che è al sicuro */}
+          {s.anonima && (
+            <p className="mb-4 flex items-start gap-2 rounded-md border border-violet-400/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-200">
+              <Icona nome="scudo" size={14} />
+              {mia
+                ? 'L’hai inviata in forma anonima: il tuo nome non lo vede nessuno, nemmeno l’admin. Le risposte arrivano a te lo stesso.'
+                : 'Chi l’ha scritta ha scelto di restare anonimo: il nome non lo vede nessuno, nemmeno l’admin. Puoi rispondere lo stesso: la risposta gli arriva.'}
+            </p>
+          )}
 
           <Markdown testo={s.testo} menzioni={menzioni} />
 

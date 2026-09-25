@@ -23,6 +23,7 @@ import { BottoneElimina } from '@/components/CardRiga';
 import { FormCanale } from '@/components/FormCanale';
 import { FormSegnalazione } from '@/components/FormSegnalazione';
 import { ElencoSegnalazioni } from '@/components/ElencoSegnalazioni';
+import { ScegliVista } from '@/components/ScegliVista';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,9 +31,16 @@ export const dynamic = 'force-dynamic';
  * Un canale: cosa si segnala qui, il modulo per farlo, e le segnalazioni
  * fatte — le proprie, o tutte per chi le gestisce.
  */
-export default async function CanalePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CanalePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ vista?: string }>;
+}) {
   const me = await requireUser();
   const { id } = await params;
+  const storico = (await searchParams).vista === 'storico';
   const canale = await prisma.canaleSegnalazioni.findFirst({
     where: { AND: [{ id }, filtroCanali(me)] },
   });
@@ -42,7 +50,12 @@ export default async function CanalePage({ params }: { params: Promise<{ id: str
   const admin = isAdmin(me.roles);
   const [segnalazioni, citabili, io] = await Promise.all([
     prisma.segnalazioneCanale.findMany({
-      where: { canaleId: canale.id, ...(gestisce ? {} : { autoreId: me.id }) },
+      where: {
+        canaleId: canale.id,
+        ...(gestisce ? {} : { autoreId: me.id }),
+        // le chiuse stanno nello storico: davanti restano quelle ancora vive
+        stato: storico ? 'CHIUSA' : { not: 'CHIUSA' },
+      },
       orderBy: [{ stato: 'asc' }, { aggiornataIl: 'desc' }],
       include: includiVoce,
     }),
@@ -61,8 +74,19 @@ export default async function CanalePage({ params }: { params: Promise<{ id: str
         titolo={canale.titolo}
         sottotitolo={`Segnalazioni · ${etichettaFirma[canale.firma].toLowerCase()}`}
         azioni={
-          admin ? (
-            <>
+          <>
+            <ScegliVista
+              viste={[
+                { chiave: 'aperte', href: `/segnalazioni/canale/${canale.id}`, testo: 'Aperte' },
+                {
+                  chiave: 'storico',
+                  href: `/segnalazioni/canale/${canale.id}?vista=storico`,
+                  testo: 'Storico',
+                },
+              ]}
+              attuale={storico ? 'storico' : 'aperte'}
+            />
+            {admin && (
               <BottoneModale
                 etichetta="Configura"
                 icona="impostazioni"
@@ -92,13 +116,17 @@ export default async function CanalePage({ params }: { params: Promise<{ id: str
                   />
                 </div>
               </BottoneModale>
-            </>
-          ) : undefined
+            )}
+          </>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-4">
+      {/* Una colonna sola, tutta larga: prima cosa si segnala, poi le
+          segnalazioni, e in fondo il modulo per farne una nuova — di aperte
+          ce ne sono poche, e il modulo resta a portata. Le chiuse stanno
+          nello storico. */}
+      <div className="space-y-6">
+        {!storico && (
           <div className="card">
             <p className="titolo-sezione mb-3 flex items-center gap-2">
               <Icona nome={iconaBacheca(canale.icona)} size={15} /> Cosa si segnala qui
@@ -115,7 +143,35 @@ export default async function CanalePage({ params }: { params: Promise<{ id: str
               {!canale.attivo && <Badge tono="warn">spento</Badge>}
             </div>
           </div>
+        )}
 
+        <section>
+          <h2 className="titolo-sezione mb-3">
+            {storico
+              ? gestisce
+                ? 'Storico · le segnalazioni chiuse'
+                : 'Storico · le tue segnalazioni chiuse'
+              : gestisce
+                ? 'Le segnalazioni aperte'
+                : 'Le tue segnalazioni aperte'}
+          </h2>
+          {segnalazioni.length === 0 ? (
+            <Vuoto
+              testo={
+                storico
+                  ? 'Nessuna segnalazione chiusa.'
+                  : 'Nessuna segnalazione aperta. Se c’è qualcosa da raccontare, qui sotto.'
+              }
+            />
+          ) : (
+            <ElencoSegnalazioni
+              voci={segnalazioni.map((s) => inVoce(s, me))}
+              conCanale={false}
+            />
+          )}
+        </section>
+
+        {!storico && (
           <div className="card">
             <p className="titolo-sezione mb-3">Nuova segnalazione</p>
             {puoScrivere ? (
@@ -134,21 +190,7 @@ export default async function CanalePage({ params }: { params: Promise<{ id: str
               </p>
             )}
           </div>
-        </div>
-
-        <section className="min-w-0">
-          <h2 className="titolo-sezione mb-3">
-            {gestisce ? 'Tutte le segnalazioni di questo canale' : 'Le tue segnalazioni qui'}
-          </h2>
-          {segnalazioni.length === 0 ? (
-            <Vuoto testo="Nessuna segnalazione ancora." />
-          ) : (
-            <ElencoSegnalazioni
-              voci={segnalazioni.map((s) => inVoce(s, me))}
-              conCanale={false}
-            />
-          )}
-        </section>
+        )}
       </div>
     </>
   );

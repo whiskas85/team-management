@@ -35,7 +35,8 @@ export default async function SegnalazioniPage({
   const { vista } = await searchParams;
   const gestisce = gestisceSegnalazioni(me.roles);
   const admin = isAdmin(me.roles);
-  const chiuse = gestisce && vista === 'chiuse';
+  // le chiuse stanno nello storico, per tutti: davanti restano quelle vive
+  const chiuse = vista === 'storico' || vista === 'chiuse';
 
   const [canali, mie, daGestire] = await Promise.all([
     prisma.canaleSegnalazioni.findMany({
@@ -52,7 +53,7 @@ export default async function SegnalazioniPage({
       },
     }),
     prisma.segnalazioneCanale.findMany({
-      where: { autoreId: me.id },
+      where: { autoreId: me.id, stato: chiuse ? 'CHIUSA' : { not: 'CHIUSA' } },
       orderBy: { aggiornataIl: 'desc' },
       include: includiVoce,
     }),
@@ -81,15 +82,13 @@ export default async function SegnalazioniPage({
         }
         azioni={
           <>
-            {gestisce && (
-              <ScegliVista
-                viste={[
-                  { chiave: 'aperte', href: '/segnalazioni', testo: 'Da gestire' },
-                  { chiave: 'chiuse', href: '/segnalazioni?vista=chiuse', testo: 'Chiuse' },
-                ]}
-                attuale={chiuse ? 'chiuse' : 'aperte'}
-              />
-            )}
+            <ScegliVista
+              viste={[
+                { chiave: 'aperte', href: '/segnalazioni', testo: 'Aperte' },
+                { chiave: 'storico', href: '/segnalazioni?vista=storico', testo: 'Storico' },
+              ]}
+              attuale={chiuse ? 'storico' : 'aperte'}
+            />
             {admin && (
               <BottoneModale
                 etichetta="Nuovo canale"
@@ -107,7 +106,9 @@ export default async function SegnalazioniPage({
       <div className="space-y-8">
         {gestisce && (
           <section>
-            <h2 className="titolo-sezione mb-3">{chiuse ? 'Chiuse' : 'Da gestire'}</h2>
+            <h2 className="titolo-sezione mb-3">
+              {chiuse ? 'Storico · chiuse, degli altri' : 'Da gestire'}
+            </h2>
             {daGestire.length === 0 ? (
               <Vuoto
                 testo={
@@ -120,52 +121,62 @@ export default async function SegnalazioniPage({
           </section>
         )}
 
-        <section>
-          <h2 className="titolo-sezione mb-3">Canali</h2>
-          {canali.length === 0 ? (
-            <Vuoto
-              testo={
-                admin
-                  ? 'Nessun canale ancora. Creane uno: «Tornei», «Comportamenti», «Idee e feedback».'
-                  : 'Per ora non c’è nessun canale in cui segnalare.'
-              }
-            />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {canali.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/segnalazioni/canale/${c.id}`}
-                  className={`card block transition-colors hover:border-nvgdim ${
-                    c.attivo ? '' : 'border-dashed opacity-60'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="flex min-w-0 items-center gap-2 break-words font-medium">
-                      <Icona nome={iconaBacheca(c.icona)} size={16} /> {c.titolo}
-                    </h3>
-                    {c._count.segnalazioni > 0 && (
-                      <span className="num shrink-0 rounded-full bg-nvg px-2 py-0.5 text-xs font-semibold text-bg">
-                        {c._count.segnalazioni}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge tono="neutro">{etichettaFirma[c.firma]}</Badge>
-                    {c.conAllegati && <Badge tono="neutro">con allegati</Badge>}
-                    {gestisce && <Badge tono="neutro">{etichettaDestinatari[c.pubblico]}</Badge>}
-                    {!c.attivo && <Badge tono="warn">spento</Badge>}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
+        {!chiuse && (
+          <section>
+            <h2 className="titolo-sezione mb-3">Canali</h2>
+            {canali.length === 0 ? (
+              <Vuoto
+                testo={
+                  admin
+                    ? 'Nessun canale ancora. Creane uno: «Tornei», «Comportamenti», «Idee e feedback».'
+                    : 'Per ora non c’è nessun canale in cui segnalare.'
+                }
+              />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {canali.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/segnalazioni/canale/${c.id}`}
+                    className={`card block transition-colors hover:border-nvgdim ${
+                      c.attivo ? '' : 'border-dashed opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="flex min-w-0 items-center gap-2 break-words font-medium">
+                        <Icona nome={iconaBacheca(c.icona)} size={16} /> {c.titolo}
+                      </h3>
+                      {c._count.segnalazioni > 0 && (
+                        <span className="num shrink-0 rounded-full bg-nvg px-2 py-0.5 text-xs font-semibold text-bg">
+                          {c._count.segnalazioni}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge tono="neutro">{etichettaFirma[c.firma]}</Badge>
+                      {c.conAllegati && <Badge tono="neutro">con allegati</Badge>}
+                      {gestisce && <Badge tono="neutro">{etichettaDestinatari[c.pubblico]}</Badge>}
+                      {!c.attivo && <Badge tono="warn">spento</Badge>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section>
-          <h2 className="titolo-sezione mb-3">Le tue segnalazioni</h2>
+          <h2 className="titolo-sezione mb-3">
+            {chiuse ? 'Storico · le tue segnalazioni chiuse' : 'Le tue segnalazioni aperte'}
+          </h2>
           {mie.length === 0 ? (
-            <Vuoto testo="Non hai ancora fatto segnalazioni. Scegli un canale qui sopra." />
+            <Vuoto
+              testo={
+                chiuse
+                  ? 'Nessuna tua segnalazione chiusa.'
+                  : 'Nessuna segnalazione aperta. Per farne una, scegli un canale qui sopra.'
+              }
+            />
           ) : (
             <ElencoSegnalazioni voci={mie.map((s) => inVoce(s, me))} />
           )}

@@ -46,12 +46,16 @@ export function ElencoSegnalazioni({
             <p className={`break-words ${s.nuova ? 'font-semibold' : 'font-medium'}`}>{s.titolo}</p>
             <p className="num mt-0.5 text-xs text-muted">
               {conCanale && <>{s.canale} · </>}
-              {s.anonima ? 'anonima' : s.chi ? s.chi : 'col tuo nome'} ·{' '}
+              {/* anonima lo dice il badge: qui sarebbe doppio */}
+              {!s.anonima && <>{s.chi ?? 'col tuo nome'} · </>}
               {fmtDateTime(s.aggiornataIl)}
               {s.risposte > 0 && (
                 <>
                   {' '}
-                  · <Icona nome="commento" size={11} /> {s.risposte}
+                  ·{' '}
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap align-middle">
+                    <Icona nome="commento" size={11} /> {s.risposte}
+                  </span>
                 </>
               )}
             </p>
@@ -68,11 +72,23 @@ export function ElencoSegnalazioni({
   );
 }
 
-/** Anonima: si dice sempre, dove la segnalazione si vede. */
+/** Anonima: si dice sempre, in parole intere, dove la segnalazione si vede. */
 export function BadgeAnonima() {
   return (
-    <span className="badge border-violet-400/40 bg-violet-400/15 text-violet-300">
-      <Icona nome="scudo" size={11} /> anonima
+    <span
+      title="Il nome di chi l’ha scritta non lo vede nessuno, nemmeno l’admin"
+      className="badge border-violet-400/40 bg-violet-400/15 text-violet-300"
+    >
+      <Icona nome="scudo" size={11} /> Segnalazione anonima
+    </span>
+  );
+}
+
+/** Col nome: chi l'ha scritta si sa. */
+export function BadgeNominale({ chi }: { chi: string }) {
+  return (
+    <span className="badge border-line bg-surface2 text-ink/80">
+      <Icona nome="profilo" size={11} /> Firmata da {chi}
     </span>
   );
 }

@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.106.2 — 25 settembre 2026
+
+### Cambiato
+
+- **Segnalazioni, pagine rifatte.**
+  - Il canale è una colonna sola a tutta larghezza: in cima «Cosa si segnala
+    qui», sotto le segnalazioni aperte, in fondo il modulo per farne una
+    nuova. Le chiuse stanno nello **Storico**, che si apre dalla pagina
+    (anche in «Tutte le segnalazioni» e dal menu).
+  - La singola segnalazione occupa tutta la pagina.
+  - Anonima si capisce subito: il badge dice «Segnalazione anonima», e sotto
+    una riga spiega che il nome non lo vede nessuno ma la risposta arriva.
+    Col nome, il badge dice «Firmata da …».
+
 ## 2.106.1 — 25 settembre 2026
 
 ### Cambiato

@@ -395,9 +395,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             gruppo: 'segnalazioni' as const,
             badge: segnNuove.length,
             riepilogo: true,
-            ...(gestisceSegn
-              ? { sotto: [{ label: 'Chiuse', href: '/segnalazioni?vista=chiuse' }] }
-              : {}),
+            sotto: [{ label: 'Storico', href: '/segnalazioni?vista=storico' }],
           },
         ]
       : []),
