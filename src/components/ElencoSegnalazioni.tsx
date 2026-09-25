@@ -105,15 +105,17 @@ export function BadgeFirmaCanale({
   /** In cima alla pagina del canale: più grosso, con la spiegazione. */
   grande?: boolean;
 }) {
+  // grande va a capo sul telefono: la spiegazione è lunga, e un badge che
+  // esce dallo schermo non lo legge nessuno
   const misura = grande
-    ? 'gap-2 px-3.5 py-1.5 text-sm font-semibold'
-    : 'gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold';
+    ? 'max-w-full gap-2 rounded-xl px-3.5 py-1.5 text-sm font-semibold'
+    : 'gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap';
   const icona = grande ? 16 : 12;
   if (firma === 'ANONIMA') {
     return (
       <span
         title="Il nome di chi scrive non lo vede nessuno, nemmeno l’admin"
-        className={`inline-flex items-center rounded-full border-2 border-violet-400/70 bg-violet-500/25 uppercase tracking-[0.06em] text-violet-200 ${misura}`}
+        className={`inline-flex items-center border-2 border-violet-400/70 bg-violet-500/25 uppercase tracking-[0.06em] text-violet-200 ${misura}`}
       >
         <Icona nome="scudo" size={icona} /> Anonime
         {grande && (
@@ -127,7 +129,7 @@ export function BadgeFirmaCanale({
   if (firma === 'A_SCELTA') {
     return (
       <span
-        className={`inline-flex items-center rounded-full border-2 border-violet-400/40 bg-violet-400/10 uppercase tracking-[0.06em] text-violet-300 ${misura}`}
+        className={`inline-flex items-center border-2 border-violet-400/40 bg-violet-400/10 uppercase tracking-[0.06em] text-violet-300 ${misura}`}
       >
         <Icona nome="scudo" size={icona} /> Anonime o col nome
         {grande && (
@@ -140,7 +142,7 @@ export function BadgeFirmaCanale({
   }
   return (
     <span
-      className={`inline-flex items-center rounded-full border-2 border-line bg-surface2 uppercase tracking-[0.06em] text-ink/85 ${misura}`}
+      className={`inline-flex items-center border-2 border-line bg-surface2 uppercase tracking-[0.06em] text-ink/85 ${misura}`}
     >
       <Icona nome="profilo" size={icona} /> Col nome
       {grande && (
