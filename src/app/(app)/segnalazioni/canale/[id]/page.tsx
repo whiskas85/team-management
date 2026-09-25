@@ -6,7 +6,6 @@ import { nomeCompleto } from '@/lib/format';
 import { etichettaDestinatari } from '@/lib/sondaggi';
 import { iconaBacheca } from '@/lib/icone-bacheca';
 import {
-  etichettaFirma,
   filtroCanali,
   gestisceSegnalazioni,
   inVoce,
@@ -22,7 +21,7 @@ import { BottoneModale } from '@/components/Modale';
 import { BottoneElimina } from '@/components/CardRiga';
 import { FormCanale } from '@/components/FormCanale';
 import { FormSegnalazione } from '@/components/FormSegnalazione';
-import { ElencoSegnalazioni } from '@/components/ElencoSegnalazioni';
+import { BadgeFirmaCanale, ElencoSegnalazioni } from '@/components/ElencoSegnalazioni';
 import { ScegliVista } from '@/components/ScegliVista';
 
 export const dynamic = 'force-dynamic';
@@ -72,7 +71,8 @@ export default async function CanalePage({
     <>
       <Intestazione
         titolo={canale.titolo}
-        sottotitolo={`Segnalazioni · ${etichettaFirma[canale.firma].toLowerCase()}`}
+        sottotitolo="Segnalazioni"
+        etichette={<BadgeFirmaCanale firma={canale.firma} grande />}
         azioni={
           <>
             <ScegliVista
@@ -137,7 +137,7 @@ export default async function CanalePage({
               <p className="text-sm text-muted">Racconta quello che vuoi far sapere.</p>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge tono="neutro">{etichettaFirma[canale.firma]}</Badge>
+              <BadgeFirmaCanale firma={canale.firma} />
               {canale.conAllegati && <Badge tono="neutro">con allegati</Badge>}
               {gestisce && <Badge tono="neutro">{etichettaDestinatari[canale.pubblico]}</Badge>}
               {!canale.attivo && <Badge tono="warn">spento</Badge>}

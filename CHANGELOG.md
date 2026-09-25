@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.106.3 — 25 settembre 2026
+
+### Cambiato
+
+- **Come si firma un canale si vede a colpo d'occhio.** Sotto il titolo del
+  canale un badge grande e colorato: viola pieno «ANONIME · il tuo nome non
+  lo vede nessuno, nemmeno l'admin», viola chiaro «ANONIME O COL NOME · scegli
+  tu», grigio «COL NOME». Lo stesso badge, colorato, sulle schede dei canali.
+
 ## 2.106.2 — 25 settembre 2026
 
 ### Cambiato

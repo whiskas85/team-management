@@ -5,7 +5,6 @@ import { isAdmin } from '@/lib/domain';
 import { etichettaDestinatari } from '@/lib/sondaggi';
 import { iconaBacheca } from '@/lib/icone-bacheca';
 import {
-  etichettaFirma,
   filtroCanali,
   gestisceSegnalazioni,
   inVoce,
@@ -16,7 +15,7 @@ import { Icona } from '@/components/Icona';
 import { BottoneModale } from '@/components/Modale';
 import { ScegliVista } from '@/components/ScegliVista';
 import { FormCanale } from '@/components/FormCanale';
-import { ElencoSegnalazioni } from '@/components/ElencoSegnalazioni';
+import { BadgeFirmaCanale, ElencoSegnalazioni } from '@/components/ElencoSegnalazioni';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,7 +152,7 @@ export default async function SegnalazioniPage({
                       )}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge tono="neutro">{etichettaFirma[c.firma]}</Badge>
+                      <BadgeFirmaCanale firma={c.firma} />
                       {c.conAllegati && <Badge tono="neutro">con allegati</Badge>}
                       {gestisce && <Badge tono="neutro">{etichettaDestinatari[c.pubblico]}</Badge>}
                       {!c.attivo && <Badge tono="warn">spento</Badge>}

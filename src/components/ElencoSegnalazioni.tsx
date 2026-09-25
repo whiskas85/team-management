@@ -92,3 +92,62 @@ export function BadgeNominale({ chi }: { chi: string }) {
     </span>
   );
 }
+
+/**
+ * Come si firma in un canale, detto in grande: chi sta per scrivere deve
+ * saperlo prima ancora di leggere il resto — soprattutto se è anonimo.
+ */
+export function BadgeFirmaCanale({
+  firma,
+  grande = false,
+}: {
+  firma: 'NOMINALE' | 'ANONIMA' | 'A_SCELTA';
+  /** In cima alla pagina del canale: più grosso, con la spiegazione. */
+  grande?: boolean;
+}) {
+  const misura = grande
+    ? 'gap-2 px-3.5 py-1.5 text-sm font-semibold'
+    : 'gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold';
+  const icona = grande ? 16 : 12;
+  if (firma === 'ANONIMA') {
+    return (
+      <span
+        title="Il nome di chi scrive non lo vede nessuno, nemmeno l’admin"
+        className={`inline-flex items-center rounded-full border-2 border-violet-400/70 bg-violet-500/25 uppercase tracking-[0.06em] text-violet-200 ${misura}`}
+      >
+        <Icona nome="scudo" size={icona} /> Anonime
+        {grande && (
+          <span className="font-normal normal-case tracking-normal text-violet-200/80">
+            · il tuo nome non lo vede nessuno, nemmeno l’admin
+          </span>
+        )}
+      </span>
+    );
+  }
+  if (firma === 'A_SCELTA') {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full border-2 border-violet-400/40 bg-violet-400/10 uppercase tracking-[0.06em] text-violet-300 ${misura}`}
+      >
+        <Icona nome="scudo" size={icona} /> Anonime o col nome
+        {grande && (
+          <span className="font-normal normal-case tracking-normal text-violet-200/80">
+            · scegli tu, ogni volta
+          </span>
+        )}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border-2 border-line bg-surface2 uppercase tracking-[0.06em] text-ink/85 ${misura}`}
+    >
+      <Icona nome="profilo" size={icona} /> Col nome
+      {grande && (
+        <span className="font-normal normal-case tracking-normal text-muted">
+          · chi gestisce vede chi ha scritto
+        </span>
+      )}
+    </span>
+  );
+}

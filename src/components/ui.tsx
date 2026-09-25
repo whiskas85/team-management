@@ -19,6 +19,7 @@ export function Intestazione({
   titolo,
   sottotitolo,
   descrizione,
+  etichette,
   azioni,
 }: {
   titolo: string;
@@ -28,6 +29,8 @@ export function Intestazione({
    * sottotitolo, che resta per i dati di contorno (chi, per chi).
    */
   descrizione?: string | null;
+  /** Badge da leggere insieme al titolo, sotto di lui: cose che contano quanto il nome. */
+  etichette?: ReactNode;
   azioni?: ReactNode;
 }) {
   return (
@@ -47,6 +50,7 @@ export function Intestazione({
           </p>
         )}
         {sottotitolo && <p className="mt-1 text-sm text-muted">{sottotitolo}</p>}
+        {etichette && <div className="mt-3 flex flex-wrap items-center gap-2">{etichette}</div>}
       </div>
 
       {azioni && <div className="flex flex-wrap gap-2">{azioni}</div>}
