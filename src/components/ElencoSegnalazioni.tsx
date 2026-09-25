@@ -1,0 +1,78 @@
+import Link from 'next/link';
+import { Badge } from './ui';
+import { Icona } from './Icona';
+import { fmtDateTime } from '@/lib/format';
+import { etichettaStatoSegnalazione, tonoStatoSegnalazione } from '@/lib/segnalazioni-canali';
+import type { StatoSegnalazioneCanale } from '@prisma/client';
+
+export type VoceSegnalazione = {
+  id: string;
+  titolo: string;
+  stato: StatoSegnalazioneCanale;
+  anonima: boolean;
+  aggiornataIl: Date;
+  canale: string;
+  /** Chi l'ha scritta, come la vede chi guarda: null quando è anonima o è sua. */
+  chi: string | null;
+  /** C'è qualcosa di nuovo per chi guarda. */
+  nuova: boolean;
+  risposte: number;
+};
+
+/** Le segnalazioni in fila: una riga a testa, il pallino su quelle con del nuovo. */
+export function ElencoSegnalazioni({
+  voci,
+  conCanale = true,
+}: {
+  voci: VoceSegnalazione[];
+  /** Si dice il canale: fuori dalla pagina del canale. */
+  conCanale?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      {voci.map((s) => (
+        <Link
+          key={s.id}
+          href={`/segnalazioni/${s.id}`}
+          className={`card flex items-start gap-3 transition-colors hover:border-nvgdim ${
+            s.stato === 'CHIUSA' ? 'opacity-70' : ''
+          }`}
+        >
+          <span
+            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${s.nuova ? 'bg-nvg' : 'bg-transparent'}`}
+            aria-label={s.nuova ? 'Novità' : undefined}
+          />
+          <div className="min-w-0 flex-1">
+            <p className={`break-words ${s.nuova ? 'font-semibold' : 'font-medium'}`}>{s.titolo}</p>
+            <p className="num mt-0.5 text-xs text-muted">
+              {conCanale && <>{s.canale} · </>}
+              {s.anonima ? 'anonima' : s.chi ? s.chi : 'col tuo nome'} ·{' '}
+              {fmtDateTime(s.aggiornataIl)}
+              {s.risposte > 0 && (
+                <>
+                  {' '}
+                  · <Icona nome="commento" size={11} /> {s.risposte}
+                </>
+              )}
+            </p>
+          </div>
+          <span className="flex shrink-0 flex-col items-end gap-1">
+            <Badge tono={tonoStatoSegnalazione[s.stato]}>
+              {etichettaStatoSegnalazione[s.stato]}
+            </Badge>
+            {s.anonima && <BadgeAnonima />}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/** Anonima: si dice sempre, dove la segnalazione si vede. */
+export function BadgeAnonima() {
+  return (
+    <span className="badge border-violet-400/40 bg-violet-400/15 text-violet-300">
+      <Icona nome="scudo" size={11} /> anonima
+    </span>
+  );
+}

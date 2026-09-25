@@ -249,6 +249,9 @@ model User {
   attivitaDaReferente   ReferenteEvento[]       @relation("ReferenteDi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   sondaggiScritti       Sondaggio[]             @relation("SondaggiScritti")
+  canaliCreati          CanaleSegnalazioni[]    @relation("CanaliCreati")
+  segnalazioniCanale    SegnalazioneCanale[]    @relation("SegnalazioniCanale")
+  risposteSegnalazioni  RispostaSegnalazione[]  @relation("RisposteSegnalazioni")
   votiSondaggi          VotoSondaggio[]         @relation("VotiSondaggi")
   opzioniProposte       OpzioneSondaggio[]      @relation("OpzioniProposte")
   bachecheCreate        Bacheca[]               @relation("BachecheCreate")
@@ -2073,6 +2076,11 @@ model Sondaggio {
   eventoId String? @unique
   evento   Event?  @relation("EventoDaSondaggio", fields: [eventoId], references: [id], onDelete: SetNull)
 
+  /// La segnalazione da cui e' nato, se e' nato da una: il sondaggio resta
+  /// il seguito di quella, e da li' ci si torna.
+  segnalazioneId String?
+  segnalazione   SegnalazioneCanale? @relation(fields: [segnalazioneId], references: [id], onDelete: SetNull)
+
   opzioni OpzioneSondaggio[]
   voti    VotoSondaggio[]
 
@@ -2352,4 +2360,112 @@ model SitoCollegato {
   creatoDa    User?      @relation("SitiCollegati", fields: [creatoDaId], references: [id], onDelete: SetNull)
   ultimoUsoIl DateTime?
   contatti    Contatto[]
+}
+
+// ---------------------------------------------------------- segnalazioni
+
+/// Come si firma una segnalazione in un canale.
+enum FirmaSegnalazione {
+  NOMINALE // sempre col proprio nome
+  ANONIMA // sempre anonima
+  A_SCELTA // decide chi segnala, ogni volta
+}
+
+/// Dove sta una segnalazione: aperta, letta da chi gestisce, con una
+/// risposta, chiusa.
+enum StatoSegnalazioneCanale {
+  APERTA
+  LETTA
+  RISPOSTA
+  CHIUSA
+}
+
+/// Un canale di segnalazione: un posto dove si racconta una cosa a chi la
+/// gestisce — i tornei, un comportamento scorretto, un'idea.
+///
+/// Li crea l'admin. La descrizione e' il foglio che si legge prima di
+/// scrivere: cosa segnalare qui, e cosa aspettarsi.
+model CanaleSegnalazioni {
+  id          String               @id @default(cuid())
+  titolo      String
+  /// In Markdown: cosa si segnala qui, spiegato a chi sta per farlo.
+  descrizione String?
+  icona       String               @default("scudo")
+  firma       FirmaSegnalazione    @default(A_SCELTA)
+  /// Chi puo' segnalare: la squadra, i nuovi, tutti.
+  pubblico    DestinatariSondaggio @default(TUTTI)
+  /// Si possono allegare foto e documenti.
+  conAllegati Boolean              @default(false)
+  /// Spento, non accetta piu' segnalazioni e sparisce dal menu; quelle fatte
+  /// restano.
+  attivo      Boolean              @default(true)
+  ordine      Int                  @default(0)
+  creatoIl    DateTime             @default(now())
+  creatoDaId  String
+  creatoDa    User                 @relation("CanaliCreati", fields: [creatoDaId], references: [id], onDelete: Cascade)
+
+  segnalazioni SegnalazioneCanale[]
+}
+
+/// Una segnalazione fatta in un canale.
+///
+/// **Chi l'ha scritta si sa sempre, anche quando e' anonima**: e' l'unico modo
+/// per fargli arrivare la risposta. Anonima vuol dire che il gestionale non lo
+/// mostra a nessuno — nemmeno all'admin — e lo usa solo per recapitare.
+model SegnalazioneCanale {
+  id        String                  @id @default(cuid())
+  canaleId  String
+  canale    CanaleSegnalazioni      @relation(fields: [canaleId], references: [id], onDelete: Cascade)
+  autoreId  String
+  autore    User                    @relation("SegnalazioniCanale", fields: [autoreId], references: [id], onDelete: Cascade)
+  anonima   Boolean                 @default(false)
+  titolo    String
+  /// In Markdown, con le @persone.
+  testo     String
+  stato     StatoSegnalazioneCanale @default(APERTA)
+  /// C'e' qualcosa di nuovo per chi gestisce: la segnalazione appena fatta, o
+  /// una controrisposta di chi l'ha scritta.
+  nuovaPerGestori Boolean           @default(true)
+  /// C'e' una risposta che chi l'ha scritta non ha ancora letto.
+  nuovaPerAutore  Boolean           @default(false)
+  creataIl  DateTime                @default(now())
+  aggiornataIl DateTime             @default(now())
+  lettaIl   DateTime?
+  chiusaIl  DateTime?
+
+  risposte RispostaSegnalazione[]
+  allegati AllegatoSegnalazione[]
+  sondaggi Sondaggio[]
+
+  @@index([autoreId])
+  @@index([canaleId, stato])
+}
+
+/// Una risposta dentro una segnalazione: di chi gestisce, o di chi l'ha
+/// scritta. Solo testo, in Markdown.
+model RispostaSegnalazione {
+  id             String             @id @default(cuid())
+  segnalazioneId String
+  segnalazione   SegnalazioneCanale @relation(fields: [segnalazioneId], references: [id], onDelete: Cascade)
+  autoreId       String
+  autore         User               @relation("RisposteSegnalazioni", fields: [autoreId], references: [id], onDelete: Cascade)
+  /// Scritta da chi gestisce (e non da chi ha segnalato): cosi' si sa da che
+  /// parte sta anche quando l'autore e' anonimo.
+  daGestore      Boolean
+  testo          String
+  creataIl       DateTime           @default(now())
+
+  @@index([segnalazioneId, creataIl])
+}
+
+/// Una foto o un documento allegato a una segnalazione.
+model AllegatoSegnalazione {
+  id             String             @id @default(cuid())
+  segnalazioneId String
+  segnalazione   SegnalazioneCanale @relation(fields: [segnalazioneId], references: [id], onDelete: Cascade)
+  filePath       String
+  fileName       String
+  mimeType       String
+  fileSize       Int
+  creatoIl       DateTime           @default(now())
 }

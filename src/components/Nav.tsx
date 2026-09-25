@@ -20,6 +20,7 @@ export type VoceMenu = {
     | 'principale'
     | 'annunci'
     | 'sondaggi'
+    | 'segnalazioni'
     | 'mercatino'
     | 'regolamenti'
     | 'persone'
@@ -73,6 +74,7 @@ const ETICHETTA_GRUPPO: Record<string, string> = {
   principale: 'Operativo',
   annunci: 'Annunci',
   sondaggi: 'Sondaggi',
+  segnalazioni: 'Segnalazioni',
   mercatino: 'Mercatino',
   regolamenti: 'Regolamenti',
   persone: 'Atleti & nuovi',
@@ -132,6 +134,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
     'principale',
     'annunci',
     'sondaggi',
+    'segnalazioni',
     'mercatino',
     'regolamenti',
     'persone',

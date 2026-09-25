@@ -22,6 +22,7 @@ import { attivitaDaCoprire } from '@/lib/assicurazione';
 import { loRiguarda } from '@/lib/sondaggi';
 import { filtroBacheche, puoCreareBacheche } from '@/lib/bacheche';
 import { iconaBacheca } from '@/lib/icone-bacheca';
+import { filtroCanali, gestisceSegnalazioni } from '@/lib/segnalazioni-canali';
 import { filtroVisibilita } from '@/lib/query';
 import { iniziali } from '@/lib/format';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
@@ -210,6 +211,30 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }));
   const sondaggiDaVotare = sondaggiAperti.filter((s) => s.daVotare).length;
 
+  /*
+   * I canali di segnalazione che questa persona vede, e i pallini: per chi
+   * segnala le risposte non lette alle sue, per chi gestisce le segnalazioni
+   * con qualcosa di nuovo (non le proprie: quelle contano come a chi segnala).
+   */
+  const gestisceSegn = gestisceSegnalazioni(utente.roles);
+  const [canaliSegn, segnNuove] = await Promise.all([
+    prisma.canaleSegnalazioni.findMany({
+      where: { ...filtroCanali(utente), attivo: true },
+      orderBy: [{ ordine: 'asc' }, { creatoIl: 'asc' }],
+      select: { id: true, titolo: true, icona: true },
+    }),
+    prisma.segnalazioneCanale.findMany({
+      where: {
+        OR: [
+          { autoreId: utente.id, nuovaPerAutore: true },
+          ...(gestisceSegn ? [{ autoreId: { not: utente.id }, nuovaPerGestori: true }] : []),
+        ],
+      },
+      select: { canaleId: true },
+    }),
+  ]);
+  const segnNuoveIn = (id: string) => segnNuove.filter((s) => s.canaleId === id).length;
+
   // il carrello è uno solo e attraversa il catalogo: il pallino dice quanti
   // pezzi ci sono dentro, o uno lo dimentica pieno per settimane
   const nelCarrello = puoVedereMerchandising(utente.stato)
@@ -356,6 +381,32 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       icona: 'avvisi' as const,
       gruppo: 'sondaggi' as const,
       badge: s.daVotare ? 1 : 0,
+    })),
+    /*
+     * Le segnalazioni, in un gruppo loro come annunci e sondaggi: un canale
+     * per riga, e in cima tutte — le proprie, o da gestire.
+     */
+    ...(canaliSegn.length > 0 || gestisceSegn || isAdmin(utente.roles)
+      ? [
+          {
+            href: '/segnalazioni',
+            label: 'Tutte le segnalazioni',
+            icona: 'menu' as const,
+            gruppo: 'segnalazioni' as const,
+            badge: segnNuove.length,
+            riepilogo: true,
+            ...(gestisceSegn
+              ? { sotto: [{ label: 'Chiuse', href: '/segnalazioni?vista=chiuse' }] }
+              : {}),
+          },
+        ]
+      : []),
+    ...canaliSegn.map((c) => ({
+      href: `/segnalazioni/canale/${c.id}`,
+      label: c.titolo,
+      icona: iconaBacheca(c.icona),
+      gruppo: 'segnalazioni' as const,
+      badge: segnNuoveIn(c.id),
     })),
     // vale per tutti: una chiave non dà poteri, eredita quelli di chi la crea
     { href: '/assistente', label: 'Assistente', icona: 'chiave', gruppo: 'principale' },
@@ -549,7 +600,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (puoModerareChat(utente.roles)) {
     voci.push({
       href: '/admin/segnalazioni',
-      label: 'Segnalazioni',
+      // «Segnalazioni» è il gruppo dei canali: questi sono i messaggi che
+      // qualcuno ha trovato fuori posto
+      label: 'Messaggi segnalati',
       icona: 'commento',
       gruppo: 'amministrazione',
       badge: segnalazioniAperte,

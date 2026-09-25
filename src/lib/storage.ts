@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile, unlink } from 'fs/promises';
+import { copyFile, mkdir, writeFile, unlink } from 'fs/promises';
 import path from 'path';
 
 export const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -111,4 +111,17 @@ export async function eliminaAllegato(relativo: string) {
   } catch {
     /* file già assente: non è un errore bloccante */
   }
+}
+
+/**
+ * Una copia di un file già caricato, in un'altra cartella: la stessa foto che
+ * passa da un posto a un altro senza che i due restino legati — togliendola
+ * da uno, l'altro la tiene.
+ */
+export async function copiaAllegato(relativo: string, cartella: string): Promise<string> {
+  const dir = path.join(UPLOAD_DIR, cartella);
+  await mkdir(dir, { recursive: true });
+  const nome = `${randomUUID()}${path.extname(relativo).slice(0, 10)}`;
+  await copyFile(percorsoAssoluto(relativo), path.join(dir, nome));
+  return path.posix.join(cartella, nome);
 }

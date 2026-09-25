@@ -1,7 +1,8 @@
 import { prisma } from './db';
 import { nomeCompleto } from './format';
 import type { Role, StatoOperatore } from '@prisma/client';
-import { etichettaStato, inSquadra, isContatto, puoVedereNuovi } from './domain';
+import { etichettaStato } from './domain';
+import { paginaPersona } from './pagina-persona';
 import { maniglia } from './note';
 import { gestisceBacheche, indirizzoAllegato, vedeBacheca, type BachecaPerRegole } from './bacheche';
 import type { PersonaScelta } from '@/components/FormBacheca';
@@ -44,16 +45,6 @@ export async function chiocciole(
   },
   me: { id: string; stato: StatoOperatore; roles: Role[] },
 ): Promise<{ citabili: Citabile[]; menzioni: Menzioni }> {
-  // La pagina di una persona, se chi legge la può aprire: la stessa regola
-  // del calendario. Dove non c'è, la chiocciola resta un nome.
-  const pagina = (p: { id: string; stato: StatoOperatore }) => {
-    if (p.id === me.id) return '/profilo';
-    if (isContatto(p.stato)) {
-      return puoVedereNuovi(me.roles) ? `/admin/operatori/${p.id}` : undefined;
-    }
-    return inSquadra(me.stato) && inSquadra(p.stato) ? `/operatori/${p.id}` : undefined;
-  };
-
   const persone = await prisma.user.findMany({
     where: { stato: { not: 'DISABILITATO' } },
     orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
@@ -73,7 +64,7 @@ export async function chiocciole(
         id: p.id,
         maniglia: maniglia(p),
         nome: nomeCompleto(p),
-        href: pagina(p),
+        href: paginaPersona(me, p),
         persona: true,
       })),
   ];

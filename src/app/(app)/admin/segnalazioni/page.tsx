@@ -65,7 +65,7 @@ export default async function SegnalazioniPage({
   return (
     <>
       <Intestazione
-        titolo="Segnalazioni"
+        titolo="Messaggi segnalati"
         sottotitolo="I messaggi che qualcuno ha trovato fuori posto"
       />
 

@@ -24,7 +24,8 @@ import {
 } from '@/lib/sondaggi';
 import { avvisaPersona } from '@/lib/avvisi';
 import { avvisaChiusuraSondaggio } from '@/lib/sondaggi-chiusura';
-import { eliminaAllegato as cancellaDalDisco, salvaAllegato } from '@/lib/storage';
+import { copiaAllegato, eliminaAllegato as cancellaDalDisco, salvaAllegato } from '@/lib/storage';
+import { gestisceSegnalazioni } from '@/lib/segnalazioni-canali';
 import { REGOLE_BANNER } from '@/lib/bacheche';
 
 const TIPI = ['TESTO', 'DATA', 'PRESENZE', 'DECISIONE'] as const;
@@ -128,9 +129,36 @@ export async function creaSondaggio(_prev: StatoForm, fd: FormData): Promise<Sta
   const copertina = await copertinaDalModulo(fd);
   if ('errore' in copertina) return { errore: copertina.errore };
 
+  /*
+   * Nato da una segnalazione: si lega a quella, e se non si è caricata un'altra
+   * copertina prende la foto scelta fra le sue. **La foto si copia**: gli
+   * allegati di una segnalazione li vede solo chi la gestisce, il sondaggio lo
+   * vede la squadra — deve avere la sua.
+   */
+  const segnalazioneId = strOpt(fd, 'segnalazioneId');
+  let daSegnalazione: { segnalazioneId: string; copertinaPath?: string; copertinaTipo?: string } | null =
+    null;
+  if (segnalazioneId) {
+    if (!gestisceSegnalazioni(me.roles)) {
+      return { errore: 'Da una segnalazione nasce un sondaggio solo per mano di chi la gestisce.' };
+    }
+    const segnalazione = await prisma.segnalazioneCanale.findUnique({
+      where: { id: segnalazioneId },
+      include: { allegati: { where: { mimeType: { startsWith: 'image/' } } } },
+    });
+    if (!segnalazione) return { errore: 'Segnalazione non trovata.' };
+    daSegnalazione = { segnalazioneId };
+    const foto = segnalazione.allegati.find((a) => a.id === strOpt(fd, 'fotoSegnalazione'));
+    if (foto && !copertina.dati.copertinaPath) {
+      daSegnalazione.copertinaPath = await copiaAllegato(foto.filePath, 'sondaggi');
+      daSegnalazione.copertinaTipo = foto.mimeType;
+    }
+  }
+
   const sondaggio = await prisma.sondaggio.create({
     data: {
       ...copertina.dati,
+      ...daSegnalazione,
       domanda,
       dettaglio: strOpt(fd, 'dettaglio'),
       tipo,

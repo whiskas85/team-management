@@ -82,10 +82,24 @@ export type SondaggioDaModificare = {
   opzioni: { id: string; testo: string; quando: string }[];
 };
 
+/**
+ * Il sondaggio nasce da una segnalazione: la domanda e il testo partono da
+ * quelli, e fra le sue foto se ne può scegliere una come copertina.
+ */
+export type DaSegnalazione = {
+  id: string;
+  domanda: string;
+  dettaglio: string;
+  foto: { id: string; nome: string; indirizzo: string }[];
+};
+
 /** Una risposta del modulo: con l'id se c'era già, senza se è nuova. */
 type Riga = { id: string; valore: string };
 
-export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare } = {}) {
+export function FormSondaggio({
+  sondaggio,
+  daSegnalazione,
+}: { sondaggio?: SondaggioDaModificare; daSegnalazione?: DaSegnalazione } = {}) {
   const modifica = !!sondaggio;
   const [forma, setForma] = useState<Forma | null>(sondaggio?.tipo ?? null);
   const [righe, setRighe] = useState<Riga[]>(
@@ -151,6 +165,9 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
     <FormAzione azione={modifica ? modificaSondaggio : creaSondaggio}>
       <input type="hidden" name="tipo" value={forma} />
       {sondaggio && <input type="hidden" name="id" value={sondaggio.id} />}
+      {daSegnalazione && (
+        <input type="hidden" name="segnalazioneId" value={daSegnalazione.id} />
+      )}
 
       {/* il tipo non si cambia a sondaggio aperto: le risposte date a «chi
           viene?» non vogliono dire niente sotto «quando giochiamo?» */}
@@ -170,7 +187,7 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
           className="input"
           required
           maxLength={200}
-          defaultValue={sondaggio?.domanda ?? base.domanda}
+          defaultValue={sondaggio?.domanda ?? daSegnalazione?.domanda ?? base.domanda}
           placeholder="es. Quando giochiamo a ottobre?"
         />
         <p className="mt-1 text-xs text-muted">
@@ -182,7 +199,7 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
         <textarea
           name="dettaglio"
           rows={2}
-          defaultValue={sondaggio?.dettaglio ?? ''}
+          defaultValue={sondaggio?.dettaglio ?? daSegnalazione?.dettaglio ?? ''}
           className="input"
           placeholder="Perché lo chiedi, cosa comporta rispondere"
         />
@@ -299,6 +316,36 @@ export function FormSondaggio({ sondaggio }: { sondaggio?: SondaggioDaModificare
         <p className="text-sm font-medium">
           Copertina <span className="font-normal text-muted">— facoltativa</span>
         </p>
+        {/* le foto della segnalazione: se ne sceglie una, e il sondaggio ne ha
+            una copia sua. Una foto caricata qui sotto vince su questa scelta */}
+        {daSegnalazione && daSegnalazione.foto.length > 0 && (
+          <div>
+            <p className="label">Dalla segnalazione</p>
+            <div className="flex flex-wrap gap-2">
+              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-md border border-line text-center text-[11px] text-muted has-[:checked]:border-nvg has-[:checked]:text-nvg">
+                <input type="radio" name="fotoSegnalazione" value="" className="sr-only" />
+                Nessuna
+              </label>
+              {daSegnalazione.foto.map((f, i) => (
+                <label
+                  key={f.id}
+                  title={f.nome}
+                  className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-md border-2 border-line has-[:checked]:border-nvg"
+                >
+                  <input
+                    type="radio"
+                    name="fotoSegnalazione"
+                    value={f.id}
+                    defaultChecked={i === 0}
+                    className="sr-only"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.indirizzo} alt={f.nome} className="h-full w-full object-cover" />
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         <CampoFile
           label={sondaggio?.copertina ? 'Cambia la foto' : 'Foto'}
           name="copertina"

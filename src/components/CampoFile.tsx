@@ -27,6 +27,8 @@ export function CampoFile({
   required,
   span,
   aiuto,
+  multiple = false,
+  maxTotale,
   className = 'input file:mr-3 file:rounded file:border-0 file:bg-nvg/15 file:px-3 file:py-1 file:text-nvg',
 }: {
   label: string;
@@ -39,6 +41,10 @@ export function CampoFile({
   span?: boolean;
   /** La riga di spiegazione sotto al campo. */
   aiuto?: ReactNode;
+  /** Più file insieme: ognuno si controlla da sé, e poi il peso di tutti. */
+  multiple?: boolean;
+  /** Il peso massimo di tutti i file insieme, con `multiple`. */
+  maxTotale?: number;
   className?: string;
 }) {
   const [problema, setProblema] = useState<string | null>(null);
@@ -46,9 +52,19 @@ export function CampoFile({
 
   function controlla(e: ChangeEvent<HTMLInputElement>) {
     setProblema(null);
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const tutti = [...(e.target.files ?? [])];
+    if (maxTotale && tutti.reduce((t, f) => t + f.size, 0) > maxTotale) {
+      e.target.value = '';
+      setProblema(
+        `Insieme pesano troppo: il massimo è ${Math.round(maxTotale / 1024 / 1024)} MB in tutto.`,
+      );
+      return;
+    }
+    for (const file of tutti) if (!controllaUno(e, file)) return;
+  }
 
+  /** Controlla un file; se non va, svuota il campo e dice perché. */
+  function controllaUno(e: ChangeEvent<HTMLInputElement>, file: File): boolean {
     const punto = file.name.lastIndexOf('.');
     const estensione = punto > 0 ? file.name.slice(punto).toLowerCase() : '';
 
@@ -57,7 +73,7 @@ export function CampoFile({
     if (estensioni && estensione && !estensioni.includes(estensione)) {
       e.target.value = '';
       setProblema(`«${file.name}» non è un formato che si può allegare qui.`);
-      return;
+      return false;
     }
 
     if (file.size > maxBytes) {
@@ -65,7 +81,9 @@ export function CampoFile({
       setProblema(
         `«${file.name}» pesa ${peso(file.size)}, il massimo è ${tetto}. Se è una scansione, rifalla in bianco e nero o a qualità più bassa; una foto del foglio col telefono va benissimo.`,
       );
+      return false;
     }
+    return true;
   }
 
   return (
@@ -75,6 +93,7 @@ export function CampoFile({
         name={name}
         accept={accept}
         required={required}
+        multiple={multiple}
         onChange={controlla}
         className={className}
       />

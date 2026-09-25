@@ -5,6 +5,38 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.106.0 — 25 settembre 2026
+
+### Aggiunto
+
+- **Segnalazioni**, un gruppo nuovo nel menu come Annunci e Sondaggi: in cima
+  «Tutte le segnalazioni», sotto un canale per riga.
+  - **I canali li crea l'admin**: titolo, descrizione in Markdown (cosa si
+    segnala lì), icona, chi può segnalare (squadra, nuovi, tutti), se si
+    possono allegare foto e documenti, e come si firma: sempre col nome,
+    sempre anonime, o a scelta di chi segnala. Un canale con segnalazioni
+    dentro si spegne invece di sparire.
+  - **La segnalazione** ha titolo e testo in Markdown, con le @persone (chi è
+    nominato non riceve avvisi), e gli allegati se il canale li ammette. Se
+    è anonima o col nome lo dice sempre un badge.
+  - **La leggono solo l'admin e i moderatori**; chi segnala vede solo le sue,
+    con lo storico. Stati: aperta → letta (quando chi gestisce la apre) →
+    risposta → chiusa, e si può riaprire.
+  - **Risposte e controrisposte** in Markdown, come una chat. Una segnalazione
+    anonima riceve le risposte lo stesso: il gestionale le recapita, e il nome
+    non compare da nessuna parte, nemmeno all'admin.
+  - **Notifiche push** che portano alla segnalazione: a chi gestisce per una
+    segnalazione nuova o una controrisposta, a chi ha segnalato per una
+    risposta o la chiusura. Mai il nome di chi ha segnalato nel testo.
+  - **Dalla segnalazione nasce un sondaggio**: «Crea sondaggio» fa scegliere il
+    tipo, parte dal titolo della segnalazione e, se ci sono foto, ne usa una
+    come copertina (una copia: gli allegati restano riservati).
+
+### Cambiato
+
+- La voce di moderazione in Amministrazione si chiama ora **«Messaggi
+  segnalati»**, per non confondersi col gruppo Segnalazioni.
+
 ## 2.105.1 — 25 settembre 2026
 
 ### Cambiato
