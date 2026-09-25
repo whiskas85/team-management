@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.106.4 — 25 settembre 2026
+
+### Aggiunto
+
+- **I canali di segnalazione di partenza**, creati al rilascio: Comportamenti
+  scorretti (per tutti, col nome o anonime, con allegati), Tornei ed eventi
+  (squadra, col nome, con allegati), Problemi con il sito (squadra, col nome,
+  con allegati), Idee e feedback (squadra, col nome o anonime), Dubbi e
+  feedback (nuovi, col nome o anonime). Ognuno con la sua descrizione.
+- **Tre annunci in bozza**, da rileggere e rilasciare: la novità delle
+  Segnalazioni (bacheca per tutti), il benvenuto ai nuovi, e come la squadra
+  usa le segnalazioni (bacheca della squadra). In bozza nessuna notifica parte.
+
 ## 2.106.3 — 25 settembre 2026
 
 ### Cambiato
