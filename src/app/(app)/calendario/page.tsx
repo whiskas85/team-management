@@ -282,9 +282,11 @@ export default async function CalendarioPage({
                    ricarica la pagina a ogni lettera. */
                 <InProgramma
                   annoCorrente={new Date().getFullYear()}
+                  meseCorrente={new Date().getMonth()}
                   voci={lista.map((e) => ({
                     id: e.id,
                     anno: e.inizio.getFullYear(),
+                    mese: e.inizio.getMonth(),
                     // fra le correnti solo quelle che questa persona deve vedere lì
                     fase: corrente(e) ? e.fase : null,
                     // dove si cerca: titolo, tipologia, campo e data, anche per

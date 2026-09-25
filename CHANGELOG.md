@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.104.0 — 25 settembre 2026
+
+### Cambiato
+
+- **Il calendario «In programma» è diviso per mese.** Le attività che
+  verranno stanno sotto al loro mese («Ottobre · questo mese», «Novembre · il
+  mese prossimo», poi «Gennaio 2027»…), invece che sotto all'anno. Le correnti
+  restano un gruppo solo in cima, le passate nello storico.
+
 ## 2.103.0 — 25 settembre 2026
 
 ### Cambiato
