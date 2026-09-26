@@ -104,6 +104,21 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
   const [tirato, setTirato] = useState(0);
   const contenutoMenu = useRef<HTMLDivElement>(null);
   const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
+
+  // Menu aperto: su Android tirare giù la pagina la ricarica, e il gesto per
+  // chiudere il menu finiva per farlo. Finché il menu è aperto la pagina
+  // sotto non rimbalza e non si ricarica; chiuso, tutto torna com'era.
+  useEffect(() => {
+    if (!apertoMenu) return;
+    const radice = document.documentElement;
+    const prima = [radice.style.overscrollBehaviorY, document.body.style.overscrollBehaviorY];
+    radice.style.overscrollBehaviorY = 'none';
+    document.body.style.overscrollBehaviorY = 'none';
+    return () => {
+      radice.style.overscrollBehaviorY = prima[0];
+      document.body.style.overscrollBehaviorY = prima[1];
+    };
+  }, [apertoMenu]);
   // Sul telefono le due barre — quella in alto con il nome e quella in basso
   // con le voci — si tolgono di mezzo mentre si scende: si sta leggendo, e due
   // strisce fisse su uno schermo alto quattordici centimetri sono due
@@ -410,7 +425,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
               contenuto è già in cima, il pannello segue il dito e si chiude:
               lo stesso gesto dei fogli che salgono dal fondo sul telefono. */}
           <div
-            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-2xl border-t border-line bg-surface"
+            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface"
             style={{
               transform: tirato ? `translateY(${tirato}px)` : undefined,
               transition: tirato ? 'none' : 'transform 0.2s ease-out',
@@ -443,16 +458,21 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
               presa.current = null;
             }}
           >
-            <div className="flex shrink-0 flex-col items-center px-4 pt-2">
+            {/* La testata galleggia sopra il contenuto, col vetro delle altre
+                barre: niente riga di separazione, il contenuto le passa sotto
+                sfocato e riemerge a fuoco con una sfumatura. */}
+            <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center px-4 pt-2">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 -bottom-6 top-0 -z-10 bg-gradient-to-b from-surface via-surface/92 to-transparent backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
+              />
               {/* la maniglia: dice che il foglio si tira giù */}
-              <span className="mb-2 h-1 w-10 rounded-full bg-line" aria-hidden />
-              <div className="flex w-full items-center justify-between pb-3">
-                <p className="text-sm font-medium">
-                  {utente.nome} {utente.cognome}
-                </p>
+              <span className="mb-2 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
+              <div className="flex w-full items-center justify-between pb-2">
+                <p className="titolo-sezione text-ink">Menu</p>
                 <button
                   onClick={() => setApertoMenu(false)}
-                  className="rounded-md border border-line p-2 text-muted"
+                  className="-mr-2 rounded-md p-2 text-muted hover:text-ink"
                   aria-label="Chiudi menu"
                 >
                   <Icona nome="chiudi" />
@@ -462,7 +482,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
 
             <div
               ref={contenutoMenu}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-line px-4 pb-8 pt-4"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-24"
             >
               {/* Qui i preferiti sono le voci della barra in basso: riordinarli
                   vuol dire decidere cosa si ha sotto il pollice. Per questo si

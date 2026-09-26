@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.107.2 — 26 settembre 2026
+
+### Cambiato
+
+- **Menu sul telefono, rifinito.** La testata dice «Menu» e galleggia col
+  vetro sfumato delle altre barre: niente riga grigia, il contenuto le passa
+  sotto. La maniglia in cima è il doppio più larga, la X senza cornice.
+  Finché il menu è aperto, su Android tirare giù non ricarica più la pagina.
+
 ## 2.107.1 — 26 settembre 2026
 
 ### Cambiato
