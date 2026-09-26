@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Role } from '@prisma/client';
-import { etichettaRuolo } from '@/lib/domain';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from './Logo';
 import { Icona, type NomeIcona } from './Icona';
@@ -101,6 +100,10 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
+  // il foglio del menu tirato giù col dito, in pixel: oltre una certa misura si chiude
+  const [tirato, setTirato] = useState(0);
+  const contenutoMenu = useRef<HTMLDivElement>(null);
+  const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
   // Sul telefono le due barre — quella in alto con il nome e quella in basso
   // con le voci — si tolgono di mezzo mentre si scende: si sta leggendo, e due
   // strisce fisse su uno schermo alto quattordici centimetri sono due
@@ -402,80 +405,87 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
       {apertoMenu && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/70" onClick={() => setApertoMenu(false)} />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 pb-8">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
+          {/* Il pannello è una colonna: la testata — nome e chiusura — resta
+              ferma, scorre solo il contenuto sotto. Tirato giù quando il
+              contenuto è già in cima, il pannello segue il dito e si chiude:
+              lo stesso gesto dei fogli che salgono dal fondo sul telefono. */}
+          <div
+            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-2xl border-t border-line bg-surface"
+            style={{
+              transform: tirato ? `translateY(${tirato}px)` : undefined,
+              transition: tirato ? 'none' : 'transform 0.2s ease-out',
+            }}
+            onTouchStart={(e) => {
+              const scorre = contenutoMenu.current;
+              presa.current = {
+                y: e.touches[0].clientY,
+                t: Date.now(),
+                // si tira solo partendo dalla testata o col contenuto in cima
+                valida: !scorre || scorre.scrollTop <= 0 || !scorre.contains(e.target as Node),
+              };
+            }}
+            onTouchMove={(e) => {
+              const p = presa.current;
+              if (!p?.valida) return;
+              // una pressione lunga è il riordino dei preferiti, non una chiusura
+              if (Date.now() - p.t > 400 && !tirato) {
+                p.valida = false;
+                return;
+              }
+              const dy = e.touches[0].clientY - p.y;
+              const scorre = contenutoMenu.current;
+              if (dy > 0 && (!scorre || scorre.scrollTop <= 0)) setTirato(dy);
+              else if (tirato) setTirato(0);
+            }}
+            onTouchEnd={() => {
+              if (tirato > 90) setApertoMenu(false);
+              setTirato(0);
+              presa.current = null;
+            }}
+          >
+            <div className="flex shrink-0 flex-col items-center px-4 pt-2">
+              {/* la maniglia: dice che il foglio si tira giù */}
+              <span className="mb-2 h-1 w-10 rounded-full bg-line" aria-hidden />
+              <div className="flex w-full items-center justify-between pb-3">
                 <p className="text-sm font-medium">
                   {utente.nome} {utente.cognome}
                 </p>
-                <p className="num text-[10px] uppercase tracking-[0.06em] text-nvg">
-                  {utente.roles.map((r) => etichettaRuolo[r]).join(' · ') || 'Nuovo'}
-                </p>
+                <button
+                  onClick={() => setApertoMenu(false)}
+                  className="rounded-md border border-line p-2 text-muted"
+                  aria-label="Chiudi menu"
+                >
+                  <Icona nome="chiudi" />
+                </button>
               </div>
-              <button
-                onClick={() => setApertoMenu(false)}
-                className="rounded-md border border-line p-2 text-muted"
-                aria-label="Chiudi menu"
-              >
-                <Icona nome="chiudi" />
-              </button>
             </div>
 
-            {/* Qui i preferiti sono le voci della barra in basso: riordinarli
-                vuol dire decidere cosa si ha sotto il pollice. Per questo si
-                riordinano da dentro il menu, dove si vedono tutti, e non dalla
-                barra, dove ce ne stanno quattro. */}
-            {vociPreferite.length > 0 && (
-              <div className="mb-4">
-                <div className="flex items-baseline justify-between gap-2 pb-2">
-                  <p className="titolo-sezione">Preferiti</p>
-                  <p className="text-[10px] text-muted">tieni premuto per riordinare</p>
-                </div>
-                <ElencoPreferiti
-                  voci={vociPreferite}
-                  acceso={acceso}
-                  onVai={() => setApertoMenu(false)}
-                  riga={(v, { attivo, presa }) => (
-                    <span
-                      className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
-                        presa
-                          ? 'border-nvg bg-nvg/20 text-nvg shadow-lg'
-                          : attivo
-                            ? 'border-nvg/40 bg-nvg/10 text-nvg'
-                            : 'border-line bg-surface2 text-ink'
-                      }`}
-                    >
-                      <Icona nome={v.icona} size={18} />
-                      <span className="flex-1 truncate">{v.label}</span>
-                      {!!v.badge && (
-                        <span className="rounded-full bg-warn/20 px-1.5 py-0.5 num text-[10px] text-warn">
-                          {v.badge}
-                        </span>
-                      )}
-                    </span>
-                  )}
-                />
-                <p className="pt-1.5 text-[10px] text-muted">
-                  I primi quattro stanno nella barra in basso.
-                </p>
-              </div>
-            )}
-
-            {gruppi.map((g) => (
-              <div key={g} className="mb-4">
-                <p className="titolo-sezione pb-2">{ETICHETTA_GRUPPO[g]}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {voci
-                    .filter((v) => v.gruppo === g)
-                    .map((v) => (
-                      <Link
-                        key={v.href}
-                        href={v.href}
-                        onClick={() => setApertoMenu(false)}
+            <div
+              ref={contenutoMenu}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-line px-4 pb-8 pt-4"
+            >
+              {/* Qui i preferiti sono le voci della barra in basso: riordinarli
+                  vuol dire decidere cosa si ha sotto il pollice. Per questo si
+                  riordinano da dentro il menu, dove si vedono tutti, e non dalla
+                  barra, dove ce ne stanno quattro. */}
+              {vociPreferite.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-baseline justify-between gap-2 pb-2">
+                    <p className="titolo-sezione">Preferiti</p>
+                    <p className="text-[10px] text-muted">tieni premuto per riordinare</p>
+                  </div>
+                  <ElencoPreferiti
+                    voci={vociPreferite}
+                    acceso={acceso}
+                    onVai={() => setApertoMenu(false)}
+                    riga={(v, { attivo, presa }) => (
+                      <span
                         className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
-                          acceso === v.href
-                            ? 'border-nvg/40 bg-nvg/10 text-nvg'
-                            : 'border-line bg-surface2 text-ink'
+                          presa
+                            ? 'border-nvg bg-nvg/20 text-nvg shadow-lg'
+                            : attivo
+                              ? 'border-nvg/40 bg-nvg/10 text-nvg'
+                              : 'border-line bg-surface2 text-ink'
                         }`}
                       >
                         <Icona nome={v.icona} size={18} />
@@ -485,24 +495,58 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
                             {v.badge}
                           </span>
                         )}
-                      </Link>
-                    ))}
+                      </span>
+                    )}
+                  />
+                  <p className="pt-1.5 text-[10px] text-muted">
+                    I primi quattro stanno nella barra in basso.
+                  </p>
                 </div>
-              </div>
-            ))}
+              )}
 
-            {vociPreferite.length === 0 && (
-              <p className="mb-4 rounded-md border border-dashed border-line px-3 py-2 text-[11px] text-muted">
-                La <strong className="text-ink">stellina</strong> in alto a destra mette una pagina
-                fra i preferiti: finiscono qui, in cima al menu, e nella barra in basso.
-              </p>
-            )}
+              {gruppi.map((g) => (
+                <div key={g} className="mb-4">
+                  <p className="titolo-sezione pb-2">{ETICHETTA_GRUPPO[g]}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {voci
+                      .filter((v) => v.gruppo === g)
+                      .map((v) => (
+                        <Link
+                          key={v.href}
+                          href={v.href}
+                          onClick={() => setApertoMenu(false)}
+                          className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
+                            acceso === v.href
+                              ? 'border-nvg/40 bg-nvg/10 text-nvg'
+                              : 'border-line bg-surface2 text-ink'
+                          }`}
+                        >
+                          <Icona nome={v.icona} size={18} />
+                          <span className="flex-1 truncate">{v.label}</span>
+                          {!!v.badge && (
+                            <span className="rounded-full bg-warn/20 px-1.5 py-0.5 num text-[10px] text-warn">
+                              {v.badge}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                  </div>
+                </div>
+              ))}
 
-            <form action={esci}>
-              <button type="submit" className="btn-ghost w-full">
-                <Icona nome="esci" size={16} /> Esci
-              </button>
-            </form>
+              {vociPreferite.length === 0 && (
+                <p className="mb-4 rounded-md border border-dashed border-line px-3 py-2 text-[11px] text-muted">
+                  La <strong className="text-ink">stellina</strong> in alto a destra mette una pagina
+                  fra i preferiti: finiscono qui, in cima al menu, e nella barra in basso.
+                </p>
+              )}
+
+              <form action={esci}>
+                <button type="submit" className="btn-ghost w-full">
+                  <Icona nome="esci" size={16} /> Esci
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

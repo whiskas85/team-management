@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.107.1 — 26 settembre 2026
+
+### Cambiato
+
+- **Menu sul telefono.** La testata — il tuo nome e la X per chiudere — resta
+  ferma, scorre solo il contenuto. I ruoli non si mostrano più lì. Con il
+  contenuto in cima, tirando giù il foglio col dito il menu si chiude, come i
+  pannelli che salgono dal fondo; se hai scorso, il gesto scorre e basta. In
+  cima c'è la maniglia che lo suggerisce.
+
 ## 2.107.0 — 25 settembre 2026
 
 ### Aggiunto
