@@ -17,6 +17,20 @@ export default {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // il cambio mese del calendario: il vecchio esce da una parte mentre il
+      // nuovo entra dall'altra
+      keyframes: {
+        'entra-destra': { from: { transform: 'translateX(100%)' }, to: { transform: 'translateX(0)' } },
+        'entra-sinistra': { from: { transform: 'translateX(-100%)' }, to: { transform: 'translateX(0)' } },
+        'esce-sinistra': { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-100%)' } },
+        'esce-destra': { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(100%)' } },
+      },
+      animation: {
+        'entra-destra': 'entra-destra 0.26s ease-out both',
+        'entra-sinistra': 'entra-sinistra 0.26s ease-out both',
+        'esce-sinistra': 'esce-sinistra 0.26s ease-out both',
+        'esce-destra': 'esce-destra 0.26s ease-out both',
+      },
       // Palette del logo. Valori espliciti (non var CSS) così restano
       // utilizzabili i modificatori di opacità tipo `bg-nvg/10`.
       colors: {

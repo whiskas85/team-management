@@ -461,18 +461,21 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
             {/* La testata galleggia sopra il contenuto, col vetro delle altre
                 barre: niente riga di separazione, il contenuto le passa sotto
                 sfocato e riemerge a fuoco con una sfumatura. */}
-            <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center px-4 pt-2">
+            <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center px-4 pt-1.5">
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-x-0 -bottom-6 top-0 -z-10 bg-gradient-to-b from-surface via-surface/92 to-transparent backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
+                // solo colore che sfuma, niente sfocatura: il bordo di una
+                // sfocatura resta netto anche sotto una maschera, e si vedeva
+                // come una riga nel punto in cui la testata finiva
+                className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 -z-10 bg-[linear-gradient(to_bottom,#0e110e_0%,#0e110e_55%,rgba(14,17,14,0.85)_72%,rgba(14,17,14,0)_100%)]"
               />
               {/* la maniglia: dice che il foglio si tira giù */}
-              <span className="mb-2 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
-              <div className="flex w-full items-center justify-between pb-2">
+              <span className="mb-0.5 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
+              <div className="flex w-full items-center justify-between">
                 <p className="titolo-sezione text-ink">Menu</p>
                 <button
                   onClick={() => setApertoMenu(false)}
-                  className="-mr-2 rounded-md p-2 text-muted hover:text-ink"
+                  className="-mr-2 rounded-md p-1.5 text-muted hover:text-ink"
                   aria-label="Chiudi menu"
                 >
                   <Icona nome="chiudi" />
@@ -482,7 +485,7 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
 
             <div
               ref={contenutoMenu}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-24"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-[4.25rem]"
             >
               {/* Qui i preferiti sono le voci della barra in basso: riordinarli
                   vuol dire decidere cosa si ha sotto il pollice. Per questo si

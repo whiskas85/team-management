@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import { Icona } from './Icona';
 import { mostraToast } from './Toast';
-import { giaIscritto, iscriviDispositivo, supportate } from '@/lib/push-browser';
+import {
+  giaIscritto,
+  iscriviDispositivo,
+  motivoUltimoErrore,
+  supportate,
+} from '@/lib/push-browser';
 
 type Stato = 'ignoto' | 'accese' | 'spente' | 'negate' | 'non-supportate';
 
@@ -21,6 +26,8 @@ type Stato = 'ignoto' | 'accese' | 'spente' | 'negate' | 'non-supportate';
 export function RiquadroNotifiche() {
   const [stato, setStato] = useState<Stato>('ignoto');
   const [attesa, setAttesa] = useState(false);
+  // il motivo dell'ultimo tentativo andato male: resta scritto nel riquadro
+  const [problema, setProblema] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supportate()) {
@@ -54,7 +61,7 @@ export function RiquadroNotifiche() {
     } else if (esito === 'negato') {
       setStato('negate');
     } else {
-      mostraToast('Non sono riuscito ad attivarle qui. Riprova dal profilo.', 'errore');
+      setProblema(motivoUltimoErrore() ?? 'Non sono riuscito ad attivarle qui.');
     }
   };
 
@@ -73,6 +80,11 @@ export function RiquadroNotifiche() {
           {stato === 'non-supportate' &&
             'Questo browser non le gestisce. Su iPhone installa prima il gestionale dalla schermata iniziale (Condividi → Aggiungi a Home) e aprilo da lì.'}
         </p>
+        {problema && (
+          <p className="mt-2 rounded-md border border-danger/40 bg-danger/10 px-2.5 py-1.5 text-xs text-danger">
+            {problema}
+          </p>
+        )}
       </div>
       {stato === 'spente' && (
         <button

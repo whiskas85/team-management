@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Icona } from './Icona';
 import { mostraToast } from './Toast';
-import { giaIscritto, iscriviDispositivo, supportate } from '@/lib/push-browser';
+import { giaIscritto, iscriviDispositivo, motivoUltimoErrore, supportate } from '@/lib/push-browser';
 
 /** Quanto sta zitto dopo un «non ora»: due settimane. */
 const RINVIO = 14 * 24 * 60 * 60 * 1000;
@@ -84,7 +84,7 @@ export function InvitoNotifiche() {
     if (esito === 'ok') mostraToast('Notifiche attive su questo dispositivo.', 'ok');
     else if (esito === 'negato') {
       mostraToast('Hai detto di no: si riattivano dalle impostazioni del browser.', 'warn');
-    } else mostraToast('Non sono riuscito ad attivarle qui.', 'errore');
+    } else mostraToast(motivoUltimoErrore() ?? 'Non sono riuscito ad attivarle qui.', 'errore');
   };
 
   return (

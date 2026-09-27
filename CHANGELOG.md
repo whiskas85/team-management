@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.0 — 27 settembre 2026
+
+### Cambiato
+
+- **Calendario, vista mese: un'attività su più giorni è una barra sola** che
+  attraversa le colonne, col titolo scritto una volta (niente più ↔ nelle
+  giornate intermedie). Se prosegue nella settimana dopo, il bordo resta
+  dritto. Le attività non si sovrappongono: ognuna prende la prima riga
+  libera, e oltre tre per giorno compare «+N altre».
+- **Cambio mese col dito**: strisciando a destra o a sinistra la griglia segue
+  il dito, e lasciandola il mese esce da una parte mentre il nuovo entra
+  dall'altra. Le frecce e «Oggi» fanno la stessa scivolata.
+- **Menu sul telefono**: testata più sottile, e la sfumatura sotto «Menu» non
+  lascia più la riga dove finisce.
+
+### Corretto
+
+- **Attivazione delle notifiche: quando non va, si sa perché.** Prima ogni
+  problema diventava «Non sono riuscito». Ora a chi prova si dice il motivo
+  (sessione scaduta, servizio di notifiche non raggiungibile dal browser,
+  permesso negato, server non configurato), e il dettaglio tecnico — passo,
+  errore, browser — finisce fra i **Guasti** dell'admin. Se il service worker
+  non è pronto dopo 10 secondi lo si dice invece di restare appesi.
+
 ## 2.107.2 — 26 settembre 2026
 
 ### Cambiato

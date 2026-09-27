@@ -7,6 +7,7 @@ import { Invia } from './Bottone';
 import { provaNotifiche } from '@/actions/notifiche';
 import {
   disiscriviDispositivo,
+  motivoUltimoErrore,
   giaIscritto,
   iscriviDispositivo,
   supportate,
@@ -54,7 +55,7 @@ export function Notifiche() {
     } else if (esito === 'negato') {
       setStato('negate');
     } else {
-      mostraToast('Non sono riuscito ad attivare le notifiche qui.', 'errore');
+      mostraToast(motivoUltimoErrore() ?? 'Non sono riuscito ad attivarle qui.', 'errore');
     }
   }
 
