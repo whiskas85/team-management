@@ -80,6 +80,7 @@ export function CalendarioMese({
   eventi,
   legenda = [],
   nuovoEvento,
+  festivita = {},
 }: {
   eventi: GiornoEvento[];
   legenda?: { nome: string; colore: string }[];
@@ -89,6 +90,8 @@ export function CalendarioMese({
    * scriviamo dentro la data scelta.
    */
   nuovoEvento?: ReactNode;
+  /** Le festività importate, per giorno (chiave anno-mese(0..11)-giorno). */
+  festivita?: Record<string, string>;
 }) {
   const oggi = new Date();
   const [mese, setMese] = useState(new Date(oggi.getFullYear(), oggi.getMonth(), 1));
@@ -229,7 +232,7 @@ export function CalendarioMese({
             }`}
             aria-hidden
           >
-            <Griglia mese={uscente.mese} eventi={eventi} oggi={oggi} />
+            <Griglia mese={uscente.mese} eventi={eventi} oggi={oggi} festivita={festivita} />
           </div>
         )}
         <div
@@ -247,6 +250,7 @@ export function CalendarioMese({
             mese={mese}
             eventi={eventi}
             oggi={oggi}
+            festivita={festivita}
             onGiorno={(d) => {
               // un tocco che era l'inizio di una strisciata non apre il giorno
               if (!appenaStrisciato.current) setGiornoScelto(d);
@@ -281,6 +285,11 @@ export function CalendarioMese({
                   day: 'numeric',
                   month: 'long',
                 })}
+                {festivita[chiave(giornoScelto)] && (
+                  <span className="ml-2 text-sm font-normal normal-case text-danger">
+                    · {festivita[chiave(giornoScelto)]}
+                  </span>
+                )}
               </h3>
               <button
                 type="button"
@@ -349,11 +358,13 @@ function Griglia({
   mese,
   eventi,
   oggi,
+  festivita,
   onGiorno,
 }: {
   mese: Date;
   eventi: GiornoEvento[];
   oggi: Date;
+  festivita: Record<string, string>;
   onGiorno?: (d: Date) => void;
 }) {
   const settimane = useMemo(() => {
@@ -392,6 +403,7 @@ function Griglia({
             {giorni.map((d, g) => {
               const delMese = d.getMonth() === mese.getMonth();
               const isOggi = chiave(d) === chiave(oggi);
+              const festa = festivita[chiave(d)] ?? null;
               // quelle che non ci stanno nelle righe visibili, per questo giorno
               const nascoste = barre.filter(
                 (b) => b.corsia >= CORSIE && g >= b.da && g < b.da + b.per,
@@ -400,17 +412,40 @@ function Griglia({
                 <div
                   key={g}
                   onClick={() => onGiorno?.(d)}
-                  title="Clicca per vedere la giornata o aggiungere un'attività"
+                  title={
+                    festa
+                      ? `${festa} · clicca per vedere la giornata o aggiungere un'attività`
+                      : "Clicca per vedere la giornata o aggiungere un'attività"
+                  }
                   className={`relative min-h-[84px] cursor-pointer border-b border-r border-line/60 p-1 transition-colors sm:min-h-[108px] ${
                     delMese ? 'hover:bg-surface2' : 'bg-bg/40 text-muted/50'
                   }`}
                 >
-                  <span
-                    className={`num inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                      isOggi ? 'bg-nvg font-semibold text-black' : delMese ? 'text-ink' : ''
-                    }`}
-                  >
-                    {d.getDate()}
+                  {/* le festività: il numero in rosso, come sui calendari di
+                      carta, e il nome accanto dove c'è spazio */}
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span
+                      className={`num inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
+                        isOggi
+                          ? 'bg-nvg font-semibold text-black'
+                          : festa
+                            ? `font-semibold ${delMese ? 'text-danger' : 'text-danger/50'}`
+                            : delMese
+                              ? 'text-ink'
+                              : ''
+                      }`}
+                    >
+                      {d.getDate()}
+                    </span>
+                    {festa && (
+                      <span
+                        className={`hidden truncate text-[10px] sm:inline ${
+                          delMese ? 'text-danger/90' : 'text-danger/40'
+                        }`}
+                      >
+                        {festa}
+                      </span>
+                    )}
                   </span>
                   {nascoste > 0 && (
                     <span className="absolute bottom-0.5 left-1 text-[10px] text-muted">

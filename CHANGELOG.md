@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.109.0 — 28 settembre 2026
+
+### Aggiunto
+
+- **Le festività italiane nel calendario (vista Mese).** Il numero del giorno
+  è in rosso, con il nome accanto (sul telefono solo il numero); il nome si
+  legge anche aprendo la giornata. Le festività **non sono scritte nel
+  gestionale**: arrivano da Nager.Date, un servizio pubblico che pubblica
+  quelle ufficiali di ogni paese, per l'anno scorso, questo e i due prossimi.
+  Il server le rilegge una volta al giorno; se il servizio non risponde il
+  calendario resta com'era, senza festività.
+
 ## 2.108.6 — 28 settembre 2026
 
 ### Cambiato

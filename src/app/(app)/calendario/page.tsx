@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { festivitaVicine } from '@/lib/festivita';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { eventiPerLista, filtroVisibilita } from '@/lib/query';
@@ -223,6 +224,7 @@ export default async function CalendarioPage({
             <CalendarioMese
               eventi={eventiMese}
               legenda={legenda}
+              festivita={await festivitaVicine()}
               nuovoEvento={
                 admin ? (
                   <FormAzione azione={salvaEvento}>
