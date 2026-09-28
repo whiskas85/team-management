@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.6 — 28 settembre 2026
+
+### Cambiato
+
+- **Bozze riservate alla squadra: «Rilascia alla squadra» è il pulsante
+  verde.** Dove «Rilascia a tutti» non c'è, il gesto principale diventa
+  rilasciare alla squadra, col colore pieno.
+
 ## 2.108.5 — 28 settembre 2026
 
 ### Corretto

@@ -63,7 +63,9 @@ export function AzioniEvento({
             azione={rilasciaEvento}
             valori={{ id, visibilita: 'TEAM' }}
             icona="squadra"
-            className={`btn-ghost ${dim}`}
+            // riservata alla squadra: «a tutti» non c'è, e il gesto principale
+            // diventa questo — col colore pieno che ha l'altro quando c'è
+            className={`${soloInterno ? 'btn-primary' : 'btn-ghost'} ${dim}`}
           >
             Rilascia alla squadra
           </AzioneBottone>
