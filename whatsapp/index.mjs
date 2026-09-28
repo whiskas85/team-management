@@ -57,12 +57,24 @@ const FILE_RUBRICA = process.env.FILE_RUBRICA ?? join(dirname(CARTELLA_SESSIONE)
 
 /** numero (solo cifre) → { nome, notify, gruppi } */
 const rubrica = new Map();
+/*
+ * WhatsApp sta passando dai numeri ai «LID», identificativi anonimi: un
+ * contatto della rubrica può arrivare col solo LID. Il numero dietro lo dicono
+ * i gruppi, che per ogni partecipante danno tutti e due. Qui si tiene la
+ * corrispondenza, e i nomi arrivati col solo LID aspettano di trovarla.
+ */
+const lidi = new Map(); // lid → numero
+const inAttesa = new Map(); // lid → { nome, notify }
 let salvataggio = null;
 
 async function caricaRubrica() {
   try {
     const dati = JSON.parse(await readFile(FILE_RUBRICA, 'utf8'));
-    for (const [numero, voce] of Object.entries(dati)) rubrica.set(numero, voce);
+    // il formato di prima era la sola rubrica, senza LID
+    const voci = dati.rubrica ?? dati;
+    for (const [numero, voce] of Object.entries(voci)) rubrica.set(numero, voce);
+    for (const [lid, numero] of Object.entries(dati.lidi ?? {})) lidi.set(lid, numero);
+    for (const [lid, voce] of Object.entries(dati.inAttesa ?? {})) inAttesa.set(lid, voce);
   } catch {
     // prima partenza, o file illeggibile: si riempie da sola
   }
@@ -72,11 +84,18 @@ function salvaRubrica() {
   if (salvataggio) return;
   salvataggio = setTimeout(() => {
     salvataggio = null;
-    writeFile(FILE_RUBRICA, JSON.stringify(Object.fromEntries(rubrica))).catch((e) =>
+    const dati = {
+      rubrica: Object.fromEntries(rubrica),
+      lidi: Object.fromEntries(lidi),
+      inAttesa: Object.fromEntries(inAttesa),
+    };
+    writeFile(FILE_RUBRICA, JSON.stringify(dati)).catch((e) =>
       log.error({ err: e }, 'rubrica non salvata'),
     );
   }, 2000);
 }
+
+const soloLid = (v) => (v && String(v).endsWith('@lid') ? String(v).split('@')[0].split(':')[0] : null);
 
 /** Il numero dietro un contatto: WhatsApp lo mette in campi diversi a seconda della versione. */
 function numeroDi(c) {
@@ -86,19 +105,38 @@ function numeroDi(c) {
     if (s.endsWith('@s.whatsapp.net')) return s.split('@')[0].split(':')[0];
     if (/^\+?\d{8,15}$/.test(s)) return s.replace(/\D/g, '');
   }
+  // col solo LID: il numero, se un gruppo ce l'ha detto
+  for (const v of [c.lid, c.id]) {
+    const lid = soloLid(v);
+    if (lid && lidi.has(lid)) return lidi.get(lid);
+  }
   return null;
+}
+
+/** Scrive nome e nome WhatsApp su un numero; dice se è cambiato qualcosa. */
+function aggiorna(numero, nome, notify) {
+  const voce = rubrica.get(numero) ?? { nome: null, notify: null, gruppi: [] };
+  const nuovoNome = nome || voce.nome || null;
+  const nuovoNotify = notify || voce.notify || null;
+  if (rubrica.has(numero) && nuovoNome === voce.nome && nuovoNotify === voce.notify) return false;
+  rubrica.set(numero, { ...voce, nome: nuovoNome, notify: nuovoNotify });
+  return true;
 }
 
 function registraContatti(contatti) {
   let cambiati = 0;
   for (const c of contatti ?? []) {
+    const nome = c.name || null;
+    const notify = c.notify || c.verifiedName || null;
     const numero = numeroDi(c);
-    if (!numero) continue;
-    const voce = rubrica.get(numero) ?? { nome: null, notify: null, gruppi: [] };
-    const nome = c.name || voce.nome;
-    const notify = c.notify || c.verifiedName || voce.notify;
-    if (nome !== voce.nome || notify !== voce.notify || !rubrica.has(numero)) {
-      rubrica.set(numero, { ...voce, nome: nome ?? null, notify: notify ?? null });
+    if (numero) {
+      if (aggiorna(numero, nome, notify)) cambiati++;
+      continue;
+    }
+    const lid = soloLid(c.lid) ?? soloLid(c.id);
+    if (lid && (nome || notify)) {
+      const prima = inAttesa.get(lid) ?? {};
+      inAttesa.set(lid, { nome: nome ?? prima.nome ?? null, notify: notify ?? prima.notify ?? null });
       cambiati++;
     }
   }
@@ -110,6 +148,16 @@ function registraGruppi(gruppi) {
     for (const p of g.participants ?? []) {
       const numero = numeroDi(p);
       if (!numero) continue;
+      const lid = soloLid(p.lid);
+      if (lid) {
+        lidi.set(lid, numero);
+        // un nome arrivato col solo LID trova finalmente il suo numero
+        const atteso = inAttesa.get(lid);
+        if (atteso) {
+          aggiorna(numero, atteso.nome, atteso.notify);
+          inAttesa.delete(lid);
+        }
+      }
       const voce = rubrica.get(numero) ?? { nome: null, notify: null, gruppi: [] };
       if (!voce.gruppi.includes(g.subject)) {
         rubrica.set(numero, { ...voce, gruppi: [...voce.gruppi, g.subject].slice(-5) });
@@ -117,6 +165,58 @@ function registraGruppi(gruppi) {
     }
   }
   salvaRubrica();
+}
+
+/** Il nome che chi scrive si è dato su WhatsApp arriva con ogni suo messaggio. */
+function registraMessaggi(messaggi) {
+  let cambiati = 0;
+  for (const m of messaggi ?? []) {
+    if (!m.pushName || m.key?.fromMe) continue;
+    const k = m.key ?? {};
+    const numero = numeroDi({
+      phoneNumber: k.participantPn ?? k.senderPn,
+      jid: k.participant ?? k.remoteJid,
+      lid: k.participant ?? k.remoteJid,
+    });
+    if (numero && aggiorna(numero, null, m.pushName)) cambiati++;
+  }
+  if (cambiati > 0) salvaRubrica();
+}
+
+/*
+ * Richiede la rubrica da capo.
+ *
+ * I contatti salvati sul telefono WhatsApp li manda una volta, alla prima
+ * sincronizzazione dopo l'abbinamento: un ponte già abbinato prima di tenere
+ * la rubrica non li vedrebbe mai più. Azzerando la versione salvata della
+ * raccolta che li contiene, WhatsApp la rimanda intera e Baileys emette un
+ * contacts.upsert per ognuno.
+ */
+let risincronizzando = false;
+async function risincronizzaRubrica() {
+  if (!stato.collegato || !stato.socket || !stato.chiavi) throw new Error('WhatsApp non è collegato.');
+  if (risincronizzando) return;
+  risincronizzando = true;
+  try {
+    await stato.chiavi.set({ 'app-state-sync-version': { critical_unblock_low: null } });
+    await stato.socket.resyncAppState(['critical_unblock_low'], true);
+    log.warn({ voci: rubrica.size }, 'rubrica risincronizzata');
+  } catch (e) {
+    log.error({ err: e }, 'risincronizzazione della rubrica non riuscita');
+    throw e;
+  } finally {
+    risincronizzando = false;
+  }
+}
+
+/** Rubrica da capo, poi i gruppi: sono loro a tradurre i LID appena arrivati. */
+async function rubricaDaCapo() {
+  await risincronizzaRubrica();
+  registraGruppi(Object.values(await stato.socket.groupFetchAllParticipating()));
+  return {
+    totale: rubrica.size,
+    conNome: [...rubrica.values()].filter((v) => v.nome).length,
+  };
 }
 
 const senzaAccenti = (s) =>
@@ -131,7 +231,9 @@ function cercaRubrica(q, quanti = 30) {
   const cifre = q.replace(/\D/g, '');
   const trovati = [];
   for (const [numero, v] of rubrica) {
-    const testo = senzaAccenti([v.nome, v.notify, ...(v.gruppi ?? [])].join(' '));
+    // i gruppi non si cercano: «andre» troverebbe tutti gli iscritti a
+    // «Compleanno Andre», che di Andre non hanno niente
+    const testo = senzaAccenti([v.nome, v.notify].join(' '));
     const perNumero = cifre.length >= 3 && numero.includes(cifre);
     const perNome =
       parole.length > 0 && parole.every((p) => testo.includes(p) || (/^\d+$/.test(p) && numero.includes(p)));
@@ -169,6 +271,8 @@ async function azzeraSessione() {
   await mkdir(CARTELLA_SESSIONE, { recursive: true });
   // numero nuovo, rubrica nuova: quella di prima era di un altro telefono
   rubrica.clear();
+  lidi.clear();
+  inAttesa.clear();
   await rm(FILE_RUBRICA, { force: true });
   stato.collegato = false;
   stato.numero = null;
@@ -194,6 +298,7 @@ async function avvia() {
   });
 
   stato.socket = socket;
+  stato.chiavi = state.keys;
 
   socket.ev.on('creds.update', saveCreds);
 
@@ -201,6 +306,7 @@ async function avvia() {
   socket.ev.on('messaging-history.set', ({ contacts }) => registraContatti(contacts));
   socket.ev.on('contacts.upsert', registraContatti);
   socket.ev.on('contacts.update', registraContatti);
+  socket.ev.on('messages.upsert', ({ messages }) => registraMessaggi(messages));
 
   socket.ev.on('connection.update', async (agg) => {
     const { connection, lastDisconnect, qr } = agg;
@@ -221,7 +327,13 @@ async function avvia() {
       socket
         .groupFetchAllParticipating()
         .then((g) => registraGruppi(Object.values(g)))
-        .catch((e) => log.warn({ err: e }, 'gruppi non letti per la rubrica'));
+        .catch((e) => log.warn({ err: e }, 'gruppi non letti per la rubrica'))
+        // senza nemmeno un nome la rubrica non è mai arrivata: si richiede
+        .then(() => {
+          if (![...rubrica.values()].some((v) => v.nome)) {
+            setTimeout(() => rubricaDaCapo().catch(() => null), 15_000);
+          }
+        });
     }
 
     if (connection === 'close') {
@@ -347,6 +459,11 @@ const server = createServer(async (req, res) => {
         totale: rubrica.size,
         contatti: q ? cercaRubrica(q) : [],
       });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/rubrica') {
+      if (!stato.collegato) return rispondi(res, 409, { errore: 'WhatsApp non è collegato.' });
+      return rispondi(res, 200, await rubricaDaCapo());
     }
 
     if (req.method === 'POST' && url.pathname === '/invia') {

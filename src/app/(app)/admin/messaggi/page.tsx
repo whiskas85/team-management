@@ -26,6 +26,7 @@ import {
   salvaTesto,
   scegliGruppo,
   scollegaWhatsapp,
+  aggiornaRubricaWhatsapp,
 } from '@/actions/messaggi';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 
@@ -118,6 +119,13 @@ export default async function MessaggiPage() {
             {ponte.collegato && !mio && (
               <FormAzione azione={rivendicaWhatsapp} className="contents">
                 <Invia icona="chiave">Rivendica il collegamento</Invia>
+              </FormAzione>
+            )}
+            {ponte.collegato && (
+              <FormAzione azione={aggiornaRubricaWhatsapp} className="contents">
+                <Invia icona="riapri" className="btn-ghost btn-sm">
+                  Aggiorna rubrica
+                </Invia>
               </FormAzione>
             )}
             {mio && (

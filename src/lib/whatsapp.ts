@@ -70,6 +70,11 @@ export function inviaWhatsapp(a: string, testo: string) {
   return chiama<{ id: string }>('/invia', { metodo: 'POST', corpo: { a, testo } });
 }
 
+/** Chiede al ponte la rubrica da capo: i nomi salvati sul telefono collegato. */
+export function aggiornaRubricaPonte() {
+  return chiama<{ totale: number; conNome: number }>('/rubrica', { metodo: 'POST' });
+}
+
 export function scollegaPonte() {
   return chiama<{ ok: boolean }>('/scollega', { metodo: 'POST' });
 }

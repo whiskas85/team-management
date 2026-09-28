@@ -6,7 +6,13 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin } from '@/lib/domain';
 import { bozzeDiOggi, bozzeSuRichiesta, segnaUsato, spezzaTesti, type Bozza } from '@/lib/messaggi';
-import { gruppiWhatsapp, inviaWhatsapp, scollegaPonte, statoPonte } from '@/lib/whatsapp';
+import {
+  aggiornaRubricaPonte,
+  gruppiWhatsapp,
+  inviaWhatsapp,
+  scollegaPonte,
+  statoPonte,
+} from '@/lib/whatsapp';
 import { enumVal, str, strOpt, type StatoForm } from '@/lib/form';
 import { componiMessaggioAccesso } from '@/lib/messaggio-accesso';
 import { perWhatsapp } from '@/lib/telefono';
@@ -441,4 +447,19 @@ export async function inviaMessaggiPronti(_prev: StatoForm, _fd: FormData): Prom
   return falliti === 0
     ? { ok: `Inviato ${quanti(inviati)}.` }
     : { errore: `Inviati ${inviati}, falliti ${falliti}. L’esito di ognuno è nel registro.` };
+}
+
+/**
+ * La rubrica da capo: il ponte richiede a WhatsApp i contatti salvati sul
+ * telefono. Serve quando nella ricerca dei campi telefono mancano i nomi.
+ */
+export async function aggiornaRubricaWhatsapp(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce il collegamento.' };
+
+  const r = await aggiornaRubricaPonte();
+  if (!r.ok) return { errore: `Rubrica non aggiornata: ${r.errore}` };
+  return {
+    ok: `Rubrica aggiornata: ${r.dati.totale} numeri, ${r.dati.conNome} col nome salvato sul telefono.`,
+  };
 }

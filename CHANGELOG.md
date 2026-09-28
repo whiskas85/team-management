@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.112.1 — 28 settembre 2026
+
+### Corretto
+
+- **Rubrica WhatsApp senza nomi.** Il telefono era già collegato prima della
+  2.112.0, quindi i contatti salvati non erano mai arrivati: si trovavano solo
+  numeri senza nome, pescati dai gruppi. Adesso il ponte richiede la rubrica
+  intera da solo quando mancano i nomi, e in Messaggi c'è il pulsante
+  **Aggiorna rubrica** per rifarlo a mano.
+- I contatti che WhatsApp manda col solo identificativo anonimo (LID) vengono
+  tradotti nel numero grazie ai gruppi.
+- Il nome WhatsApp di chi scrive si prende dai messaggi che arrivano.
+- **La ricerca non guarda più i nomi dei gruppi.** Prima «andre» trovava tutti
+  i membri di «Foto festa Andre»; ora cerca solo nel nome in rubrica, nel nome
+  WhatsApp e nel numero.
+
 ## 2.112.0 — 28 settembre 2026
 
 ### Aggiunto
