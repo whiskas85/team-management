@@ -18,6 +18,7 @@ import {
   scartaContatto,
   scollegaSito,
 } from '@/actions/contatti';
+import { CampoTelefono } from '@/components/CampoTelefono';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +101,7 @@ export default async function ContattiPage() {
                   <input name="cognome" className="input" />
                 </Campo>
                 <Campo label="Telefono *">
-                  <input name="telefono" required className="input" inputMode="tel" />
+                  <CampoTelefono name="telefono" required />
                 </Campo>
                 <Campo label="Email">
                   <input name="email" type="email" className="input" />

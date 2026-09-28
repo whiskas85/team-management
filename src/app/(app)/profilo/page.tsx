@@ -23,6 +23,7 @@ import { FotoProfilo } from '@/components/FotoProfilo';
 import { Notifiche } from '@/components/Notifiche';
 import { GRUPPI_SANGUIGNI } from '@/lib/medico';
 import { aggiornaConsensi, aggiornaProfilo, cambiaPassword } from '@/actions/operatori';
+import { CampoTelefono } from '@/components/CampoTelefono';
 
 function Dato({
   etichetta,
@@ -377,7 +378,7 @@ export default async function ProfiloPage() {
         <FormAzione azione={aggiornaProfilo}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Campo label="Telefono">
-              <input name="telefono" type="tel" defaultValue={utente.telefono ?? ''} className="input" />
+              <CampoTelefono name="telefono" defaultValue={utente.telefono} />
             </Campo>
             <Campo label="Indirizzo">
               <input name="indirizzo" defaultValue={utente.indirizzo ?? ''} className="input" />
@@ -426,11 +427,10 @@ export default async function ProfiloPage() {
               />
             </Campo>
             <Campo label="Telefono emergenza">
-              <input
+              <CampoTelefono
                 name="emergenzaTel"
-                type="tel"
-                defaultValue={utente.emergenzaTel ?? ''}
-                className="input"
+                defaultValue={utente.emergenzaTel}
+                campoNome="emergenzaNome"
               />
             </Campo>
             <Campo label="Gruppo sanguigno">

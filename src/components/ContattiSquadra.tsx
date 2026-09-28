@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Icona } from './Icona';
+import { CampoTelefono } from './CampoTelefono';
 
 export type Contatto = {
   ruolo: string;
@@ -54,6 +55,7 @@ export function ContattiSquadra({ contatti = [] }: { contatti?: Contatto[] }) {
         return (
           <div
             key={c.chiave}
+            data-gruppo-contatto
             className="grid grid-cols-2 gap-2 rounded-md border border-line p-2 sm:grid-cols-[9rem_minmax(0,1fr)_9rem_minmax(0,1fr)_2rem]"
           >
             {fissa ? (
@@ -78,13 +80,12 @@ export function ContattiSquadra({ contatti = [] }: { contatti?: Contatto[] }) {
               aria-label={`Nome ${c.ruolo || 'contatto'}`}
               className="input"
             />
-            <input
+            <CampoTelefono
               name="contattoTelefono"
-              type="tel"
-              defaultValue={c.telefono ?? ''}
+              defaultValue={c.telefono}
               placeholder="Telefono"
-              aria-label={`Telefono ${c.ruolo || 'contatto'}`}
-              className="input"
+              ariaLabel={`Telefono ${c.ruolo || 'contatto'}`}
+              campoNome="contattoNome"
             />
             <input
               name="contattoEmail"

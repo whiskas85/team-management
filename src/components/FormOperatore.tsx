@@ -5,6 +5,7 @@ import { BottoneModale } from './Modale';
 import { Invia } from './Bottone';
 import { etichettaRuolo, etichettaStato } from '@/lib/domain';
 import { creaOperatore } from '@/actions/operatori';
+import { CampoTelefono } from './CampoTelefono';
 
 const RUOLI: Role[] = ['ATLETA', 'TL', 'MODERATORE', 'AMMINISTRAZIONE', 'SEGRETERIA', 'ADMIN'];
 
@@ -194,7 +195,7 @@ export function BottoneCreaOperatore({
             <input name="callsign" className="input" />
           </Campo>
           <Campo label="Telefono *">
-            <input name="telefono" required className="input" defaultValue={contatto?.telefono} />
+            <CampoTelefono name="telefono" required defaultValue={contatto?.telefono} />
           </Campo>
           <Campo label="Data di nascita *">
             <input

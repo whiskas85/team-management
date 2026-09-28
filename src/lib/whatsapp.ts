@@ -73,3 +73,25 @@ export function inviaWhatsapp(a: string, testo: string) {
 export function scollegaPonte() {
   return chiama<{ ok: boolean }>('/scollega', { metodo: 'POST' });
 }
+
+export type ContattoWhatsapp = {
+  /** Solo cifre, col prefisso internazionale: 393481234567. */
+  numero: string;
+  /** Come è salvato nella rubrica del telefono collegato. */
+  nome: string | null;
+  /** Il nome che la persona si è data su WhatsApp. */
+  notify: string | null;
+  /** Alcuni gruppi in cui compare: aiutano a capire chi è. */
+  gruppi: string[];
+};
+
+/**
+ * Cerca nella rubrica del telefono collegato. `collegato` falso vuol dire che
+ * non c'è niente da cercare: il campo non mostra nemmeno l'icona.
+ */
+export async function cercaContattiWhatsapp(q: string) {
+  const r = await chiama<{ collegato: boolean; totale: number; contatti: ContattoWhatsapp[] }>(
+    `/contatti?q=${encodeURIComponent(q)}`,
+  );
+  return r.ok ? r.dati : { collegato: false, totale: 0, contatti: [] };
+}

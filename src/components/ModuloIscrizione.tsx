@@ -3,6 +3,7 @@ import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { inputDate } from '@/lib/format';
 import { compilaRichiesta } from '@/actions/iscrizioni';
+import { CampoTelefono } from './CampoTelefono';
 
 type Anagrafica = {
   nome: string;
@@ -55,7 +56,7 @@ export function ModuloIscrizione({
             <input name="callsign" defaultValue={utente.callsign ?? ''} className="input" />
           </Campo>
           <Campo label="Telefono *">
-            <input name="telefono" required defaultValue={utente.telefono ?? ''} className="input" />
+            <CampoTelefono name="telefono" required defaultValue={utente.telefono} />
           </Campo>
           <Campo label="Data di nascita *">
             <input
@@ -124,11 +125,11 @@ export function ModuloIscrizione({
             />
           </Campo>
           <Campo label="Telefono emergenza *">
-            <input
+            <CampoTelefono
               name="emergenzaTel"
               required
-              defaultValue={utente.emergenzaTel ?? ''}
-              className="input"
+              defaultValue={utente.emergenzaTel}
+              campoNome="emergenzaNome"
             />
           </Campo>
           <Campo label="Gruppo sanguigno">

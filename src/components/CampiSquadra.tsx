@@ -1,6 +1,7 @@
 import { Campo } from './ui';
 import { ContattiSquadra, type Contatto } from './ContattiSquadra';
 import type { StatoSquadra } from '@prisma/client';
+import { CampoTelefono } from './CampoTelefono';
 
 export type Squadra = {
   id: string;
@@ -36,7 +37,7 @@ export function CampiSquadra({ squadra }: { squadra?: Squadra }) {
       </Campo>
 
       <Campo label="Telefono della società">
-        <input name="telefono" type="tel" defaultValue={squadra?.telefono ?? ''} className="input" />
+        <CampoTelefono name="telefono" defaultValue={squadra?.telefono} />
       </Campo>
 
       <Campo label="Email della società">

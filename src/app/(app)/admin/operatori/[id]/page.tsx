@@ -39,6 +39,7 @@ import { haIncarichi } from '@/lib/domain';
 import { citabili } from '@/lib/note';
 import { BloccoNote, type NotaLetta } from '@/components/Note';
 import { BottoneElimina } from '@/components/CardRiga';
+import { CampoTelefono } from '@/components/CampoTelefono';
 
 export default async function SchedaOperatorePage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requirePermesso(puoVedereOperatori);
@@ -483,7 +484,7 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
                   <input name="callsign" defaultValue={utente.callsign ?? ''} className="input" />
                 </Campo>
                 <Campo label="Telefono">
-                  <input name="telefono" defaultValue={utente.telefono ?? ''} className="input" />
+                  <CampoTelefono name="telefono" defaultValue={utente.telefono} />
                 </Campo>
                 <Campo label="Data di nascita">
                   <input
@@ -537,10 +538,10 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
                   />
                 </Campo>
                 <Campo label="Tel. emergenza">
-                  <input
+                  <CampoTelefono
                     name="emergenzaTel"
-                    defaultValue={utente.emergenzaTel ?? ''}
-                    className="input"
+                    defaultValue={utente.emergenzaTel}
+                    campoNome="emergenzaNome"
                   />
                 </Campo>
                 <Campo label="Gruppo sanguigno">

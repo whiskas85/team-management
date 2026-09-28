@@ -1,5 +1,6 @@
 import { Campo } from './ui';
 import { PosizioneCampo } from './PosizioneCampo';
+import { CampoTelefono } from './CampoTelefono';
 
 type Squadra = { id: string; nome: string; stato?: string };
 
@@ -83,7 +84,7 @@ export function FormCampo({
         </Campo>
 
         <Campo label="Telefono">
-          <input name="telefono" defaultValue={campo?.telefono ?? ''} className="input" />
+          <CampoTelefono name="telefono" defaultValue={campo?.telefono} campoNome="referente" />
         </Campo>
 
         <Campo label="Sito / pagina">

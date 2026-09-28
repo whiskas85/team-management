@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.112.0 — 28 settembre 2026
+
+### Aggiunto
+
+- **Numeri dalla rubrica WhatsApp.** Se il WhatsApp del club è collegato, i
+  campi telefono vuoti hanno un'icona WhatsApp sulla destra. L'icona apre una
+  ricerca tipo omnibar per nome in rubrica, nome WhatsApp, pezzo di numero o
+  gruppo: si scorre con le frecce e si sceglie con Invio.
+  - Il numero scelto va nel campo. Se accanto c'è il nome della persona
+    (referente del campo, contatto della squadra, contatto di emergenza) ed è
+    vuoto, si riempie anche quello.
+  - L'icona c'è su:
+    - squadre esterne (società e contatti);
+    - campi da gioco;
+    - scheda e creazione degli operatori;
+    - contatti in arrivo;
+    - profilo e modulo d'iscrizione (telefono e contatto di emergenza).
+  - La rubrica è quella del telefono collegato, quindi la vedono solo admin e
+    amministrazione: per gli altri il campo resta un campo normale.
+  - Il ponte WhatsApp tiene la rubrica: i contatti salvati sul telefono e i
+    partecipanti dei gruppi. Si riempie mentre il telefono si sincronizza e si
+    svuota quando si scollega il numero.
+
 ## 2.111.0 — 28 settembre 2026
 
 ### Aggiunto

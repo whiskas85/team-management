@@ -18,7 +18,8 @@
 
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
 import QRCode from 'qrcode';
@@ -39,6 +40,111 @@ const SEGRETO = process.env.SEGRETO_WHATSAPP ?? '';
 const CARTELLA_SESSIONE = process.env.CARTELLA_SESSIONE ?? '/dati/sessione';
 
 const log = pino({ level: process.env.LIVELLO_LOG ?? 'warn' });
+
+// ------------------------------------------------------------------ rubrica
+
+/*
+ * La rubrica del telefono collegato, per cercare un numero dal gestionale.
+ *
+ * WhatsApp la manda a pezzi: all'abbinamento (la cronologia), poi a ogni
+ * contatto aggiunto o rinominato sul telefono. Gli eventi non si ripetono al
+ * riavvio, quindi quello che arriva si scrive su disco accanto alla sessione,
+ * e si rilegge alla partenza. Ai nomi della rubrica si aggiungono i
+ * partecipanti dei gruppi: di loro si sa il numero e il gruppo, e spesso il
+ * nome che si sono dati su WhatsApp.
+ */
+const FILE_RUBRICA = process.env.FILE_RUBRICA ?? join(dirname(CARTELLA_SESSIONE), 'rubrica.json');
+
+/** numero (solo cifre) → { nome, notify, gruppi } */
+const rubrica = new Map();
+let salvataggio = null;
+
+async function caricaRubrica() {
+  try {
+    const dati = JSON.parse(await readFile(FILE_RUBRICA, 'utf8'));
+    for (const [numero, voce] of Object.entries(dati)) rubrica.set(numero, voce);
+  } catch {
+    // prima partenza, o file illeggibile: si riempie da sola
+  }
+}
+
+function salvaRubrica() {
+  if (salvataggio) return;
+  salvataggio = setTimeout(() => {
+    salvataggio = null;
+    writeFile(FILE_RUBRICA, JSON.stringify(Object.fromEntries(rubrica))).catch((e) =>
+      log.error({ err: e }, 'rubrica non salvata'),
+    );
+  }, 2000);
+}
+
+/** Il numero dietro un contatto: WhatsApp lo mette in campi diversi a seconda della versione. */
+function numeroDi(c) {
+  for (const v of [c.phoneNumber, c.jid, c.id]) {
+    if (!v) continue;
+    const s = String(v);
+    if (s.endsWith('@s.whatsapp.net')) return s.split('@')[0].split(':')[0];
+    if (/^\+?\d{8,15}$/.test(s)) return s.replace(/\D/g, '');
+  }
+  return null;
+}
+
+function registraContatti(contatti) {
+  let cambiati = 0;
+  for (const c of contatti ?? []) {
+    const numero = numeroDi(c);
+    if (!numero) continue;
+    const voce = rubrica.get(numero) ?? { nome: null, notify: null, gruppi: [] };
+    const nome = c.name || voce.nome;
+    const notify = c.notify || c.verifiedName || voce.notify;
+    if (nome !== voce.nome || notify !== voce.notify || !rubrica.has(numero)) {
+      rubrica.set(numero, { ...voce, nome: nome ?? null, notify: notify ?? null });
+      cambiati++;
+    }
+  }
+  if (cambiati > 0) salvaRubrica();
+}
+
+function registraGruppi(gruppi) {
+  for (const g of gruppi) {
+    for (const p of g.participants ?? []) {
+      const numero = numeroDi(p);
+      if (!numero) continue;
+      const voce = rubrica.get(numero) ?? { nome: null, notify: null, gruppi: [] };
+      if (!voce.gruppi.includes(g.subject)) {
+        rubrica.set(numero, { ...voce, gruppi: [...voce.gruppi, g.subject].slice(-5) });
+      }
+    }
+  }
+  salvaRubrica();
+}
+
+const senzaAccenti = (s) =>
+  String(s ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+/** Cerca per parole del nome (rubrica, WhatsApp o gruppo) o per cifre del numero. */
+function cercaRubrica(q, quanti = 30) {
+  const parole = senzaAccenti(q).split(/\s+/).filter(Boolean);
+  const cifre = q.replace(/\D/g, '');
+  const trovati = [];
+  for (const [numero, v] of rubrica) {
+    const testo = senzaAccenti([v.nome, v.notify, ...(v.gruppi ?? [])].join(' '));
+    const perNumero = cifre.length >= 3 && numero.includes(cifre);
+    const perNome =
+      parole.length > 0 && parole.every((p) => testo.includes(p) || (/^\d+$/.test(p) && numero.includes(p)));
+    if (!perNumero && !perNome) continue;
+    // prima chi è in rubrica col nome, poi chi ha solo il nome WhatsApp
+    const punti = (v.nome ? 2 : v.notify ? 1 : 0) + (perNome && v.nome && senzaAccenti(v.nome).startsWith(parole[0] ?? '\u0000') ? 2 : 0);
+    trovati.push({ numero, nome: v.nome, notify: v.notify, gruppi: v.gruppi ?? [], punti });
+  }
+  return trovati
+    .sort((a, b) => b.punti - a.punti || (a.nome ?? a.notify ?? '~').localeCompare(b.nome ?? b.notify ?? '~', 'it'))
+    .slice(0, quanti)
+    .map(({ punti: _punti, ...r }) => r);
+}
 
 /** Tutto lo stato vivo del ponte, in un posto solo. */
 const stato = {
@@ -61,6 +167,9 @@ const stato = {
 async function azzeraSessione() {
   await rm(CARTELLA_SESSIONE, { recursive: true, force: true });
   await mkdir(CARTELLA_SESSIONE, { recursive: true });
+  // numero nuovo, rubrica nuova: quella di prima era di un altro telefono
+  rubrica.clear();
+  await rm(FILE_RUBRICA, { force: true });
   stato.collegato = false;
   stato.numero = null;
   stato.qr = null;
@@ -88,6 +197,11 @@ async function avvia() {
 
   socket.ev.on('creds.update', saveCreds);
 
+  // la rubrica: all'abbinamento arriva con la cronologia, poi a pezzi
+  socket.ev.on('messaging-history.set', ({ contacts }) => registraContatti(contacts));
+  socket.ev.on('contacts.upsert', registraContatti);
+  socket.ev.on('contacts.update', registraContatti);
+
   socket.ev.on('connection.update', async (agg) => {
     const { connection, lastDisconnect, qr } = agg;
 
@@ -103,6 +217,11 @@ async function avvia() {
       stato.riavvii = 0;
       stato.numero = socket.user?.id?.split(':')[0] ?? null;
       log.warn({ numero: stato.numero }, 'whatsapp collegato');
+      // i partecipanti dei gruppi: numeri che la rubrica magari non ha
+      socket
+        .groupFetchAllParticipating()
+        .then((g) => registraGruppi(Object.values(g)))
+        .catch((e) => log.warn({ err: e }, 'gruppi non letti per la rubrica'));
     }
 
     if (connection === 'close') {
@@ -221,6 +340,15 @@ const server = createServer(async (req, res) => {
       );
     }
 
+    if (req.method === 'GET' && url.pathname === '/contatti') {
+      const q = (url.searchParams.get('q') ?? '').trim();
+      return rispondi(res, 200, {
+        collegato: stato.collegato,
+        totale: rubrica.size,
+        contatti: q ? cercaRubrica(q) : [],
+      });
+    }
+
     if (req.method === 'POST' && url.pathname === '/invia') {
       if (!stato.collegato) return rispondi(res, 409, { errore: 'WhatsApp non è collegato.' });
       const { a, testo } = await corpoRichiesta(req);
@@ -251,6 +379,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORTA, () => log.warn(`ponte whatsapp in ascolto sulla porta ${PORTA}`));
+await caricaRubrica();
 avvia().catch((e) => {
   stato.ultimoErrore = e?.message ?? 'avvio fallito';
   log.error(e);
