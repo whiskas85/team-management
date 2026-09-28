@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.4 — 28 settembre 2026
+
+### Corretto
+
+- **Book HTML: niente più «printAll is not defined».** I book esportati da
+  altri programmi hanno i pulsanti in cima e lo script in fondo, dopo le
+  immagini incorporate: dentro l'app il file arriva dalla rete, i pulsanti si
+  vedono prima che lo script sia arrivato, e premerli dava errore (aperto dal
+  computer invece arriva tutto subito, per questo lì funzionava). Ora il
+  gestionale, servendo qualsiasi book, gli mette davanti un velo
+  «Caricamento del documento…» che si toglie appena il file è arrivato tutto
+  (o dopo 20 secondi al massimo). Il file caricato non viene modificato, e
+  scaricato esce com'è.
+
 ## 2.108.3 — 28 settembre 2026
 
 ### Corretto

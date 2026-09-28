@@ -120,5 +120,40 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     ].join('; ');
   }
 
-  return new NextResponse(new Uint8Array(buffer), { headers: intestazioni });
+  const corpo =
+    genere === 'html' && !scarica ? Buffer.from(conAttesa(buffer.toString('utf8'))) : buffer;
+  return new NextResponse(new Uint8Array(corpo), { headers: intestazioni });
+}
+
+/**
+ * Finché il file non è arrivato tutto, il book non si tocca.
+ *
+ * I book esportati da altri programmi hanno spesso i pulsanti in cima e lo
+ * script che li fa funzionare in fondo, dopo immagini incorporate da un mega e
+ * più: il pulsante «Stampa» si vede molto prima che esista quello che deve
+ * fare, e premerlo dà «printAll is not defined». Correggere ogni book non
+ * serve — il prossimo arriva uguale — quindi è il gestionale, servendolo, a
+ * mettergli davanti un velo «Caricamento…» che si toglie a caricamento finito.
+ *
+ * Il file salvato non cambia: si aggiunge solo a quello che si serve per
+ * leggerlo. Scaricato, esce com'è.
+ */
+function conAttesa(html: string): string {
+  // un riquadro vero, attaccato alla radice mentre la testata si legge:
+  // copre la pagina e si prende i tocchi finché il file non è arrivato tutto.
+  // Si toglie a caricamento finito, o comunque dopo 20 secondi: un carattere
+  // esterno che non risponde non deve tenere il book chiuso per sempre
+  const velo =
+    '<script>(function(){var v=document.createElement("div");v.id="zd-attesa";' +
+    'v.textContent="Caricamento del documento…";' +
+    'v.setAttribute("style","position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;' +
+    'justify-content:center;background:rgba(14,17,14,.92);color:#cfd8cf;font:15px system-ui,sans-serif");' +
+    'document.documentElement.appendChild(v);' +
+    'function via(){v.remove()}addEventListener("load",via);setTimeout(via,20000)})()</script>';
+  const testa = html.match(/<head[^>]*>/i);
+  if (testa?.index !== undefined) {
+    const dopo = testa.index + testa[0].length;
+    return html.slice(0, dopo) + velo + html.slice(dopo);
+  }
+  return velo + html;
 }

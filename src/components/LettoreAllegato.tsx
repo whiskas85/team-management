@@ -1,5 +1,6 @@
 import { Icona } from './Icona';
 import { Markdown } from './Markdown';
+import { RiquadroHtml } from './RiquadroHtml';
 import { etichettaGenere, genereAllegato, peso, type GenereAllegato } from '@/lib/allegati';
 
 export type AllegatoDaLeggere = {
@@ -58,18 +59,7 @@ export function LettoreAllegato({
             </p>
           )
         ) : genere === 'html' ? (
-          /* script e finestre di sistema (la stampa del book, i suoi avvisi):
-             niente stessa origine (quindi niente sessione),
-             niente moduli, niente finestre nuove, niente mani sulla pagina intorno.
-             La rotta che lo serve gli dà anche un'origine sua, così i due
-             lucchetti stanno sulla stessa porta. */
-          <iframe
-            src={indirizzoFile}
-            title={allegato.titolo}
-            sandbox="allow-scripts allow-modals"
-            referrerPolicy="no-referrer"
-            className="h-[70vh] w-full rounded-md border border-line bg-white"
-          />
+          <RiquadroHtml src={indirizzoFile} titolo={allegato.titolo} />
         ) : (
           <object
             data={indirizzoFile}
