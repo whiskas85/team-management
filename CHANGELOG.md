@@ -5,6 +5,33 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.112.4 — 28 settembre 2026
+
+### Corretto
+
+- **Togliere un partecipante dopo l'appello.** Chi veniva aggiunto
+  dall'appello entrava già «presente» e da quel momento il cestino spariva: se
+  era un errore, non si poteva più togliere. Ora finché l'attività non è
+  conclusa si può togliere chiunque:
+  - dall'elenco partecipanti, col cestino;
+  - direttamente dall'appello, con la X accanto al nome.
+  A giornata conclusa le presenze restano intoccabili come prima.
+
+## 2.112.3 — 28 settembre 2026
+
+### Cambiato
+
+- **Polizze giornaliere: il conto delle polizze dentro ogni giocata.** Accanto
+  alla data c'è quante polizze consumerebbe la giocata e quante ne restano
+  dopo. Il conto scala in ordine di data partendo da quelle in cassa: con 5
+  polizze, «−2 · restano 3» alla notturna e «−3 · restano 0» al corso.
+  - Quando non bastano più, il riquadro diventa rosso con un punto
+    esclamativo e dice quante ne mancano.
+  - Se il portale non ha ancora detto quante ne restano, compare solo quante
+    ne servono.
+- Tornati al loro posto i quattro riquadri in cima alla pagina, che la 2.112.2
+  aveva spostato nella colonna di destra.
+
 ## 2.112.1 — 28 settembre 2026
 
 ### Corretto
