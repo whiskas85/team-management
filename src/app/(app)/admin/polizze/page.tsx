@@ -75,24 +75,26 @@ export default async function PolizzePage() {
         sottotitolo="Chi viene da fuori nelle attività in programma, e chi va coperto"
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Statistica etichetta="Attività con ospiti" valore={conOspiti.length} />
-        <Statistica
-          etichetta="Ancora scoperti"
-          valore={scoperti}
-          tono={scoperti > 0 ? 'warn' : 'ok'}
-        />
-        <Statistica
-          etichetta="Pronti da assicurare"
-          valore={daFare}
-          dettaglio="quota saldata o dichiarata, dati a posto"
-          tono={daFare > 0 ? 'warn' : 'neutro'}
-        />
-        <GiacenzaPolizze />
-      </div>
-
+      {/* I numeri stanno in colonna, a destra delle giocate che contano: su
+          telefono vengono prima, due per riga, e le giocate scendono sotto. */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0">
+        <div className="grid grid-cols-2 gap-3 self-start lg:col-start-2 lg:row-start-1 lg:grid-cols-1">
+          <Statistica etichetta="Attività con ospiti" valore={conOspiti.length} />
+          <Statistica
+            etichetta="Ancora scoperti"
+            valore={scoperti}
+            tono={scoperti > 0 ? 'warn' : 'ok'}
+          />
+          <Statistica
+            etichetta="Pronti da assicurare"
+            valore={daFare}
+            dettaglio="quota saldata o dichiarata, dati a posto"
+            tono={daFare > 0 ? 'warn' : 'neutro'}
+          />
+          <GiacenzaPolizze />
+        </div>
+
+        <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
       {conOspiti.length === 0 ? (
         <Vuoto testo="Nelle attività in programma non si è segnato nessuno da fuori: non c’è niente da assicurare." />
       ) : (
@@ -247,7 +249,7 @@ export default async function PolizzePage() {
             "chi c'e' da coprire" ma "fino a quando mi bastano le polizze".
             Su telefono scende sotto, che e' l'ordine giusto: prima il lavoro
             da fare, poi il conto. */}
-        <div className="lg:sticky lg:top-20 lg:self-start">
+        <div className="lg:col-start-2 lg:self-start">
           <TimelinePolizze
             giacenza={giacenza?.polizzeLetteIl ? giacenza.polizzeResidue : null}
             tappe={conOspiti
