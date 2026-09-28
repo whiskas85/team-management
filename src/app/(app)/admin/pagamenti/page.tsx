@@ -19,6 +19,8 @@ import {
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
+import { CreditiCassa } from '@/components/CreditiCassa';
+import { creditoInCassa } from '@/lib/credito';
 
 const FILTRI = {
   dagestire: 'Da gestire',
@@ -127,6 +129,9 @@ export default async function AdminPagamentiPage({
     select: { id: true, nome: true },
   });
 
+  // soldi in cassa che sono ancora di chi li ha versati
+  const credito = await creditoInCassa(null);
+
   const aperti = tutti.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
   const daIncassare = aperti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
   const incassato = tutti.reduce((t, p) => t + Number(p.pagato), 0);
@@ -161,7 +166,12 @@ export default async function AdminPagamentiPage({
           tono={daIncassare > 0 ? 'warn' : 'ok'}
         />
         <Statistica etichetta="Incassato" valore={fmtEuro(incassato)} tono="ok" />
-        <Statistica etichetta="Movimenti" valore={tutti.length} />
+        <Statistica
+          etichetta="Crediti"
+          valore={fmtEuro(credito)}
+          dettaglio="versati e non ancora usati"
+          tono={credito > 0 ? 'ok' : 'neutro'}
+        />
         <Statistica
           etichetta="Voce principale"
           valore={perTipo[0] ? umanizza(perTipo[0][0]) : '—'}
@@ -248,6 +258,8 @@ export default async function AdminPagamentiPage({
           </Invia>
         </FormAzione>
       </Fisarmonica>
+
+      <CreditiCassa cassaId={null} persone={operatori} metodi={metodi} />
 
       {daConfermare > 0 && filtro !== 'dagestire' && (
         <div className="mb-5 flex flex-col gap-2 rounded-md border border-sky-400/40 bg-sky-400/10 px-4 py-3 text-sm text-sky-300 sm:flex-row sm:items-center sm:justify-between">

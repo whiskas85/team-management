@@ -8,6 +8,7 @@ import { stagioneAttiva, tariffa } from '@/lib/stagioni';
 import { componiQuota } from '@/lib/quote';
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { usaCredito } from '@/lib/credito';
 
 const TIPI = ['ISCRIZIONE', 'REISCRIZIONE'] as const;
 const STATI = ['INVITATA', 'COMPILATA', 'ATTIVA', 'RIFIUTATA', 'SCADUTA'] as const;
@@ -285,6 +286,8 @@ export async function approvaIscrizione(_prev: StatoForm, fd: FormData): Promise
       });
     }
   });
+  // se aveva versato un credito, la quota d’iscrizione la paga subito quello
+  await usaCredito(iscrizione.userId, null);
 
   aggiorna();
   revalidatePath('/admin/pagamenti');

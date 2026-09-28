@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth';
 import { puoAmministrare } from '@/lib/domain';
 import { stagioneAttiva, tariffa } from '@/lib/stagioni';
 import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { usaCredito } from '@/lib/credito';
 
 const STATI = ['DA_RECUPERARE', 'ATTIVA', 'SCADUTA', 'REVOCATA'] as const;
 
@@ -73,6 +74,7 @@ export async function salvaTessera(_prev: StatoForm, fd: FormData): Promise<Stat
         recordedById: me.id,
       },
     });
+    await usaCredito(userId, null);
     revalidatePath('/admin/pagamenti');
   }
 

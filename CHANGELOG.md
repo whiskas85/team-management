@@ -5,6 +5,31 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.113.0 — 28 settembre 2026
+
+### Aggiunto
+
+- **Credito.** Chi versa soldi senza una quota precisa da saldare li ritrova
+  come credito.
+  - In **Pagamenti** (e nella pagina di ogni altra cassa) c'è **Registra
+    versamento**: chi ha versato, quanto, con che metodo.
+  - I soldi pagano subito le quote aperte di quella persona in quella cassa,
+    dalla più vecchia. Quello che avanza resta credito e **si scala da solo**
+    dalle quote che nascono dopo: attività, iscrizione, tessera, ordini di
+    merchandising. Chi era convocato passa titolare come quando incassa la
+    segreteria.
+  - Se una quota pagata col credito non è più dovuta (l'adesione è tolta o la
+    quota eliminata), i soldi **tornano credito**.
+  - **Chi tiene la cassa** vede il riquadro «Crediti»: chi ha credito e quanto,
+    con **Restituisci** per ridare i soldi non usati.
+  - **L'utente** lo vede nei suoi pagamenti, con il riquadro «Il tuo credito»:
+    quanto ha, in che cassa, e quali quote ha pagato. Lo vede anche nel
+    profilo, sotto «Da saldare».
+  - **Cassa:** il saldo conta i soldi una volta sola, cioè quanto è entrato
+    sulle quote più il credito che resta. Nel registro compaiono il versamento
+    e l'eventuale restituzione.
+  - Il rimborso di una quota riguarda solo la parte pagata in contanti.
+
 ## 2.112.5 — 28 settembre 2026
 
 ### Corretto

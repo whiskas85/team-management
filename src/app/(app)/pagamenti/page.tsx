@@ -17,7 +17,7 @@ import { primoIban, primoLink } from '@/lib/link';
 export default async function MieiPagamentiPage() {
   const me = await requireUser();
 
-  const [pagamenti, metodi] = await Promise.all([
+  const [pagamenti, metodi, movimentiCredito] = await Promise.all([
     prisma.payment.findMany({
       where: { userId: me.id },
       orderBy: [{ status: 'asc' }, { scadenza: 'asc' }],
@@ -26,6 +26,7 @@ export default async function MieiPagamentiPage() {
         cassa: { select: { nome: true } },
         event: { select: { id: true, titolo: true, inizio: true } },
         rimborso: { select: { id: true, status: true } },
+        crediti: { select: { importo: true } },
       },
     }),
     prisma.metodoPagamento.findMany({
@@ -34,11 +35,31 @@ export default async function MieiPagamentiPage() {
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, istruzioni: true, cassaId: true },
     }),
+    prisma.movimentoCredito.findMany({
+      where: { userId: me.id },
+      orderBy: { data: 'desc' },
+      include: { cassa: { select: { nome: true } } },
+    }),
   ]);
+
+  // il credito, cassa per cassa: soldi versati e non ancora usati
+  const perCassa = new Map<string, { nome: string; credito: number }>();
+  for (const m of movimentiCredito) {
+    const chiave = m.cassaId ?? 'club';
+    const voce = perCassa.get(chiave) ?? { nome: m.cassa?.nome ?? 'il club', credito: 0 };
+    voce.credito += Number(m.importo);
+    perCassa.set(chiave, voce);
+  }
+  const crediti = [...perCassa.values()].filter((c) => c.credito > 0.001);
+  const credito = crediti.reduce((t, c) => t + c.credito, 0);
+  /** Quanto di una quota l'ha pagato il credito. */
+  const dalCredito = (p: (typeof pagamenti)[number]) =>
+    -p.crediti.reduce((t, c) => t + Number(c.importo), 0);
 
   const aperti = pagamenti.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
   const conto = daSaldare(pagamenti);
-  const versato = pagamenti.reduce((t, p) => t + Number(p.pagato), 0);
+  // quello che è entrato sulle quote più il credito che aspetta di essere usato
+  const versato = pagamenti.reduce((t, p) => t + Number(p.pagato), 0) + credito;
 
   return (
     <>
@@ -59,8 +80,63 @@ export default async function MieiPagamentiPage() {
           tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
         />
         <Statistica etichetta="Totale versato" valore={fmtEuro(versato)} tono="ok" />
-        <Statistica etichetta="Movimenti" valore={pagamenti.length} />
+        <Statistica
+          etichetta="Credito"
+          valore={fmtEuro(credito)}
+          dettaglio={
+            credito > 0 ? 'si usa da solo sulle prossime quote' : 'nessun versamento in attesa'
+          }
+          tono={credito > 0 ? 'ok' : 'neutro'}
+        />
       </div>
+
+      {/* Il credito detto in chiaro: di chi è, dove sta, e cosa ci è successo.
+          Chi ha dato 30 € alla segreteria vuole ritrovarli qui, e vedere quali
+          quote hanno pagato. */}
+      {movimentiCredito.length > 0 && (
+        <div className="card mb-6">
+          <p className="titolo-sezione mb-2">Il tuo credito</p>
+          {crediti.length > 0 ? (
+            <p className="text-sm">
+              {crediti.map((c, i) => (
+                <span key={c.nome}>
+                  {i > 0 && ' · '}
+                  <strong className="num text-nvg">{fmtEuro(c.credito)}</strong>{' '}
+                  <span className="text-muted">presso {c.nome}</span>
+                </span>
+              ))}
+              <span className="block text-xs text-muted">
+                Le prossime quote di quella cassa lo scalano da sole: non devi fare niente.
+              </span>
+            </p>
+          ) : (
+            <p className="text-sm text-muted">Il credito che avevi versato è stato tutto usato.</p>
+          )}
+          <ul className="mt-3 divide-y divide-line border-t border-line text-sm">
+            {movimentiCredito.slice(0, 12).map((m) => (
+              <li key={m.id} className="flex items-baseline gap-3 py-1.5">
+                <span className="num w-20 shrink-0 text-xs text-muted">{fmtDate(m.data)}</span>
+                <span className="min-w-0 flex-1 break-words">
+                  {m.tipo === 'VERSAMENTO'
+                    ? 'Versamento'
+                    : m.tipo === 'USO'
+                      ? `Usato per «${m.descrizione}»`
+                      : m.tipo === 'RIPRESO'
+                        ? `Tornato da «${m.descrizione}»`
+                        : 'Restituito'}
+                  {m.cassa && <span className="text-xs text-muted"> · {m.cassa.nome}</span>}
+                </span>
+                <span
+                  className={`num shrink-0 ${Number(m.importo) >= 0 ? 'text-nvg' : 'text-muted'}`}
+                >
+                  {Number(m.importo) >= 0 ? '+' : '−'}
+                  {fmtEuro(Math.abs(Number(m.importo)))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {aperti.some((p) => p.eventId) && (
         <div className="mb-6 rounded-md border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
@@ -96,6 +172,11 @@ export default async function MieiPagamentiPage() {
                   )}
                   {p.scadenza && (
                     <p className="text-xs text-muted num">Scadenza {fmtDate(p.scadenza)}</p>
+                  )}
+                  {dalCredito(p) > 0.001 && (
+                    <p className="text-xs text-nvg num">
+                      {fmtEuro(dalCredito(p))} pagati col tuo credito
+                    </p>
                   )}
                 </div>
                 <StatoQuota pagamento={p} />
@@ -151,6 +232,11 @@ export default async function MieiPagamentiPage() {
                     <td className="whitespace-nowrap num">{fmtEuro(Number(p.importo))}</td>
                     <td className="whitespace-nowrap text-muted num">
                       {fmtEuro(Number(p.pagato))}
+                      {dalCredito(p) > 0.001 && (
+                        <span className="block text-[11px] text-nvg">
+                          {fmtEuro(dalCredito(p))} dal credito
+                        </span>
+                      )}
                     </td>
                     <td>
                       <StatoQuota pagamento={p} />
@@ -224,6 +310,8 @@ function Dichiara({
     dichiaratoIl: Date | null;
     metodoId: string | null;
     rimborso: { id: string; status: string } | null;
+    /** I movimenti del credito legati a questa quota: dicono quanto ne ha pagato. */
+    crediti?: { importo: unknown }[];
   };
   metodi: { id: string; nome: string; istruzioni: string | null }[];
   /** A chi va pagata, se non al club: il nome della sua cassa. */
@@ -235,6 +323,11 @@ function Dichiara({
     pagamento.tipo !== 'RIMBORSO' &&
     Number(pagamento.pagato) > 0
   ) {
+    // pagata tutta col credito: se non partecipa più, torna credito da sola
+    const dalCredito = -(pagamento.crediti ?? []).reduce((t, c) => t + Number(c.importo), 0);
+    if (Number(pagamento.pagato) - dalCredito <= 0.001) {
+      return <span className="text-xs text-nvg">pagata col credito</span>;
+    }
     if (pagamento.rimborso) {
       return (
         <span className="text-xs text-warn">

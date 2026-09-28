@@ -63,7 +63,7 @@ export default async function CassaPage({
   const sp = await searchParams;
   const origine = (Object.keys(ORIGINI).includes(sp.origine ?? '') ? sp.origine : 'tutte') as Origine;
 
-  const [movimenti, pagamenti, metodi, scorte] = await Promise.all([
+  const [movimenti, pagamenti, metodi, scorte, crediti] = await Promise.all([
     prisma.movimentoCassa.findMany({
       orderBy: { data: 'desc' },
       include: {
@@ -105,7 +105,25 @@ export default async function CassaPage({
       orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, categoria: true },
     }),
+    // il registro dei crediti del club: versamenti, usi sulle quote, resi
+    prisma.movimentoCredito.findMany({
+      where: { cassaId: null },
+      include: {
+        user: { select: { nome: true, cognome: true, callsign: true } },
+        metodo: { select: { nome: true } },
+        registratoDa: { select: { nome: true, cognome: true } },
+      },
+    }),
   ]);
+
+  // Quanto di ogni quota è stato pagato col credito: quei soldi sono entrati
+  // col versamento, e nel registro non si contano una seconda volta.
+  const dalCredito = new Map<string, number>();
+  for (const c of crediti) {
+    if (c.paymentId) dalCredito.set(c.paymentId, (dalCredito.get(c.paymentId) ?? 0) - Number(c.importo));
+  }
+  // il credito che la cassa tiene ancora per conto delle persone
+  const creditoResiduo = crediti.reduce((t, c) => t + Number(c.importo), 0);
 
   const merci: Merce[] = scorte;
 
@@ -138,7 +156,9 @@ export default async function CassaPage({
     .filter((m) => m.tipo === 'USCITA')
     .reduce((t, m) => t + Number(m.importo), 0);
 
-  const saldo = incassiQuote - rimborsiErogati + entrateManuali - usciteManuali;
+  // il credito è denaro in cassa: quello usato è già dentro le quote, quello
+  // che resta si aggiunge qui
+  const saldo = incassiQuote - rimborsiErogati + entrateManuali - usciteManuali + creditoResiduo;
 
   // registro unico: i movimenti a mano e le quote realmente incassate, messi in
   // ordine di data. Un rimborso erogato è denaro che esce, quindi va in uscita.
@@ -157,12 +177,12 @@ export default async function CassaPage({
   }));
 
   const daAttivita: Voce[] = pagamenti
-    .filter((p) => Number(p.pagato) > 0)
+    .filter((p) => Number(p.pagato) - (dalCredito.get(p.id) ?? 0) > 0.001)
     .map((p) => ({
       chiave: `p-${p.id}`,
       data: p.pagatoIl ?? p.updatedAt,
       entrata: p.tipo !== 'RIMBORSO',
-      importo: Number(p.pagato),
+      importo: Number(p.pagato) - (dalCredito.get(p.id) ?? 0),
       descrizione: p.descrizione,
       dettaglio: `${p.user.cognome} ${p.user.nome}${p.user.callsign ? ` · ${p.user.callsign}` : ''}`,
       categoria: umanizza(p.tipo),
@@ -172,9 +192,27 @@ export default async function CassaPage({
       movimento: null,
     }));
 
+  // i versamenti a credito sono soldi che entrano, i resi soldi che escono;
+  // l'uso su una quota no, è un passaggio interno
+  const daCrediti: Voce[] = crediti
+    .filter((c) => c.tipo === 'VERSAMENTO' || c.tipo === 'RESO')
+    .map((c) => ({
+      chiave: `c-${c.id}`,
+      data: c.data,
+      entrata: c.tipo === 'VERSAMENTO',
+      importo: Math.abs(Number(c.importo)),
+      descrizione: c.tipo === 'VERSAMENTO' ? 'Versamento a credito' : 'Credito restituito',
+      dettaglio: `${c.user.cognome} ${c.user.nome}${c.user.callsign ? ` · ${c.user.callsign}` : ''}${c.note ? ` · ${c.note}` : ''}`,
+      categoria: 'Credito',
+      metodo: c.metodo?.nome ?? null,
+      registratoDa: c.registratoDa ? `${c.registratoDa.nome} ${c.registratoDa.cognome}` : null,
+      link: '/admin/pagamenti',
+      movimento: null,
+    }));
+
   const voci = [
     ...(origine === 'attivita' ? [] : daMano),
-    ...(origine === 'mano' ? [] : daAttivita),
+    ...(origine === 'mano' ? [] : [...daAttivita, ...daCrediti]),
   ].sort((a, b) => b.data.getTime() - a.data.getTime());
 
   return (
@@ -213,7 +251,11 @@ export default async function CassaPage({
         <Statistica
           etichetta="Saldo di cassa"
           valore={fmtEuro(saldo)}
-          dettaglio="incassi + entrate − uscite − rimborsi"
+          dettaglio={
+            creditoResiduo > 0.001
+              ? `di cui ${fmtEuro(creditoResiduo)} di crediti delle persone`
+              : 'incassi + entrate − uscite − rimborsi'
+          }
           tono={saldo >= 0 ? 'ok' : 'danger'}
         />
         <Statistica

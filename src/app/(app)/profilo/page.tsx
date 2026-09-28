@@ -139,6 +139,15 @@ export default async function ProfiloPage() {
     : null;
 
   const conto = daSaldare(utente.payments);
+  // il credito versato e non ancora usato, in tutte le casse
+  const credito = Number(
+    (
+      await prisma.movimentoCredito.aggregate({
+        where: { userId: utente.id },
+        _sum: { importo: true },
+      })
+    )._sum.importo ?? 0,
+  );
 
   return (
     <>
@@ -270,7 +279,14 @@ export default async function ProfiloPage() {
         <Statistica
           etichetta="Da saldare"
           valore={fmtEuro(conto.importo)}
-          dettaglio={conto.inVerifica > 0 ? `${fmtEuro(conto.inVerifica)} in verifica` : undefined}
+          dettaglio={
+            [
+              conto.inVerifica > 0 ? `${fmtEuro(conto.inVerifica)} in verifica` : null,
+              credito > 0.001 ? `${fmtEuro(credito)} di credito` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ') || undefined
+          }
           tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
           href="/pagamenti"
         />

@@ -6,6 +6,8 @@ import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
 import { puoGestireCassa, quoteTutteSaldate } from '@/lib/casse';
 import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { parteDaCredito, riprendiCredito, saldoCredito, usaCredito } from '@/lib/credito';
+import { fmtEuro } from '@/lib/format';
 
 const TIPI = [
   'ISCRIZIONE',
@@ -119,11 +121,13 @@ export async function salvaPagamento(_prev: StatoForm, fd: FormData): Promise<St
         recordedById: me.id,
       },
     });
+    await usaCredito(userId, cassaId);
     aggiorna();
     return { ok: 'Quota registrata nell’altra cassa: la incassa chi la gestisce.' };
   }
 
   await prisma.payment.create({ data: { ...valori, userId, recordedById: me.id } });
+  await usaCredito(userId, null);
   aggiorna();
   return { ok: 'Movimento registrato.' };
 }
@@ -241,6 +245,9 @@ export async function eliminaPagamento(_prev: StatoForm, fd: FormData): Promise<
     return { errore: 'Un movimento incassato non si elimina: serve l’admin.' };
   }
 
+  // se l'aveva pagata il credito, quei soldi tornano credito: cancellandola e
+  // basta sparirebbero dalla cassa
+  await riprendiCredito(id);
   await prisma.payment.delete({ where: { id } });
   aggiorna();
   return { ok: 'Movimento eliminato.' };
@@ -322,12 +329,22 @@ export async function chiediRimborso(_prev: StatoForm, fd: FormData): Promise<St
   }
   if (pagamento.rimborso) return { errore: 'Il rimborso è già stato richiesto.' };
 
+  // la parte pagata col credito non si rimborsa in contanti: se la quota non è
+  // più dovuta, quei soldi tornano credito da soli
+  const inContanti = Number(pagamento.pagato) - (await parteDaCredito(pagamento.id));
+  if (inContanti <= 0.001) {
+    return {
+      errore:
+        'Questa quota l’ha pagata il tuo credito: se non partecipi più, torna credito da sola.',
+    };
+  }
+
   await prisma.payment.create({
     data: {
       userId: pagamento.userId,
       tipo: 'RIMBORSO',
       descrizione: `Rimborso · ${pagamento.event?.titolo ?? pagamento.descrizione}`,
-      importo: pagamento.pagato,
+      importo: inContanti,
       status: 'DA_PAGARE',
       eventId: pagamento.eventId,
       rimborsoDiId: pagamento.id,
@@ -423,4 +440,95 @@ export async function tornaDaGestire(_prev: StatoForm, fd: FormData): Promise<St
 
   aggiorna();
   return { ok: 'La quota torna da incassare nel gestionale.' };
+}
+
+/**
+ * Soldi versati prima delle quote: entrano in cassa come credito della persona.
+ *
+ * Se ha quote aperte in questa cassa le pagano subito, dalla più vecchia;
+ * quello che avanza resta credito e paga da solo le prossime. Lo registra chi
+ * gestisce la cassa, con uno dei suoi metodi.
+ */
+export async function registraCredito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const cassaId = strOpt(fd, 'cassaId');
+  if (!(await puoGestireCassa(me, cassaId))) {
+    return { errore: 'Il credito lo registra chi gestisce questa cassa.' };
+  }
+
+  const userId = str(fd, 'userId');
+  if (!userId) return { errore: 'Scegli chi ha versato.' };
+  const importo = num(fd, 'importo');
+  if (importo === null || importo <= 0) return { errore: 'Indica quanto ha versato.' };
+  const quando = data(fd, 'data') ?? new Date();
+  if (quando > new Date()) return { errore: 'La data non può essere nel futuro.' };
+
+  const metodoId = strOpt(fd, 'metodoId');
+  if (metodoId) {
+    const metodo = await prisma.metodoPagamento.findUnique({
+      where: { id: metodoId },
+      select: { cassaId: true },
+    });
+    if (!metodo || metodo.cassaId !== cassaId) return { errore: 'Quel metodo non è di questa cassa.' };
+  }
+
+  await prisma.movimentoCredito.create({
+    data: {
+      userId,
+      cassaId,
+      tipo: 'VERSAMENTO',
+      importo,
+      metodoId,
+      descrizione: 'Versamento a credito',
+      note: strOpt(fd, 'note'),
+      data: quando,
+      registratoDaId: me.id,
+    },
+  });
+
+  const usato = await usaCredito(userId, cassaId);
+  const resta = await saldoCredito(userId, cassaId);
+  aggiorna();
+  if (usato > 0 && resta > 0) {
+    return {
+      ok: `Versati ${fmtEuro(importo)}: ${fmtEuro(usato)} hanno pagato le quote aperte, ${fmtEuro(resta)} restano di credito.`,
+    };
+  }
+  if (usato > 0) return { ok: `Versati ${fmtEuro(importo)}: hanno pagato le quote aperte.` };
+  return { ok: `Credito registrato: ${fmtEuro(resta)} da usare sulle prossime quote.` };
+}
+
+/**
+ * Il credito restituito: la persona si riprende i soldi che non ha usato, e
+ * quei soldi escono dalla cassa. Solo fino a quanto ne ha.
+ */
+export async function restituisciCredito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const cassaId = strOpt(fd, 'cassaId');
+  if (!(await puoGestireCassa(me, cassaId))) {
+    return { errore: 'Il credito lo restituisce chi gestisce questa cassa.' };
+  }
+  const userId = str(fd, 'userId');
+  const credito = await saldoCredito(userId, cassaId);
+  if (credito <= 0) return { errore: 'Non ha credito da restituire.' };
+  const importo = num(fd, 'importo') ?? credito;
+  if (importo <= 0) return { errore: 'Indica quanto restituisci.' };
+  if (importo > credito + 0.001) {
+    return { errore: `Il credito è di ${fmtEuro(credito)}: di più non si restituisce.` };
+  }
+
+  await prisma.movimentoCredito.create({
+    data: {
+      userId,
+      cassaId,
+      tipo: 'RESO',
+      importo: -importo,
+      metodoId: strOpt(fd, 'metodoId'),
+      descrizione: 'Credito restituito',
+      note: strOpt(fd, 'note'),
+      registratoDaId: me.id,
+    },
+  });
+  aggiorna();
+  return { ok: `Restituiti ${fmtEuro(importo)}.` };
 }

@@ -209,6 +209,8 @@ model User {
   rsvps                 EventRsvp[]
   payments              Payment[]               @relation("PaymentUser")
   recordedPays          Payment[]               @relation("PaymentRecorder")
+  crediti               MovimentoCredito[]      @relation("CreditiDi")
+  creditiRegistrati     MovimentoCredito[]      @relation("CreditiRegistrati")
   memberships           Membership[]            @relation("MembershipUser")
   invitiInviati         Membership[]            @relation("MembershipInviter")
   decisiMships          Membership[]            @relation("MembershipDecider")
@@ -744,6 +746,7 @@ model MetodoPagamento {
 
   payments  Payment[]
   movimenti MovimentoCassa[]
+  crediti   MovimentoCredito[]
 
   /// lo stesso nome in due casse sì — «Contanti» del club e quelli del
   /// corso — due volte nella stessa no
@@ -986,6 +989,8 @@ model Payment {
   /// non pesa sul saldo del club, e la conferma chi gestisce quella cassa.
   cassaId      String?
   cassa        Cassa?           @relation(fields: [cassaId], references: [id], onDelete: Restrict)
+  /// La parte di questa quota pagata col credito: i movimenti che la legano.
+  crediti      MovimentoCredito[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -1029,6 +1034,7 @@ model Cassa {
   metodi        MetodoPagamento[]
   payments      Payment[]
   quoteAttivita QuotaCassa[]
+  crediti       MovimentoCredito[]
   tariffe       Tariffa[]
   vociAttivita  VoceAttivita[]
 }
@@ -1089,6 +1095,47 @@ enum TipoMovimento {
 }
 
 /// Movimenti di cassa inseriti a mano: quello che non nasce dalle attività.
+/// Cosa è successo a un credito.
+enum TipoCredito {
+  VERSAMENTO // soldi entrati in cassa, non ancora legati a una quota
+  USO // una quota pagata col credito: esce dal credito, entra nella quota
+  RIPRESO // una quota pagata col credito che non è più dovuta: torna credito
+  RESO // restituito in contanti a chi l'aveva versato: esce dalla cassa
+}
+
+/// Il credito di una persona in una cassa: soldi versati prima delle quote.
+///
+/// Un registro, non un saldo scritto: il credito è la somma dei movimenti.
+/// Versare 30 € scrive +30; pagare con quelli una quota di 20 scrive −20
+/// legato alla quota, che si ritrova 20 € incassati. Così la cassa conta i
+/// soldi una volta sola: il saldo è quello che è entrato sulle quote più il
+/// credito che resta — mai il versamento e la quota insieme.
+model MovimentoCredito {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation("CreditiDi", fields: [userId], references: [id], onDelete: Cascade)
+  /// Nullo: la cassa del club, come per i pagamenti.
+  cassaId        String?
+  cassa          Cassa?           @relation(fields: [cassaId], references: [id], onDelete: Restrict)
+  tipo           TipoCredito
+  /// Positivo quando il credito cresce, negativo quando cala.
+  importo        Decimal          @db.Decimal(10, 2)
+  /// La quota su cui è stato usato, o da cui è tornato.
+  paymentId      String?
+  payment        Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  metodoId       String?
+  metodo         MetodoPagamento? @relation(fields: [metodoId], references: [id])
+  descrizione    String
+  note           String?
+  data           DateTime         @default(now())
+  registratoDaId String?
+  registratoDa   User?            @relation("CreditiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
+
+  @@index([userId, cassaId])
+  @@index([cassaId])
+  @@index([paymentId])
+}
+
 model MovimentoCassa {
   id             String           @id @default(cuid())
   tipo           TipoMovimento

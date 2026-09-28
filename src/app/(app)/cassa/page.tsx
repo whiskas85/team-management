@@ -16,6 +16,9 @@ import { segnaNonGestito, segnaPagato, tornaDaGestire } from '@/actions/pagament
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
 import { MetodiCassa } from '@/components/MetodiCassa';
+import { CreditiCassa } from '@/components/CreditiCassa';
+import { creditoInCassa } from '@/lib/credito';
+import { elencoOperatori } from '@/lib/query';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +114,11 @@ export default async function CassaPage({
   ]);
   // per incassare e per il sollecito servono solo quelli accesi
   const metodi = tuttiMetodi.filter((m) => m.attivo);
+  // chi può versare un credito, e quanto credito la cassa tiene già
+  const [persone, credito] = await Promise.all([
+    elencoOperatori(false),
+    creditoInCassa(cassa.id),
+  ]);
 
   const quote = tutti.filter((p) => p.tipo !== 'RIMBORSO');
   const aperte = quote.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
@@ -185,7 +193,7 @@ export default async function CassaPage({
         </p>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Statistica
           etichetta="Da incassare"
           valore={fmtEuro(daIncassare)}
@@ -199,7 +207,15 @@ export default async function CassaPage({
           tono={daConfermare > 0 ? 'warn' : 'neutro'}
         />
         <Statistica etichetta="Incassato" valore={fmtEuro(incassato)} tono="ok" />
+        <Statistica
+          etichetta="Crediti"
+          valore={fmtEuro(credito)}
+          dettaglio="versati e non ancora usati"
+          tono={credito > 0 ? 'ok' : 'neutro'}
+        />
       </div>
+
+      <CreditiCassa cassaId={cassa.id} persone={persone} metodi={metodi} />
 
       <div className="mb-5 flex flex-wrap gap-2">
         {(Object.keys(FILTRI) as Filtro[]).map((f) => (

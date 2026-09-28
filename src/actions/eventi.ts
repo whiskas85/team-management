@@ -18,6 +18,8 @@ import {
 import { annoCredibile, annoSbagliato, giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
+import { parteDaCredito, riprendiCredito, usaCredito } from '@/lib/credito';
+import { Prisma } from '@prisma/client';
 import {
   MOTIVO_NON_IDONEO,
   NOTA_AGGIUNTO_STAFF,
@@ -768,7 +770,19 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
 
   let totale = 0;
   for (const v of voci) {
-    const esistente = esistenti.find((p) => p.cassaId === v.cassaId) ?? null;
+    let esistente = esistenti.find((p) => p.cassaId === v.cassaId) ?? null;
+
+    // Pagata tutta col credito: per il gestionale è come non pagata. Se non
+    // è più dovuta, o il costo è cambiato, il credito torna indietro e la
+    // quota si ricalcola come una da pagare; poi il credito la ripaga.
+    if (esistente && Number(esistente.pagato) > 0 && esistente.status !== 'NON_GESTITO') {
+      const dalCredito = await parteDaCredito(esistente.id);
+      const cambia = !(dovuta && v.importo > 0) || Number(esistente.importo) !== v.importo;
+      if (cambia && dalCredito > 0 && dalCredito + 0.001 >= Number(esistente.pagato)) {
+        await riprendiCredito(esistente.id);
+        esistente = { ...esistente, pagato: new Prisma.Decimal(0), status: 'DA_PAGARE' };
+      }
+    }
 
     if (dovuta && v.importo > 0) {
       if (!esistente) {
@@ -808,6 +822,9 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
       await prisma.payment.delete({ where: { id: esistente.id } });
     }
   }
+
+  // il credito paga da solo le quote appena nate o ricalcolate
+  for (const v of voci) await usaCredito(userId, v.cassaId);
 
   // I pagamenti di una cassa che l'attività non prevede non si toccano qui:
   // può averli registrati a mano la segreteria. Quando una quota viene tolta
