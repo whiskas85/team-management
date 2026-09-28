@@ -5,6 +5,7 @@ import {
   GIORNI_PREAVVISO_SCADENZA,
   statoEffettivo,
   tonoCertificato,
+  tonoFigt,
   vedeAreaTesseramento,
 } from '@/lib/domain';
 import { fmtDate, giorniA, umanizza } from '@/lib/format';
@@ -45,6 +46,13 @@ export default async function MieiCertificatiPage() {
     where: { userId: me.id },
     orderBy: { createdAt: 'desc' },
     include: { reviewedBy: { select: { nome: true, cognome: true } } },
+  });
+
+  // la tessera federale: sta qui perché è l'altra metà di «sono in regola»
+  const tessere = await prisma.figtCard.findMany({
+    where: { userId: me.id },
+    orderBy: { createdAt: 'desc' },
+    include: { stagione: { select: { nome: true } } },
   });
 
   const conStato = certificati.map((c) => ({ ...c, stato: statoEffettivo(c) }));
@@ -95,7 +103,7 @@ export default async function MieiCertificatiPage() {
   return (
     <>
       <Intestazione
-        titolo="Il mio certificato medico"
+        titolo="Certificato e tessera"
         sottotitolo="Senza un certificato valido non si scende in campo"
         azioni={
           <BottoneModale
@@ -252,6 +260,34 @@ export default async function MieiCertificatiPage() {
           ))}
         </div>
       )}
+
+      {/* ------------------------------------------------ tessera federale */}
+      {/* La tessera la registra l'amministrazione: qui si guarda, non si
+          carica. È il posto dove porta il riquadro del profilo. */}
+      <section id="tessera" className="mt-8 scroll-mt-24">
+        <h2 className="titolo-sezione mb-3">Tessera FIGT</h2>
+        {tessere.length === 0 ? (
+          <Vuoto testo="Nessuna tessera registrata: la registra l’amministrazione quando sei tesserato." />
+        ) : (
+          <div className="space-y-2">
+            {tessere.map((t) => (
+              <CardRiga
+                key={t.id}
+                card
+                titolo={t.codice ?? 'Codice non ancora assegnato'}
+                sottotitolo={
+                  <span className="num">
+                    Stagione {t.stagione.nome}
+                    {t.scadeIl && ` · scade il ${fmtDate(t.scadeIl)}`}
+                  </span>
+                }
+              >
+                <Badge tono={tonoFigt[t.status] ?? 'neutro'}>{umanizza(t.status)}</Badge>
+              </CardRiga>
+            ))}
+          </div>
+        )}
+      </section>
     </>
   );
 }

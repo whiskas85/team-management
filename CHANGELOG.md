@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.110.0 — 28 settembre 2026
+
+### Cambiato
+
+- **Profilo rifatto.** In cima cinque riquadri, ognuno porta alla sua pagina:
+  - **Presenze** di quest'anno, a giornate (→ storico del calendario);
+  - **Certificato**: valido fino al…, agonistico o non agonistico, e i giorni
+    alla scadenza, in arancione sotto la soglia di preavviso (→ certificato);
+  - **Tessera FIGT**: stato, codice e scadenza (→ tessera);
+  - **Da saldare** (→ pagamenti);
+  - **Nel club da**: gli anni dalla prima stagione con l'iscrizione approvata,
+    al posto dell'elenco «Iscrizione al club».
+- Tolti dal profilo i riquadri di tessera e certificati, che doppiavano la
+  pagina del certificato: il profilo resta per i dati da compilare.
+- **Partecipazioni** di quest'anno in una colonna a destra, sotto la testata
+  (sul telefono in fondo).
+- La pagina del certificato si chiama **«Certificato e tessera»** e in fondo
+  mostra la tessera FIGT.
+
 ## 2.109.1 — 28 settembre 2026
 
 ### Cambiato

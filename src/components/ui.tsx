@@ -76,7 +76,7 @@ export function Statistica({
 }: {
   etichetta: string;
   valore: string | number;
-  dettaglio?: string;
+  dettaglio?: ReactNode;
   tono?: Tono;
   /**
    * Dove porta il riquadro, se porta da qualche parte. Un numero che riguarda
@@ -98,7 +98,7 @@ export function Statistica({
     <>
       <p className="titolo-sezione">{etichetta}</p>
       <p className={`mt-2 num text-2xl font-semibold ${colore}`}>{valore}</p>
-      {dettaglio && <p className="mt-1 text-xs text-muted">{dettaglio}</p>}
+      {dettaglio && <div className="mt-1 text-xs text-muted">{dettaglio}</div>}
     </>
   );
 

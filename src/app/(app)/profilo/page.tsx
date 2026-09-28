@@ -2,17 +2,16 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import {
+  GIORNI_PREAVVISO_SCADENZA,
   etichettaRuolo,
   etichettaStato,
   statoEffettivo,
-  tonoCertificato,
   tonoFigt,
-  tonoIscrizione,
   tonoRuolo,
   tonoStato,
   vedeAreaTesseramento,
 } from '@/lib/domain';
-import { fmtDate, fmtEuro, iniziali, inputDate, umanizza } from '@/lib/format';
+import { fmtDate, fmtEuro, giorniA, iniziali, inputDate, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
 import { impegni } from '@/lib/impegni';
 import { daSaldare } from '@/lib/da-saldare';
@@ -49,7 +48,10 @@ export default async function ProfiloPage() {
     where: { id: me.id },
     include: {
       certificates: { orderBy: { createdAt: 'desc' } },
-      memberships: { orderBy: { invitataIl: 'desc' }, include: { stagione: { select: { nome: true } } } },
+      memberships: {
+        orderBy: { invitataIl: 'desc' },
+        include: { stagione: { select: { nome: true, inizio: true } } },
+      },
       figtCards: { orderBy: { createdAt: 'desc' }, include: { stagione: { select: { nome: true } } } },
       payments: true,
       rsvps: {
@@ -73,7 +75,6 @@ export default async function ProfiloPage() {
   });
 
   const tesserato = vedeAreaTesseramento(utente.stato);
-  const certAttivo = utente.certificates.find((c) => statoEffettivo(c) === 'VALIDO');
   const daCompilare = utente.memberships.find((m) => m.status === 'INVITATA');
   const inValutazione = utente.memberships.find((m) => m.status === 'COMPILATA');
 
@@ -90,28 +91,52 @@ export default async function ProfiloPage() {
    */
   const partecipazioni = utente.rsvps.filter((r) => r.event.status !== 'ANNULLATA');
 
-  const svolti = partecipazioni.filter((r) => new Date(r.event.inizio) < new Date());
-  const presenze = svolti.filter((r) => r.presente === true).length;
   /*
-   * Anche qui si contano gli impegni, non le righe.
-   *
-   * Sulla stessa pagina il riquadro delle presenze dice «su 1 attività
-   * svolta» e questo direbbe «2»: due numeri che parlano della stessa
-   * domenica e non si mettono d'accordo sono peggio di nessun numero.
+   * Le partecipazioni di quest'anno: sono quelle che si guardano. Quelle
+   * degli anni prima sono storia, e stanno nello storico del calendario.
+   */
+  const anno = new Date().getFullYear();
+  const dellAnno = partecipazioni.filter((r) => new Date(r.event.inizio).getFullYear() === anno);
+
+  /*
+   * Le presenze di quest'anno, contate a giornate come in home: due attività
+   * della stessa domenica sono una giornata sola per chi c'era.
    */
   const gruppiImpegni = impegni(
-    partecipazioni.map((r) => ({
+    dellAnno.map((r) => ({
       id: r.eventId,
       inizio: r.event.inizio,
       fine: r.event.fine,
       collegatoAId: r.event.collegatoAId,
     })),
   );
-  const adesioni = new Set(
-    partecipazioni
-      .filter((r) => r.status === 'PRESENTE')
+  const presenzeAnno = new Set(
+    dellAnno
+      .filter((r) => r.presente === true)
       .map((r) => gruppiImpegni.get(r.eventId) ?? r.eventId),
   ).size;
+
+  // il certificato che vale adesso: se ce ne sono due, quello che scade più tardi
+  const certValido = utente.certificates
+    .filter((c) => statoEffettivo(c) === 'VALIDO' && c.scadeIl)
+    .sort((x, y) => new Date(y.scadeIl!).getTime() - new Date(x.scadeIl!).getTime())[0];
+  const giorniCert = certValido ? giorniA(certValido.scadeIl) : null;
+  const certInScadenza = giorniCert !== null && giorniCert <= GIORNI_PREAVVISO_SCADENZA;
+
+  const tessera = utente.figtCards[0];
+
+  /*
+   * Da quanto sei nel club: dalla prima stagione con l'iscrizione approvata.
+   * Le iscrizioni una per una non dicono niente a chi le guarda; quanti anni
+   * sono, sì.
+   */
+  const primaStagione = utente.memberships
+    .filter((m) => m.status === 'ATTIVA' || m.status === 'SCADUTA')
+    .sort((x, y) => x.stagione.inizio.getTime() - y.stagione.inizio.getTime())[0]?.stagione;
+  const anniNelClub = primaStagione
+    ? Math.floor((Date.now() - primaStagione.inizio.getTime()) / (365.25 * 86_400_000))
+    : null;
+
   const conto = daSaldare(utente.payments);
 
   return (
@@ -180,18 +205,65 @@ export default async function ProfiloPage() {
         </div>
       )}
 
+      {/* Due colonne: a sinistra quello che sei e quello che compili, a
+          destra le partecipazioni dell'anno — da scorrere senza perdere il
+          resto. Sul telefono le partecipazioni vanno in fondo. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+      <div className="min-w-0">
       {/* -------------------------------------------------- numeri */}
-      {/* Com'è andata sta nella home, non qui: questa è la pagina dove si
-          compila, e i numeri si guardano entrando — non venendo a cercarli
-          dentro una pagina di moduli. */}
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Statistica etichetta="Adesioni" valore={adesioni} dettaglio="eventi a cui hai detto sì" />
+      {/* Ogni riquadro porta dove quella cosa si guarda o si sistema: il
+          certificato alla sua pagina, i soldi ai pagamenti. */}
+      <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <Statistica
+          etichetta="Presenze"
+          valore={presenzeAnno}
+          dettaglio={`giornate in campo nel ${anno}`}
+          tono={presenzeAnno > 0 ? 'ok' : 'neutro'}
+          href="/calendario?vista=passati"
+        />
         {tesserato && (
           <Statistica
             etichetta="Certificato"
-            valore={certAttivo ? 'Valido' : 'Non valido'}
-            dettaglio={certAttivo?.scadeIl ? `fino al ${fmtDate(certAttivo.scadeIl)}` : undefined}
-            tono={certAttivo ? 'ok' : 'danger'}
+            valore={certValido ? 'Valido' : 'Non valido'}
+            dettaglio={
+              certValido ? (
+                <>
+                  <span className="block">
+                    fino al {fmtDate(certValido.scadeIl)} ·{' '}
+                    {certValido.tipo === 'AGONISTICO' ? 'agonistico' : 'non agonistico'}
+                  </span>
+                  {giorniCert !== null && (
+                    // sotto la soglia di preavviso i giorni si accendono:
+                    // è il tempo che serve per prenotare la visita
+                    <span className={`num block ${certInScadenza ? 'font-semibold text-warn' : ''}`}>
+                      {giorniCert === 0
+                        ? 'scade oggi'
+                        : `${giorniCert} ${giorniCert === 1 ? 'giorno' : 'giorni'} alla scadenza`}
+                    </span>
+                  )}
+                </>
+              ) : (
+                'caricane uno per scendere in campo'
+              )
+            }
+            tono={certValido ? (certInScadenza ? 'warn' : 'ok') : 'danger'}
+            href="/certificati"
+          />
+        )}
+        {tesserato && (
+          <Statistica
+            etichetta="Tessera FIGT"
+            valore={tessera ? umanizza(tessera.status) : 'Nessuna'}
+            dettaglio={
+              tessera
+                ? [
+                    tessera.codice ?? 'codice da assegnare',
+                    tessera.scadeIl ? `scade ${fmtDate(tessera.scadeIl)}` : tessera.stagione.nome,
+                  ].join(' · ')
+                : 'non ancora registrata'
+            }
+            tono={tessera ? (tonoFigt[tessera.status] ?? 'neutro') : 'warn'}
+            href="/certificati#tessera"
           />
         )}
         <Statistica
@@ -201,6 +273,22 @@ export default async function ProfiloPage() {
           tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
           href="/pagamenti"
         />
+        {tesserato && (
+          <Statistica
+            etichetta="Nel club da"
+            valore={
+              anniNelClub === null
+                ? '—'
+                : anniNelClub < 1
+                  ? 'Primo anno'
+                  : `${anniNelClub} ${anniNelClub === 1 ? 'anno' : 'anni'}`
+            }
+            dettaglio={
+              primaStagione ? `dalla stagione ${primaStagione.nome}` : 'nessuna iscrizione registrata'
+            }
+            tono={anniNelClub !== null ? 'ok' : 'neutro'}
+          />
+        )}
       </div>
 
       {/* -------------------------------------------------- scheda emergenza */}
@@ -229,79 +317,6 @@ export default async function ProfiloPage() {
           </p>
         )}
       </div>
-
-      {/* -------------------------------------------------- tesseramento (solo squadra) */}
-      {tesserato && (
-        <div className="mb-6 grid gap-4 md:grid-cols-2">
-          <div className="card">
-            <p className="titolo-sezione mb-3">Iscrizione al club</p>
-            {utente.memberships.length === 0 ? (
-              <p className="text-sm text-muted">Nessuna iscrizione registrata.</p>
-            ) : (
-              <div className="space-y-2">
-                {utente.memberships.map((i) => (
-                  <div key={i.id} className="flex items-center justify-between text-sm">
-                    <span className="min-w-0">
-                      {umanizza(i.tipo)} {i.stagione.nome}
-                      {i.quota && (
-                        <span className="text-muted num"> · {fmtEuro(Number(i.quota))}</span>
-                      )}
-                    </span>
-                    <Badge tono={tonoIscrizione[i.status] ?? 'neutro'}>{umanizza(i.status)}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="card">
-            <p className="titolo-sezione mb-3">Tessera federale</p>
-            {utente.figtCards.length === 0 ? (
-              <p className="text-sm text-muted">Nessuna tessera registrata.</p>
-            ) : (
-              <div className="space-y-2">
-                {utente.figtCards.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between text-sm">
-                    <span className="min-w-0">
-                      <span className="num">{t.codice ?? 'codice non ancora assegnato'}</span>
-                      <span className="block text-xs text-muted num">
-                        {t.stagione.nome}
-                        {t.scadeIl && ` · scade ${fmtDate(t.scadeIl)}`}
-                      </span>
-                    </span>
-                    <Badge tono={tonoFigt[t.status] ?? 'neutro'}>{umanizza(t.status)}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-4 border-t border-line pt-4">
-              <p className="titolo-sezione mb-2">Certificati</p>
-              {utente.certificates.length === 0 ? (
-                <p className="text-sm text-muted">Nessun certificato caricato.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {utente.certificates.slice(0, 3).map((c) => {
-                    const s = statoEffettivo(c);
-                    return (
-                      <div key={c.id} className="flex items-center justify-between text-sm">
-                        <span className="text-muted num">{fmtDate(c.scadeIl)}</span>
-                        <Badge tono={tonoCertificato[s]}>{umanizza(s)}</Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <Link
-                href="/certificati"
-                className="mt-3 inline-block text-xs text-nvg hover:underline"
-              >
-                Gestisci certificati →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* -------------------------------------------------- notifiche */}
       <div className="mb-4">
@@ -519,14 +534,17 @@ export default async function ProfiloPage() {
         </FormAzione>
       </Fisarmonica>
 
-      {/* -------------------------------------------------- storico */}
-      <div className="mt-6">
-        <h2 className="titolo-sezione mb-3">Storico partecipazioni</h2>
+      </div>
+
+      {/* -------------------------------------------------- partecipazioni */}
+      <aside className="min-w-0">
+        <h2 className="titolo-sezione mb-3">Partecipazioni {anno}</h2>
         <Partecipazioni
-          rsvps={partecipazioni}
-          limite={15}
-          vuoto="Non hai ancora risposto a nessun evento."
+          rsvps={dellAnno}
+          limite={50}
+          vuoto={`Nessuna partecipazione nel ${anno}.`}
         />
+      </aside>
       </div>
     </>
   );
