@@ -4,6 +4,7 @@ import { puoAmministrare } from '@/lib/domain';
 import { fmtDateTime } from '@/lib/format';
 import {
   ETICHETTA_ASSICURAZIONE,
+  SCORTA_POLIZZE,
   TONO_ASSICURAZIONE,
   attivitaDaCoprire,
   etichettaGiorno,
@@ -68,6 +69,21 @@ export default async function PolizzePage() {
   // due polizze da fare, e contarlo una volta sola nasconderebbe la seconda
   const scoperti = conOspiti.reduce((t, a) => t + daCoprire(a), 0);
 
+  // Il conto delle polizze giocata per giocata, nell'ordine in cui arrivano:
+  // si parte da quelle in cassa e si scalano quelle che ogni giocata
+  // brucerebbe. Dove il residuo va sotto zero, qualcuno resta scoperto.
+  const inCassa = giacenza?.polizzeLetteIl ? giacenza.polizzeResidue : null;
+  const conto = new Map<string, { serve: number; residuo: number | null }>();
+  {
+    let residuo = inCassa;
+    for (const a of conOspiti) {
+      const serve = daCoprire(a);
+      if (serve === 0) continue;
+      if (residuo !== null) residuo -= serve;
+      conto.set(a.id, { serve, residuo });
+    }
+  }
+
   return (
     <>
       <Intestazione
@@ -75,26 +91,24 @@ export default async function PolizzePage() {
         sottotitolo="Chi viene da fuori nelle attività in programma, e chi va coperto"
       />
 
-      {/* I numeri stanno in colonna, a destra delle giocate che contano: su
-          telefono vengono prima, due per riga, e le giocate scendono sotto. */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="grid grid-cols-2 gap-3 self-start lg:col-start-2 lg:row-start-1 lg:grid-cols-1">
-          <Statistica etichetta="Attività con ospiti" valore={conOspiti.length} />
-          <Statistica
-            etichetta="Ancora scoperti"
-            valore={scoperti}
-            tono={scoperti > 0 ? 'warn' : 'ok'}
-          />
-          <Statistica
-            etichetta="Pronti da assicurare"
-            valore={daFare}
-            dettaglio="quota saldata o dichiarata, dati a posto"
-            tono={daFare > 0 ? 'warn' : 'neutro'}
-          />
-          <GiacenzaPolizze />
-        </div>
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Statistica etichetta="Attività con ospiti" valore={conOspiti.length} />
+        <Statistica
+          etichetta="Ancora scoperti"
+          valore={scoperti}
+          tono={scoperti > 0 ? 'warn' : 'ok'}
+        />
+        <Statistica
+          etichetta="Pronti da assicurare"
+          valore={daFare}
+          dettaglio="quota saldata o dichiarata, dati a posto"
+          tono={daFare > 0 ? 'warn' : 'neutro'}
+        />
+        <GiacenzaPolizze />
+      </div>
 
-        <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
       {conOspiti.length === 0 ? (
         <Vuoto testo="Nelle attività in programma non si è segnato nessuno da fuori: non c’è niente da assicurare." />
       ) : (
@@ -106,6 +120,7 @@ export default async function PolizzePage() {
                   {a.titolo}
                 </Link>
                 <span className="flex flex-wrap items-center gap-2">
+                  <ContoPolizze conto={conto.get(a.id)} />
                   {/* Si dice solo quando c'e' una decisione da sapere: il caso
                       normale — segue l'interruttore, che e' spento — non
                       merita un'etichetta su ogni card. */}
@@ -249,7 +264,7 @@ export default async function PolizzePage() {
             "chi c'e' da coprire" ma "fino a quando mi bastano le polizze".
             Su telefono scende sotto, che e' l'ordine giusto: prima il lavoro
             da fare, poi il conto. */}
-        <div className="lg:col-start-2 lg:self-start">
+        <div className="lg:sticky lg:top-20 lg:self-start">
           <TimelinePolizze
             giacenza={giacenza?.polizzeLetteIl ? giacenza.polizzeResidue : null}
             tappe={conOspiti
@@ -268,5 +283,45 @@ export default async function PolizzePage() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Quante polizze si mangia una giocata, e quante ne restano dopo: il conto
+ * scala in ordine di data. Sotto zero diventa rosso col punto esclamativo:
+ * lì le polizze sono finite e qualcuno resta scoperto.
+ */
+function ContoPolizze({ conto }: { conto?: { serve: number; residuo: number | null } }) {
+  if (!conto) return null;
+  const { serve, residuo } = conto;
+  const polizze = serve === 1 ? '1 polizza' : `${serve} polizze`;
+  if (residuo === null) {
+    return (
+      <span className="num rounded-full border border-line bg-surface2 px-2 py-0.5 text-[11px] text-muted">
+        −{polizze}
+      </span>
+    );
+  }
+  if (residuo < 0) {
+    return (
+      <span
+        title="Le polizze in cassa non bastano per questa giocata: vanno comprate prima."
+        className="num inline-flex items-center gap-1.5 rounded-full border border-danger/60 bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger"
+      >
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-bg">
+          !
+        </span>
+        −{polizze} · {residuo === -1 ? 'ne manca 1' : `ne mancano ${-residuo}`}
+      </span>
+    );
+  }
+  const tono =
+    residuo <= SCORTA_POLIZZE
+      ? 'border-warn/50 bg-warn/10 text-warn'
+      : 'border-nvg/40 bg-nvg/10 text-nvg';
+  return (
+    <span className={`num rounded-full border px-2 py-0.5 text-[11px] ${tono}`}>
+      −{polizze} · {residuo === 1 ? 'resta 1' : `restano ${residuo}`}
+    </span>
   );
 }
