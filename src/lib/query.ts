@@ -61,7 +61,7 @@ export async function eventiPerLista({
     orderBy: { inizio: ordine },
     take: limite,
     include: {
-      tipo: { select: { nome: true, colore: true, riserve: true } },
+      tipo: { select: { nome: true, colore: true, riserve: true, soloInterno: true } },
       field: { select: { nome: true, citta: true, indirizzo: true, lat: true, lng: true } },
       // tutte le risposte: servono i tre conteggi, non solo i presenti
       rsvps: {
@@ -102,6 +102,8 @@ export async function eventiPerLista({
     titolo: e.titolo,
     tipo: e.tipo?.nome ?? 'Senza tipologia',
     colore: e.tipo?.colore ?? 'grigio',
+    // tipologia riservata alla squadra: non si rilascia a tutti
+    soloInterno: e.tipo?.soloInterno ?? false,
     status: e.status,
     // in corso, o finita e ancora da chiudere: lo dice l'orologio
     fase: faseAttivita(e, ora),

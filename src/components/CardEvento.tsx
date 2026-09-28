@@ -13,6 +13,8 @@ export type EventoLista = {
   titolo: string;
   tipo: string;
   colore: string;
+  /** Tipologia riservata alla squadra: non si rilascia a tutti. */
+  soloInterno?: boolean;
   status: string;
   /** In corso, o finita e ancora da chiudere. Nulla prima e dopo. */
   fase: FaseAttivita | null;

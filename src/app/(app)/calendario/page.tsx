@@ -317,6 +317,7 @@ export default async function CalendarioPage({
                               titolo={e.titolo}
                               status={e.status}
                               visibilita={e.visibilita}
+                              soloInterno={e.soloInterno}
                               compatto
                               soloRilascio
                             />

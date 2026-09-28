@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.5 — 28 settembre 2026
+
+### Corretto
+
+- **Bozze di tipologie riservate alla squadra: niente «Rilascia a tutti»
+  nell'elenco.** Nella scheda dell'attività il pulsante era già nascosto, ma
+  nelle card di «In programma» compariva, e premerlo dava solo l'errore «è
+  riservata alla squadra». Ora nelle card restano «Rilascia alla squadra» e
+  «Rilascia su invito».
+
 ## 2.108.4 — 28 settembre 2026
 
 ### Corretto
