@@ -1285,11 +1285,19 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
     }
   }
 
+  // Aggiunto dall'appello: c'era, e in campo. Si segna già presente, e dove
+  // c'è una formazione entra da titolare — l'appello spunta solo chi è
+  // schierato, e uno arrivato all'ultimo momento sparirebbe dall'elenco.
+  const dallAppello = str(fd, 'dallAppello') === '1';
+  const inCampo = dallAppello
+    ? { presente: true, ...(conFormazione(evento) ? { assegnazione: 'TITOLARE' as const } : {}) }
+    : {};
+
   for (const u of ammessi) {
     await prisma.eventRsvp.upsert({
       where: { eventId_userId: { eventId, userId: u.id } },
-      create: { eventId, userId: u.id, status: 'PRESENTE', note: NOTA_AGGIUNTO_STAFF },
-      update: { status: 'PRESENTE' },
+      create: { eventId, userId: u.id, status: 'PRESENTE', note: NOTA_AGGIUNTO_STAFF, ...inCampo },
+      update: { status: 'PRESENTE', ...inCampo },
     });
     if (!prezzoCambiato) await allineaQuota(evento.id, u.id);
   }

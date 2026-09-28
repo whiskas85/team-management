@@ -972,6 +972,40 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     !(Number(evento.costo ?? 0) > 0) &&
     !evento.quoteCasse.some((q) => Number(q.importo) > 0 || q.importoEsterni !== null);
 
+  // Aggiungere qualcuno: dall'elenco dei partecipanti, o dall'appello per chi
+  // è arrivato senza essersi segnato — da lì entra già presente.
+  const aggiungiPartecipanti = (dallAppello: boolean) => (
+    <BottoneModale
+      etichetta={dallAppello ? 'Aggiungi' : 'Aggiungi partecipanti'}
+      icona="invita"
+      titolo="Aggiungi partecipanti"
+      className="btn-ghost btn-sm"
+      larga
+    >
+      <ScegliPartecipanti
+        eventId={evento.id}
+        dallAppello={dallAppello}
+        candidati={candidati}
+        soloSquadra={evento.visibilita === 'TEAM'}
+        prezzoEsterni={
+          // l'admin la card la vede sempre, per correggere il
+          // prezzo mentre aggiunge; gli altri solo quando manca,
+          // per sapere che va chiesto a lui
+          admin || prezzoEsterniDaDecidere
+            ? {
+                listino,
+                stagioneId: evento.stagioneId,
+                giorni: giorniEvento.length,
+                puoImpostare: admin,
+                daDecidere: prezzoEsterniDaDecidere,
+                ...prezzoEsterniOggi,
+              }
+            : null
+        }
+      />
+    </BottoneModale>
+  );
+
   return (
     <>
       {/* aperta: smette di contare fra le novità, per chi la sta guardando */}
@@ -1465,6 +1499,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       iscrizioniChiuse={
                         !!evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date()
                       }
+                      appelloFatto={evento.rsvps.some((r) => r.presente !== null)}
                       compatto
                     />
                   )}
@@ -1513,7 +1548,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               zero, racconta che sei arrivato prima tu.
               L'ancora del numero in cima resta: chi tocca «in giocata» finisce
               qui, e il margine tiene la barra in alto fuori dai piedi. */}
+          {/* Finita la giornata, a chi fa l'appello l'elenco delle risposte non
+              serve più davanti agli occhi: chi c'era lo dice l'appello. Resta
+              ripiegato — dentro ci sono anche quote e assicurazioni — e si
+              apre se serve. Agli altri resta com'è. */}
           {evento.status !== 'CREATA' && (
+          <Ripiegabile
+            chiuso={tl && terminata && iniziata}
+            titolo={`Risposte, quote e assicurazioni · ${evento.rsvps.length}`}
+          >
           <div id="partecipanti" className="scroll-mt-24">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               {/* Il conto sta in cima e si legge da lontano: è il dato per cui
@@ -1527,36 +1570,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 inGiocata={inGiocata}
               />
 
-              {tl && (
-                <BottoneModale
-                  etichetta="Aggiungi partecipanti"
-                  icona="invita"
-                  titolo="Aggiungi partecipanti"
-                  className="btn-ghost btn-sm"
-                  larga
-                >
-                  <ScegliPartecipanti
-                    eventId={evento.id}
-                    candidati={candidati}
-                    soloSquadra={evento.visibilita === 'TEAM'}
-                    prezzoEsterni={
-                      // l'admin la card la vede sempre, per correggere il
-                      // prezzo mentre aggiunge; gli altri solo quando manca,
-                      // per sapere che va chiesto a lui
-                      admin || prezzoEsterniDaDecidere
-                        ? {
-                            listino,
-                            stagioneId: evento.stagioneId,
-                            giorni: giorniEvento.length,
-                            puoImpostare: admin,
-                            daDecidere: prezzoEsterniDaDecidere,
-                            ...prezzoEsterniOggi,
-                          }
-                        : null
-                    }
-                  />
-                </BottoneModale>
-              )}
+              {tl && aggiungiPartecipanti(false)}
             </div>
 
             {evento.rsvps.length === 0 ? (
@@ -1963,6 +1977,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+          </Ripiegabile>
           )}
 
           {/* ------------------------------------------------ debriefing */}
@@ -2199,7 +2214,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           {tl && iniziata && (
             <>
               <div className="card">
-                <p className="titolo-sezione mb-3">Appello</p>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="titolo-sezione">Appello</p>
+                  {/* chi è arrivato senza essersi segnato si aggiunge da qui,
+                      e entra già spuntato */}
+                  {aggiungiPartecipanti(true)}
+                </div>
                 <FormAzione azione={registraPresenze} className="space-y-3">
                   <input type="hidden" name="eventId" value={evento.id} />
                   {daAppello.length === 0 ? (
@@ -2321,5 +2341,31 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       </div>
 
     </>
+  );
+}
+
+/**
+ * Un pezzo di pagina che, quando serve, sta ripiegato: il titolo in una riga,
+ * il contenuto a un tocco. Quando non serve ripiegarlo, è il contenuto e basta.
+ */
+function Ripiegabile({
+  chiuso,
+  titolo,
+  children,
+}: {
+  chiuso: boolean;
+  titolo: string;
+  children: React.ReactNode;
+}) {
+  if (!chiuso) return <>{children}</>;
+  return (
+    <details className="group rounded-lg border border-line bg-surface">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
+        <span className="titolo-sezione">{titolo}</span>
+        <span className="text-lg leading-none text-muted group-open:hidden">+</span>
+        <span className="hidden text-lg leading-none text-muted group-open:inline">−</span>
+      </summary>
+      <div className="border-t border-line p-4">{children}</div>
+    </details>
   );
 }

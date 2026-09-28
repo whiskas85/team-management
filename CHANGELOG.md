@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.1 — 28 settembre 2026
+
+### Cambiato
+
+- **Attività terminata: l'elenco delle risposte si ripiega.** A chi fa
+  l'appello, finita la giornata, le risposte (con quote e assicurazioni)
+  stanno in un riquadro chiuso, «Risposte, quote e assicurazioni», che si
+  apre se serve: chi c'era lo dice l'appello.
+- **Dentro l'appello si aggiunge un partecipante**: col pulsante «Aggiungi»
+  si sceglie chi è arrivato senza essersi segnato, ed entra già spuntato come
+  presente (dove c'è una formazione, da titolare).
+
+### Corretto
+
+- **«Concludi» dopo aver salvato l'appello** chiedeva ancora «senza fare
+  l'appello? Le presenze non vengono registrate». Ora, se l'appello è stato
+  salvato, chiede solo conferma e dice che le presenze restano quelle salvate.
+
 ## 2.108.0 — 27 settembre 2026
 
 ### Cambiato

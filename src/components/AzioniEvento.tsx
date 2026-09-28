@@ -17,6 +17,7 @@ export function AzioniEvento({
   compatto = false,
   soloRilascio = false,
   iscrizioniChiuse = false,
+  appelloFatto = false,
 }: {
   id: string;
   titolo: string;
@@ -41,6 +42,8 @@ export function AzioniEvento({
   soloRilascio?: boolean;
   /** Le iscrizioni sono chiuse (bloccate o scadute): il pulsante le riapre. */
   iscrizioniChiuse?: boolean;
+  /** L'appello è stato salvato almeno una volta: concludere non perde niente. */
+  appelloFatto?: boolean;
 }) {
   const dim = compatto ? 'btn-sm' : '';
   if (soloRilascio && status !== 'CREATA') return null;
@@ -147,7 +150,11 @@ export function AzioniEvento({
           <AzioneBottone
             azione={cambiaStatoEvento}
             valori={{ id, status: 'CONCLUSA' }}
-            conferma={`Concludere "${titolo}" senza fare l'appello? Le presenze non vengono registrate.`}
+            conferma={
+              appelloFatto
+                ? `Concludere "${titolo}"? Le presenze restano quelle salvate con l'appello.`
+                : `Concludere "${titolo}" senza fare l'appello? Le presenze non vengono registrate.`
+            }
             icona="concludi"
             className={`btn-ghost ${dim}`}
           >

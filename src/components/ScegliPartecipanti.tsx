@@ -75,6 +75,7 @@ export function ScegliPartecipanti({
   candidati,
   soloSquadra,
   prezzoEsterni = null,
+  dallAppello = false,
 }: {
   eventId: string;
   candidati: Candidato[];
@@ -82,6 +83,8 @@ export function ScegliPartecipanti({
   soloSquadra: boolean;
   /** Presente per l'admin, e per gli altri solo se l'attività non ha ancora un prezzo per gli esterni. */
   prezzoEsterni?: PrezzoEsterni | null;
+  /** Aperto dall'appello: chi si aggiunge c'era, e si segna già presente. */
+  dallAppello?: boolean;
 }) {
   const [stato, azione] = useActionState(iscriviOperatori, {} as StatoForm);
   const [scelti, setScelti] = useState<Set<string>>(new Set());
@@ -137,6 +140,7 @@ export function ScegliPartecipanti({
   return (
     <form action={azione} className="space-y-4">
       <input type="hidden" name="eventId" value={eventId} />
+      {dallAppello && <input type="hidden" name="dallAppello" value="1" />}
       {[...scelti].map((id) => (
         <input key={id} type="hidden" name="userIds" value={id} />
       ))}
