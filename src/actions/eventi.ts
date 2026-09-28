@@ -606,7 +606,13 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   // senza certificato medico valido non si scende in campo: vale per chi è in
   // squadra, sulle tipologie che lo richiedono. I nuovi che vengono alle open
   // non hanno l'obbligo, e a una riunione non lo chiede nessuno
-  if (status !== 'ASSENTE' && inSquadra(me.stato) && serveCertificato(evento.tipo)) {
+  const togli = str(fd, 'status') === 'NESSUNA';
+  if (
+    !togli &&
+    status !== 'ASSENTE' &&
+    inSquadra(me.stato) &&
+    serveCertificato(evento.tipo)
+  ) {
     const certificati = await prisma.medicalCertificate.findMany({
       where: { userId: me.id },
       select: { status: true, scadeIl: true, tipo: true },
@@ -620,6 +626,27 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   const esistente = await prisma.eventRsvp.findUnique({
     where: { eventId_userId: { eventId, userId: me.id } },
   });
+
+  /*
+   * Togliere la risposta: il pulsante già acceso, toccato di nuovo.
+   *
+   * Non è «non ci sono»: chi toglie torna a non aver risposto, come prima di
+   * aprire l'attività. Serve a chi si è segnato per sbaglio, o su quella
+   * sbagliata, e non vuole restare fra gli assenti come se avesse rinunciato.
+   * Fatto l'appello invece no: lì la riga è una presenza registrata.
+   */
+  if (togli) {
+    if (!esistente) return { ok: 'Nessuna risposta da togliere.' };
+    if (esistente.presente !== null) {
+      return { errore: 'L’appello è già stato fatto: la tua presenza è registrata.' };
+    }
+    await prisma.eventRsvp.delete({ where: { id: esistente.id } });
+    await allineaQuota(evento.id, me.id);
+    aggiorna(eventId);
+    revalidatePath('/pagamenti');
+    revalidatePath('/admin/pagamenti');
+    return { ok: 'Risposta tolta: per questa attività non hai risposto.' };
+  }
 
   // I posti non chiudono la porta a nessuno: la disponibilità la dà chiunque,
   // e se i disponibili superano i posti gli altri diventano riserve. Il tetto
@@ -1339,22 +1366,22 @@ export async function rimuoviPartecipante(_prev: StatoForm, fd: FormData): Promi
   if (!puoSchierare(me.roles)) return { errore: 'Non hai i permessi.' };
 
   /*
-   * A giornata chiusa nessuno si toglie più.
+   * Chi è già stato spuntato all'appello non si toglie più.
    *
-   * La presenza — o l'assenza — di un'attività conclusa è un fatto: è finita
-   * nella percentuale di presenze e nello storico. Finché l'attività è aperta,
-   * invece, l'appello si fa e si rifà, e chi ci è finito per sbaglio — magari
-   * aggiunto dall'appello stesso, che lo segna già presente — deve poter
-   * uscire: prima bastava una spunta per non poterlo togliere mai più.
+   * La sua presenza — o la sua assenza — è un fatto registrato: è finita nella
+   * sua percentuale di presenze e nello storico della giornata. Cancellarla
+   * vorrebbe dire riscrivere cos'è successo, e per sbaglio, perché il cestino
+   * sta accanto al nome. Il pulsante infatti sparisce; questo è il controllo
+   * che regge anche a una pagina rimasta aperta da prima dell'appello.
    */
   const prima = await prisma.eventRsvp.findUnique({
     where: { id: str(fd, 'rsvpId') },
-    select: { event: { select: { status: true } } },
+    select: { presente: true, user: { select: { nome: true } } },
   });
   if (!prima) return { errore: 'Quel partecipante non c’è più.' };
-  if (prima.event.status === 'CONCLUSA') {
+  if (prima.presente !== null) {
     return {
-      errore: 'L’attività è conclusa: le presenze sono registrate e non si toccano più.',
+      errore: `L’appello è già stato fatto: la presenza di ${prima.user.nome} è registrata e non si toglie. Se è un errore, rifai l’appello.`,
     };
   }
 

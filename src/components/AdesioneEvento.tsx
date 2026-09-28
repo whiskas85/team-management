@@ -78,11 +78,20 @@ export function AdesioneEvento({
             classeAttiva={s.attivo}
             compatta={compatta}
             onScegli={() => {
-              if (campoScelta.current) campoScelta.current.value = s.valore;
+              // il pulsante già acceso, toccato di nuovo, toglie la risposta
+              if (campoScelta.current) {
+                campoScelta.current.value = scelta === s.valore ? 'NESSUNA' : s.valore;
+              }
             }}
           />
         ))}
       </div>
+
+      {!compatta && scelta && (
+        <p className="text-[11px] text-muted">
+          Tocca di nuovo la tua risposta per toglierla.
+        </p>
+      )}
 
       {!compatta && (
         <input
@@ -130,8 +139,9 @@ function Scelta({
         type="submit"
         disabled={pending}
         onClick={onScegli}
-        title={testo}
-        aria-label={testo}
+        title={attiva ? `${testo} · tocca per togliere la risposta` : testo}
+        aria-label={attiva ? `${testo}, tocca per togliere la risposta` : testo}
+        aria-pressed={attiva}
         className={`rounded-md border p-1.5 transition-colors disabled:opacity-40 ${base}`}
       >
         <Icona nome={icona} size={16} />
@@ -144,6 +154,8 @@ function Scelta({
       type="submit"
       disabled={pending}
       onClick={onScegli}
+      aria-pressed={attiva}
+      title={attiva ? 'Tocca di nuovo per togliere la risposta' : undefined}
       className={`flex flex-col items-center gap-1 rounded-md border px-2 py-2.5 text-xs transition-colors disabled:opacity-40 ${base}`}
     >
       <Icona nome={icona} size={18} />

@@ -57,7 +57,6 @@ import { Quando } from '@/components/Quando';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { BadgeIscrizioniChiuse } from '@/components/CardEvento';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
-import { TogliDallAppello } from '@/components/TogliDallAppello';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
   creaRiunione,
@@ -1746,12 +1745,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   })()}
                               </div>
                             </div>
-                            {/* Il cestino c'è finché l'attività è aperta, anche
-                                dopo l'appello: chi ci è finito per sbaglio deve
-                                poter uscire. A giornata conclusa sparisce — lì
-                                la riga è una presenza registrata, un pezzo di
-                                storia, e cancellarla la riscriverebbe. */}
-                            {tl && !conclusa && (
+                            {/* Fatto l'appello la riga si congela: di quella
+                                persona non si dice più «forse viene», si dice
+                                se c'era. Togliere il cestino non è nascondere
+                                un comando, è dire che quel gesto non ha più
+                                senso — cancellarla cancellerebbe una presenza
+                                registrata, cioè un pezzo di storia della
+                                giornata. */}
+                            {tl && r.presente === null && (
                               <div className="-mr-1 -mt-0.5 shrink-0">
                                 <BottoneElimina
                                   azione={rimuoviPartecipante}
@@ -2260,7 +2261,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     {piuGiorni ? ' per almeno un giorno' : ''}.
                                   </span>
                                 </span>
-                                <TogliDallAppello rsvpId={r.id} nome={nomeDi(r.user)} />
                               </label>
                             ))}
                           </div>
@@ -2314,7 +2314,6 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
                                     />
                                     <span className="break-words">{nomeDi(r.user)}</span>
-                                    <TogliDallAppello rsvpId={r.id} nome={nomeDi(r.user)} />
                                   </label>
                                 ))}
                               </div>

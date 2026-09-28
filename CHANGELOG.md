@@ -5,17 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
-## 2.112.4 — 28 settembre 2026
+## 2.112.5 — 28 settembre 2026
 
 ### Corretto
 
-- **Togliere un partecipante dopo l'appello.** Chi veniva aggiunto
-  dall'appello entrava già «presente» e da quel momento il cestino spariva: se
-  era un errore, non si poteva più togliere. Ora finché l'attività non è
-  conclusa si può togliere chiunque:
-  - dall'elenco partecipanti, col cestino;
-  - direttamente dall'appello, con la X accanto al nome.
-  A giornata conclusa le presenze restano intoccabili come prima.
+- **Togliere la propria adesione.** Una volta risposto a un'attività si poteva
+  solo cambiare risposta, non toglierla. Ora basta toccare di nuovo il pulsante
+  già acceso («Ci sono», «Forse» o «Non ci sono») e la risposta sparisce, come
+  se non si fosse mai risposto.
+  - Vale nella pagina dell'attività, dove sotto i pulsanti c'è scritto, e nei
+    pulsanti piccoli del calendario e della home.
+  - Fatto l'appello la risposta resta: lì è una presenza registrata.
+- Annullata la modifica all'appello della 2.112.4: il partecipante si toglie
+  di nuovo come prima.
 
 ## 2.112.3 — 28 settembre 2026
 
