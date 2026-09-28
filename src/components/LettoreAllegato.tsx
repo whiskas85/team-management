@@ -21,9 +21,11 @@ export type AllegatoDaLeggere = {
  *   è stato scritto resta testo e non può diventare codice;
  * - l'**HTML** è codice scritto da qualcun altro, e per quanto fidato sia chi
  *   l'ha caricato non gira dentro la nostra pagina. Sta in un riquadro chiuso
- *   a chiave — `sandbox` senza permessi — e arriva da una rotta che gli dà
- *   un'origine tutta sua. Se un domani quel file contenesse qualcosa di
- *   spiacevole, quel qualcosa non avrebbe niente intorno da toccare;
+ *   a chiave, e arriva da una rotta che gli dà un'origine tutta sua. **I suoi
+ *   script girano** — un book esportato ha spesso schede, mappe, menu che
+ *   senza non si aprono — ma in quell'origine anonima non c'è la sessione di
+ *   nessuno, e non può chiamare il gestionale né niente altro: può muovere
+ *   solo sé stesso;
  * - il **PDF** lo apre il visore del browser, che è più bravo di qualunque
  *   cosa potremmo scrivere noi.
  *
@@ -56,13 +58,14 @@ export function LettoreAllegato({
             </p>
           )
         ) : genere === 'html' ? (
-          /* sandbox senza valori: niente script, niente moduli, niente accesso
-             a quello che gli sta intorno. La rotta che lo serve gli dà anche
-             un'origine sua, così i due lucchetti stanno sulla stessa porta. */
+          /* solo gli script: niente stessa origine (quindi niente sessione),
+             niente moduli, niente finestre, niente mani sulla pagina intorno.
+             La rotta che lo serve gli dà anche un'origine sua, così i due
+             lucchetti stanno sulla stessa porta. */
           <iframe
             src={indirizzoFile}
             title={allegato.titolo}
-            sandbox=""
+            sandbox="allow-scripts"
             referrerPolicy="no-referrer"
             className="h-[70vh] w-full rounded-md border border-line bg-white"
           />

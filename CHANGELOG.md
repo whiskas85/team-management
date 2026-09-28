@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.2 — 28 settembre 2026
+
+### Corretto
+
+- **Gli allegati HTML (i book di missione) eseguono i loro script.** Erano
+  mostrati in un riquadro che li bloccava tutti («Blocked script execution…
+  sandboxed»), e schede, mappe e menu del book non funzionavano. Ora gli
+  script girano, ma sempre isolati: il file resta in un'origine anonima, non
+  vede la sessione di chi lo apre e non può chiamare il gestionale né altri
+  indirizzi.
+
 ## 2.108.1 — 28 settembre 2026
 
 ### Cambiato

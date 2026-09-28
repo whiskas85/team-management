@@ -20,9 +20,14 @@ import { chiDalLink } from '@/lib/allegati-link';
  * L'HTML caricato da qualcuno è codice di qualcun altro servito dal nostro
  * indirizzo: senza precauzioni potrebbe leggersi la sessione di chi lo apre.
  * Per questo esce sotto `Content-Security-Policy: sandbox`, che lo mette in
- * un'origine sua e gli spegne gli script — e la pagina che lo mostra lo
- * rinchiude una seconda volta nel proprio riquadro. Due lucchetti sulla stessa
- * porta, perché è la porta da cui si entrerebbe.
+ * un'origine sua, anonima — e la pagina che lo mostra lo rinchiude una seconda
+ * volta nel proprio riquadro. Due lucchetti sulla stessa porta, perché è la
+ * porta da cui si entrerebbe.
+ *
+ * Gli script girano: un book esportato senza non apre le sue schede. Non
+ * rischiano niente perché nell'origine anonima la sessione non c'è (il cookie
+ * è httpOnly e non viaggia verso di noi da lì), e `connect-src 'none'` gli
+ * impedisce di chiamare chiunque: può muovere solo la propria pagina.
  */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -98,11 +103,20 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   };
 
   if (genere === 'html') {
-    // origine sua, niente script, niente moduli, niente chiamate altrove. Le
-    // immagini e i fogli di stile restano: un book esportato da un altro
-    // programma senza di quelli non si legge.
-    intestazioni['Content-Security-Policy'] =
-      "sandbox; default-src 'none'; img-src 'self' data: https:; style-src 'unsafe-inline' https:; font-src data: https:";
+    // origine sua e anonima, script sì ma senza nessuno da chiamare, niente
+    // moduli né finestre. Immagini, fogli di stile e caratteri restano: un
+    // book esportato da un altro programma senza di quelli non si legge.
+    intestazioni['Content-Security-Policy'] = [
+      'sandbox allow-scripts',
+      "default-src 'none'",
+      "script-src 'unsafe-inline' 'unsafe-eval' data: blob: https:",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' data: blob: https:",
+      "style-src 'unsafe-inline' https:",
+      "font-src data: https:",
+      "connect-src 'none'",
+      "form-action 'none'",
+    ].join('; ');
   }
 
   return new NextResponse(new Uint8Array(buffer), { headers: intestazioni });
