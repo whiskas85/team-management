@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.109.1 — 28 settembre 2026
+
+### Cambiato
+
+- **Calendario, vista Mese: le attività concluse sono tutte uguali.** Grigie,
+  senza il colore della tipologia, e al posto dell'orario una spunta verde:
+  la giocata è stata fatta. Quelle in programma restano col loro colore e
+  l'ora d'inizio.
+
 ## 2.109.0 — 28 settembre 2026
 
 ### Aggiunto

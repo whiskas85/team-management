@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { classeColore, classePiena } from '@/lib/domain';
+import { Icona } from './Icona';
 
 export type GiornoEvento = {
   id: string;
@@ -480,12 +481,17 @@ function Griglia({
 function BarraEvento({ barra }: { barra: Barra }) {
   const { evento: e, da, per, corsia, inizia, finisce } = barra;
 
+  // Conclusa: è storia, e tutte uguali — il colore della tipologia serviva a
+  // scegliere dove andare, a cose fatte distrae. Al posto dell'ora, la spunta.
+  const conclusa = e.status === 'CONCLUSA';
   const stile =
     e.status === 'ANNULLATA'
       ? 'border-line bg-surface2 text-muted line-through'
       : e.status === 'CREATA'
         ? 'border-dashed border-warn/50 bg-warn/10 text-warn'
-        : classeColore(e.colore);
+        : conclusa
+          ? 'border-line bg-surface2 text-ink/75'
+          : classeColore(e.colore);
 
   return (
     <Link
@@ -497,7 +503,14 @@ function BarraEvento({ barra }: { barra: Barra }) {
         inizia ? 'ml-0.5 rounded-l' : 'rounded-l-none border-l-0'
       } ${finisce ? 'mr-0.5 rounded-r' : 'rounded-r-none border-r-0'}`}
     >
-      {inizia && <span className="hidden sm:inline">{ora(e.inizio)} </span>}
+      {inizia &&
+        (conclusa ? (
+          <span className="mr-0.5 inline-flex align-[-2px] text-nvg" aria-label="Fatta">
+            <Icona nome="approva" size={11} />
+          </span>
+        ) : (
+          <span className="hidden sm:inline">{ora(e.inizio)} </span>
+        ))}
       {e.titolo}
     </Link>
   );
