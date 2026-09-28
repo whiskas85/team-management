@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.108.3 — 28 settembre 2026
+
+### Corretto
+
+- **I book HTML possono stampare.** Il pulsante di stampa del book veniva
+  ignorato («Ignored call to 'print()'… allow-modals»). Ora la stampa e gli
+  avvisi del book funzionano, sia dentro il gestionale sia aprendo il file a
+  parte; il resto dell'isolamento resta com'era.
+
 ## 2.108.2 — 28 settembre 2026
 
 ### Corretto

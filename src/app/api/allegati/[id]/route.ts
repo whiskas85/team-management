@@ -107,7 +107,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     // moduli né finestre. Immagini, fogli di stile e caratteri restano: un
     // book esportato da un altro programma senza di quelli non si legge.
     intestazioni['Content-Security-Policy'] = [
-      'sandbox allow-scripts',
+      // modals: il book può stampare (print) e mostrare i suoi avvisi
+      'sandbox allow-scripts allow-modals',
       "default-src 'none'",
       "script-src 'unsafe-inline' 'unsafe-eval' data: blob: https:",
       "img-src 'self' data: blob: https:",
