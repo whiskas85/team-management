@@ -598,8 +598,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // scrive il nome, e ognuna si porta dietro il proprio link.
   const conosciute = tl
     ? await prisma.squadraEsterna.findMany({
-        where: { attiva: true },
-        orderBy: { nome: 'asc' },
+        // le preferite in cima: sono quelle che si invitano davvero
+        where: { stato: { not: 'DISATTIVATA' } },
+        orderBy: [{ stato: 'asc' }, { nome: 'asc' }],
         select: { id: true, nome: true },
       })
     : [];

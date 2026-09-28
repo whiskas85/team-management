@@ -1,7 +1,7 @@
 import { Campo } from './ui';
 import { PosizioneCampo } from './PosizioneCampo';
 
-type Squadra = { id: string; nome: string; attiva?: boolean };
+type Squadra = { id: string; nome: string; stato?: string };
 
 type CampoGioco = {
   id: string;
@@ -21,7 +21,16 @@ type CampoGioco = {
   squadraId: string | null;
 };
 
-export function FormCampo({ campo, squadre }: { campo?: CampoGioco; squadre: Squadra[] }) {
+export function FormCampo({
+  campo,
+  squadre,
+  squadraPredefinita,
+}: {
+  campo?: CampoGioco;
+  squadre: Squadra[];
+  /** Per un campo nuovo aggiunto dal profilo di una squadra: è già suo. */
+  squadraPredefinita?: string;
+}) {
   return (
     <>
       {campo && <input type="hidden" name="id" value={campo.id} />}
@@ -53,12 +62,17 @@ export function FormCampo({ campo, squadre }: { campo?: CampoGioco; squadre: Squ
         />
 
         <Campo label="Squadra che lo gestisce">
-          <select name="squadraId" defaultValue={campo?.squadraId ?? ''} className="input">
+          <select
+            name="squadraId"
+            defaultValue={campo?.squadraId ?? squadraPredefinita ?? ''}
+            className="input"
+          >
             <option value="">— nessuna, è nostro —</option>
             {squadre.map((s) => (
               <option key={s.id} value={s.id}>
+                {s.stato === 'PREFERITA' ? '★ ' : ''}
                 {s.nome}
-                {s.attiva === false ? ' (disattivata)' : ''}
+                {s.stato === 'DISATTIVATA' ? ' (disattivata)' : ''}
               </option>
             ))}
           </select>

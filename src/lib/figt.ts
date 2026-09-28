@@ -10,7 +10,7 @@
  * tesseramenti_lista.php.
  */
 
-const BASE = 'https://www.intranetasnwg.it';
+export const BASE = 'https://www.intranetasnwg.it';
 
 export type TesseraPortale = {
   /** Numero tessera FIGT, es. "2026-02885". */
@@ -97,7 +97,7 @@ export type CredenzialiFigt = { login: string; password: string; idAnagrafica: s
  * Apre una sessione sul portale e restituisce il cookie da riusare.
  * Il portale non ha API: si entra come farebbe un browser.
  */
-async function entra(cred: CredenzialiFigt): Promise<string> {
+export async function entra(cred: CredenzialiFigt): Promise<string> {
   let cookie = '';
   const raccogli = (res: Response) => {
     const set = res.headers.getSetCookie?.() ?? [];
@@ -218,7 +218,7 @@ const PARTICELLE = new Set([
 ]);
 
 /** «ROSSI» diventa «Rossi»: il portale urla, il gestionale no. */
-const aModo = (parola: string) =>
+export const aModo = (parola: string) =>
   parola
     .split(/(['’-])/)
     .map((p) => (/[\p{L}]/u.test(p) ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : p))

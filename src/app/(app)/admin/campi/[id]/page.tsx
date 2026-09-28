@@ -20,15 +20,15 @@ export default async function CampoPage({ params }: { params: Promise<{ id: stri
   // oltre alle attive teniamo quella già collegata, anche se disattivata:
   // altrimenti sparirebbe dalla tendina e si perderebbe al primo salvataggio
   const squadre = await prisma.squadraEsterna.findMany({
-    where: { OR: [{ attiva: true }, { campi: { some: { id } } }] },
-    orderBy: { nome: 'asc' },
-    select: { id: true, nome: true, attiva: true },
+    where: { OR: [{ stato: { not: 'DISATTIVATA' } }, { campi: { some: { id } } }] },
+    orderBy: [{ stato: 'asc' }, { nome: 'asc' }],
+    select: { id: true, nome: true, stato: true },
   });
 
   const campo = await prisma.field.findUnique({
     where: { id },
     include: {
-      squadra: true,
+      squadra: { include: { contatti: { orderBy: { ordine: 'asc' }, take: 1 } } },
       events: {
         orderBy: { inizio: 'desc' },
         take: 10,
@@ -82,15 +82,21 @@ export default async function CampoPage({ params }: { params: Promise<{ id: stri
           {campo.squadra && (
             <div className="card">
               <p className="titolo-sezione mb-3">Gestito da</p>
-              <p className="font-medium">{campo.squadra.nome}</p>
-              {campo.squadra.referente && (
-                <p className="text-xs text-muted">Referente: {campo.squadra.referente}</p>
+              <Link
+                href={`/admin/squadre/${campo.squadra.id}`}
+                className="font-medium hover:text-nvg"
+              >
+                {campo.squadra.nome}
+              </Link>
+              {campo.squadra.contatti[0] && (
+                <p className="text-xs text-muted">
+                  {campo.squadra.contatti[0].ruolo}: {campo.squadra.contatti[0].nome}
+                </p>
               )}
               <div className="mt-3">
                 <AzioniContatto
-                  telefono={campo.squadra.telefono}
-                  email={campo.squadra.email}
-                  nome={campo.squadra.referente ?? undefined}
+                  telefono={campo.squadra.contatti[0]?.telefono ?? campo.squadra.telefono}
+                  email={campo.squadra.contatti[0]?.email ?? campo.squadra.email}
                   compatto
                 />
               </div>

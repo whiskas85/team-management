@@ -5,6 +5,50 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.111.0 — 28 settembre 2026
+
+### Aggiunto
+
+- **Profilo delle squadre esterne** (dal nome nell'elenco delle squadre). Mostra:
+  - campi gestiti;
+  - giocate sui loro campi, con l'ultima o la prossima;
+  - le nostre presenze sui loro campi;
+  - gli inviti come ospiti, con risposte e operatori portati.
+- Dal profilo si possono aggiungere **più campi**, già assegnati alla squadra.
+  Sotto ci sono le attività fatte insieme e a destra contatti, sede e note.
+- **Importa da FIGT.** Le società affiliate arrivano dalla pagina «Statistiche»
+  del comitato regionale del portale federale. Si entra con l'accesso già
+  salvato per le tessere, oppure si carica la pagina salvata o un HAR.
+  - Per ogni società arrivano indirizzo, telefono, email, disciplina e settore
+    giovanile, più presidente, vicepresidente e segretario con numero ed email.
+    La tutela legale viene scartata.
+  - Le squadre nuove entrano come attive. Quelle già presenti vengono
+    riconosciute anche se il nome è scritto diversamente («A.S.D.»…) e
+    aggiornate senza doppioni.
+- Badge **FIGT** e **Settore giovanile** sulle squadre.
+- **Contatti delle squadre**: più persone, ognuna con quello che fa nella
+  squadra. Presidente, vicepresidente e segretario sono già predisposti, gli
+  altri si aggiungono col ruolo scritto a mano. Il vecchio «referente» è
+  diventato un contatto.
+- **Stato delle squadre**: preferita, attiva o disattivata, al posto di
+  «attiva sì/no».
+  - Con la stella una squadra diventa preferita e sale in cima all'elenco, alle
+    tendine dei campi e agli inviti come ospiti.
+  - Le disattivate stanno in fondo, chiuse.
+
+### Cambiato
+
+- **Campi da gioco divisi per squadra.** I campi senza squadra stanno in un
+  gruppo in cima. Il nome del gruppo porta al profilo della squadra.
+- **Stagioni:**
+  - il riquadro «In squadra» diventa **«Atleti»** e conta solo gli atleti in
+    squadra;
+  - nella **rosa** di una stagione compaiono da soli tutti gli iscritti di
+    quell'anno, cioè chi ha l'iscrizione attiva o scaduta;
+  - inviti e moduli in attesa stanno in «Richieste d'iscrizione»;
+  - la ricostruzione a mano si chiama «Ricostruisci la rosa» e c'è solo per le
+    stagioni passate.
+
 ## 2.110.0 — 28 settembre 2026
 
 ### Cambiato

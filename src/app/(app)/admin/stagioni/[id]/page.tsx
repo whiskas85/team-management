@@ -19,6 +19,7 @@ import { AzioneBottone } from '@/components/AzioneBottone';
 import { RosaStorica } from '@/components/RosaStorica';
 import { elencoOperatori } from '@/lib/query';
 import { chiudiStagione } from '@/actions/stagioni';
+import type { MembershipStatus, Prisma } from '@prisma/client';
 
 /** Vedi la nota gemella nell'elenco: "programmata" vale solo per il futuro. */
 function statoStagione(s: { corrente: boolean; chiusa: boolean; fine: Date }, ora: Date) {
@@ -27,6 +28,9 @@ function statoStagione(s: { corrente: boolean; chiusa: boolean; fine: Date }, or
   if (s.fine < ora) return { testo: 'Da chiudere', tono: 'warn' as const };
   return { testo: 'Programmata', tono: 'info' as const };
 }
+
+/** In rosa: chi l'iscrizione dell'anno l'ha avuta, anche se ormai scaduta. */
+const IN_ROSA: MembershipStatus[] = ['ATTIVA', 'SCADUTA'];
 
 export default async function SchedaStagionePage({
   params,
@@ -90,6 +94,8 @@ export default async function SchedaStagionePage({
     )
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
 
+  const rosa = stagione.memberships.filter((m) => IN_ROSA.includes(m.status));
+  const richieste = stagione.memberships.filter((m) => !IN_ROSA.includes(m.status));
   const attive = stagione.memberships.filter((m) => m.status === 'ATTIVA').length;
   const inSospeso = stagione.memberships.filter(
     (m) => m.status === 'INVITATA' || m.status === 'COMPILATA',
@@ -110,19 +116,21 @@ export default async function SchedaStagionePage({
         sottotitolo={`${fmtDate(stagione.inizio)} - ${fmtDate(stagione.fine)}`}
         azioni={
           <div className="flex flex-wrap gap-2">
-            <BottoneModale
-              etichetta="Rosa"
-              icona="operatori"
-              titolo={`Chi c'era nella stagione ${stagione.nome}`}
-              className="btn-ghost btn-sm"
-              larga
-            >
-              <RosaStorica
-                stagioneId={stagione.id}
-                nome={stagione.nome}
-                operatori={operatori}
-              />
-            </BottoneModale>
+            {!stagione.corrente && (
+              <BottoneModale
+                etichetta="Ricostruisci la rosa"
+                icona="operatori"
+                titolo={`Chi c'era nella stagione ${stagione.nome}`}
+                className="btn-ghost btn-sm"
+                larga
+              >
+                <RosaStorica
+                  stagioneId={stagione.id}
+                  nome={stagione.nome}
+                  operatori={operatori}
+                />
+              </BottoneModale>
+            )}
 
             {!stagione.corrente && (
               <AzioneBottone
@@ -182,105 +190,32 @@ export default async function SchedaStagionePage({
       </div>
 
       {/* ------------------------------------------------------------ rosa */}
-      <h2 className="titolo-sezione mb-3">Rosa &middot; {stagione.memberships.length}</h2>
-
-      {stagione.memberships.length === 0 ? (
-        <div className="mb-8">
-          <Vuoto testo="Nessuno risulta iscritto a questa stagione. Usa “Rosa” per ricostruire lo storico, o invia le richieste di iscrizione." />
-        </div>
-      ) : (
-        <div className="mb-8">
-          <Elenco
-            cards={stagione.memberships.map((m) => {
-              const dovuto = m.quota ? Number(m.quota) : 0;
-              const versato = m.payments.reduce((t, p) => t + Number(p.pagato), 0);
-              return (
-                <div key={m.id} className="card">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/admin/operatori/${m.user.id}`}
-                        className="block break-words font-medium hover:text-nvg"
-                      >
-                        {nomeCompleto(m.user)}
-                      </Link>
-                      <p className="text-xs text-muted">
-                        {umanizza(m.tipo)}
-                        {m.dettaglioQuota ? ` · ${m.dettaglioQuota}` : ''}
-                      </p>
-                    </div>
-                    <Badge tono={tonoIscrizione[m.status] ?? 'neutro'}>
-                      {umanizza(m.status)}
-                    </Badge>
-                  </div>
-                  {dovuto > 0 && (
-                    <p className="num mt-2 border-t border-line pt-2 text-xs">
-                      <span className={versato >= dovuto ? 'text-nvg' : 'text-warn'}>
-                        {fmtEuro(versato)} / {fmtEuro(dovuto)}
-                      </span>
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-            tabella={
-              <table className="tabella">
-                <thead>
-                  <tr>
-                    <th>Operatore</th>
-                    <th>Tipo</th>
-                    <th>Composizione</th>
-                    <th className="text-right">Quota</th>
-                    <th className="text-right">Versato</th>
-                    <th>Iscrizione</th>
-                    <th>Stato attuale</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stagione.memberships.map((m) => {
-                    const dovuto = m.quota ? Number(m.quota) : 0;
-                    const versato = m.payments.reduce((t, p) => t + Number(p.pagato), 0);
-                    return (
-                      <tr key={m.id}>
-                        <td>
-                          <Link
-                            href={`/admin/operatori/${m.user.id}`}
-                            className="font-medium hover:text-nvg"
-                          >
-                            {m.user.cognome} {m.user.nome}
-                          </Link>
-                          {m.user.callsign && (
-                            <span className="block text-[11px] text-nvg">{m.user.callsign}</span>
-                          )}
-                        </td>
-                        <td className="text-muted">{umanizza(m.tipo)}</td>
-                        <td className="text-[11px] text-muted">{m.dettaglioQuota ?? '-'}</td>
-                        <td className="num whitespace-nowrap text-right">{fmtEuro(dovuto)}</td>
-                        <td
-                          className={`num whitespace-nowrap text-right ${
-                            dovuto > 0 && versato < dovuto ? 'text-warn' : 'text-nvg'
-                          }`}
-                        >
-                          {fmtEuro(versato)}
-                        </td>
-                        <td>
-                          <Badge tono={tonoIscrizione[m.status] ?? 'neutro'}>
-                            {umanizza(m.status)}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge tono={tonoStato[m.user.stato]}>
-                            {etichettaStato[m.user.stato]}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+      {/* la rosa si compone da sola: chi ha l'iscrizione dell'anno attiva (o
+          scaduta, a stagione finita) c'è; inviti e moduli in attesa no */}
+      <h2 className="titolo-sezione mb-3">Rosa &middot; {rosa.length}</h2>
+      <div className="mb-8">
+        {rosa.length === 0 ? (
+          <Vuoto
+            testo={
+              stagione.corrente
+                ? 'Nessun atleta iscritto ancora: chi completa l’iscrizione dell’anno entra qui da solo.'
+                : 'Nessuno risulta iscritto a questa stagione. Usa “Ricostruisci la rosa” per lo storico.'
             }
           />
-        </div>
+        ) : (
+          <Iscrizioni iscrizioni={rosa} />
+        )}
+      </div>
+
+      {richieste.length > 0 && (
+        <>
+          <h2 className="titolo-sezione mb-3">
+            Richieste d&rsquo;iscrizione &middot; {richieste.length}
+          </h2>
+          <div className="mb-8">
+            <Iscrizioni iscrizioni={richieste} />
+          </div>
+        </>
       )}
 
       {/* ------------------------------------------------------- attivita' */}
@@ -442,5 +377,108 @@ export default async function SchedaStagionePage({
         </div>
       )}
     </>
+  );
+}
+
+type Iscrizione = Prisma.MembershipGetPayload<{
+  include: {
+    user: { select: { id: true; nome: true; cognome: true; callsign: true; stato: true } };
+    payments: { select: { importo: true; pagato: true; status: true; tipo: true } };
+  };
+}>;
+
+/** Le iscrizioni di una stagione, in card sul telefono e in tabella sul resto. */
+function Iscrizioni({ iscrizioni }: { iscrizioni: Iscrizione[] }) {
+  return (
+    <Elenco
+      cards={iscrizioni.map((m) => {
+        const dovuto = m.quota ? Number(m.quota) : 0;
+        const versato = m.payments.reduce((t, p) => t + Number(p.pagato), 0);
+        return (
+          <div key={m.id} className="card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link
+                  href={`/admin/operatori/${m.user.id}`}
+                  className="block break-words font-medium hover:text-nvg"
+                >
+                  {nomeCompleto(m.user)}
+                </Link>
+                <p className="text-xs text-muted">
+                  {umanizza(m.tipo)}
+                  {m.dettaglioQuota ? ` · ${m.dettaglioQuota}` : ''}
+                </p>
+              </div>
+              <Badge tono={tonoIscrizione[m.status] ?? 'neutro'}>
+                {umanizza(m.status)}
+              </Badge>
+            </div>
+            {dovuto > 0 && (
+              <p className="num mt-2 border-t border-line pt-2 text-xs">
+                <span className={versato >= dovuto ? 'text-nvg' : 'text-warn'}>
+                  {fmtEuro(versato)} / {fmtEuro(dovuto)}
+                </span>
+              </p>
+            )}
+          </div>
+        );
+      })}
+      tabella={
+        <table className="tabella">
+          <thead>
+            <tr>
+              <th>Operatore</th>
+              <th>Tipo</th>
+              <th>Composizione</th>
+              <th className="text-right">Quota</th>
+              <th className="text-right">Versato</th>
+              <th>Iscrizione</th>
+              <th>Stato attuale</th>
+            </tr>
+          </thead>
+          <tbody>
+            {iscrizioni.map((m) => {
+              const dovuto = m.quota ? Number(m.quota) : 0;
+              const versato = m.payments.reduce((t, p) => t + Number(p.pagato), 0);
+              return (
+                <tr key={m.id}>
+                  <td>
+                    <Link
+                      href={`/admin/operatori/${m.user.id}`}
+                      className="font-medium hover:text-nvg"
+                    >
+                      {m.user.cognome} {m.user.nome}
+                    </Link>
+                    {m.user.callsign && (
+                      <span className="block text-[11px] text-nvg">{m.user.callsign}</span>
+                    )}
+                  </td>
+                  <td className="text-muted">{umanizza(m.tipo)}</td>
+                  <td className="text-[11px] text-muted">{m.dettaglioQuota ?? '-'}</td>
+                  <td className="num whitespace-nowrap text-right">{fmtEuro(dovuto)}</td>
+                  <td
+                    className={`num whitespace-nowrap text-right ${
+                      dovuto > 0 && versato < dovuto ? 'text-warn' : 'text-nvg'
+                    }`}
+                  >
+                    {fmtEuro(versato)}
+                  </td>
+                  <td>
+                    <Badge tono={tonoIscrizione[m.status] ?? 'neutro'}>
+                      {umanizza(m.status)}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge tono={tonoStato[m.user.stato]}>
+                      {etichettaStato[m.user.stato]}
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      }
+    />
   );
 }

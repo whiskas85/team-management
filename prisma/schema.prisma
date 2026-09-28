@@ -309,23 +309,62 @@ model MedicalCertificate {
 // ---------------------------------------------------------------- squadre esterne
 
 /// Altri team: gestiscono campi, organizzano eventi, ci si gioca insieme.
+/// Quanto ci interessa una squadra esterna.
+///
+/// Dal portale FIGT arrivano **tutte** le società della regione: la maggior
+/// parte non la si incontra mai. Le preferite stanno in cima dappertutto
+/// (elenco, tendine degli inviti e dei campi); le disattivate spariscono dalle
+/// tendine ma restano per lo storico.
+enum StatoSquadra {
+  PREFERITA
+  ATTIVA
+  DISATTIVATA
+}
+
 model SquadraEsterna {
-  id        String   @id @default(cuid())
-  nome      String   @unique
-  referente String?
+  id               String       @id @default(cuid())
+  nome             String       @unique
+  /// Il nome esatto con cui la scrive il portale FIGT: è la chiave con cui la
+  /// si ritrova alla prossima importazione, anche se qui è stata rinominata.
+  nomeFigt         String?      @unique
+  /// Recapiti della società; le persone stanno fra i contatti.
+  telefono         String?
+  email            String?
+  sito             String?
+  indirizzo        String?
+  cap              String?
+  citta            String?
+  provincia        String?
+  /// Come la classifica la federazione, es. «AIR SOFT - TUTELA LEGALE».
+  disciplina       String?
+  /// Affiliata FIGT anche col settore giovanile (under 18).
+  settoreGiovanile Boolean      @default(false)
+  note             String?
+  stato            StatoSquadra @default(ATTIVA)
+  /// L'ultima volta che il portale FIGT l'ha aggiornata; nullo se inserita a mano.
+  figtAggiornataIl DateTime?
+  createdAt        DateTime     @default(now())
+
+  contatti ContattoSquadra[]
+  campi    Field[]
+  inviti   SquadraOspite[]   @relation("InvitiSquadra")
+
+  @@index([stato, nome])
+}
+
+/// Una persona a cui chiedere, in una squadra esterna, con quello che fa lì:
+/// presidente, vicepresidente, segretario — o quello che si vuole.
+model ContattoSquadra {
+  id        String         @id @default(cuid())
+  squadraId String
+  squadra   SquadraEsterna @relation(fields: [squadraId], references: [id], onDelete: Cascade)
+  ruolo     String
+  nome      String
   telefono  String?
   email     String?
-  sito      String?
-  citta     String?
-  provincia String?
-  note      String?
-  attiva    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  ordine    Int            @default(0)
 
-  campi  Field[]
-  inviti SquadraOspite[] @relation("InvitiSquadra")
-
-  @@index([attiva, nome])
+  @@index([squadraId, ordine])
 }
 
 /// Chi tiene in mano un'attività: il nome a cui chiedere, il giorno prima.

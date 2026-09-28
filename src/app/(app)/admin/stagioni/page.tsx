@@ -41,13 +41,23 @@ export default async function StagioniPage() {
   await requirePermesso(isAdmin);
   const ora = new Date();
 
-  const [stagioni, operatori, inRosa, daRiconfermare] = await Promise.all([
+  const [stagioni, operatori, atleti, daRiconfermare] = await Promise.all([
     prisma.stagione.findMany({
       orderBy: { inizio: 'desc' },
-      include: { _count: { select: { memberships: true, figtCards: true, eventi: true } } },
+      include: {
+        _count: {
+          select: {
+            // in rosa: chi l'iscrizione dell'anno l'ha avuta, non inviti e moduli in attesa
+            memberships: { where: { status: { in: ['ATTIVA', 'SCADUTA'] } } },
+            figtCards: true,
+            eventi: true,
+          },
+        },
+      },
     }),
     elencoOperatori(false),
-    prisma.user.count({ where: { stato: 'SQUADRA' } }),
+    // gli atleti della squadra: lo staff che non gioca non si conta
+    prisma.user.count({ where: { stato: 'SQUADRA', roles: { has: 'ATLETA' }, disabledAt: null } }),
     prisma.user.count({ where: { stato: 'DA_RICONFERMARE' } }),
   ]);
 
@@ -83,7 +93,7 @@ export default async function StagioniPage() {
           }
           tono={corrente ? 'ok' : 'warn'}
         />
-        <Statistica etichetta="In squadra" valore={inRosa} dettaglio="rosa attuale" tono="ok" />
+        <Statistica etichetta="Atleti" valore={atleti} dettaglio="in squadra adesso" tono="ok" />
         <Statistica
           etichetta="Da riconfermare"
           valore={daRiconfermare}
@@ -119,7 +129,7 @@ export default async function StagioniPage() {
                       {fmtDate(s.inizio)} - {fmtDate(s.fine)}
                     </span>
                     <span className="block">
-                      {s._count.memberships} iscrizioni &middot; {s._count.figtCards} tessere
+                      {s._count.memberships} in rosa &middot; {s._count.figtCards} tessere
                       &middot; {s._count.eventi} attivit&agrave;
                     </span>
                   </>
@@ -137,7 +147,7 @@ export default async function StagioniPage() {
                 <tr>
                   <th>Stagione</th>
                   <th>Periodo</th>
-                  <th>Iscrizioni</th>
+                  <th>Rosa</th>
                   <th>Tessere</th>
                   <th>Attivit&agrave;</th>
                   <th>Stato</th>
@@ -222,15 +232,19 @@ function Azioni({ stagione, operatori }: { stagione: Stagione; operatori: Operat
         </BottoneModale>
       )}
 
-      <BottoneModale
-        etichetta="Rosa"
-        icona="operatori"
-        titolo={`Chi c'era nella stagione ${stagione.nome}`}
-        className="btn-ghost btn-sm"
-        larga
-      >
-        <RosaStorica stagioneId={stagione.id} nome={stagione.nome} operatori={operatori} />
-      </BottoneModale>
+      {/* la rosa dell'anno in corso si compone da sola con le iscrizioni: si
+          ricostruisce a mano solo quella degli anni passati */}
+      {!stagione.corrente && (
+        <BottoneModale
+          etichetta="Ricostruisci la rosa"
+          icona="operatori"
+          titolo={`Chi c'era nella stagione ${stagione.nome}`}
+          className="btn-ghost btn-sm"
+          larga
+        >
+          <RosaStorica stagioneId={stagione.id} nome={stagione.nome} operatori={operatori} />
+        </BottoneModale>
+      )}
 
       {!stagione.corrente && (
         <AzioneBottone

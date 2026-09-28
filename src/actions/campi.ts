@@ -41,7 +41,7 @@ export async function salvaCampo(_prev: StatoForm, fd: FormData): Promise<StatoF
   }
 
   revalidatePath('/admin/campi');
-  revalidatePath('/admin/squadre');
+  revalidatePath('/admin/squadre', 'layout');
   revalidatePath('/calendario');
   return { ok: id ? 'Campo aggiornato.' : 'Campo aggiunto.' };
 }
