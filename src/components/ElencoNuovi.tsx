@@ -36,6 +36,10 @@ export type RigaNuovo = {
    * uno che non lo e'.
    */
   avvisi: boolean;
+  /** La versione del gestionale che ha sul telefono, l'ultima volta che è passato. */
+  versione: string | null;
+  /** Diversa da quella in linea: il telefono ha una versione vecchia in cache. */
+  versioneVecchia: boolean;
   /** Quante volte ha detto «ci sono». */
   adesioni: number;
   /** Quante volte c'era davvero, all'appello. */
@@ -136,6 +140,7 @@ export function ElencoNuovi({
                   >
                     <Icona nome="avvisi" size={15} />
                   </span>
+                  <Versione riga={n} />
                 </div>
                 {puoInvitare && !n.haIscrizione && (
                   <div className="piede">
@@ -157,12 +162,12 @@ export function ElencoNuovi({
                     <th>Contatto</th>
                     <th>Recapiti</th>
                     <th>Registrato</th>
-                    <th>Ultimo accesso</th>
-                    <th>Avvisi</th>
                     <th>Venuto</th>
                     <th>Segnato</th>
                     <th>Ultima volta</th>
                     <th>Da quanto</th>
+                    <th>Ultimo accesso</th>
+                    <th>Avvisi</th>
                     <th>Azioni</th>
                   </tr>
                 </thead>
@@ -200,24 +205,6 @@ export function ElencoNuovi({
                         {n.telefono && <span className="block num">{n.telefono}</span>}
                       </td>
                       <td className="whitespace-nowrap text-muted num">{n.registrato}</td>
-                      <td className="whitespace-nowrap text-muted num">
-                        {n.ultimoAccesso ?? 'mai'}
-                      </td>
-                      {/* La campanella accesa vuol dire che l'avviso arriva
-                          sul telefono; spenta, che partira' un WhatsApp. Non
-                          e' un difetto da correggere: e' come lo si raggiunge. */}
-                      <td>
-                        <span
-                          className={n.avvisi ? 'text-nvg' : 'text-muted/40'}
-                          title={
-                            n.avvisi
-                              ? 'Riceve le notifiche sul telefono'
-                              : 'Niente notifiche: lo si avvisa su WhatsApp'
-                          }
-                        >
-                          <Icona nome="avvisi" size={16} />
-                        </span>
-                      </td>
                       {/* Due colonne e non una frazione: «2/4» va spiegato
                           ogni volta, e domani va spiegato di nuovo. Quante
                           volte e' venuto e quante volte si era segnato sono
@@ -249,6 +236,27 @@ export function ElencoNuovi({
                         }`}
                       >
                         {n.giorniDaUltima === null ? '—' : daQuanto(n.giorniDaUltima)}
+                      </td>
+                      <td className="whitespace-nowrap text-muted num">
+                        {n.ultimoAccesso ?? 'mai'}
+                      </td>
+                      {/* La campanella accesa vuol dire che l'avviso arriva
+                          sul telefono; spenta, che partira' un WhatsApp. Non
+                          e' un difetto da correggere: e' come lo si raggiunge. */}
+                      <td className="whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className={n.avvisi ? 'text-nvg' : 'text-muted/40'}
+                          title={
+                            n.avvisi
+                              ? 'Riceve le notifiche sul telefono'
+                              : 'Niente notifiche: lo si avvisa su WhatsApp'
+                          }
+                        >
+                          <Icona nome="avvisi" size={16} />
+                        </span>
+                        <Versione riga={n} />
+                        </span>
                       </td>
                       <td className="whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -340,5 +348,28 @@ function EliminaNuovo({ riga }: { riga: RigaNuovo }) {
       conferma={`Eliminare definitivamente ${riga.nome} ${riga.cognome}? L'operazione non è reversibile.`}
       etichetta={`Elimina ${riga.nome} ${riga.cognome}`}
     />
+  );
+}
+
+/**
+ * La versione del gestionale sul suo telefono, accanto alla campanella: se è
+ * vecchia (in arancione) il telefono ha in cache un gestionale di prima, e
+ * quello che vede — o che non riceve — può dipendere da lì.
+ */
+function Versione({ riga }: { riga: RigaNuovo }) {
+  if (!riga.versione) return null;
+  return (
+    <span
+      className={`num text-[11px] ${
+        riga.versioneVecchia ? 'text-warn' : 'text-muted'
+      }`}
+      title={
+        riga.versioneVecchia
+          ? 'Sul telefono ha una versione vecchia del gestionale'
+          : 'Versione del gestionale sul suo telefono'
+      }
+    >
+      v{riga.versione}
+    </span>
   );
 }

@@ -11,6 +11,7 @@ import {
   type RegistrazioneInAttesa,
 } from '@/components/RegistrazioniInAttesa';
 import { improntaEmail, improntaIdentita } from '@/lib/impronte';
+import { VERSIONE } from '@/lib/versione';
 
 /** Da quanti giorni un contatto è considerato "sparito". */
 const GIORNI_INATTIVITA = 90;
@@ -135,6 +136,8 @@ export default async function NuoviPage() {
       registrato: fmtDate(n.createdAt),
       ultimoAccesso: n.ultimoAccesso ? fmtDate(n.ultimoAccesso) : null,
       avvisi: n._count.iscrizioniPush > 0,
+      versione: n.versioneApp,
+      versioneVecchia: n.versioneApp !== null && n.versioneApp !== VERSIONE,
       daLeggere: n.stato === 'NUOVO' && n.letturaDaAltri.length === 0,
       adesioni: n.rsvps.filter((r) => r.status === 'PRESENTE').length,
       presenze: venute.length,

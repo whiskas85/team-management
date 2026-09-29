@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.113.1 — 29 settembre 2026
+
+### Cambiato
+
+- **Nuovi:** accanto alla campanella c'è la versione del gestionale che hanno
+  sul telefono, in arancione se è vecchia, come già negli operatori.
+- Nella tabella dei nuovi «Ultimo accesso» e «Avvisi» si spostano a destra,
+  dopo «Da quanto».
+
 ## 2.113.0 — 28 settembre 2026
 
 ### Aggiunto
