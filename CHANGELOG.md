@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.113.6 — 29 settembre 2026
+
+### Corretto
+
+- **Cassa, «Come si paga»:** i badge dei metodi si vedono tutti e interi, e
+  se non ci stanno vanno a capo. Prima la loro riga aveva un'altezza fissa, e
+  su alcuni telefoni li tagliava lo stesso.
+
 ## 2.113.5 — 29 settembre 2026
 
 ### Corretto

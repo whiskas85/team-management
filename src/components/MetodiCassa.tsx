@@ -135,11 +135,10 @@ export function MetodiCassa({
             <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
             <p className="titolo-sezione shrink-0">Come si paga</p>
             {!avviso && (
-              // accanto al titolo, tanti nomi quanti ne stanno nella riga:
-              // quelli che non ci entrano vanno a capo, e la seconda riga
-              // resta nascosta. L'altezza è quella di un badge intero: più
-              // bassa li tagliava a metà
-              <div className="flex max-h-6 min-w-0 flex-wrap items-center gap-1.5 overflow-hidden py-px">
+              // tutti, interi: quelli che non ci stanno vanno a capo. Niente
+              // altezza fissa con il resto nascosto: bastava un carattere un
+              // po' più grande sul telefono per tagliarli a metà
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 {/* il colore dice come lo si usa: verde lo segnala chi paga,
                     azzurro lo registra solo chi incassa, grigio è spento */}
                 {metodi.map((m) => (
