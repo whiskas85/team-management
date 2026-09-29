@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.117.1 — 29 settembre 2026
+
+### Corretto
+
+- **Compleanni, il giorno giusto.** Chi è nato il 1° ottobre risultava
+  festeggiare il 30 settembre: la data di nascita è salvata a mezzanotte
+  italiana e veniva letta in UTC, dove è ancora il giorno prima. Ora si legge
+  in ora italiana, come la colonna «Nato il».
+
 ## 2.117.0 — 29 settembre 2026
 
 ### Aggiunto

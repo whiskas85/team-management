@@ -72,19 +72,18 @@ const VISTE_OPERATORI = [
 ];
 
 /*
- * Il giorno di oggi a Roma, come data senza ora (mezzanotte UTC): la data di
- * nascita è salvata così, e i conti fra due date «pure» non sbagliano di un
- * giorno a cavallo dell'ora legale o a mezzanotte.
+ * Il giorno di calendario di una data, a Roma, come mezzanotte UTC: i conti fra
+ * due date «pure» non sbagliano di un giorno a cavallo dell'ora legale o a
+ * mezzanotte, qualunque sia il fuso del server.
  */
-function oggiARoma() {
-  const [a, m, g] = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Rome',
-  })
-    .format(new Date())
+function giornoARoma(quando: Date) {
+  const [a, m, g] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' })
+    .format(quando)
     .split('-')
     .map(Number);
   return Date.UTC(a, m - 1, g);
 }
+const oggiARoma = () => giornoARoma(new Date());
 
 const GIORNO = 86_400_000;
 
@@ -94,16 +93,19 @@ const GIORNO = 86_400_000;
  * anni che non sono bisestili, lo festeggia il 1° marzo.
  */
 function prossimoCompleanno(nascita: Date, oggi = oggiARoma()) {
+  // la data di nascita è salvata a mezzanotte italiana, che in UTC è ancora
+  // il giorno prima: letta in UTC, chi è nato il 1° ottobre festeggerebbe il 30
+  const nato = new Date(giornoARoma(nascita));
   const anno = new Date(oggi).getUTCFullYear();
-  const m = nascita.getUTCMonth();
-  const g = nascita.getUTCDate();
+  const m = nato.getUTCMonth();
+  const g = nato.getUTCDate();
   let quando = Date.UTC(anno, m, g);
   if (quando < oggi) quando = Date.UTC(anno + 1, m, g);
   const annoFesta = new Date(quando).getUTCFullYear();
   return {
     data: new Date(quando),
     giorni: Math.round((quando - oggi) / GIORNO),
-    compie: annoFesta - nascita.getUTCFullYear(),
+    compie: annoFesta - nato.getUTCFullYear(),
   };
 }
 
