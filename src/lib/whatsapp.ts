@@ -26,7 +26,7 @@ export type GruppoWhatsapp = { id: string; nome: string; partecipanti: number };
 
 async function chiama<T>(
   percorso: string,
-  opzioni: { metodo?: string; corpo?: unknown } = {},
+  opzioni: { metodo?: string; corpo?: unknown; attesa?: number } = {},
 ): Promise<{ ok: true; dati: T } | { ok: false; errore: string }> {
   try {
     const r = await fetch(`${BASE}${percorso}`, {
@@ -37,7 +37,7 @@ async function chiama<T>(
       },
       body: opzioni.corpo ? JSON.stringify(opzioni.corpo) : undefined,
       // il ponte è in rete locale: se non risponde in fretta è spento
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(opzioni.attesa ?? 20_000),
     });
 
     const dati = await r.json().catch(() => null);
@@ -86,7 +86,8 @@ export type StatoRubrica = {
 
 /** Chiede al ponte la rubrica da capo: i nomi salvati sul telefono collegato. */
 export function aggiornaRubricaPonte() {
-  return chiama<StatoRubrica>('/rubrica', { metodo: 'POST' });
+  // se manca una chiave il ponte la chiede al telefono e l'aspetta fino a 30"
+  return chiama<StatoRubrica>('/rubrica', { metodo: 'POST', attesa: 75_000 });
 }
 
 /** Lo stato della rubrica senza cercare niente: per la pagina Messaggi. */

@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.116.1 — 29 settembre 2026
+
+### Corretto
+
+- **Rubrica WhatsApp, la chiave mancante.** La rubrica arriva cifrata e il
+  ponte non aveva la chiave per leggerla («failed to find key … to decode
+  mutation»): per questo arrivavano 0 contatti. Ora «Aggiorna rubrica» la
+  chiede al telefono collegato, come fa WhatsApp Web, aspetta che arrivi (fino
+  a 30 secondi) e rilegge la rubrica. Se il telefono non risponde, l'esito
+  dice di aprire WhatsApp sul telefono e riprovare, o di scollegare e
+  ricollegare.
+
 ## 2.116.0 — 29 settembre 2026
 
 ### Corretto

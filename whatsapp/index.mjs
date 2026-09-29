@@ -33,6 +33,8 @@ const {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  jidNormalizedUser,
+  proto,
 } = require('@whiskeysockets/baileys');
 
 const PORTA = Number(process.env.PORTA ?? 3001);
@@ -287,6 +289,51 @@ async function risincronizzaRubrica() {
   }
 }
 
+/*
+ * Le chiavi della rubrica.
+ *
+ * La rubrica arriva cifrata, e le chiavi per leggerla il telefono le manda al
+ * collegamento: se il ponte ne ha persa una (o il telefono l'ha cambiata dopo),
+ * la libreria scrive «failed to find key … to decode mutation» e non legge
+ * niente. Non la chiede da sola; WhatsApp Web sì: un messaggio al proprio
+ * telefono con gli identificativi che mancano, e il telefono risponde con le
+ * chiavi, che la libreria salva appena arrivano.
+ */
+const chiaviMancanti = (righe) => [
+  ...new Set(
+    righe.flatMap((r) =>
+      [...`${r.msg} ${r.errore ?? ''}`.matchAll(/failed to find key "([^"]+)"/g)].map((m) => m[1]),
+    ),
+  ),
+];
+
+async function chiediChiavi(ids) {
+  const me = stato.socket?.authState?.creds?.me?.id;
+  if (!me) throw new Error('WhatsApp non è collegato.');
+  await stato.socket.relayMessage(
+    jidNormalizedUser(me),
+    {
+      protocolMessage: {
+        type: proto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_REQUEST,
+        appStateSyncKeyRequest: { keyIds: ids.map((id) => ({ keyId: Buffer.from(id, 'base64') })) },
+      },
+    },
+    { additionalAttributes: { category: 'peer', push_priority: 'high_force' } },
+  );
+  log.warn({ ids }, 'chiavi della rubrica chieste al telefono');
+}
+
+/** Aspetta che le chiavi arrivino dal telefono: true se sono arrivate tutte. */
+async function aspettaChiavi(ids, ms = 30_000) {
+  const fine = Date.now() + ms;
+  while (Date.now() < fine) {
+    const trovate = await stato.chiavi.get('app-state-sync-key', ids);
+    if (ids.every((id) => trovate[id])) return true;
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+  return false;
+}
+
 /** Rubrica da capo, poi i gruppi: sono loro a tradurre i LID appena arrivati. */
 async function rubricaDaCapo() {
   diagnosi.ultimaRichiesta = new Date().toISOString();
@@ -295,14 +342,28 @@ async function rubricaDaCapo() {
   const dallaRichiesta = () => registroSync.filter((r) => r.n > primaRighe);
   try {
     await risincronizzaRubrica();
+    let nota = '';
+    const mancano = chiaviMancanti(dallaRichiesta());
+    if (mancano.length > 0) {
+      await chiediChiavi(mancano);
+      if (await aspettaChiavi(mancano)) {
+        await risincronizzaRubrica();
+        nota = ' — mancava una chiave: chiesta al telefono, arrivata, rubrica riletta';
+      } else {
+        nota =
+          ' — manca la chiave per leggere la rubrica: chiesta al telefono ma non è arrivata. ' +
+          'Apri WhatsApp sul telefono collegato e riprova; se non basta, scollega e ricollega';
+      }
+    }
     registraGruppi(Object.values(await stato.socket.groupFetchAllParticipating()));
     const righe = dallaRichiesta();
     diagnosi.registro = righe;
     // la libreria fallisce in silenzio: il motivo si legge nelle sue righe
-    const fallita = righe.find((r) => r.errore || /failed/i.test(r.msg));
+    const ultimaFallita = mancano.length === 0 && righe.find((r) => r.errore || /failed/i.test(r.msg));
     diagnosi.esito =
       `arrivati ${diagnosi.contattiRicevuti - primaRicevuti} contatti` +
-      (fallita ? ` — sincronizzazione fallita: ${fallita.errore ?? fallita.msg}` : '');
+      nota +
+      (ultimaFallita ? ` — sincronizzazione fallita: ${ultimaFallita.errore ?? ultimaFallita.msg}` : '');
   } catch (e) {
     diagnosi.registro = dallaRichiesta();
     diagnosi.esito = `errore: ${e?.message ?? e}`;
