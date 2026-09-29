@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.126.1 — 29 settembre 2026
+
+### Aggiunto
+
+- **Chi ha proposto l'invito.** Un invito arrivato su proposta di un'altra
+  squadra ospite lo dice: «Proposta da …» sulla card fra gli Inviti, «su
+  proposta di …» nella scheda, e nella notifica.
+
 ## 2.126.0 — 29 settembre 2026
 
 ### Aggiunto

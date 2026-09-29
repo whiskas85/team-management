@@ -26,12 +26,17 @@ export async function POST(req: Request) {
   if (!evento) return NextResponse.json({ errore: 'Attività illeggibile.' }, { status: 400 });
   const accesso = m.dati.corpo.accesso === 'GESTIONE' ? 'GESTIONE' : 'VISUALIZZAZIONE';
 
+  const propostaDa =
+    typeof m.dati.corpo.propostaDa === 'string' && m.dati.corpo.propostaDa.trim()
+      ? m.dati.corpo.propostaDa.trim().slice(0, 120)
+      : null;
   const esito = await riceviEvento(
     c,
     evento,
     accesso,
     m.dati.corpo.invitaAltri === true,
     numeriRicevuti(m.dati.corpo.numeri),
+    propostaDa,
   );
 
   if (esito.nuovo) {
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
     void avvisa(
       admin.map((a) => a.id),
       {
-        titolo: `Invito da ${profiloDi(c).nome}`,
+        titolo: `Invito da ${profiloDi(c).nome}${propostaDa ? `, proposto da ${propostaDa}` : ''}`,
         // a pagamento lo si dice subito: è la prima cosa da sapere per decidere
         testo: evento.costo
           ? `${evento.titolo} · a pagamento: ${descriviCosto(evento.costo)}`

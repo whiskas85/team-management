@@ -380,8 +380,13 @@ export function BannerCondivisa({
       {invitata && (
         <div className="border-t border-line pt-3">
           <p className="text-sm">
-            <strong>{organizzatore.nome}</strong> ci invita a questa attività. Finché non rispondi
-            la vedi solo tu, come una bozza.
+            <strong>{organizzatore.nome}</strong> ci invita a questa attività
+            {dati.propostaDa && (
+              <>
+                , su proposta di <strong>{dati.propostaDa}</strong>
+              </>
+            )}
+            . Finché non rispondi la vedi solo tu, come una bozza.
           </p>
           {dati.costo && (
             <p className="mt-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">

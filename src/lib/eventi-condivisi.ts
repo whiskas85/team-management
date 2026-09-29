@@ -218,6 +218,8 @@ export async function diffondiEvento(eventId: string) {
         numeri,
         accesso: o.accesso ?? 'VISUALIZZAZIONE',
         invitaAltri: o.invitaAltri,
+        // invitata su proposta di un'altra squadra ospite: la si nomina
+        propostaDa: o.propostaDa,
       } as unknown as Prisma.InputJsonValue,
       { chiave: eventId },
     );
@@ -362,6 +364,8 @@ export type DatiOrigine = {
   numeri: NumeriSquadra[];
   costo: EventoCondiviso['costo'];
   metodi: EventoCondiviso['metodi'];
+  /** Ci hanno invitati su proposta di questa squadra (un'altra ospite). */
+  propostaDa?: string | null;
 };
 
 const VUOTI: DatiOrigine = {
@@ -415,6 +419,7 @@ export async function riceviEvento(
   accesso: 'VISUALIZZAZIONE' | 'GESTIONE',
   invitaAltri: boolean,
   numeri: NumeriSquadra[] = [],
+  propostaDa: string | null = null,
 ): Promise<{ id: string; nuovo: boolean }> {
   const esistente = await prisma.event.findUnique({
     where: {
@@ -465,6 +470,7 @@ export async function riceviEvento(
     numeri,
     costo: e.costo,
     metodi: e.metodi,
+    propostaDa,
   } as unknown as Prisma.InputJsonValue;
 
   if (esistente) {

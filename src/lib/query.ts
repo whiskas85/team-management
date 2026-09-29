@@ -114,6 +114,7 @@ export async function eventiPerLista({
     })(),
     costoChiesto: e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
     sondaggioId: e.sondaggio?.id ?? null,
+    propostaDa: e.origineCollegamento ? (datiOrigine(e.origineDati).propostaDa ?? null) : null,
     id: e.id,
     titolo: e.titolo,
     // un invito non ha ancora una tipologia nostra: si legge la loro

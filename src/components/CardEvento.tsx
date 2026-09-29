@@ -52,6 +52,8 @@ export type EventoLista = {
   costoChiesto?: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
   /** Il sondaggio da cui è nata, o aperto su di lei. */
   sondaggioId?: string | null;
+  /** Ci hanno invitati su proposta di un'altra squadra ospite. */
+  propostaDa?: string | null;
 };
 
 /**
@@ -169,6 +171,11 @@ export function CardEvento({
             {e.organizzatore && (
               <p className="mt-1">
                 <BadgeOrganizzatore organizzatore={e.organizzatore} />
+              </p>
+            )}
+            {e.propostaDa && (
+              <p className="mt-1 text-xs text-muted">
+                Proposta da <strong className="text-ink">{e.propostaDa}</strong>
               </p>
             )}
             {e.costoOrganizzatore && (
