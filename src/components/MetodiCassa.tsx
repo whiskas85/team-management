@@ -130,13 +130,16 @@ export function MetodiCassa({
         azioni={aggiungi}
         intestazione={
           <>
-            <p className="titolo-sezione">Come si paga</p>
-            {avviso ? (
-              <p className="mt-1 text-xs text-warn">{avviso}</p>
-            ) : (
-              // tanti nomi quanti ne stanno in una riga: quelli che non ci
-              // entrano vanno a capo, e la seconda riga resta nascosta
-              <div className="mt-1.5 flex max-h-[22px] flex-wrap gap-1.5 overflow-hidden">
+            {/* accanto al titolo dal tablet in su; sul telefono, accanto a
+                «Aggiungi metodo» non c'è spazio e vanno sotto */}
+            <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+            <p className="titolo-sezione shrink-0">Come si paga</p>
+            {!avviso && (
+              // accanto al titolo, tanti nomi quanti ne stanno nella riga:
+              // quelli che non ci entrano vanno a capo, e la seconda riga
+              // resta nascosta. L'altezza è quella di un badge intero: più
+              // bassa li tagliava a metà
+              <div className="flex max-h-6 min-w-0 flex-wrap items-center gap-1.5 overflow-hidden py-px">
                 {/* il colore dice come lo si usa: verde lo segnala chi paga,
                     azzurro lo registra solo chi incassa, grigio è spento */}
                 {metodi.map((m) => (
@@ -148,6 +151,8 @@ export function MetodiCassa({
                 ))}
               </div>
             )}
+            </div>
+            {avviso && <p className="mt-1 text-xs text-warn">{avviso}</p>}
           </>
         }
       >
