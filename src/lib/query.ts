@@ -4,7 +4,7 @@ import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
 import { faseAttivita } from './giorni';
 import type { EventoLista } from '@/components/CardEvento';
-import { organizzatoreDi } from './eventi-condivisi';
+import { datiOrigine, organizzatoreDi } from './eventi-condivisi';
 
 /**
  * Chi vede quali attività.
@@ -107,7 +107,8 @@ export async function eventiPerLista({
     organizzatore: organizzatoreDi(e.origineCollegamento),
     id: e.id,
     titolo: e.titolo,
-    tipo: e.tipo?.nome ?? 'Senza tipologia',
+    // un invito non ha ancora una tipologia nostra: si legge la loro
+    tipo: e.tipo?.nome ?? datiOrigine(e.origineDati).tipo ?? 'Senza tipologia',
     colore: e.tipo?.colore ?? 'grigio',
     // tipologia riservata alla squadra: non si rilascia a tutti
     soloInterno: e.tipo?.soloInterno ?? false,

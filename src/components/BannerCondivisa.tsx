@@ -1,9 +1,7 @@
 import { fmtDateTime } from '@/lib/format';
 import type { DatiOrigine } from '@/lib/eventi-condivisi';
-import { accettaInvitoEvento, rifiutaInvitoEvento } from '@/actions/eventi-condivisi';
 import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
-import { FormAzione } from './Form';
-import { Invia } from './Bottone';
+import { RispostaInvito } from './RispostaInvito';
 
 /**
  * In testa alla scheda di un'attività organizzata da un'altra squadra
@@ -22,6 +20,7 @@ export function BannerCondivisa({
   collegata,
   invitata,
   admin,
+  tipologie,
 }: {
   eventId: string;
   organizzatore: Organizzatore;
@@ -32,6 +31,8 @@ export function BannerCondivisa({
   collegata: boolean;
   invitata: boolean;
   admin: boolean;
+  /** Le nostre tipologie: accettando se ne sceglie una. */
+  tipologie: { id: string; nome: string }[];
 }) {
   return (
     <div
@@ -100,20 +101,17 @@ export function BannerCondivisa({
             la vedi solo tu, come una bozza.
           </p>
           {admin && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <FormAzione azione={accettaInvitoEvento} className="contents">
-                <input type="hidden" name="id" value={eventId} />
-                <Invia icona="approva">Accetta</Invia>
-              </FormAzione>
-              <FormAzione azione={rifiutaInvitoEvento} className="contents">
-                <input type="hidden" name="id" value={eventId} />
-                <Invia icona="rifiuta" className="btn-ghost">
-                  Rifiuta
-                </Invia>
-              </FormAzione>
-              <span className="text-xs text-muted">
+            <div className="mt-3">
+              <RispostaInvito
+                id={eventId}
+                organizzatore={organizzatore.nome}
+                ritorno="/calendario?vista=inviti"
+                tipologie={tipologie}
+                tipoLoro={dati.tipo}
+              />
+              <p className="mt-2 text-xs text-muted">
                 Accettata diventa una bozza nostra: quote, posti e rilascio li decidi tu.
-              </span>
+              </p>
             </div>
           )}
         </div>

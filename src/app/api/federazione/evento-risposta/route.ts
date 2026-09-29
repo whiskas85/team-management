@@ -20,6 +20,10 @@ export async function POST(req: Request) {
     data: {
       risposta: risposta as (typeof RISPOSTE)[number],
       rispostoIl: new Date(),
+      motivoRifiuto:
+        risposta === 'RIFIUTATA' && typeof m.dati.corpo.motivo === 'string'
+          ? m.dati.corpo.motivo.trim().slice(0, 500) || null
+          : null,
       // chi dice di no non viene: il numero lo dice da sé
       ...(risposta === 'RIFIUTATA' ? { operatori: 0 } : {}),
     },

@@ -156,6 +156,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ],
     },
   });
+  // e, per chi gestisce il calendario, gli inviti delle squadre collegate che
+  // aspettano una risposta: contano nello stesso pallino
+  const invitiInAttesa = isAdmin(utente.roles)
+    ? await prisma.event.count({
+        where: { status: 'INVITATA', origineNascosta: false, inizio: { gte: inizioDiOggi } },
+      })
+    : 0;
 
   /*
    * I sondaggi aperti a cui questa persona non ha ancora risposto.
@@ -312,10 +319,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: 'Calendario',
       icona: 'calendario',
       gruppo: 'principale',
-      badge: attivitaNuove,
+      badge: attivitaNuove + invitiInAttesa,
       // le viste del calendario: si cercano col loro nome, «storico», «mese»
       sotto: [
         { label: 'Mese', href: '/calendario?vista=mese' },
+        ...(isAdmin(utente.roles) ? [{ label: 'Inviti', href: '/calendario?vista=inviti' }] : []),
         { label: 'Storico', href: '/calendario?vista=passati' },
       ],
     },

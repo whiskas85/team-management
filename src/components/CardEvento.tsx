@@ -188,6 +188,9 @@ export function CardEvento({
           )}
         </div>
 
+        {/* un invito di un'altra squadra non ha ancora presenze: al loro
+            posto, nel piede, la risposta da dare */}
+        {e.status !== 'INVITATA' && (
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3">
           <ContoAdesioni e={e} />
           {quota && !e.adesioniAperte && <Badge tono="warn">quota {quota}</Badge>}
@@ -201,6 +204,7 @@ export function CardEvento({
             </span>
           )}
         </div>
+        )}
       </Link>
 
       {/* Dove si va e quanto costa: sono cose da leggere, e stanno in una

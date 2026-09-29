@@ -261,19 +261,13 @@ export async function riceviEvento(
     return { id: esistente.id, nuovo: false };
   }
 
-  // la tipologia, se ne abbiamo una con lo stesso nome
-  const tipo = e.tipo
-    ? await prisma.tipoAttivita.findFirst({
-        where: { nome: { equals: e.tipo, mode: 'insensitive' } },
-        select: { id: true },
-      })
-    : null;
   const creato = await prisma.event.create({
     data: {
       ...dati,
       status: e.annullata ? 'ANNULLATA' : 'INVITATA',
       motivoAnnullamento: e.annullata ? `Annullata da ${organizzatore}` : null,
-      tipoId: tipo?.id ?? null,
+      // la tipologia la sceglie chi accetta, fra le nostre
+      tipoId: null,
       stagioneId: (await stagioneAttiva()).id,
       origineCollegamentoId: c.id,
       origineIdRemoto: e.id,

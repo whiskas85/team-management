@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.121.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Calendario → Inviti.** Per chi gestisce il calendario, una vista nuova
+  accanto a In programma, Mese e Storico, col numero degli inviti delle squadre
+  collegate che aspettano una risposta; lo stesso numero si somma al pallino del
+  Calendario nel menu. In programma gli inviti non compaiono più: stanno lì.
+- **Tre risposte a un invito**, sulla card (al posto delle presenze, che un
+  invito non ha) e nella scheda:
+  - **Accetta**: si sceglie la **tipologia fra le nostre** (le loro possono
+    chiamarsi in un altro modo; se ne abbiamo una con lo stesso nome è già
+    scelta). Diventa una bozza nostra, e l'organizzatore lo sa.
+  - **Rifiuta**: col **perché**, che l'organizzatore legge. L'invito sparisce.
+  - **Cancella**: toglie l'invito dalla vista **senza dirlo** all'altra
+    squadra, che continua a vederci «invitati».
+- **Chi organizza vede lo stato** di ogni squadra collegata invitata, accanto
+  al nome: **Invitato**, **Accettato** o **Rifiutato**, col motivo del rifiuto.
+
 ## 2.120.1 — 29 settembre 2026
 
 ### Corretto

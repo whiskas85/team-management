@@ -3,7 +3,7 @@ import { CondividiEvento } from './CondividiEvento';
 import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
-import { Campo } from './ui';
+import { Badge, Campo } from './ui';
 import { aggiungiSquadraOspite, segnaOperatoriOspite, togliSquadraOspite } from '@/actions/ospiti';
 
 export type Ospite = {
@@ -17,12 +17,13 @@ export type Ospite = {
   collegata?: boolean;
   risposta?: string | null;
   accesso?: string | null;
+  motivoRifiuto?: string | null;
 };
 
 const RISPOSTA: Record<string, string> = {
-  IN_ATTESA: 'nel loro gestionale, fra gli inviti',
-  ACCETTATA: 'nel loro gestionale: accettata',
-  RIFIUTATA: 'nel loro gestionale: rifiutata',
+  IN_ATTESA: 'Invitato',
+  ACCETTATA: 'Accettato',
+  RIFIUTATA: 'Rifiutato',
 };
 
 /**
@@ -86,12 +87,35 @@ export function SquadreOspiti({
           {ospiti.map((o) => (
             <CardRiga
               key={o.id}
-              titolo={o.nome}
+              titolo={
+                o.collegata ? (
+                  <span className="flex flex-wrap items-center gap-2">
+                    {o.nome}
+                    <Badge
+                      tono={
+                        o.risposta === 'ACCETTATA'
+                          ? 'ok'
+                          : o.risposta === 'RIFIUTATA'
+                            ? 'danger'
+                            : 'warn'
+                      }
+                    >
+                      {RISPOSTA[o.risposta ?? 'IN_ATTESA']}
+                    </Badge>
+                  </span>
+                ) : (
+                  o.nome
+                )
+              }
               sottotitolo={
                 o.collegata
-                  ? `${RISPOSTA[o.risposta ?? 'IN_ATTESA']}${
-                      o.accesso === 'GESTIONE' ? ' · possono modificarla' : ''
-                    }${o.operatori !== null ? ` · ${o.operatori} operatori` : ''}`
+                  ? o.risposta === 'RIFIUTATA'
+                    ? `${o.motivoRifiuto ? `«${o.motivoRifiuto}»` : 'Non hanno scritto perché'}${
+                        o.rispostoIl ? ` · ${o.rispostoIl}` : ''
+                      }`
+                    : `Gestionale collegato${
+                        o.accesso === 'GESTIONE' ? ' · possono modificarla' : ''
+                      }${o.operatori !== null ? ` · ${o.operatori} operatori` : ''}`
                   : o.operatori === null
                   ? 'non ha ancora risposto'
                   : o.operatori === 0

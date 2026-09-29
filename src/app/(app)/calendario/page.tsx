@@ -22,6 +22,7 @@ import { FormEvento } from '@/components/FormEvento';
 import { AzioniEvento, EliminaEvento } from '@/components/AzioniEvento';
 import { CalendarioMese, type GiornoEvento } from '@/components/CalendarioMese';
 import { organizzatoreDi } from '@/lib/eventi-condivisi';
+import { RispostaInvito } from '@/components/RispostaInvito';
 import { InProgramma } from '@/components/InProgramma';
 import { salvaEvento } from '@/actions/eventi';
 import { listinoAttivo } from '@/lib/quote';
@@ -37,8 +38,15 @@ export default async function CalendarioPage({
   // Si apre su quello che c'è da fare, non sulla griglia del mese: chi entra
   // nel calendario vuole sapere cosa viene, e il mese è la vista che si sceglie
   // quando si cerca una data precisa.
-  const attuale = vista === 'passati' ? 'passati' : vista === 'mese' ? 'mese' : 'lista';
   const admin = isAdmin(me.roles);
+  const attuale =
+    vista === 'passati'
+      ? 'passati'
+      : vista === 'mese'
+        ? 'mese'
+        : vista === 'inviti' && admin
+          ? 'inviti'
+          : 'lista';
 
   // il listino serve al modulo di creazione: le quote si compongono da lì
   const [campi, tipologie, listino, stagione, stagioni, casse] = admin
@@ -72,7 +80,8 @@ export default async function CalendarioPage({
   const perMese =
     attuale === 'mese'
       ? await prisma.event.findMany({
-          where: filtroVisibilita(me.stato, admin, me.id),
+          // gli inviti cancellati dalla vista non si vedono più da nessuna parte
+          where: { AND: [filtroVisibilita(me.stato, admin, me.id), { origineNascosta: false }] },
           orderBy: { inizio: 'asc' },
           select: {
             id: true,
@@ -118,15 +127,19 @@ export default async function CalendarioPage({
           userId: me.id,
           vedeBozze: admin,
           dove:
-            attuale === 'passati'
-              ? { inizio: { lt: new Date() } }
+            attuale === 'inviti'
+              ? // gli inviti delle squadre collegate non ancora accettati
+                { status: 'INVITATA', origineNascosta: false }
+              : attuale === 'passati'
+              ? { inizio: { lt: new Date() }, status: { not: 'INVITATA' } }
               : {
                   // Un'attività annullata non è più in programma: lasciarla fra
                   // quelle che verranno vuol dire farla contare nei piani di
                   // chi legge l'elenco di corsa. Resta nella griglia del mese,
                   // col suo bollino, e passata la data scende nello storico
                   // col motivo per cui è saltata.
-                  status: { not: 'ANNULLATA' },
+                  // gli inviti hanno la loro vista: qui solo quello che è nostro
+                  status: { notIn: ['ANNULLATA', 'INVITATA'] },
                   OR: [
                     { inizio: { gte: new Date() } },
                     { status: 'RILASCIATA', inizio: { lt: new Date() } },
@@ -143,7 +156,11 @@ export default async function CalendarioPage({
     e.fase === 'in corso' || (e.fase === 'terminata' && chiude);
   const adesso = new Date();
   const lista = tutte.filter((e) =>
-    attuale === 'passati' ? !corrente(e) : e.inizio >= adesso || corrente(e),
+    attuale === 'inviti'
+      ? true
+      : attuale === 'passati'
+        ? !corrente(e)
+        : e.inizio >= adesso || corrente(e),
   );
 
   // La colonna laterale ha senso solo nella vista mese, dove la griglia non
@@ -155,7 +172,7 @@ export default async function CalendarioPage({
           stato: me.stato,
           userId: me.id,
           vedeBozze: admin,
-          dove: { inizio: { gte: new Date() }, status: { not: 'ANNULLATA' } },
+          dove: { inizio: { gte: new Date() }, status: { notIn: ['ANNULLATA', 'INVITATA'] } },
           limite: 6,
         })
       : [];
@@ -184,10 +201,12 @@ export default async function CalendarioPage({
   const bozze = admin
     ? await prisma.event.count({ where: { status: 'CREATA', inizio: { gte: new Date() } } })
     : 0;
-  // gli inviti delle squadre collegate che aspettano una risposta
+  // gli inviti delle squadre collegate che aspettano una risposta: la vista
+  // «Inviti» c'è solo per chi gestisce il calendario, col suo numero
   const inviti = admin
-    ? await prisma.event.count({ where: { status: 'INVITATA', inizio: { gte: new Date() } } })
+    ? await prisma.event.count({ where: { status: 'INVITATA', origineNascosta: false } })
     : 0;
+  if (admin) VISTE.push({ chiave: 'inviti', href: '/calendario?vista=inviti', testo: 'Inviti' });
 
   return (
     <>
@@ -200,7 +219,9 @@ export default async function CalendarioPage({
               : 'Clicca un giorno per vedere le attività'
             : attuale === 'passati'
               ? 'Attività già svolte'
-              : 'Attività in programma: rispondi per far sapere se ci sei'
+              : attuale === 'inviti'
+                ? 'Le attività a cui ci invitano le squadre collegate: accetta, rifiuta o cancella'
+                : 'Attività in programma: rispondi per far sapere se ci sei'
         }
         azioni={
           <div className="flex rounded-md border border-line p-0.5">
@@ -213,6 +234,11 @@ export default async function CalendarioPage({
                 }`}
               >
                 {v.testo}
+                {v.chiave === 'inviti' && inviti > 0 && (
+                  <span className="num ml-1.5 rounded-full bg-nvg px-1.5 text-[10px] font-semibold text-bg">
+                    {inviti}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
@@ -225,14 +251,6 @@ export default async function CalendarioPage({
         </div>
       )}
 
-      {admin && inviti > 0 && (
-        <div className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-2.5 text-sm text-nvg">
-          {inviti === 1
-            ? "C'è 1 invito di un'altra squadra"
-            : `Ci sono ${inviti} inviti di altre squadre`}
-          : aprili per accettarli o rifiutarli. Finché aspettano li vedi solo tu.
-        </div>
-      )}
 
       {admin && bozze > 0 && (
         <div className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">
@@ -275,7 +293,7 @@ export default async function CalendarioPage({
           ) : (
             <>
               {/* nello storico non si crea niente: quello che è passato è passato */}
-              {admin && attuale !== 'passati' && (
+              {admin && attuale === 'lista' && (
                 <Fisarmonica titolo="Nuova attività">
                   <FormAzione azione={salvaEvento}>
                     <FormEvento
@@ -299,9 +317,29 @@ export default async function CalendarioPage({
                   testo={
                     attuale === 'passati'
                       ? 'Nessuna attività nello storico.'
-                      : 'Nessuna attività in programma.'
+                      : attuale === 'inviti'
+                        ? 'Nessun invito in attesa dalle squadre collegate.'
+                        : 'Nessuna attività in programma.'
                   }
                 />
+              ) : attuale === 'inviti' ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {lista.map((e) => (
+                    <CardEvento
+                      key={e.id}
+                      e={e}
+                      azioni={
+                        <RispostaInvito
+                          id={e.id}
+                          organizzatore={e.organizzatore?.nome ?? 'l’altra squadra'}
+                          tipologie={tipologie}
+                          // senza una tipologia nostra, quella che si legge è la loro
+                          tipoLoro={e.tipo !== 'Senza tipologia' ? e.tipo : null}
+                        />
+                      }
+                    />
+                  ))}
+                </div>
               ) : attuale === 'lista' ? (
                 /* Quello che deve ancora venire si guarda a card: c'è la quota
                    attaccata al pulsante con cui si risponde, e la tabella

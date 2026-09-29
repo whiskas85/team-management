@@ -586,6 +586,8 @@ model SquadraOspite {
   accesso         AccessoEvento?
   invitaAltri     Boolean              @default(false)
   risposta        RispostaInvito?
+  /// Perché hanno detto di no, se l'hanno scritto.
+  motivoRifiuto   String?
 
   @@unique([eventId, nome])
   @@index([eventId])
@@ -1053,6 +1055,9 @@ model Event {
   /// gioca, i referenti col callsign.
   origineDati           Json?
   origineAggiornataIl   DateTime?
+  /// Un invito tolto dalla vista senza rispondere: l'organizzatore non lo sa,
+  /// e continua ad aggiornarlo — semplicemente qui non si vede più.
+  origineNascosta       Boolean          @default(false)
 
   @@unique([origineCollegamentoId, origineIdRemoto])
   /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.

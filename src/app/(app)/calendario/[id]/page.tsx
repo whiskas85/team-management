@@ -640,6 +640,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     collegata: !!o.collegamentoId,
     risposta: o.risposta,
     accesso: o.accesso,
+    motivoRifiuto: o.motivoRifiuto,
   }));
   const organizzatore = organizzatoreDi(evento.origineCollegamento);
 
@@ -1178,6 +1179,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           collegata={evento.origineCollegamento?.stato === 'ATTIVO'}
           invitata={evento.status === 'INVITATA'}
           admin={admin}
+          tipologie={tipologie.filter((t) => t.attivo !== false)}
         />
       )}
 
