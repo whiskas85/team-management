@@ -118,9 +118,11 @@ if (giaCollegati) {
     return 'creato';
   });
 
-  await passo('test2: pagina pubblica del link', async () => {
-    await pb.goto(link);
-    if (!(await pb.getByText('Collegamento fra gestionali').count())) {
+  await passo('pagina pubblica del link', async () => {
+    // sta su test: nei test c'è davanti la password del proxy di test, che
+    // un'altra squadra non avrebbe — in produzione quella password non c'è
+    await pa.goto(link);
+    if (!(await pa.getByText('Collegamento fra gestionali').count())) {
       throw new Error('la pagina del link non si apre');
     }
   });
