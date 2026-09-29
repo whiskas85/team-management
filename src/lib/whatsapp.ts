@@ -80,6 +80,8 @@ export type StatoRubrica = {
   senzaNumero?: number;
   ultimaRichiesta?: string | null;
   esito?: string | null;
+  /** Le righe della libreria sulla sincronizzazione, dall'ultima richiesta. */
+  registro?: { ora: string; msg: string; errore: string | null }[];
 };
 
 /** Chiede al ponte la rubrica da capo: i nomi salvati sul telefono collegato. */

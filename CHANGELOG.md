@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.116.0 — 29 settembre 2026
+
+### Corretto
+
+- **Rubrica WhatsApp, i nomi dei contatti.** Quando WhatsApp manda un
+  contatto col solo identificativo anonimo, il numero arriva accanto ma la
+  libreria lo lasciava cadere: ora passa, e il nome si lega al numero giusto.
+  Vale dal prossimo aggiornamento del ponte (che si ricostruisce con la
+  versione più recente della libreria).
+
+### Aggiunto
+
+- **Messaggi → «Cosa ha risposto WhatsApp».** Dopo «Aggiorna rubrica», sotto
+  la riga della rubrica si aprono le righe della sincronizzazione: se
+  WhatsApp non manda i contatti, o non si riescono a leggere (per esempio per
+  una chiave mancante), il motivo è scritto lì, e anche nell'esito.
+
 ## 2.115.0 — 29 settembre 2026
 
 ### Aggiunto

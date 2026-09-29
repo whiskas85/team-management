@@ -39,7 +39,45 @@ const PORTA = Number(process.env.PORTA ?? 3001);
 const SEGRETO = process.env.SEGRETO_WHATSAPP ?? '';
 const CARTELLA_SESSIONE = process.env.CARTELLA_SESSIONE ?? '/dati/sessione';
 
-const log = pino({ level: process.env.LIVELLO_LOG ?? 'warn' });
+/*
+ * Il registro. A schermo va solo da «warn» in su (o quello che chiede
+ * LIVELLO_LOG), ma la libreria scrive a livello «info» come va la
+ * sincronizzazione della rubrica — e soprattutto perché fallisce: una chiave
+ * mancante, un'istantanea che non si decifra. Lo inghiotte senza dirlo a
+ * nessuno. Quelle righe si tengono qui, le ultime, e «Aggiorna rubrica» le
+ * mostra nella pagina Messaggi.
+ */
+const LIVELLI = { trace: 10, debug: 20, info: 30, warn: 40, error: 50, fatal: 60 };
+const aSchermo = LIVELLI[process.env.LIVELLO_LOG] ?? LIVELLI.warn;
+const registroSync = [];
+const RIGHE_SYNC = 40;
+let righeScritte = 0; // contatore che non torna indietro quando il registro scorre
+const eSync = (msg) => /sync|snapshot|patch|app.?state|collection|mutation|resync/i.test(msg);
+const destinazione = {
+  write(riga) {
+    let voce;
+    try {
+      voce = JSON.parse(riga);
+    } catch {
+      process.stdout.write(riga);
+      return;
+    }
+    if (voce.level >= aSchermo) process.stdout.write(riga);
+    const msg = String(voce.msg ?? '');
+    if (voce.level >= LIVELLI.info && eSync(msg)) {
+      const errore = voce.error ?? voce.err?.message ?? voce.err ?? null;
+      registroSync.push({
+        n: ++righeScritte,
+        ora: new Date(voce.time ?? Date.now()).toISOString(),
+        msg: voce.name ? `${voce.name}: ${msg}` : msg,
+        // lo stack intero non serve: la prima riga dice il motivo
+        errore: errore ? String(errore.stack ?? errore).split('\n')[0].slice(0, 300) : null,
+      });
+      if (registroSync.length > RIGHE_SYNC) registroSync.splice(0, registroSync.length - RIGHE_SYNC);
+    }
+  },
+};
+const log = pino({ level: aSchermo < LIVELLI.info ? process.env.LIVELLO_LOG : 'info' }, destinazione);
 
 // ------------------------------------------------------------------ rubrica
 
@@ -77,6 +115,7 @@ const diagnosi = {
   senzaNumero: 0, // arrivati col solo identificativo anonimo (LID)
   ultimaRichiesta: null, // quando si è chiesta la rubrica da capo
   esito: null, // com'è andata
+  registro: [], // cosa ha detto la libreria durante l'ultima richiesta
 };
 let salvataggio = null;
 
@@ -252,11 +291,20 @@ async function risincronizzaRubrica() {
 async function rubricaDaCapo() {
   diagnosi.ultimaRichiesta = new Date().toISOString();
   const primaRicevuti = diagnosi.contattiRicevuti;
+  const primaRighe = righeScritte;
+  const dallaRichiesta = () => registroSync.filter((r) => r.n > primaRighe);
   try {
     await risincronizzaRubrica();
     registraGruppi(Object.values(await stato.socket.groupFetchAllParticipating()));
-    diagnosi.esito = `arrivati ${diagnosi.contattiRicevuti - primaRicevuti} contatti`;
+    const righe = dallaRichiesta();
+    diagnosi.registro = righe;
+    // la libreria fallisce in silenzio: il motivo si legge nelle sue righe
+    const fallita = righe.find((r) => r.errore || /failed/i.test(r.msg));
+    diagnosi.esito =
+      `arrivati ${diagnosi.contattiRicevuti - primaRicevuti} contatti` +
+      (fallita ? ` — sincronizzazione fallita: ${fallita.errore ?? fallita.msg}` : '');
   } catch (e) {
+    diagnosi.registro = dallaRichiesta();
     diagnosi.esito = `errore: ${e?.message ?? e}`;
     throw e;
   }

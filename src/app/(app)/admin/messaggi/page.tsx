@@ -128,6 +128,26 @@ export default async function MessaggiPage() {
                   : ''}
               </p>
             )}
+            {/* il perché di un «arrivati 0 contatti»: la libreria lo scrive
+                solo nel suo registro */}
+            {rubrica?.registro && rubrica.registro.length > 0 && (
+              <details className="mt-1 text-xs text-muted">
+                <summary className="cursor-pointer">
+                  Cosa ha risposto WhatsApp ({rubrica.registro.length} righe)
+                </summary>
+                <ul className="num mt-1 space-y-0.5 break-words rounded-md border border-line bg-surface2 p-2">
+                  {rubrica.registro.map((r, i) => (
+                    <li key={i}>
+                      <span className="text-muted">
+                        {new Date(r.ora).toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome' })}
+                      </span>{' '}
+                      <span className="text-ink">{r.msg}</span>
+                      {r.errore && <span className="block text-danger">{r.errore}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

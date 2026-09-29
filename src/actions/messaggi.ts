@@ -467,6 +467,8 @@ export async function aggiornaRubricaWhatsapp(_prev: StatoForm, _fd: FormData): 
   const r = await aggiornaRubricaPonte();
   if (!r.ok) return { errore: `Rubrica non aggiornata: ${r.errore}` };
   const d = r.dati;
+  // la riga della rubrica e cosa ha risposto WhatsApp, nella pagina
+  revalidatePath('/admin/messaggi');
   return {
     ok:
       `Rubrica: ${d.totale} numeri, ${d.conNome} col nome salvato sul telefono` +
