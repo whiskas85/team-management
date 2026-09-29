@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.123.1 — 29 settembre 2026
+
+### Corretto
+
+- **Modifica a schede, lo scorrimento.** Scorreva tutta la finestra, e la barra
+  di scorrimento partiva accanto alle schede. Ora le schede restano ferme in
+  cima, scorre solo il contenuto sotto di loro, e il pulsante per salvare resta
+  sempre a vista, anche sul telefono.
+
 ## 2.123.0 — 29 settembre 2026
 
 ### Cambiato

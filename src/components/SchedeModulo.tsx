@@ -29,7 +29,7 @@ export function SchedeModulo({
     >
       <div
         role="tablist"
-        className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-line px-1"
+        className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-line px-1 [scrollbar-width:none]"
       >
         {schede.map((s) => (
           <button
@@ -48,19 +48,24 @@ export function SchedeModulo({
           </button>
         ))}
       </div>
-      {schede.map((s) => (
-        <div
-          key={s.chiave}
-          role="tabpanel"
-          ref={(el) => {
-            pannelli.current[s.chiave] = el;
-          }}
-          hidden={s.chiave !== attiva}
-          className="space-y-4"
-        >
-          {s.contenuto}
-        </div>
-      ))}
+      {/* Scorre solo il contenuto: le schede restano ferme in cima, e la
+          barra di scorrimento comincia sotto di loro. L'altezza lascia posto
+          al titolo della finestra e ai pulsanti sotto il modulo. */}
+      <div className="-mr-2 max-h-[max(16rem,calc(92vh-19rem))] overflow-y-auto pr-2">
+        {schede.map((s) => (
+          <div
+            key={s.chiave}
+            role="tabpanel"
+            ref={(el) => {
+              pannelli.current[s.chiave] = el;
+            }}
+            hidden={s.chiave !== attiva}
+            className="space-y-4"
+          >
+            {s.contenuto}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
