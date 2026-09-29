@@ -49,6 +49,8 @@ export type VoceMenu = {
 
 type Props = {
   voci: VoceMenu[];
+  /** Nome, motto e logo della squadra: da «La mia squadra». */
+  marchio: { nomeGestionale: string; motto: string; logoUrl: string };
   /** Gli indirizzi messi da parte, nell'ordine scelto da chi guarda. */
   preferiti: string[];
   utente: {
@@ -96,7 +98,7 @@ function voceAttiva(pathname: string, voci: VoceMenu[]) {
   return candidate.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
-export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
+export function Nav({ voci, marchio, preferiti, utente, esci, test = false }: Props) {
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
@@ -193,15 +195,15 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
       {/* ---------------------------------------------------- sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-line bg-surface md:flex">
         <Link href="/dashboard" className="flex items-center gap-3 border-b border-line px-4 py-4">
-          <Logo size={36} />
+          <Logo size={36} src={marchio.logoUrl} />
           <div className="leading-tight">
-            <p className="num flex items-center gap-1.5 text-[13px] font-semibold tracking-widest text-ink">
-              ZERO DARK OPS
+            <p className="num flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-widest text-ink">
+              {marchio.nomeGestionale}
               <span className="rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold tracking-normal text-nvg">
                 v{VERSIONE}
               </span>
             </p>
-            <p className="num text-[10px] tracking-[0.2em] text-nvg">GOING DARK</p>
+            <p className="num text-[10px] uppercase tracking-[0.2em] text-nvg">{marchio.motto}</p>
           </div>
         </Link>
 
@@ -330,8 +332,10 @@ export function Nav({ voci, preferiti, utente, esci, test = false }: Props) {
             alla barra sembrava parte della barra. */}
         <div className="flex w-full items-center gap-3">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
-            <Logo size={30} />
-            <span className="num truncate text-xs font-semibold tracking-wide">ZERO DARK OPS</span>
+            <Logo size={30} src={marchio.logoUrl} />
+            <span className="num truncate text-xs font-semibold uppercase tracking-wide">
+              {marchio.nomeGestionale}
+            </span>
             <span className="shrink-0 rounded border border-nvg/40 bg-nvg/10 px-1 py-px text-[9px] font-semibold text-nvg">
               v{VERSIONE}
             </span>

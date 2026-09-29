@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { marchio } from '@/lib/mia-squadra';
 import { verificaGettone } from '@/lib/gettoni';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -29,6 +30,7 @@ export default async function AccessoConGettone({
 }) {
   const { gettone } = await params;
   const esito = await verificaGettone(gettone);
+  const { nomeGestionale } = await marchio();
 
   /*
    * Chi sta guardando è già qualcuno?
@@ -103,7 +105,7 @@ export default async function AccessoConGettone({
       <form action={entraConGettone} className="mt-6 w-full">
         <input type="hidden" name="gettone" value={gettone} />
         <button type="submit" className="btn-primary w-full justify-center">
-          Entra in Zero Dark Ops
+          Entra in {nomeGestionale}
         </button>
       </form>
       <p className="mt-4 text-xs text-muted">

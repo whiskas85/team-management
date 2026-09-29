@@ -26,7 +26,8 @@ name: gestionale-test
 services:
   db:
     image: postgres:16-alpine
-    container_name: zd-test-db
+    # test, test2…: i nomi dei container dicono di quale ambiente sono
+    container_name: zd-${ISTANZA:-test}-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?serve un utente per il database}
@@ -48,7 +49,7 @@ services:
   app:
     build:
       context: .
-    container_name: zd-test-app
+    container_name: zd-${ISTANZA:-test}-app
     restart: unless-stopped
     depends_on:
       db:
@@ -79,6 +80,12 @@ services:
       VAPID_PUBLIC_KEY: ""
       VAPID_PRIVATE_KEY: ""
       VAPID_SUBJECT: ""
+      # Chi è la squadra, se non l'ha ancora scritto in «La mia squadra»:
+      # vuoti nel test (Zero Dark), una squadra inventata in test2.
+      NOME_SQUADRA: ${NOME_SQUADRA:-}
+      NOME_GESTIONALE: ${NOME_GESTIONALE:-}
+      MOTTO_SQUADRA: ${MOTTO_SQUADRA:-}
+      LOGO_SQUADRA: ${LOGO_SQUADRA:-}
     volumes:
       - uploads:/data/uploads
     # default per parlare col suo database, bordo per farsi raggiungere dal

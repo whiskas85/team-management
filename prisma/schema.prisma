@@ -250,6 +250,7 @@ model User {
   rifiutiDecisi         RifiutoRegistrazione[]  @relation("RifiutiDecisi")
   attivitaDaReferente   ReferenteEvento[]       @relation("ReferenteDi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
+  referenteSquadra      ReferenteMiaSquadra[]
   sondaggiScritti       Sondaggio[]             @relation("SondaggiScritti")
   canaliCreati          CanaleSegnalazioni[]    @relation("CanaliCreati")
   segnalazioniCanale    SegnalazioneCanale[]    @relation("SegnalazioniCanale")
@@ -321,6 +322,48 @@ enum StatoSquadra {
   PREFERITA
   ATTIVA
   DISATTIVATA
+}
+
+/// La nostra squadra, come si presenta: una riga sola.
+///
+/// Nome e logo sono anche quelli del gestionale — l'intestazione, l'app
+/// installata — e sono quello che si scambia con i gestionali delle squadre
+/// collegate (docs/COLLEGAMENTO-SQUADRE.md). Per questo qui c'è solo quello che
+/// la squadra sceglie di far vedere fuori: niente elenchi di persone.
+///
+/// Un campo vuoto vuol dire «quello di partenza»: nome, gestionale, motto e
+/// logo hanno un valore anche senza la riga, preso dalle variabili d'ambiente
+/// (così un ambiente di prova nasce con il suo nome senza toccare il codice).
+model MiaSquadra {
+  id             String   @id @default("mia")
+  nome           String?
+  /// Come si chiama il gestionale: «Zero Dark Ops».
+  nomeGestionale String?
+  motto          String?
+  /// Dentro UPLOAD_DIR; nullo = il logo di partenza.
+  logoPath       String?
+  descrizione    String?
+  citta          String?
+  provincia      String?
+  sito           String?
+  email          String?
+  telefono       String?
+  aggiornatoIl   DateTime @updatedAt
+}
+
+/// Chi rappresenta la squadra verso fuori, con il suo ruolo. Fuori si vede
+/// col callsign e con i recapiti che si sceglie di mostrare, mai col nome.
+model ReferenteMiaSquadra {
+  id             String  @id @default(cuid())
+  userId         String
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ruolo          String
+  mostraTelefono Boolean @default(true)
+  mostraEmail    Boolean @default(false)
+  ordine         Int     @default(0)
+
+  @@unique([userId])
+  @@index([ordine])
 }
 
 model SquadraEsterna {

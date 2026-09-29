@@ -1,4 +1,5 @@
 import localFont from 'next/font/local';
+import { marchio } from '@/lib/mia-squadra';
 import { Logo } from '@/components/Logo';
 import { FormLogin, type RigaTerminale } from '@/components/FormLogin';
 import { AccessoRapido, type Figura } from '@/components/AccessoRapido';
@@ -92,6 +93,14 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ accesso?: string }>;
 }) {
+  const m = await marchio();
+  // il titolo grande è il nome senza «Team» o «Softair»: ZERO DARK, non ZERO DARK TEAM
+  const titolo = m.nome.replace(/(\s+(team|softair|airsoft|asd|a\.s\.d\.))+$/i, '').toUpperCase();
+  // è disegnato per le nove lettere di ZERO DARK: un nome più lungo si rimpicciolisce
+  const stileTitolo =
+    titolo.length > 9
+      ? { fontSize: `clamp(1.2rem, ${((8.5 * 9) / titolo.length).toFixed(2)}vw, ${((6 * 9) / titolo.length).toFixed(2)}rem)` }
+      : undefined;
   const debug = process.env.DEBUG_LOGIN === '1';
 
   // chi arriva da un link di accesso che non vale più: si dice cosa è
@@ -130,8 +139,8 @@ export default async function LoginPage({
         )}
 
         <header className="mb-[clamp(0.75rem,2.5dvh,2.5rem)] flex flex-col items-center text-center">
-          <h1 className="login-titolo" data-testo="ZERO DARK">
-            ZERO DARK
+          <h1 className="login-titolo" data-testo={titolo} style={stileTitolo}>
+            {titolo}
           </h1>
           <p className="login-sottotitolo login-display mt-[clamp(0.25rem,1dvh,1.25rem)] text-[clamp(0.7rem,2.2vw,1rem)] font-medium tracking-[0.32em] text-nvg/75">
             OPS // GESTIONALE OPERATIVO
@@ -140,20 +149,20 @@ export default async function LoginPage({
           <div className="login-marchio mt-[clamp(0.5rem,1.5dvh,1.5rem)] flex items-center gap-3">
             {/* più piccolo sul telefono: la porta deve stare in uno schermo */}
             <span className="rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40 sm:hidden">
-              <Logo size={36} />
+              <Logo size={36} src={m.logoUrl} />
             </span>
             <span className="hidden rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40 sm:inline-flex">
-              <Logo size={52} />
+              <Logo size={52} src={m.logoUrl} />
             </span>
             <span className="text-left leading-tight">
               <span className="login-terminale block text-[11px] tracking-[0.12em] text-nvg/45">
                 team softair
               </span>
               <span className="login-display block text-sm font-medium tracking-[0.2em] text-nvg">
-                ZERO DARK TEAM
+                {m.nome.toUpperCase()}
               </span>
               <span className="login-terminale block text-[10px] tracking-[0.3em] text-nvg/45">
-                GOING DARK
+                {m.motto.toUpperCase()}
               </span>
             </span>
           </div>

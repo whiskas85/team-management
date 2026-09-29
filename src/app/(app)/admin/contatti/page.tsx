@@ -1,4 +1,5 @@
 import { requirePermesso } from '@/lib/auth';
+import { marchio } from '@/lib/mia-squadra';
 import { prisma } from '@/lib/db';
 import { isAdmin, puoVedereNuovi } from '@/lib/domain';
 import { fmtDate, fmtDateTime } from '@/lib/format';
@@ -48,6 +49,7 @@ const perCampoData = (d: Date) =>
 export default async function ContattiPage() {
   const me = await requirePermesso(puoVedereNuovi);
   const admin = isAdmin(me.roles);
+  const { nome: nomeSquadra } = await marchio();
 
   const [contatti, siti] = await Promise.all([
     prisma.contatto.findMany({
@@ -138,7 +140,7 @@ export default async function ContattiPage() {
         <div className="space-y-3">
           {contatti.map((c) => {
             const tel = urlTelefono(c.telefono);
-            const wa = urlWhatsapp(c.telefono, `Ciao ${c.nome}, sono di Zero Dark Team: ci hai scritto dal sito.`);
+            const wa = urlWhatsapp(c.telefono, `Ciao ${c.nome}, sono di ${nomeSquadra}: ci hai scritto dal sito.`);
             return (
               <CardRiga
                 key={c.id}

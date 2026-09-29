@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.118.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Comando → La mia squadra.** La pagina della nostra squadra: nome, nome del
+  gestionale, motto, logo, città, sito, recapiti e **referenti** (scelti fra gli
+  operatori, con i recapiti da mostrare). È il primo passo del **collegamento
+  fra gestionali** di squadre diverse (la specifica è in
+  `docs/COLLEGAMENTO-SQUADRE.md`): sarà il biglietto da visita che le squadre
+  collegate vedono, e fuori si mostra col callsign, mai col nome.
+- **Nome e logo non sono più scritti nel codice.** Intestazione, pagina di
+  accesso, titolo della scheda, app installata, pagina d'invito e link
+  d'accesso li prendono da «La mia squadra»; finché è vuota restano quelli di
+  Zero Dark. Il logo si carica e si ritaglia come la foto profilo, con lo sfondo
+  trasparente.
+- **Ambiente test2** (`test2.zerodarkteam.it`): una seconda squadra, finta —
+  «Lupi Grigi Softair», col suo logo — per provare il collegamento fra due
+  gestionali senza toccare la produzione. Si rilascia dall'automazione Rilascio,
+  modo «test», istanza «test2».
+
 ## 2.117.2 — 29 settembre 2026
 
 ### Cambiato

@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { marchio } from '@/lib/mia-squadra';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
@@ -41,13 +42,14 @@ export default async function PaginaAllegatoInvito({
       ? await readFile(percorsoAssoluto(allegato.filePath), 'utf8').catch(() => '')
       : undefined;
 
+  const m = await marchio();
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
       <header className="mb-6 flex items-center gap-3 border-b border-line pb-5">
-        <Logo size={44} />
+        <Logo size={44} src={m.logoUrl} />
         <div className="min-w-0">
-          <p className="num text-sm font-semibold tracking-wide">ZERO DARK OPS</p>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-nvg">going dark</p>
+          <p className="num text-sm font-semibold uppercase tracking-wide">{m.nomeGestionale}</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-nvg">{m.motto}</p>
         </div>
       </header>
 

@@ -41,6 +41,11 @@ on:
         description: 'Solo per «test»: il ramo da mettere nel test'
         type: string
         default: main
+      istanza:
+        description: 'Solo per «test»: quale ambiente (test2 = squadra finta per il collegamento fra gestionali)'
+        type: choice
+        options: [test, test2]
+        default: test
 
 # mai due lavori insieme sulla stessa macchina: due build in parallelo non
 # ci stanno nei suoi 4 GB
@@ -167,6 +172,7 @@ jobs:
         env:
           UTENTE: ${{ secrets.SERVER_USER }}
           RAMO: ${{ inputs.ramo }}
+          ISTANZA: ${{ inputs.istanza }}
         run: |
           # il nome del ramo finisce in un comando sul server: solo caratteri da ramo
           if ! printf '%s' "$RAMO" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
@@ -174,7 +180,7 @@ jobs:
             exit 1
           fi
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
-            "$UTENTE@$HOST" "bash -s -- rilascia $RAMO" < deploy/test-server.sh
+            "$UTENTE@$HOST" "ISTANZA=$ISTANZA bash -s -- rilascia $RAMO" < deploy/test-server.sh
 
       - name: Test, copia dei dati dalla produzione
         if: inputs.modo == 'test-copia-dati'

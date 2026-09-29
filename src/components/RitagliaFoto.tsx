@@ -11,7 +11,21 @@ const LATO = 512; // la foto viene salvata quadrata a questa dimensione
  * l'immagine dentro una maschera tonda, e al server arriva già il quadrato
  * finito. Così non serve nessuna libreria e non si caricano file enormi.
  */
-export function RitagliaFoto({ fotoAttuale }: { fotoAttuale: string | null }) {
+export function RitagliaFoto({
+  fotoAttuale,
+  azione = salvaFotoProfilo,
+  png = false,
+  cosa = 'foto',
+}: {
+  fotoAttuale: string | null;
+  /** Dove va il ritaglio: la foto profilo, se non si dice altro. */
+  azione?: (dati: string | null) => Promise<{ errore?: string }>;
+  /** PNG con lo sfondo trasparente: per un logo disegnato. */
+  png?: boolean;
+  /** Come chiamarla nei pulsanti e nei messaggi. */
+  cosa?: 'foto' | 'logo';
+}) {
+  const Cosa = cosa === 'logo' ? 'Logo' : 'Foto';
   const [sorgente, setSorgente] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -59,17 +73,19 @@ export function RitagliaFoto({ fotoAttuale }: { fotoAttuale: string | null }) {
     const x = (LATO - larghezza) / 2 + pos.x * scala;
     const y = (LATO - altezza) / 2 + pos.y * scala;
 
-    ctx.fillStyle = '#0e110e';
-    ctx.fillRect(0, 0, LATO, LATO);
+    if (!png) {
+      ctx.fillStyle = '#0e110e';
+      ctx.fillRect(0, 0, LATO, LATO);
+    }
     ctx.drawImage(img, x, y, larghezza, altezza);
 
-    const dati = tela.toDataURL('image/jpeg', 0.88);
+    const dati = png ? tela.toDataURL('image/png') : tela.toDataURL('image/jpeg', 0.88);
 
     avvia(async () => {
-      const risposta = await salvaFotoProfilo(dati);
+      const risposta = await azione(dati);
       if (risposta.errore) setEsito({ tipo: 'errore', testo: risposta.errore });
       else {
-        setEsito({ tipo: 'ok', testo: 'Foto aggiornata.' });
+        setEsito({ tipo: 'ok', testo: `${Cosa} aggiornat${cosa === 'logo' ? 'o' : 'a'}.` });
         setSorgente(null);
       }
     });
@@ -77,9 +93,9 @@ export function RitagliaFoto({ fotoAttuale }: { fotoAttuale: string | null }) {
 
   const rimuovi = () =>
     avvia(async () => {
-      const risposta = await salvaFotoProfilo(null);
+      const risposta = await azione(null);
       if (risposta.errore) setEsito({ tipo: 'errore', testo: risposta.errore });
-      else setEsito({ tipo: 'ok', testo: 'Foto rimossa.' });
+      else setEsito({ tipo: 'ok', testo: `${Cosa} rimoss${cosa === 'logo' ? 'o' : 'a'}.` });
     });
 
   return (
@@ -101,7 +117,7 @@ export function RitagliaFoto({ fotoAttuale }: { fotoAttuale: string | null }) {
           <span className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-surface2">
             {fotoAttuale ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoAttuale} alt="Foto profilo" className="h-full w-full object-cover" />
+              <img src={fotoAttuale} alt={Cosa} className="h-full w-full object-cover" />
             ) : (
               <Icona nome="profilo" size={32} />
             )}
@@ -110,7 +126,7 @@ export function RitagliaFoto({ fotoAttuale }: { fotoAttuale: string | null }) {
           <div className="flex flex-wrap gap-2">
             <label className="btn-ghost cursor-pointer">
               <Icona nome="carica" size={15} />
-              {fotoAttuale ? 'Cambia foto' : 'Carica una foto'}
+              {fotoAttuale ? `Cambia ${cosa}` : cosa === 'logo' ? 'Carica un logo' : 'Carica una foto'}
               <input
                 type="file"
                 accept="image/*"
@@ -190,7 +206,7 @@ export function RitagliaFoto({ fotoAttuale }: { fotoAttuale: string | null }) {
               className="btn-primary flex-1"
             >
               <Icona nome="salva" size={15} />
-              {inCorso ? 'Salvo…' : 'Salva la foto'}
+              {inCorso ? 'Salvo…' : `Salva ${cosa === 'logo' ? 'il logo' : 'la foto'}`}
             </button>
             <button
               type="button"

@@ -1,3 +1,4 @@
+import { marchio } from '@/lib/mia-squadra';
 import { redirect } from 'next/navigation';
 import { requireUser, segnaAttivita } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -647,6 +648,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     voci.push(
       { href: '/admin/ruoli', label: 'Ruoli', icona: 'chiave', gruppo: 'comando' },
       { href: '/admin/campi', label: 'Campi', icona: 'campi', gruppo: 'comando' },
+      { href: '/admin/squadra', label: 'La mia squadra', icona: 'squadra', gruppo: 'comando' },
       { href: '/admin/squadre', label: 'Squadre esterne', icona: 'squadra', gruppo: 'comando' },
       { href: '/admin/stagioni', label: 'Stagioni', icona: 'calendario', gruppo: 'comando' },
       { href: '/admin/tariffe', label: 'Tariffario', icona: 'pagamenti', gruppo: 'comando' },
@@ -687,6 +689,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-[100dvh] md:pl-60">
       <Nav
         voci={voci}
+        marchio={await marchio()}
         preferiti={preferiti}
         utente={{
           id: utente.id,

@@ -1,14 +1,25 @@
 /* eslint-disable @next/next/no-img-element */
 
 /**
- * Logo del team. Il file sta in `public/logo.jpg` (copia di `img/ZDT Logo.jpg`):
- * per cambiarlo basta sostituire quel file, senza toccare il codice.
+ * Logo della squadra. Si carica da «La mia squadra»; finché non c'è, la rotta
+ * rimanda a quello di partenza in public/ (per Zero Dark `public/logo.jpg`).
+ *
+ * `src` serve a chi conosce già l'indirizzo con la versione (?v=…), così dopo
+ * un cambio di logo non resta quello vecchio in memoria al browser.
  */
-export function Logo({ size = 40 }: { size?: number }) {
+export function Logo({
+  size = 40,
+  src = '/api/squadra/logo',
+  alt = 'Logo della squadra',
+}: {
+  size?: number;
+  src?: string;
+  alt?: string;
+}) {
   return (
     <img
-      src="/logo.jpg"
-      alt="Zero Dark Team"
+      src={src}
+      alt={alt}
       width={size}
       height={size}
       className="shrink-0 rounded-full object-cover"

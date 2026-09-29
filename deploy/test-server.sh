@@ -9,6 +9,13 @@
 #   bash /opt/gestionale/deploy/test-server.sh copia-dati
 #   bash /opt/gestionale/deploy/test-server.sh stato
 #
+# Gli ambienti di test possono essere più d'uno: ISTANZA dice quale (di
+# partenza «test»). «test2» è una squadra finta, con nome e logo suoi, che
+# serve a provare il collegamento fra due gestionali
+# (docs/COLLEGAMENTO-SQUADRE.md) senza toccare la produzione:
+#
+#   ISTANZA=test2 bash /opt/gestionale/deploy/test-server.sh rilascia main
+#
 # «rilascia» fa tutto quello che serve, e rifarlo non rompe niente: la prima
 # volta crea la cartella, il file .env.test con chiavi nuove e la password del
 # proxy; le volte dopo aggiorna il codice al ramo chiesto e ricostruisce.
@@ -17,20 +24,26 @@
 # La produzione la legge soltanto: un pg_dump e una copia del volume.
 #
 # Le password non passano mai dal log dell'automazione, che su un repository
-# pubblico è pubblico: stanno in /opt/gestionale-test/ACCESSO.txt, permessi
+# pubblico è pubblico: stanno in /opt/gestionale-<istanza>/ACCESSO.txt, permessi
 # 600, e si leggono entrando sul server.
 
 set -euo pipefail
 
+ISTANZA=${ISTANZA:-test}
+if ! printf '%s' "$ISTANZA" | grep -Eq '^test[0-9]*$'; then
+  echo "Istanza non valida: $ISTANZA (test, test2, …)"
+  exit 1
+fi
+
 PROD=/opt/gestionale
-TEST=/opt/gestionale-test
-DOMINIO_TEST=test.zerodarkteam.it
+TEST=/opt/gestionale-$ISTANZA
+DOMINIO_TEST=$ISTANZA.zerodarkteam.it
 DOMINIO_PROD=ops.zerodarkteam.it
-SITO_CADDY=$PROD/siti/test.caddy
+SITO_CADDY=$PROD/siti/$ISTANZA.caddy
 RETE=zd-bordo
 
 zdt() {
-  docker compose -p gestionale-test -f "$TEST/docker-compose.test.yml" \
+  docker compose -p "gestionale-$ISTANZA" -f "$TEST/docker-compose.test.yml" \
     --env-file "$TEST/.env.test" --project-directory "$TEST" "$@"
 }
 
@@ -79,7 +92,17 @@ SEED_ADMIN_PASSWORD=$admin_pw
 TZ=Europe/Rome
 PROXY_UTENTE=zd
 PROXY_PASSWORD=$proxy_pw
+ISTANZA=$ISTANZA
 EOF
+  # test2 è un'altra squadra, inventata: nome e logo suoi fin dalla partenza
+  if [ "$ISTANZA" = test2 ]; then
+    cat >> "$TEST/.env.test" <<EOF
+NOME_SQUADRA=Lupi Grigi Softair
+NOME_GESTIONALE=Lupi Ops
+MOTTO_SQUADRA=Branco unito
+LOGO_SQUADRA=/loghi/lupi-grigi.png
+EOF
+  fi
   cat > "$TEST/ACCESSO.txt" <<EOF
 Ambiente di test: https://$DOMINIO_TEST
 
@@ -163,7 +186,7 @@ $DOMINIO_TEST {
 		$(leggi PROXY_UTENTE) $hash
 	}
 
-	reverse_proxy zd-test-app:3000 {
+	reverse_proxy zd-$ISTANZA-app:3000 {
 		header_up X-Real-IP {remote_host}
 		transport http {
 			read_timeout 120s
@@ -196,13 +219,15 @@ rilascia() {
   # la vede sulla rete zd-bordo, per al massimo un minuto
   local _
   for _ in $(seq 1 30); do
-    docker exec zd-proxy wget -q -O /dev/null http://zd-test-app:3000/login 2>/dev/null && break
+    docker exec zd-proxy wget -q -O /dev/null "http://zd-$ISTANZA-app:3000/login" 2>/dev/null && break
     sleep 2
   done
   stato
 }
 
 copia_dati() {
+  # gli altri test sono squadre finte: i dati veri stanno solo in «test»
+  [ "$ISTANZA" = test ] || { echo "I dati della produzione si copiano solo in «test»."; exit 1; }
   [ -f "$TEST/.env.test" ] || { echo "Il test non c'e' ancora: prima «test»."; exit 1; }
   local dump=/root/backup/per-test.dump
   mkdir -p /root/backup
@@ -231,14 +256,14 @@ copia_dati() {
 }
 
 stato() {
-  echo "== Test"
+  echo "== Test: $ISTANZA"
   if [ -d "$TEST/.git" ]; then
     echo "codice: $(git -C "$TEST" log --oneline -1)"
-    docker ps --filter name=zd-test- --format '{{.Names}}\t{{.Status}}'
+    docker ps --filter "name=zd-$ISTANZA-" --format '{{.Names}}\t{{.Status}}'
     echo "-- ultime righe dell'app di test"
     # senza le righe che parlano di password: questo finisce nel log
     # dell'automazione, che su un repository pubblico è pubblico
-    docker logs zd-test-app --tail 15 2>&1 | grep -vi 'password' || true
+    docker logs "zd-$ISTANZA-app" --tail 15 2>&1 | grep -vi 'password' || true
   else
     echo "non ancora preparato"
   fi

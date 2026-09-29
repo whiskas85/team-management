@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Logo di prova per l'ambiente test2: una squadra che non esiste. -->
+  <defs>
+    <radialGradient id="fondo" cx="50%" cy="40%" r="65%">
+      <stop offset="0" stop-color="#26303a"/>
+      <stop offset="1" stop-color="#0d1217"/>
+    </radialGradient>
+    <linearGradient id="pelo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d7dde3"/>
+      <stop offset="1" stop-color="#8a96a3"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="248" fill="url(#fondo)"/>
+  <circle cx="256" cy="256" r="232" fill="none" stroke="#4aa3ff" stroke-width="8"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#4aa3ff" stroke-opacity=".35" stroke-width="2"/>
+  <!-- testa di lupo -->
+  <path fill="url(#pelo)" d="M150 120 L205 190 Q256 175 307 190 L362 120 L372 230
+    Q398 262 388 300 L340 330 Q322 372 256 408 Q190 372 172 330 L124 300
+    Q114 262 140 230 Z"/>
+  <!-- muso più scuro -->
+  <path fill="#5d6874" d="M256 262 Q292 268 312 300 Q300 340 256 370 Q212 340 200 300 Q220 268 256 262 Z"/>
+  <!-- orecchie interne -->
+  <path fill="#5d6874" d="M168 150 L200 196 L176 214 Z M344 150 L312 196 L336 214 Z"/>
+  <!-- occhi -->
+  <path fill="#4aa3ff" d="M196 250 L236 262 L200 272 Z M316 250 L276 262 L312 272 Z"/>
+  <!-- naso -->
+  <path fill="#11161b" d="M238 330 Q256 322 274 330 Q266 346 256 350 Q246 346 238 330 Z"/>
+  <!-- scritta -->
+  <path id="arco" fill="none" d="M70 290 A186 186 0 0 0 442 290"/>
+  <text font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" letter-spacing="6" fill="#d7dde3">
+    <textPath href="#arco" startOffset="50%" text-anchor="middle">LUPI GRIGI</textPath>
+  </text>
+</svg>

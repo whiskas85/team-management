@@ -1,4 +1,8 @@
 import type { MetadataRoute } from 'next';
+import { marchio } from '@/lib/mia-squadra';
+
+// il nome si legge da «La mia squadra» a ogni richiesta
+export const dynamic = 'force-dynamic';
 
 /**
  * Il biglietto da visita che serve al telefono per installare il gestionale
@@ -9,11 +13,12 @@ import type { MetadataRoute } from 'next';
  * dashboard e non dalla radice perché chi apre l'icona ha già fatto l'accesso
  * quasi sempre; chi non l'ha fatto viene mandato al login lo stesso.
  */
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const m = await marchio();
   return {
-    name: 'Zero Dark Ops',
-    short_name: 'Zero Dark Ops',
-    description: 'Calendario, adesioni, certificati e quote del team Zero Dark',
+    name: m.nomeGestionale,
+    short_name: m.nomeGestionale,
+    description: `Calendario, adesioni, certificati e quote della squadra ${m.nome}`,
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',

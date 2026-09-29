@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { marchio } from '@/lib/mia-squadra';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { fmtTime } from '@/lib/format';
@@ -152,13 +153,14 @@ export default async function PaginaInvito({
     telefono: r.utente.telefono,
   }));
 
+  const m = await marchio();
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center gap-3 border-b border-line pb-5">
-        <Logo size={44} />
+        <Logo size={44} src={m.logoUrl} />
         <div className="min-w-0">
-          <p className="num text-sm font-semibold tracking-wide">ZERO DARK OPS</p>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-nvg">going dark</p>
+          <p className="num text-sm font-semibold uppercase tracking-wide">{m.nomeGestionale}</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-nvg">{m.motto}</p>
         </div>
       </header>
 
@@ -246,7 +248,7 @@ export default async function PaginaInvito({
         <p className="titolo-sezione">Chi viene</p>
         <ul className="mt-2 space-y-1.5 text-sm">
           <li className="flex items-baseline justify-between gap-3">
-            <span className="font-medium">Zero Dark Team</span>
+            <span className="font-medium">{m.nome}</span>
             <span className="num font-semibold text-nvg">{nostri}</span>
           </li>
           {squadre.map((a) => (
@@ -326,7 +328,7 @@ export default async function PaginaInvito({
                 saperlo il contrario.
               </p>
               <Invia icona="salva">
-                {ospite.operatori === null ? 'Dillo a Zero Dark' : 'Aggiorna il numero'}
+                {ospite.operatori === null ? `Dillo a ${m.nome}` : 'Aggiorna il numero'}
               </Invia>
             </FormAzione>
           </div>
