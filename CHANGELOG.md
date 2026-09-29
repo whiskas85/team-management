@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.117.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Operatori → Compleanni.** Una vista nuova accanto ad «Avvisi»: tutte le
+  persone del club, dal prossimo a festeggiare. Per ognuno gli anni che ha
+  adesso, il giorno del compleanno con gli anni che compie e i giorni che
+  mancano («oggi 🎂», «domani», in giallo entro la settimana). In alto chi
+  festeggia oggi, quanti nei prossimi 30 giorni e chi non ha la data di
+  nascita (sono elencati sotto, per completarla). Sul telefono diventa un
+  elenco compatto.
+
 ## 2.116.1 — 29 settembre 2026
 
 ### Corretto

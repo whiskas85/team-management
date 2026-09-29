@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import {
@@ -47,6 +48,7 @@ export default async function OperatoriPage({
   const { vista } = await searchParams;
   if (!isAdmin(me.roles)) return <Regolarita />;
   if (vista === 'notifiche') return <Notifiche />;
+  if (vista === 'compleanni') return <Compleanni />;
   return <Gestione tutti={vista === 'tutti'} />;
 }
 
@@ -62,7 +64,199 @@ const VISTE_OPERATORI = [
   { chiave: 'elenco', href: '/admin/operatori', testo: 'Libro atleti' },
   { chiave: 'tutti', href: '/admin/operatori?vista=tutti', testo: 'Tutti' },
   { chiave: 'notifiche', href: '/admin/operatori?vista=notifiche', testo: 'Avvisi' },
+  {
+    chiave: 'compleanni',
+    href: '/admin/operatori?vista=compleanni',
+    testo: 'Compleanni',
+  },
 ];
+
+/*
+ * Il giorno di oggi a Roma, come data senza ora (mezzanotte UTC): la data di
+ * nascita è salvata così, e i conti fra due date «pure» non sbagliano di un
+ * giorno a cavallo dell'ora legale o a mezzanotte.
+ */
+function oggiARoma() {
+  const [a, m, g] = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Rome',
+  })
+    .format(new Date())
+    .split('-')
+    .map(Number);
+  return Date.UTC(a, m - 1, g);
+}
+
+const GIORNO = 86_400_000;
+
+/**
+ * Il prossimo compleanno di chi è nato in quella data: la data, i giorni che
+ * mancano (0 = oggi) e gli anni che compie. Chi è nato il 29 febbraio, negli
+ * anni che non sono bisestili, lo festeggia il 1° marzo.
+ */
+function prossimoCompleanno(nascita: Date, oggi = oggiARoma()) {
+  const anno = new Date(oggi).getUTCFullYear();
+  const m = nascita.getUTCMonth();
+  const g = nascita.getUTCDate();
+  let quando = Date.UTC(anno, m, g);
+  if (quando < oggi) quando = Date.UTC(anno + 1, m, g);
+  const annoFesta = new Date(quando).getUTCFullYear();
+  return {
+    data: new Date(quando),
+    giorni: Math.round((quando - oggi) / GIORNO),
+    compie: annoFesta - nascita.getUTCFullYear(),
+  };
+}
+
+/**
+ * I compleanni: chi è il prossimo a festeggiare. Tutte le persone del club,
+ * non solo gli atleti — la torta la mangia anche chi tiene i conti.
+ */
+async function Compleanni() {
+  const persone = await prisma.user.findMany({
+    where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] } },
+    orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+    select: {
+      id: true,
+      nome: true,
+      cognome: true,
+      callsign: true,
+      dataNascita: true,
+    },
+  });
+  const oggi = oggiARoma();
+  const conData = persone
+    .filter((p) => p.dataNascita)
+    .map((p) => {
+      const nascita = p.dataNascita!;
+      const prossimo = prossimoCompleanno(nascita, oggi);
+      return {
+        ...p,
+        nascita,
+        ...prossimo,
+        anni: prossimo.giorni === 0 ? prossimo.compie : prossimo.compie - 1,
+      };
+    })
+    .sort((a, b) => a.giorni - b.giorni || a.cognome.localeCompare(b.cognome));
+  const senzaData = persone.filter((p) => !p.dataNascita);
+  const oggiFesta = conData.filter((p) => p.giorni === 0).length;
+  const questoMese = conData.filter((p) => p.giorni <= 30).length;
+  const giornoMese = new Intl.DateTimeFormat('it-IT', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+
+  return (
+    <>
+      <Intestazione
+        titolo="Operatori"
+        sottotitolo="I compleanni, dal prossimo a festeggiare"
+        azioni={<ScegliVista viste={VISTE_OPERATORI} attuale="compleanni" />}
+      />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Statistica
+          etichetta="Oggi"
+          valore={oggiFesta}
+          dettaglio={oggiFesta === 1 ? 'compleanno' : 'compleanni'}
+          tono={oggiFesta > 0 ? 'ok' : 'neutro'}
+        />
+        <Statistica
+          etichetta="Nei prossimi 30 giorni"
+          valore={questoMese}
+          dettaglio="oggi compreso"
+        />
+        <Statistica
+          etichetta="Senza data di nascita"
+          valore={senzaData.length}
+          dettaglio="non compaiono nell'elenco"
+          tono={senzaData.length > 0 ? 'warn' : 'ok'}
+        />
+      </div>
+
+      {/* sul telefono la tabella non ci sta: una riga per persona, coi
+          giorni che mancano a destra dove l'occhio li cerca */}
+      <ul className="card divide-y divide-line p-0 sm:hidden">
+        {conData.map((p) => (
+          <li
+            key={p.id}
+            className={`flex items-center gap-3 px-4 py-3 ${p.giorni === 0 ? 'bg-nvg/10' : ''}`}
+          >
+            <div className="min-w-0 flex-1">
+              <Link href={`/admin/operatori/${p.id}`} className="break-words text-sm hover:text-nvg">
+                {nomeCompleto(p)}
+              </Link>
+              <p className="num text-xs text-muted">
+                {p.anni} anni · {giornoMese.format(p.data)}, ne compie {p.compie}
+              </p>
+            </div>
+            <span
+              className={`num shrink-0 text-sm ${
+                p.giorni === 0 ? 'font-semibold text-nvg' : p.giorni <= 7 ? 'text-warn' : ''
+              }`}
+            >
+              {p.giorni === 0 ? 'oggi 🎂' : p.giorni === 1 ? 'domani' : `${p.giorni} gg`}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="card hidden overflow-x-auto p-0 sm:block">
+        <table className="tabella">
+          <thead>
+            <tr>
+              <th>Chi</th>
+              <th>Nato il</th>
+              <th className="text-right">Anni</th>
+              <th>Compleanno</th>
+              <th className="text-right">Mancano</th>
+            </tr>
+          </thead>
+          <tbody>
+            {conData.map((p) => (
+              <tr key={p.id} className={p.giorni === 0 ? 'bg-nvg/10' : undefined}>
+                <td>
+                  <Link href={`/admin/operatori/${p.id}`} className="hover:text-nvg">
+                    {nomeCompleto(p)}
+                  </Link>
+                </td>
+                <td className="num text-muted">{fmtDate(p.nascita)}</td>
+                <td className="num text-right">{p.anni}</td>
+                <td>
+                  {giornoMese.format(p.data)}
+                  <span className="text-muted"> · ne compie {p.compie}</span>
+                </td>
+                <td
+                  className={`num text-right ${
+                    p.giorni === 0 ? 'font-semibold text-nvg' : p.giorni <= 7 ? 'text-warn' : ''
+                  }`}
+                >
+                  {p.giorni === 0 ? 'oggi 🎂' : p.giorni === 1 ? 'domani' : `${p.giorni} giorni`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {senzaData.length > 0 && (
+        <p className="mt-4 text-xs text-muted">
+          Senza data di nascita:{' '}
+          {senzaData.map((p, i) => (
+            <span key={p.id}>
+              {i > 0 && ', '}
+              <Link href={`/admin/operatori/${p.id}`} className="hover:text-nvg">
+                {nomeCompleto(p)}
+              </Link>
+            </span>
+          ))}
+          .
+        </p>
+      )}
+    </>
+  );
+}
 
 /**
  * Chi riceve gli avvisi sul telefono.
