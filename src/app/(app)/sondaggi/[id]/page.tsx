@@ -48,7 +48,7 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
     where: { id },
     include: {
       creatoDa: { select: { nome: true, cognome: true, callsign: true } },
-      evento: { select: { id: true, titolo: true } },
+      evento: { select: { id: true, titolo: true, status: true, origineCollegamentoId: true } },
       opzioni: {
         orderBy: { ordine: 'asc' },
         include: {
@@ -116,13 +116,24 @@ export default async function SondaggioPage({ params }: { params: Promise<{ id: 
         }
       >
         <div className="min-w-0">
-          {s.evento && (
+          {s.evento && s.evento.status === 'INVITATA' ? (
+            // un invito di un'altra squadra ancora da accettare: la squadra non
+            // lo vede, e il link lo apre solo chi gestisce il calendario
             <div className="mb-5 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-3 text-sm">
-              Da questo sondaggio è nata un’attività:{' '}
-              <Link href={`/calendario/${s.evento.id}`} className="text-nvg hover:underline">
-                {s.evento.titolo}
-              </Link>
+              Il sondaggio è per un invito di un’altra squadra: quando lo si accetta, chi ha detto
+              «ci sono» entra già presente.
             </div>
+          ) : (
+            s.evento && (
+              <div className="mb-5 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-3 text-sm">
+                {s.evento.origineCollegamentoId
+                  ? 'Il sondaggio era per questa attività:'
+                  : 'Da questo sondaggio è nata un’attività:'}{' '}
+                <Link href={`/calendario/${s.evento.id}`} className="text-nvg hover:underline">
+                  {s.evento.titolo}
+                </Link>
+              </div>
+            )
           )}
 
           {!aperto && <Verdetto esito={esito} opzioni={s.opzioni} votanti={votanti} />}

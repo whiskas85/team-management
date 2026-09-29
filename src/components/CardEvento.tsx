@@ -47,6 +47,11 @@ export type EventoLista = {
   motivoAnnullamento: string | null;
   /** Organizzata da un'altra squadra collegata: chi, col suo logo. */
   organizzatore?: Organizzatore | null;
+  /** Quanto chiede chi organizza, se chiede qualcosa: «5,00 € a operatore». */
+  costoOrganizzatore?: string | null;
+  costoChiesto?: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
+  /** Il sondaggio da cui è nata, o aperto su di lei. */
+  sondaggioId?: string | null;
 };
 
 /**
@@ -164,6 +169,11 @@ export function CardEvento({
             {e.organizzatore && (
               <p className="mt-1">
                 <BadgeOrganizzatore organizzatore={e.organizzatore} />
+              </p>
+            )}
+            {e.costoOrganizzatore && (
+              <p className="mt-1">
+                <Badge tono="warn">A pagamento · {e.costoOrganizzatore}</Badge>
               </p>
             )}
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>

@@ -60,6 +60,7 @@ type Evento = {
   /** Quanto chiediamo alle squadre ospiti collegate. */
   costoOspiti?: unknown;
   costoOspitiPer?: string | null;
+  cassaOspitiId?: string | null;
   tipo?: { riunione: boolean } | null;
 };
 
@@ -526,6 +527,24 @@ export function FormEvento({
                     <option value="OPERATORE">a operatore presente</option>
                     <option value="SQUADRA">per tutta la squadra</option>
                   </select>
+                </Campo>
+                <Campo label="In che cassa vanno" span>
+                  <select
+                    name="cassaOspitiId"
+                    defaultValue={evento?.cassaOspitiId ?? ''}
+                    className="input"
+                  >
+                    <option value="">Cassa del club</option>
+                    {casse.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-[11px] text-muted">
+                    Gli ospiti vedono i metodi di pagamento di questa cassa, e l’incasso lo conferma
+                    chi la tiene.
+                  </span>
                 </Campo>
               </Sezione>
   );

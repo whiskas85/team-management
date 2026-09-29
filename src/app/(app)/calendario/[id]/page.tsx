@@ -42,6 +42,7 @@ import { FormRiunione } from '@/components/FormRiunione';
 import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
+import { puoGestireCassa } from '@/lib/casse';
 import { BannerCondivisa } from '@/components/BannerCondivisa';
 import {
   contaPresenti,
@@ -118,6 +119,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       createdBy: { select: { nome: true, cognome: true } },
       // le squadre di fuori invitate, con il loro link
       ospiti: { orderBy: { creatoIl: 'asc' } },
+      // il sondaggio «partecipiamo?» aperto su un invito
+      sondaggio: { select: { id: true } },
       // organizzata da un'altra squadra collegata: chi, e com'è il collegamento
       origineCollegamento: {
         select: {
@@ -635,6 +638,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     : [];
   const referentiScelti = evento.referenti.map((r) => r.userId);
 
+  // chi tiene la cassa in cui vanno i soldi degli ospiti conferma i loro incassi
+  const puoConfermareOspiti = evento.ospiti.some((o) => o.versatoIl && !o.confermatoIl)
+    ? await puoGestireCassa(me, evento.cassaOspitiId)
+    : false;
   const ospiti = evento.ospiti.map((o) => ({
     id: o.id,
     nome: o.nome,
@@ -659,8 +666,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         : null,
     versato:
       o.versatoIl && o.versatoImporto !== null
-        ? `${fmtEuro(Number(o.versatoImporto))} il ${fmtDateTime(o.versatoIl)}`
+        ? `${fmtEuro(Number(o.versatoImporto))} il ${fmtDateTime(o.versatoIl)}${
+            o.versatoMetodo ? ` (${o.versatoMetodo})` : ''
+          }`
         : null,
+    confermato: o.confermatoIl ? fmtDateTime(o.confermatoIl) : null,
+    puoConfermare: puoConfermareOspiti,
   }));
   const organizzatore = organizzatoreDi(evento.origineCollegamento);
 
@@ -1207,6 +1218,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               ? { importo: Number(evento.origineVersatoImporto), il: evento.origineVersatoIl }
               : null
           }
+          confermatoIl={evento.origineVersatoConfermatoIl}
+          casse={casseAttive}
+          sondaggioId={evento.sondaggio?.id ?? null}
         />
       )}
 

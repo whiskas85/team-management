@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.124.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Giocate condivise a pagamento, come una cassa.** Nel riquadro
+  dell'organizzatore resta il conteggio di quanto dovete; i metodi di
+  pagamento si vedono con **Info pagamenti**. **Paga X €** apre una finestra
+  con l'importo e i metodi: scegli come hai pagato, aggiungi una nota e
+  **segnala il pagamento** alla squadra che organizza.
+- **L'incasso finisce in una cassa.** Nell'attività, alla scheda
+  **Pagamenti**, si sceglie **in che cassa** vanno i soldi delle squadre
+  ospiti. Quando un ospite segnala il pagamento, chi gestisce quella cassa lo
+  trova nella sezione **Squadre ospiti** (in Pagamenti per la cassa del club,
+  o nella pagina della cassa) e preme **Conferma incasso**: nella cassa del
+  club diventa un'entrata nel registro. L'altra squadra vede che l'incasso è
+  confermato.
+- **Invito a pagamento.** La notifica e il badge dicono che la giocata è a
+  pagamento e quanto chiedono. Accettando si può impostare subito la **quota
+  interna** per i vostri e la cassa in cui incassarla.
+- **Sondaggio dall'invito.** Oltre ad Accetta, Rifiuta e Cancella c'è
+  **Sondaggio**: apre un sondaggio «Partecipiamo?» (Ci sono / Forse / Non ci
+  sono). Quando si accetta l'invito, chi ha risposto «Ci sono» o «Forse» è già
+  iscritto (se in regola) e il sondaggio si chiude.
+
 ## 2.123.1 — 29 settembre 2026
 
 ### Corretto

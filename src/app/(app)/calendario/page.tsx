@@ -335,6 +335,9 @@ export default async function CalendarioPage({
                           tipologie={tipologie}
                           // senza una tipologia nostra, quella che si legge è la loro
                           tipoLoro={e.tipo !== 'Senza tipologia' ? e.tipo : null}
+                          costo={e.costoChiesto}
+                          casse={casse}
+                          sondaggioId={e.sondaggioId}
                         />
                       }
                     />

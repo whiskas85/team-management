@@ -74,7 +74,8 @@ export async function eventoDaCondividere(eventId: string): Promise<EventoCondiv
   // i metodi di pagamento del club: sono quelli con cui ci pagano gli ospiti
   const metodi = e.costoOspiti
     ? await prisma.metodoPagamento.findMany({
-        where: { attivo: true, cassaId: null },
+        // quelli della cassa in cui vanno i soldi degli ospiti
+        where: { attivo: true, cassaId: e.cassaOspitiId ?? null },
         orderBy: { ordine: 'asc' },
         select: { nome: true, istruzioni: true },
       })
@@ -513,4 +514,12 @@ export function dovutoAllOrganizzatore(
   presenti: number,
 ): number {
   return Math.round((costo.per === 'SQUADRA' ? costo.importo : costo.importo * presenti) * 100) / 100;
+}
+
+/** «5,00 € a operatore», «30,00 € per la squadra»: il costo detto in breve. */
+export function descriviCosto(costo: NonNullable<EventoCondiviso['costo']>): string {
+  const cifra = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(
+    costo.importo,
+  );
+  return costo.per === 'SQUADRA' ? `${cifra} per la squadra` : `${cifra} a operatore`;
 }

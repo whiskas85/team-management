@@ -318,6 +318,13 @@ export async function modificaSondaggio(_prev: StatoForm, fd: FormData): Promise
  *
  * Non si avvisa chi l'ha scritto: sa già cosa ha chiesto.
  */
+/** Annuncia un sondaggio appena nato altrove (da un invito di un'altra squadra). */
+export async function annunciaSondaggioNuovo(id: string) {
+  const me = await requireUser();
+  if (!puoFareSondaggi(me.roles)) return;
+  await annuncia(id);
+}
+
 async function annuncia(id: string) {
   const s = await prisma.sondaggio.findUnique({
     where: { id },

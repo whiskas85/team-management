@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mittente, profiloDi } from '@/lib/federazione';
-import { eventoRicevuto, numeriRicevuti, riceviEvento } from '@/lib/eventi-condivisi';
+import {
+  descriviCosto,
+  eventoRicevuto,
+  numeriRicevuti,
+  riceviEvento,
+} from '@/lib/eventi-condivisi';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +45,10 @@ export async function POST(req: Request) {
       admin.map((a) => a.id),
       {
         titolo: `Invito da ${profiloDi(c).nome}`,
-        testo: evento.titolo,
+        // a pagamento lo si dice subito: è la prima cosa da sapere per decidere
+        testo: evento.costo
+          ? `${evento.titolo} · a pagamento: ${descriviCosto(evento.costo)}`
+          : evento.titolo,
         url: `/calendario/${esito.id}`,
         tag: `invito-${esito.id}`,
       },

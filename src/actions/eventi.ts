@@ -221,6 +221,8 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
           })(),
           costoOspitiPer:
             str(fd, 'costoOspitiPer') === 'SQUADRA' ? ('SQUADRA' as const) : ('OPERATORE' as const),
+          // in che cassa finiscono: vuoto = quella del club
+          cassaOspitiId: strOpt(fd, 'cassaOspitiId'),
         }
       : {}),
   };

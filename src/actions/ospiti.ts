@@ -7,6 +7,8 @@ import { requireUser } from '@/lib/auth';
 import { isAdmin, puoSchierare } from '@/lib/domain';
 import { intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 import { diffondiEvento, ritiraEvento } from '@/lib/eventi-condivisi';
+import { accoda } from '@/lib/federazione-coda';
+import { puoGestireCassa } from '@/lib/casse';
 
 /**
  * Le squadre di fuori invitate a giocare con noi.
@@ -172,4 +174,62 @@ export async function rispondiInvito(_prev: StatoForm, fd: FormData): Promise<St
         ? 'Segnato: non venite. Grazie di averlo detto.'
         : `Segnato: siete in ${operatori}. Puoi tornare qui e cambiarlo quando vuoi.`,
   };
+}
+
+/**
+ * I soldi di una squadra ospite collegata sono arrivati: si confermano, ed
+ * entrano nella cassa scelta per gli ospiti di questa attività. In quella del
+ * club diventano un'entrata del registro, col metodo con cui hanno pagato.
+ * La squadra ospite vede che l'incasso è confermato.
+ */
+export async function confermaIncassoOspite(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const ospite = await prisma.squadraOspite.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { event: { select: { id: true, titolo: true, cassaOspitiId: true } } },
+  });
+  if (!ospite) return { errore: 'Invito non trovato.' };
+  if (!(await puoGestireCassa(me, ospite.event.cassaOspitiId))) {
+    return { errore: 'Conferma chi tiene la cassa in cui vanno i soldi degli ospiti.' };
+  }
+  if (!ospite.versatoIl || ospite.versatoImporto === null) {
+    return { errore: 'Non hanno ancora segnalato un pagamento.' };
+  }
+  if (ospite.confermatoIl) return { errore: 'Già confermato.' };
+
+  let movimentoCassaId: string | null = null;
+  if (!ospite.event.cassaOspitiId) {
+    const metodo = ospite.versatoMetodo
+      ? await prisma.metodoPagamento.findFirst({
+          where: { nome: ospite.versatoMetodo, cassaId: null },
+          select: { id: true },
+        })
+      : null;
+    const movimento = await prisma.movimentoCassa.create({
+      data: {
+        tipo: 'ENTRATA',
+        descrizione: `${ospite.nome} · ${ospite.event.titolo}`,
+        importo: ospite.versatoImporto,
+        categoria: 'Squadre ospiti',
+        note: ospite.versatoNote,
+        metodoId: metodo?.id ?? null,
+        registratoById: me.id,
+      },
+    });
+    movimentoCassaId = movimento.id;
+  }
+  await prisma.squadraOspite.update({
+    where: { id: ospite.id },
+    data: { confermatoIl: new Date(), confermatoDaId: me.id, movimentoCassaId },
+  });
+  if (ospite.collegamentoId) {
+    await accoda(ospite.collegamentoId, 'evento-versamento-confermato', {
+      id: ospite.event.id,
+    }).catch(() => null);
+  }
+  aggiorna(ospite.event.id);
+  revalidatePath('/admin/pagamenti');
+  revalidatePath('/admin/cassa');
+  revalidatePath('/cassa');
+  return { ok: `Incasso di ${ospite.nome} confermato: è in cassa.` };
 }

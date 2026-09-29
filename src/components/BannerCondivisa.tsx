@@ -1,8 +1,10 @@
 import { fmtDateTime, fmtEuro } from '@/lib/format';
-import { dovutoAllOrganizzatore, type DatiOrigine } from '@/lib/eventi-condivisi';
+import { descriviCosto, dovutoAllOrganizzatore, type DatiOrigine } from '@/lib/eventi-condivisi';
 import { impostaMandaForse, segnalaVersamento } from '@/actions/eventi-condivisi';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
+import { BottoneModale } from './Modale';
+import { Campo } from './ui';
 import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
 import { RispostaInvito } from './RispostaInvito';
 
@@ -27,6 +29,9 @@ export function BannerCondivisa({
   nostri,
   mandaForse,
   versato,
+  confermatoIl,
+  casse,
+  sondaggioId,
 }: {
   eventId: string;
   organizzatore: Organizzatore;
@@ -45,6 +50,12 @@ export function BannerCondivisa({
   mandaForse: boolean;
   /** Se abbiamo segnalato di aver versato il dovuto. */
   versato: { importo: number; il: Date } | null;
+  /** Chi organizza ha confermato di aver ricevuto il versamento. */
+  confermatoIl: Date | null;
+  /** Le nostre casse, per la quota interna da impostare accettando. */
+  casse: { id: string; nome: string }[];
+  /** Il sondaggio «partecipiamo?» aperto sull'invito. */
+  sondaggioId: string | null;
 }) {
   // il riepilogo di chi organizza, con la nostra riga aggiornata a adesso
   const righe = dati.numeri.map((n) =>
@@ -177,41 +188,93 @@ export function BannerCondivisa({
               · lo versa la squadra; ai vostri fate pagare la quota che decidete voi
             </span>
           </p>
-          {dati.metodi.length > 0 && (
-            <ul className="mt-2 space-y-1 text-xs">
-              {dati.metodi.map((m, i) => (
-                <li key={i}>
-                  <span className="font-medium text-ink">{m.nome}</span>
-                  {m.istruzioni && (
-                    <span className="block whitespace-pre-line text-muted">{m.istruzioni}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+
           {versato ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-nvg">
-              Segnalato: versati {fmtEuro(versato.importo)} il {fmtDateTime(versato.il)}.
-              {admin && (
-                <FormAzione azione={segnalaVersamento} className="contents">
-                  <input type="hidden" name="id" value={eventId} />
-                  <input type="hidden" name="ritira" value="1" />
-                  <Invia icona="annulla" className="btn-ghost btn-sm">
-                    Ritira
-                  </Invia>
-                </FormAzione>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              {confermatoIl ? (
+                <span className="text-nvg">
+                  Pagati {fmtEuro(versato.importo)}: {organizzatore.nome} ha confermato l’incasso il{' '}
+                  {fmtDateTime(confermatoIl)}.
+                </span>
+              ) : (
+                <>
+                  <span className="text-warn">
+                    Segnalati {fmtEuro(versato.importo)} il {fmtDateTime(versato.il)}: aspetta che{' '}
+                    {organizzatore.nome} confermi l’incasso.
+                  </span>
+                  {admin && (
+                    <FormAzione azione={segnalaVersamento} className="contents">
+                      <input type="hidden" name="id" value={eventId} />
+                      <input type="hidden" name="ritira" value="1" />
+                      <Invia icona="annulla" className="btn-ghost btn-sm">
+                        Ritira
+                      </Invia>
+                    </FormAzione>
+                  )}
+                </>
               )}
             </div>
-          ) : (
-            admin && (
-              <FormAzione azione={segnalaVersamento} className="mt-2">
-                <input type="hidden" name="id" value={eventId} />
-                <Invia icona="incassa" className="btn-primary btn-sm">
-                  Abbiamo versato {fmtEuro(dovuto)}
-                </Invia>
-              </FormAzione>
-            )
-          )}
+          ) : null}
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <BottoneModale
+              etichetta="Info pagamenti"
+              icona="pagamenti"
+              titolo={`Come si paga ${organizzatore.nome}`}
+              className="btn-ghost btn-sm"
+            >
+              <MetodiOrganizzatore metodi={dati.metodi} organizzatore={organizzatore.nome} />
+            </BottoneModale>
+            {admin && !versato && dovuto > 0 && (
+              <BottoneModale
+                etichetta={`Paga ${fmtEuro(dovuto)}`}
+                icona="incassa"
+                titolo={`Paga ${organizzatore.nome}`}
+                className="btn-primary btn-sm"
+              >
+                <FormAzione azione={segnalaVersamento}>
+                  <input type="hidden" name="id" value={eventId} />
+                  <p className="text-sm">
+                    Da versare: <strong className="num">{fmtEuro(dovuto)}</strong>
+                    {dati.costo.per === 'OPERATORE' && (
+                      <span className="text-muted">
+                        {' '}
+                        ({fmtEuro(dati.costo.importo)} × {nostri.presenti} presenti)
+                      </span>
+                    )}
+                  </p>
+                  <MetodiOrganizzatore metodi={dati.metodi} organizzatore={organizzatore.nome} />
+                  {dati.metodi.length > 0 && (
+                    <Campo label="Come avete pagato" span>
+                      <select name="metodo" required defaultValue="" className="input">
+                        <option value="" disabled>
+                          — scegli —
+                        </option>
+                        {dati.metodi.map((m) => (
+                          <option key={m.nome} value={m.nome}>
+                            {m.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                  )}
+                  <Campo label="Note per loro" span>
+                    <input
+                      name="note"
+                      maxLength={300}
+                      className="input"
+                      placeholder="es. bonifico del 3 ottobre, causale Op. Maronno"
+                    />
+                  </Campo>
+                  <p className="text-xs text-muted">
+                    Pagate con il metodo scelto, poi segnalatelo qui: {organizzatore.nome} lo vede
+                    nella sua cassa e conferma l’incasso quando arriva.
+                  </p>
+                  <Invia icona="incassa">Segnala il pagamento</Invia>
+                </FormAzione>
+              </BottoneModale>
+            )}
+          </div>
         </div>
       )}
 
@@ -221,6 +284,12 @@ export function BannerCondivisa({
             <strong>{organizzatore.nome}</strong> ci invita a questa attività. Finché non rispondi
             la vedi solo tu, come una bozza.
           </p>
+          {dati.costo && (
+            <p className="mt-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+              È a pagamento: <strong>{descriviCosto(dati.costo)}</strong>, da versare a{' '}
+              {organizzatore.nome} come squadra. Accettando puoi impostare la quota per i vostri.
+            </p>
+          )}
           {admin && (
             <div className="mt-3">
               <RispostaInvito
@@ -229,6 +298,9 @@ export function BannerCondivisa({
                 ritorno="/calendario?vista=inviti"
                 tipologie={tipologie}
                 tipoLoro={dati.tipo}
+                costo={dati.costo}
+                casse={casse}
+                sondaggioId={sondaggioId}
               />
               <p className="mt-2 text-xs text-muted">
                 Accettata diventa una bozza nostra: quote, posti e rilascio li decidi tu.
@@ -238,5 +310,36 @@ export function BannerCondivisa({
         </div>
       )}
     </div>
+  );
+}
+
+/** I metodi di pagamento di chi organizza, con le istruzioni (IBAN, numero…). */
+function MetodiOrganizzatore({
+  metodi,
+  organizzatore,
+}: {
+  metodi: DatiOrigine['metodi'];
+  organizzatore: string;
+}) {
+  if (metodi.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        {organizzatore} non ha indicato metodi di pagamento: chiedete ai loro referenti.
+      </p>
+    );
+  }
+  return (
+    <ul className="space-y-2 text-sm">
+      {metodi.map((m, i) => (
+        <li key={i} className="rounded-md border border-line px-3 py-2">
+          <span className="font-medium">{m.nome}</span>
+          {m.istruzioni && (
+            <span className="mt-0.5 block whitespace-pre-line text-xs text-muted">
+              {m.istruzioni}
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

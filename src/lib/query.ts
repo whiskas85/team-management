@@ -4,7 +4,7 @@ import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
 import { faseAttivita } from './giorni';
 import type { EventoLista } from '@/components/CardEvento';
-import { datiOrigine, organizzatoreDi } from './eventi-condivisi';
+import { datiOrigine, descriviCosto, organizzatoreDi } from './eventi-condivisi';
 
 /**
  * Chi vede quali attività.
@@ -82,6 +82,8 @@ export async function eventiPerLista({
       origineCollegamento: {
         select: { profilo: true, squadra: { select: { id: true, nome: true, logoPath: true } } },
       },
+      // il sondaggio «partecipiamo?» aperto su un invito
+      sondaggio: { select: { id: true } },
     },
   });
 
@@ -105,6 +107,13 @@ export async function eventiPerLista({
 
   return eventi.map((e) => ({
     organizzatore: organizzatoreDi(e.origineCollegamento),
+    // di un'altra squadra e a pagamento: quanto chiedono, sulla card
+    costoOrganizzatore: (() => {
+      const c = e.origineCollegamento ? datiOrigine(e.origineDati).costo : null;
+      return c ? descriviCosto(c) : null;
+    })(),
+    costoChiesto: e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
+    sondaggioId: e.sondaggio?.id ?? null,
     id: e.id,
     titolo: e.titolo,
     // un invito non ha ancora una tipologia nostra: si legge la loro

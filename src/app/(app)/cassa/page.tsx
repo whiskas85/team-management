@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { notFound } from 'next/navigation';
 import type { Prisma } from '@prisma/client';
 import { requireUser } from '@/lib/auth';
@@ -228,6 +229,7 @@ export default async function CassaPage({
         />
       </div>
 
+      <OspitiInCassa cassaId={cassa.id} />
       <CreditiCassa cassaId={cassa.id} persone={persone} metodi={metodi} />
 
       <div className="mb-5 flex flex-wrap gap-2">

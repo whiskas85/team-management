@@ -4,13 +4,16 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdmin } from '@/lib/domain';
 import { str, strOpt, type StatoForm } from '@/lib/form';
+import { puoFareSondaggi } from '@/lib/sondaggi';
+import { eAtleta, idoneoPer, inSquadra, isAdmin, serveCertificato } from '@/lib/domain';
+import { annunciaSondaggioNuovo } from '@/actions/sondaggi';
 import { accoda } from '@/lib/federazione-coda';
 import { profiloDi } from '@/lib/federazione';
 import {
   contaPresenti,
   datiOrigine,
+  descriviCosto,
   dovutoAllOrganizzatore,
   segnalaNumeri,
 } from '@/lib/eventi-condivisi';
@@ -53,6 +56,9 @@ export async function accettaInvitoEvento(_prev: StatoForm, fd: FormData): Promi
     where: { id: r.e.id },
     data: { status: 'CREATA', tipoId: tipo.id },
   });
+  await impostaQuotaInterna(r.e.id, fd, profiloDi(r.c).nome);
+  // chi ha risposto al sondaggio sulle partecipazioni entra già fra gli iscritti
+  const dalSondaggio = await iscriviDalSondaggio(r.e.id, tipo.id);
   if (r.c.stato === 'ATTIVO') {
     await accoda(r.c.id, 'evento-risposta', { id: r.idRemoto, risposta: 'ACCETTATA' }).catch(
       () => null,
@@ -62,7 +68,9 @@ export async function accettaInvitoEvento(_prev: StatoForm, fd: FormData): Promi
   await segnalaNumeri(r.e.id).catch(() => null);
   aggiorna(r.e.id);
   return {
-    ok: `Accettato: ora è una bozza. Sistema quote e posti, poi rilasciala alla squadra.`,
+    ok:
+      `Accettato: ora è una bozza. Sistema quote e posti, poi rilasciala alla squadra.` +
+      (dalSondaggio ? ` ${dalSondaggio}` : ''),
   };
 }
 
@@ -141,20 +149,175 @@ export async function segnalaVersamento(_prev: StatoForm, fd: FormData): Promise
   const r = await accettata(fd);
   if ('errore' in r) return { errore: r.errore };
   const ritira = str(fd, 'ritira') === '1';
-  const { costo } = datiOrigine(r.e.origineDati);
+  if (ritira && r.e.origineVersatoConfermatoIl) {
+    return { errore: 'L’incasso è già stato confermato: non si ritira più.' };
+  }
+  const { costo, metodi } = datiOrigine(r.e.origineDati);
   if (!ritira && !costo) return { errore: 'L’organizzatore non ha chiesto niente.' };
   const importo = ritira ? null : dovutoAllOrganizzatore(costo!, contaPresenti(r.e.rsvps).presenti);
+  // il metodo è uno dei loro: quello che arriva dal modulo si controlla qui
+  const metodo = ritira ? null : (metodi.find((m) => m.nome === str(fd, 'metodo'))?.nome ?? null);
+  const note = ritira ? null : (strOpt(fd, 'note')?.slice(0, 300) ?? null);
   await prisma.event.update({
     where: { id: r.e.id },
-    data: { origineVersatoIl: ritira ? null : new Date(), origineVersatoImporto: importo },
+    data: {
+      origineVersatoIl: ritira ? null : new Date(),
+      origineVersatoImporto: importo,
+      origineVersatoConfermatoIl: null,
+    },
   });
   if (r.c.stato === 'ATTIVO') {
-    await accoda(r.c.id, 'evento-versato', { id: r.idRemoto, importo }).catch(() => null);
+    await accoda(r.c.id, 'evento-versato', { id: r.idRemoto, importo, metodo, note }).catch(
+      () => null,
+    );
   }
   aggiorna(r.e.id);
   return {
     ok: ritira
       ? 'Segnalazione ritirata.'
-      : `Segnalato a ${profiloDi(r.c).nome}: avete versato ${importo?.toFixed(2)} €.`,
+      : `Pagamento segnalato a ${profiloDi(r.c).nome}: ${importo?.toFixed(2)} €. Lo confermano quando lo vedono arrivare.`,
   };
+}
+
+/**
+ * La quota per i nostri, scelta accettando un invito a pagamento: una quota
+ * dell'attività come quelle aggiunte col + nella scheda Pagamenti, nella cassa
+ * scelta. Riaprendo la modifica la si ritrova lì, e lì la si cambia.
+ */
+async function impostaQuotaInterna(eventId: string, fd: FormData, organizzatore: string) {
+  const importo = Number(str(fd, 'quotaInterna').replace(',', '.'));
+  if (!Number.isFinite(importo) || importo <= 0) return;
+  const cassaScelta = strOpt(fd, 'cassaQuota');
+  const cassa = cassaScelta
+    ? await prisma.cassa.findFirst({ where: { id: cassaScelta, attiva: true }, select: { id: true } })
+    : null;
+  const nome = `Quota ${organizzatore}`;
+  await prisma.voceAttivita.create({
+    data: { eventId, perEsterni: false, nome, importo, cassaId: cassa?.id ?? null, scelta: true },
+  });
+  if (cassa) {
+    await prisma.quotaCassa.upsert({
+      where: { eventId_cassaId: { eventId, cassaId: cassa.id } },
+      create: { eventId, cassaId: cassa.id, descrizione: nome, importo },
+      update: { descrizione: nome, importo },
+    });
+  } else {
+    await prisma.event.update({ where: { id: eventId }, data: { costo: importo, dettaglioCosto: nome } });
+  }
+}
+
+/**
+ * «Partecipiamo?»: prima di accettare un invito, lo si chiede alla squadra.
+ *
+ * È un sondaggio di presenza come gli altri — ci sono, forse, non ci sono — e
+ * resta legato all'invito: accettandolo, chi ha detto «ci sono» entra già
+ * segnato presente e chi ha detto «forse» fra i forse. Se c'è già, ci si va.
+ */
+export async function apriSondaggioInvito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoFareSondaggi(me.roles)) return { errore: 'Solo chi può aprire sondaggi lo fa.' };
+  const e = await prisma.event.findUnique({
+    where: { id: str(fd, 'id') },
+    include: { origineCollegamento: true, sondaggio: { select: { id: true } } },
+  });
+  if (!e?.origineCollegamento) return { errore: 'Invito non trovato.' };
+  if (e.sondaggio) redirect(`/sondaggi/${e.sondaggio.id}`);
+
+  const scadeIl = str(fd, 'scadeIl') ? new Date(str(fd, 'scadeIl')) : null;
+  if (scadeIl && (Number.isNaN(scadeIl.getTime()) || scadeIl <= new Date())) {
+    return { errore: 'La scadenza è già passata: mettila più avanti, o lasciala vuota.' };
+  }
+  const organizzatore = profiloDi(e.origineCollegamento).nome;
+  const { costo } = datiOrigine(e.origineDati);
+  const quando = new Intl.DateTimeFormat('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(e.inizio);
+  const sondaggio = await prisma.sondaggio.create({
+    data: {
+      domanda: `Partecipiamo a «${e.titolo}» di ${organizzatore}?`,
+      dettaglio: [
+        `Ci invita ${organizzatore}: ${quando}${e.luogo ? `, ${e.luogo}` : ''}.`,
+        costo ? `È a pagamento: ${descriviCosto(costo)}.` : null,
+        strOpt(fd, 'nota'),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      tipo: 'PRESENZE',
+      destinatari: 'SQUADRA',
+      scadeIl,
+      creatoDaId: me.id,
+      eventoId: e.id,
+      opzioni: {
+        create: ['Ci sono', 'Forse', 'Non ci sono'].map((testo, ordine) => ({ testo, ordine })),
+      },
+    },
+  });
+  await annunciaSondaggioNuovo(sondaggio.id).catch(() => null);
+  revalidatePath('/sondaggi');
+  aggiorna(e.id);
+  redirect(`/sondaggi/${sondaggio.id}`);
+}
+
+/**
+ * Accettato l'invito, chi ha risposto al sondaggio entra fra gli iscritti:
+ * «ci sono» presente, «forse» fra i forse. Con le regole di sempre — atleti in
+ * squadra, col certificato valido se la tipologia lo chiede. Chi resta fuori
+ * lo si dice, e lo si aggiunge a mano quando è a posto.
+ */
+async function iscriviDalSondaggio(eventId: string, tipoId: string): Promise<string | null> {
+  const [s, tipo] = await Promise.all([
+    prisma.sondaggio.findUnique({
+      where: { eventoId: eventId },
+      include: { opzioni: { include: { voti: { select: { userId: true } } } } },
+    }),
+    prisma.tipoAttivita.findUnique({
+      where: { id: tipoId },
+      select: { certMedico: true, certAgonistico: true },
+    }),
+  ]);
+  if (!s || s.segreto) return null;
+  const per = (ordine: number) => s.opzioni.find((o) => o.ordine === ordine)?.voti ?? [];
+  const presenti = new Set(per(0).map((v) => v.userId));
+  const forse = new Set(per(1).map((v) => v.userId).filter((id) => !presenti.has(id)));
+  if (presenti.size + forse.size === 0) return null;
+
+  const persone = await prisma.user.findMany({
+    where: { id: { in: [...presenti, ...forse] } },
+    select: {
+      id: true,
+      nome: true,
+      callsign: true,
+      stato: true,
+      roles: true,
+      certificates: { select: { status: true, scadeIl: true, tipo: true } },
+    },
+  });
+  const esclusi: string[] = [];
+  const righe: { eventId: string; userId: string; status: 'PRESENTE' | 'FORSE' }[] = [];
+  for (const u of persone) {
+    const chi = u.callsign ?? u.nome;
+    if (!inSquadra(u.stato) || !eAtleta(u.roles)) {
+      esclusi.push(chi);
+      continue;
+    }
+    const presente = presenti.has(u.id);
+    if (presente && serveCertificato(tipo) && !idoneoPer(u.certificates, tipo?.certAgonistico)) {
+      esclusi.push(`${chi} (certificato)`);
+      continue;
+    }
+    righe.push({ eventId, userId: u.id, status: presente ? 'PRESENTE' : 'FORSE' });
+  }
+  if (righe.length > 0) {
+    await prisma.eventRsvp.createMany({ data: righe, skipDuplicates: true });
+    await segnalaNumeri(eventId).catch(() => null);
+  }
+  await prisma.sondaggio.update({ where: { id: s.id }, data: { chiusoIl: s.chiusoIl ?? new Date() } });
+  return (
+    `Dal sondaggio: ${righe.length} ${righe.length === 1 ? 'persona iscritta' : 'persone iscritte'}.` +
+    (esclusi.length ? ` Non iscritti: ${esclusi.join(', ')}.` : '')
+  );
 }

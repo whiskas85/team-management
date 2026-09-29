@@ -4,7 +4,12 @@ import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { Badge, Campo } from './ui';
-import { aggiungiSquadraOspite, segnaOperatoriOspite, togliSquadraOspite } from '@/actions/ospiti';
+import {
+  aggiungiSquadraOspite,
+  confermaIncassoOspite,
+  segnaOperatoriOspite,
+  togliSquadraOspite,
+} from '@/actions/ospiti';
 
 export type Ospite = {
   id: string;
@@ -24,6 +29,10 @@ export type Ospite = {
   dovuto?: string | null;
   /** Se ci ha detto di aver versato, e quanto. */
   versato?: string | null;
+  /** Quando abbiamo confermato l'incasso: da lì i soldi sono in cassa. */
+  confermato?: string | null;
+  /** Chi guarda tiene la cassa degli ospiti: può confermare l'incasso. */
+  puoConfermare?: boolean;
 };
 
 const RISPOSTA: Record<string, string> = {
@@ -127,7 +136,11 @@ export function SquadreOspiti({
                           : 'Gestionale collegato',
                         o.accesso === 'GESTIONE' ? 'possono modificarla' : null,
                         o.dovuto ? `devono ${o.dovuto}` : null,
-                        o.versato ? `versato ${o.versato}` : null,
+                        o.versato
+                          ? o.confermato
+                            ? `incassati ${o.versato.split(' il ')[0]} · confermato ${o.confermato}`
+                            : `segnalato ${o.versato} · da confermare`
+                          : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')
@@ -178,6 +191,14 @@ export function SquadreOspiti({
                     {/* il link è di quella squadra: mandarlo è il gesto per cui
                         questa riga esiste — tranne per le collegate, che
                         l'attività la ricevono nel loro gestionale */}
+                    {o.collegata && o.versato && !o.confermato && o.puoConfermare && (
+                      <FormAzione azione={confermaIncassoOspite} className="contents">
+                        <input type="hidden" name="id" value={o.id} />
+                        <Invia icona="incassa" className="btn-primary btn-sm">
+                          Conferma incasso
+                        </Invia>
+                      </FormAzione>
+                    )}
                     {!o.collegata && (
                       <CondividiEvento
                         indirizzo={o.link}

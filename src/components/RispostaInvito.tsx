@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import {
   accettaInvitoEvento,
+  apriSondaggioInvito,
   nascondiInvitoEvento,
   rifiutaInvitoEvento,
 } from '@/actions/eventi-condivisi';
@@ -7,6 +9,7 @@ import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { BottoneModale } from './Modale';
 import { Campo } from './ui';
+import { Icona } from './Icona';
 
 /**
  * I tre gesti su un invito di un'altra squadra, sulla card e nella scheda.
@@ -24,6 +27,9 @@ export function RispostaInvito({
   ritorno,
   tipologie,
   tipoLoro,
+  costo,
+  casse = [],
+  sondaggioId,
 }: {
   id: string;
   organizzatore: string;
@@ -33,6 +39,12 @@ export function RispostaInvito({
   tipologie: { id: string; nome: string }[];
   /** Come la chiamano loro: se ne abbiamo una uguale, è già scelta. */
   tipoLoro?: string | null;
+  /** Quanto chiedono, se è a pagamento: accettando si imposta la quota per i nostri. */
+  costo?: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
+  /** Le nostre casse, oltre a quella del club, per la quota interna. */
+  casse?: { id: string; nome: string }[];
+  /** Il sondaggio «partecipiamo?» già aperto su questo invito. */
+  sondaggioId?: string | null;
 }) {
   const proposta = tipoLoro
     ? tipologie.find((t) => t.nome.localeCompare(tipoLoro, 'it', { sensitivity: 'base' }) === 0)
@@ -68,6 +80,45 @@ export function RispostaInvito({
               </span>
             )}
           </Campo>
+          {costo && (
+            <div className="space-y-3 rounded-md border border-warn/40 bg-warn/5 p-3 sm:col-span-2">
+              <p className="text-sm text-warn">
+                È a pagamento: {organizzatore} chiede{' '}
+                <strong>
+                  {costo.importo.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}
+                  {costo.per === 'SQUADRA' ? ' per la squadra' : ' a operatore'}
+                </strong>
+                , da versare come squadra.
+              </p>
+              <Campo label="Quota per i vostri (€)" span>
+                <input
+                  name="quotaInterna"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  defaultValue={costo.per === 'OPERATORE' ? costo.importo : ''}
+                  className="input"
+                  placeholder="vuota = la decidi dopo"
+                />
+              </Campo>
+              {casse.length > 0 && (
+                <Campo label="In che cassa" span>
+                  <select name="cassaQuota" defaultValue="" className="input">
+                    <option value="">Cassa del club</option>
+                    {casse.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              )}
+              <p className="text-xs text-muted">
+                È la quota che pagano i vostri, come per ogni attività: la cambi quando vuoi dalla
+                modifica, scheda Pagamenti.
+              </p>
+            </div>
+          )}
           <Invia icona="approva">Accetta</Invia>
         </FormAzione>
       </BottoneModale>
@@ -96,6 +147,36 @@ export function RispostaInvito({
           <Invia icona="rifiuta">Rifiuta l’invito</Invia>
         </FormAzione>
       </BottoneModale>
+
+      {/* prima di rispondere, lo si può chiedere alla squadra */}
+      {sondaggioId ? (
+        <Link href={`/sondaggi/${sondaggioId}`} className="btn-ghost btn-sm">
+          <Icona nome="grafici" size={15} /> Vedi il sondaggio
+        </Link>
+      ) : (
+        <BottoneModale
+          etichetta="Sondaggio"
+          icona="grafici"
+          titolo="Chiedi alla squadra se partecipa"
+          className="btn-ghost btn-sm"
+        >
+          <FormAzione azione={apriSondaggioInvito}>
+            <input type="hidden" name="id" value={id} />
+            <p className="text-sm text-muted">
+              Un sondaggio «Partecipiamo?» con ci sono, forse, non ci sono. Quando accetti
+              l’invito, chi ha detto «ci sono» entra già presente e chi ha detto «forse» fra i
+              forse.
+            </p>
+            <Campo label="Si chiude il">
+              <input type="datetime-local" name="scadeIl" className="input" />
+            </Campo>
+            <Campo label="Una riga in più (facoltativa)" span>
+              <input name="nota" maxLength={300} className="input" placeholder="es. decidiamo entro venerdì" />
+            </Campo>
+            <Invia icona="grafici">Apri il sondaggio</Invia>
+          </FormAzione>
+        </BottoneModale>
+      )}
 
       <FormAzione azione={nascondiInvitoEvento} className="contents">
         <input type="hidden" name="id" value={id} />

@@ -599,6 +599,14 @@ model SquadraOspite {
   /// Quando ci hanno detto di aver versato il dovuto, e quanto.
   versatoIl       DateTime?
   versatoImporto  Decimal?             @db.Decimal(10, 2)
+  /// Come dicono di aver pagato, e cosa hanno scritto.
+  versatoMetodo   String?
+  versatoNote     String?
+  /// Chi tiene la cassa ha confermato l'incasso: da qui i soldi sono in cassa.
+  confermatoIl    DateTime?
+  confermatoDaId  String?
+  /// Il movimento del registro della cassa del club, se sono finiti lì.
+  movimentoCassaId String?
 
   @@unique([eventId, nome])
   @@index([eventId])
@@ -1080,6 +1088,11 @@ model Event {
   /// Quanto chiediamo alle squadre ospiti collegate: a operatore o per squadra.
   costoOspiti           Decimal?         @db.Decimal(10, 2)
   costoOspitiPer        CostoOspitiPer?
+  /// In che cassa finiscono i soldi delle squadre ospiti. Vuota = quella del club.
+  cassaOspitiId         String?
+  cassaOspiti           Cassa?           @relation("CassaOspiti", fields: [cassaOspitiId], references: [id], onDelete: SetNull)
+  /// L'organizzatore ha confermato di aver ricevuto il nostro versamento.
+  origineVersatoConfermatoIl DateTime?
   /// L'ultimo riepilogo dei numeri mandato alle squadre invitate.
   numeriCondivisi       String?
 
@@ -1251,6 +1264,8 @@ model Cassa {
   crediti       MovimentoCredito[]
   tariffe       Tariffa[]
   vociAttivita  VoceAttivita[]
+  /// Le attività i cui ospiti pagano in questa cassa.
+  eventiOspiti  Event[]           @relation("CassaOspiti")
 }
 
 /// Una quota di un'attività che non va al club.
