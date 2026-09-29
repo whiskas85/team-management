@@ -35,7 +35,7 @@ on:
       modo:
         description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test'
         type: choice
-        options: [prova, rilascio, test, test-copia-dati]
+        options: [prova, rilascio, test, test-copia-dati, prova-collegamento]
         default: prova
       ramo:
         description: 'Solo per «test»: il ramo da mettere nel test'
@@ -189,6 +189,37 @@ jobs:
         run: |
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" 'bash -s -- copia-dati' < deploy/test-server.sh
+
+      # test e test2 si collegano fra loro come farebbero due squadre vere
+      # (docs/COLLEGAMENTO-SQUADRE.md). Le password del proxy si leggono dal
+      # server e si mascherano prima di tutto: questo log è pubblico.
+      - name: Prova del collegamento, le password del proxy
+        if: inputs.modo == 'prova-collegamento'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          leggi() {
+            ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+              "$UTENTE@$HOST" "grep '^PROXY_PASSWORD=' /opt/gestionale-$1/.env.test | cut -d= -f2-"
+          }
+          a=$(leggi test); b=$(leggi test2)
+          if [ -z "$a" ] || [ -z "$b" ]; then
+            echo "::error::Manca un ambiente: rilascia prima test e test2"
+            exit 1
+          fi
+          echo "::add-mask::$a"
+          echo "::add-mask::$b"
+          { echo "PROXY_A=$a"; echo "PROXY_B=$b"; } >> "$GITHUB_ENV"
+
+      - name: Prova del collegamento, il browser
+        if: inputs.modo == 'prova-collegamento'
+        run: |
+          mkdir -p /tmp/prova && cp deploy/prova-collegamento.mjs /tmp/prova/
+          cd /tmp/prova
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+          node prova-collegamento.mjs
 
       - name: Via la chiave
         if: always()
