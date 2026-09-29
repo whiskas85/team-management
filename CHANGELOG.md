@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.113.4 — 29 settembre 2026
+
+### Corretto
+
+- **Polizze:** rosso di nuovo da **5 in giù**, come prima della 2.113.3, sia
+  nella linea del tempo sia nel riquadro «Polizze prova», nella previsione e
+  nell'avviso di ricomprarle. Verde da 6 in su.
+
 ## 2.113.3 — 29 settembre 2026
 
 ### Cambiato

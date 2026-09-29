@@ -305,7 +305,7 @@ export default async function PolizzePage() {
  *
  * In cima, quelle in cassa con la data in cui il portale le ha contate; dopo
  * ogni giocata, quelle che restano con accanto quante se n'è mangiate. Verde
- * finché sono almeno la scorta, rosso sotto; sotto zero sono finite, e lo
+ * sopra la scorta, rosso da lì in giù; sotto zero sono finite, e lo
  * dice il punto esclamativo con quante ne mancano.
  */
 function TappaPolizze({
@@ -322,9 +322,9 @@ function TappaPolizze({
 }) {
   const finite = residuo !== null && residuo < 0;
   const tono =
-    residuo === null ? 'text-muted' : residuo < SCORTA_POLIZZE ? 'text-danger' : 'text-nvg';
+    residuo === null ? 'text-muted' : residuo <= SCORTA_POLIZZE ? 'text-danger' : 'text-nvg';
   const pallino =
-    residuo === null ? 'bg-muted' : residuo < SCORTA_POLIZZE ? 'bg-danger' : 'bg-nvg';
+    residuo === null ? 'bg-muted' : residuo <= SCORTA_POLIZZE ? 'bg-danger' : 'bg-nvg';
   return (
     <div className="relative flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
       <span

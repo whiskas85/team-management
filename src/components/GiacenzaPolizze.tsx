@@ -25,7 +25,7 @@ export async function GiacenzaPolizze() {
       : null;
 
   const colore =
-    lette === null ? 'text-muted' : lette.residue < SCORTA_POLIZZE ? 'text-danger' : 'text-nvg';
+    lette === null ? 'text-muted' : lette.residue <= SCORTA_POLIZZE ? 'text-danger' : 'text-nvg';
 
   return (
     <div className="card flex flex-col">
