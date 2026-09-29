@@ -14,12 +14,14 @@ import { eliminaSquadra, importaSquadreFigt, salvaSquadra } from '@/actions/squa
 import { BottoneElimina } from '@/components/CardRiga';
 import { CampiSquadra } from '@/components/CampiSquadra';
 import { BadgeFigt, BadgeGiovanile, StellaSquadra } from '@/components/BadgeSquadra';
+import { IconaCollegata, StemmaSquadra } from '@/components/ProfiloCollegato';
 import type { Prisma } from '@prisma/client';
 
 type SquadraElenco = Prisma.SquadraEsternaGetPayload<{
   include: {
     campi: { select: { id: true } };
     contatti: true;
+    collegamento: { select: { stato: true } };
   };
 }>;
 
@@ -37,6 +39,7 @@ export default async function SquadrePage() {
       include: {
         campi: { select: { id: true } },
         contatti: { orderBy: { ordine: 'asc' } },
+        collegamento: { select: { stato: true } },
       },
     }),
     prisma.credenzialeFigt.findUnique({ where: { id: 'figt' }, select: { login: true } }),
@@ -189,6 +192,7 @@ function Righe({ squadre }: { squadre: SquadraElenco[] }) {
             <div className="w-8 shrink-0">
               <StellaSquadra id={s.id} stato={s.stato} />
             </div>
+            {s.logoPath && <StemmaSquadra nome={s.nome} logo={`/api/squadre/${s.id}/logo`} size={32} />}
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <Link
@@ -197,6 +201,7 @@ function Righe({ squadre }: { squadre: SquadraElenco[] }) {
                 >
                   {s.nome}
                 </Link>
+                {s.collegamento?.stato === 'ATTIVO' && <IconaCollegata />}
                 {s.figtAggiornataIl && <BadgeFigt il={s.figtAggiornataIl} />}
                 {s.settoreGiovanile && <BadgeGiovanile />}
               </div>

@@ -9,12 +9,15 @@ import { requireUser } from '@/lib/auth';
 import { isAdmin } from '@/lib/domain';
 import { UPLOAD_DIR, eliminaAllegato } from '@/lib/storage';
 import { strOpt, type StatoForm } from '@/lib/form';
+import { diffondiProfilo } from '@/lib/federazione-coda';
 
 const MAX_BYTE = 1_500_000;
 
-function aggiorna() {
+async function aggiorna() {
   // nome e logo stanno nell'intestazione di ogni pagina
   revalidatePath('/', 'layout');
+  // e le squadre collegate hanno diritto al profilo aggiornato
+  await diffondiProfilo().catch(() => null);
 }
 
 async function soloAdmin() {
@@ -40,7 +43,7 @@ export async function salvaMiaSquadra(_prev: StatoForm, fd: FormData): Promise<S
     telefono: strOpt(fd, 'telefono'),
   };
   await prisma.miaSquadra.upsert({ where: { id: 'mia' }, create: dati, update: dati });
-  aggiorna();
+  await aggiorna();
   return { ok: 'Profilo della squadra salvato.' };
 }
 
@@ -59,7 +62,7 @@ export async function salvaLogoSquadra(dati: string | null): Promise<{ errore?: 
       create: { logoPath: null },
       update: { logoPath: null },
     });
-    aggiorna();
+    await aggiorna();
     return {};
   }
 
@@ -81,7 +84,7 @@ export async function salvaLogoSquadra(dati: string | null): Promise<{ errore?: 
     create: { logoPath },
     update: { logoPath },
   });
-  aggiorna();
+  await aggiorna();
   return {};
 }
 

@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db';
 import { etichettaEvento, isAdmin, tonoEvento } from '@/lib/domain';
 import { fmtDate, fmtEuro, umanizza } from '@/lib/format';
 import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
+import { DettagliProfilo, StemmaSquadra } from '@/components/ProfiloCollegato';
+import { profiloDi } from '@/lib/federazione';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniContatto } from '@/components/AzioniContatto';
@@ -29,6 +31,7 @@ export default async function SquadraPage({ params }: { params: Promise<{ id: st
     where: { id },
     include: {
       contatti: { orderBy: { ordine: 'asc' } },
+      collegamento: true,
       campi: {
         orderBy: [{ attivo: 'desc' }, { nome: 'asc' }],
         include: { _count: { select: { events: true } } },
@@ -124,6 +127,7 @@ export default async function SquadraPage({ params }: { params: Promise<{ id: st
         sottotitolo={localita || 'Squadra esterna'}
         etichette={
           <>
+            {squadra.collegamento?.stato === 'ATTIVO' && <Badge tono="ok">Gestionale collegato</Badge>}
             {squadra.stato === 'PREFERITA' && <Badge tono="warn">★ Preferita</Badge>}
             {squadra.stato === 'DISATTIVATA' && <Badge tono="neutro">Disattivata</Badge>}
             {squadra.figtAggiornataIl && <BadgeFigt il={squadra.figtAggiornataIl} />}
@@ -273,6 +277,25 @@ export default async function SquadraPage({ params }: { params: Promise<{ id: st
         </div>
 
         <aside className="min-w-0 space-y-4">
+          {squadra.collegamento?.stato === 'ATTIVO' && (
+            <div className="card">
+              <div className="mb-3 flex items-center gap-3">
+                <StemmaSquadra
+                  nome={squadra.nome}
+                  logo={squadra.logoPath ? `/api/squadre/${squadra.id}/logo` : null}
+                  size={40}
+                />
+                <div className="min-w-0">
+                  <p className="titolo-sezione">Dal loro gestionale</p>
+                  <p className="break-all text-xs text-muted">{squadra.collegamento.indirizzo}</p>
+                </div>
+              </div>
+              <DettagliProfilo profilo={profiloDi(squadra.collegamento)} />
+              <Link href="/admin/collegamenti" className="btn-ghost btn-sm mt-3">
+                <Icona nome="collegamento" size={14} /> Collegamenti
+              </Link>
+            </div>
+          )}
           <div className="card">
             <p className="titolo-sezione mb-3">Contatti</p>
             {contatti.length === 0 ? (

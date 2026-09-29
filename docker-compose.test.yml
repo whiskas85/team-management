@@ -57,6 +57,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
       SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione, diversa da quella di prod}
+      # come ci chiamano gli altri gestionali: test e test2 si collegano fra loro
+      INDIRIZZO_PUBBLICO: https://${ISTANZA:-test}.zerodarkteam.it
       COOKIE_SECURE: "1"
       # I pulsanti di accesso rapido, uno per figura, e i loro account di
       # prova: il test serve a guardare il gestionale con gli occhi di ognuno.

@@ -5,6 +5,33 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.119.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Collegamento fra gestionali (fase 2 di `docs/COLLEGAMENTO-SQUADRE.md`).**
+  Comando → **Collegamenti**:
+  - **Condividi il nostro profilo**: un link e il suo **QR**, validi 7 giorni,
+    revocabili, buoni anche per più squadre.
+  - Chi apre il link scrive l'indirizzo del suo gestionale (resta ricordato) e
+    continua di là; oppure lo incolla in «Collega una squadra».
+  - Nel proprio gestionale si sceglie se **collegarla a una squadra esistente**
+    (proposta quella con lo stesso nome) o **crearne una nuova** col loro
+    profilo, e parte la richiesta.
+  - Dall'altra parte arriva fra le **Richieste di collegamento** (col pallino nel
+    menu): si accetta, con la stessa scelta, o si rifiuta.
+  - Accettato, i due gestionali si scambiano il profilo — nome, logo, città,
+    recapiti, **referenti col callsign** — e sulla squadra compare l'**icona
+    del collegamento** e il logo; nella sua scheda, «Dal loro gestionale».
+  - Ogni cambio in «La mia squadra» arriva da solo alle squadre collegate.
+  - **Scollega** (o ritira una richiesta), da tutte e due le parti.
+- **Sicurezza:** ogni gestionale ha le sue chiavi e firma tutto quello che
+  manda; chi riceve una richiesta ricontrolla all'indirizzo del mittente che la
+  chiave sia davvero sua. Copiando i dati della produzione nel test, identità e
+  collegamenti della produzione non vengono portati.
+- **Se l'altro gestionale è spento** i messaggi restano in coda e si ritentano
+  da soli, in ordine; «Riprova adesso» per non aspettare.
+
 ## 2.118.0 — 29 settembre 2026
 
 ### Aggiunto

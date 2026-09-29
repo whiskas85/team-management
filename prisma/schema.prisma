@@ -251,6 +251,7 @@ model User {
   attivitaDaReferente   ReferenteEvento[]       @relation("ReferenteDi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   referenteSquadra      ReferenteMiaSquadra[]
+  linkCollegamento      LinkCollegamento[]
   sondaggiScritti       Sondaggio[]             @relation("SondaggiScritti")
   canaliCreati          CanaleSegnalazioni[]    @relation("CanaliCreati")
   segnalazioniCanale    SegnalazioneCanale[]    @relation("SegnalazioniCanale")
@@ -324,6 +325,97 @@ enum StatoSquadra {
   DISATTIVATA
 }
 
+// -------------------------------------------- collegamento fra gestionali
+// docs/COLLEGAMENTO-SQUADRE.md
+
+/// Chi è questo gestionale per gli altri: il suo indirizzo e le sue chiavi.
+///
+/// Nasce da sola la prima volta che serve. Tutto quello che si manda ai
+/// gestionali collegati è firmato con la chiave privata, e loro lo verificano
+/// con la pubblica: nessuno può fingersi noi. La privata è cifrata col segreto
+/// di sessione: copiata in un altro ambiente non si legge, e lì ne nasce una
+/// nuova — un test con i dati della produzione non può parlare a nome suo.
+model IdentitaGestionale {
+  id                   String   @id @default("io")
+  /// https://ops.zerodarkteam.it, senza la barra finale.
+  indirizzo            String
+  chiavePubblica       String
+  chiavePrivataCifrata String
+  creataIl             DateTime @default(now())
+}
+
+/// Un link (e il suo QR) per farsi collegare: chi lo apre nel suo gestionale
+/// manda la richiesta. Vale fino alla scadenza o finché non lo si revoca, e
+/// può servire a più squadre: lo si manda in un gruppo e basta.
+model LinkCollegamento {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  creatoDaId String
+  creatoDa   User      @relation(fields: [creatoDaId], references: [id], onDelete: Cascade)
+  creatoIl   DateTime  @default(now())
+  scadeIl    DateTime
+  revocatoIl DateTime?
+  /// Quante richieste sono arrivate con questo link.
+  usato      Int       @default(0)
+}
+
+enum StatoCollegamento {
+  /// L'abbiamo chiesto noi: si aspetta che l'altra squadra accetti.
+  RICHIESTO
+  /// L'hanno chiesto loro: è fra le richieste di collegamento.
+  DA_ACCETTARE
+  ATTIVO
+  RIFIUTATO
+  SCOLLEGATO
+}
+
+/// Il legame con il gestionale di un'altra squadra.
+model CollegamentoSquadra {
+  id             String            @id @default(cuid())
+  /// L'indirizzo del loro gestionale: è così che li si riconosce.
+  indirizzo      String            @unique
+  chiavePubblica String
+  stato          StatoCollegamento
+  /// La squadra dell'anagrafica a cui corrisponde. Vuota finché una richiesta
+  /// arrivata non è accettata: è lì che si sceglie.
+  squadraId      String?           @unique
+  squadra        SquadraEsterna?   @relation(fields: [squadraId], references: [id], onDelete: SetNull)
+  /// L'ultimo profilo che ci hanno mandato (nome, logo, referenti…).
+  profilo        Json
+  /// La versione del logo che abbiamo già scaricato.
+  logoVersione   String?
+  richiestoIl    DateTime          @default(now())
+  attivoDal      DateTime?
+  chiusoIl       DateTime?
+  /// Chi l'ha deciso l'ultima volta, da noi: accettato, rifiutato, scollegato.
+  decisoDa       String?
+  aggiornatoIl   DateTime          @updatedAt
+
+  messaggi MessaggioFederazione[]
+
+  @@index([stato])
+}
+
+/// Quello che si manda a un gestionale collegato, in coda finché non arriva.
+///
+/// Un gestionale può essere spento, aggiornarsi, non rispondere: si ritenta
+/// con attese sempre più lunghe, e per ogni collegamento si rispetta l'ordine.
+model MessaggioFederazione {
+  id             String              @id @default(cuid())
+  collegamentoId String
+  collegamento   CollegamentoSquadra @relation(fields: [collegamentoId], references: [id], onDelete: Cascade)
+  /// La rotta dall'altra parte: «accettata», «profilo», «scollega»…
+  tipo           String
+  corpo          Json
+  tentativi      Int                 @default(0)
+  prossimoIl     DateTime            @default(now())
+  ultimoErrore   String?
+  creatoIl       DateTime            @default(now())
+
+  @@index([prossimoIl])
+  @@index([collegamentoId, creatoIl])
+}
+
 /// La nostra squadra, come si presenta: una riga sola.
 ///
 /// Nome e logo sono anche quelli del gestionale — l'intestazione, l'app
@@ -390,9 +482,13 @@ model SquadraEsterna {
   figtAggiornataIl DateTime?
   createdAt        DateTime     @default(now())
 
-  contatti ContattoSquadra[]
-  campi    Field[]
-  inviti   SquadraOspite[]   @relation("InvitiSquadra")
+  /// Il logo, quando arriva dal gestionale della squadra collegata.
+  logoPath         String?
+
+  contatti     ContattoSquadra[]
+  campi        Field[]
+  inviti       SquadraOspite[]      @relation("InvitiSquadra")
+  collegamento CollegamentoSquadra?
 
   @@index([stato, nome])
 }

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { Icona } from '@/components/Icona';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin } from '@/lib/domain';
@@ -37,6 +39,11 @@ export default async function MiaSquadraPage() {
       <Intestazione
         titolo="La mia squadra"
         sottotitolo="Il biglietto da visita della squadra, e il nome del gestionale"
+        azioni={
+          <Link href="/admin/collegamenti" className="btn-primary btn-sm">
+            <Icona nome="collegamento" size={15} /> Condividi il profilo
+          </Link>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">

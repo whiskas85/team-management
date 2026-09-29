@@ -649,6 +649,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/ruoli', label: 'Ruoli', icona: 'chiave', gruppo: 'comando' },
       { href: '/admin/campi', label: 'Campi', icona: 'campi', gruppo: 'comando' },
       { href: '/admin/squadra', label: 'La mia squadra', icona: 'squadra', gruppo: 'comando' },
+      {
+        href: '/admin/collegamenti',
+        label: 'Collegamenti',
+        icona: 'collegamento',
+        gruppo: 'comando',
+        // le richieste di altre squadre aspettano una risposta
+        badge: await prisma.collegamentoSquadra.count({ where: { stato: 'DA_ACCETTARE' } }),
+      },
       { href: '/admin/squadre', label: 'Squadre esterne', icona: 'squadra', gruppo: 'comando' },
       { href: '/admin/stagioni', label: 'Stagioni', icona: 'calendario', gruppo: 'comando' },
       { href: '/admin/tariffe', label: 'Tariffario', icona: 'pagamenti', gruppo: 'comando' },

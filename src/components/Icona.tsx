@@ -42,6 +42,8 @@ export type NomeIcona =
   | 'maniglia'
   | 'allegato'
   | 'condividi'
+  | 'collegamento'
+  | 'qrcode'
   | 'carrello'
   | 'appello'
   | 'presente'
@@ -115,6 +117,10 @@ const PATHS: Record<NomeIcona, string> = {
     'M18.5 10.5 11 18a4 4 0 0 1-5.7-5.7l8-8a2.8 2.8 0 0 1 4 4l-8 8a1.6 1.6 0 0 1-2.2-2.2l7.1-7.1',
   condividi:
     'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
+  // due anelli di catena: due gestionali collegati
+  collegamento:
+    'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
+  qrcode: 'M4 4h6v6H4ZM14 4h6v6h-6ZM4 14h6v6H4ZM14 14h2v2h-2ZM18 18h2v2h-2ZM14 18h2M18 14h2M7 7h0M17 7h0M7 17h0',
   carrello:
     'M3 4h2l2.2 10.2a1 1 0 0 0 1 .8h8.1a1 1 0 0 0 1-.8L19 8H6M10 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM18 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z',
   telefono:

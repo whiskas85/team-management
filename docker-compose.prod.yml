@@ -53,6 +53,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
       SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione lunga almeno 32 caratteri}
+      # come ci chiamano i gestionali delle altre squadre (docs/COLLEGAMENTO-SQUADRE.md)
+      INDIRIZZO_PUBBLICO: https://${DOMINIO}
       # dietro HTTPS vero il cookie viaggia solo su connessione cifrata
       COOKIE_SECURE: "1"
       # in produzione non esistono scorciatoie di accesso

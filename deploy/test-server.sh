@@ -182,7 +182,11 @@ $DOMINIO_TEST {
 	# prima del gestionale, una password del proxy: dentro ci sono i dati
 	# veri della squadra, e senza questa chi non la conosce non vede nemmeno
 	# la pagina di accesso
-	basic_auth {
+	# … tranne le rotte con cui i gestionali si parlano fra loro
+	# (docs/COLLEGAMENTO-SQUADRE.md): un altro gestionale la password non la
+	# sa, e non gli serve — quelle rotte accettano solo messaggi firmati
+	@protetto not path /api/federazione/*
+	basic_auth @protetto {
 		$(leggi PROXY_UTENTE) $hash
 	}
 
@@ -249,6 +253,12 @@ copia_dati() {
     -v gestionale_uploads:/da:ro \
     -v gestionale-test_uploads:/a \
     alpine sh -c 'find /a -mindepth 1 -delete && cp -a /da/. /a/'
+
+  # L'identità della produzione e i suoi collegamenti restano là: il test non
+  # deve poter parlare con le altre squadre a nome della produzione
+  docker exec zd-test-db sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+    DELETE FROM \"MessaggioFederazione\"; DELETE FROM \"CollegamentoSquadra\";
+    DELETE FROM \"LinkCollegamento\"; DELETE FROM \"IdentitaGestionale\";"' || true
 
   zdt start app
   echo "Fatto. Nel test ora si entra con le credenziali della produzione."
