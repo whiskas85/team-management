@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.123.0 — 29 settembre 2026
+
+### Cambiato
+
+- **Modifica di un'attività, a schede.** Il modulo lungo è diviso per
+  argomento: **Cosa e quando**, **Dove**, **Responsabili**, **Partecipanti**,
+  **Pagamenti** (con il costo per le squadre ospiti) e **Note**. Si passa da una
+  scheda all'altra senza perdere niente: salvando partono tutti i campi. Se un
+  campo obbligatorio è rimasto vuoto in un'altra scheda, il modulo ci porta da
+  solo. La creazione veloce dal calendario resta com'era.
+
 ## 2.122.0 — 29 settembre 2026
 
 ### Aggiunto

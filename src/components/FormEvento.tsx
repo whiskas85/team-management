@@ -6,6 +6,7 @@ import { CercaLuogo } from './CercaLuogo';
 import { SceltaReferenti } from './SceltaReferenti';
 import { InizioFine } from './InizioFine';
 import { OraRitrovo } from './OraRitrovo';
+import { SchedeModulo } from './SchedeModulo';
 import type { VoceListino } from './CampiRichiesta';
 
 type CampoGioco = { id: string; nome: string; citta: string | null; attivo?: boolean };
@@ -192,7 +193,7 @@ export function FormEvento({
   // compilarne quattro.
   const eRiunione = evento?.tipo?.riunione ?? false;
 
-  const dove = (
+  const dove = (conReferenti = true) => (
     <Sezione
       titolo="Dove"
       sottotitolo="Il campo dall'elenco, oppure un indirizzo qualsiasi. E dove ci si trova prima."
@@ -257,7 +258,9 @@ export function FormEvento({
           decide solo l'admin: sono il nome a cui chiedere, cambiano da
           un'uscita all'altra, e spesso li si sistema il giorno prima —
           esattamente come il punto di ritrovo. */}
-      {squadra.length > 0 && <SceltaReferenti squadra={squadra} scelti={referenti} />}
+      {conReferenti && squadra.length > 0 && (
+        <SceltaReferenti squadra={squadra} scelti={referenti} />
+      )}
     </Sezione>
   );
 
@@ -277,17 +280,15 @@ export function FormEvento({
               />
             </Campo>
           </Sezione>
-          {dove}
+          {dove()}
         </div>
       </>
     );
   }
 
-  return (
-    <>
-      {evento && <input type="hidden" name="id" value={evento.id} />}
-
-      <div className="space-y-4">
+  // Le sezioni, una per scheda: aperto per modificare, il modulo si divide in
+  // schede; nella creazione veloce dal calendario resta la sola prima.
+  const cosa = (
         <Sezione titolo="Cos'è">
           {bloccati ? (
             avvisoBloccati
@@ -383,12 +384,9 @@ export function FormEvento({
           </Campo>
           )}
         </Sezione>
+  );
 
-        {!compatto && (
-          <>
-            {dove}
-
-            {!eRiunione && (
+  const chiCiSta = (
             <Sezione
               titolo="Chi ci sta"
               sottotitolo="I posti non chiudono le adesioni: chi avanza va in riserva."
@@ -466,12 +464,9 @@ export function FormEvento({
                 </p>
               </Campo>
             </Sezione>
-            )}
+  );
 
-            {/* La barra sul bordo si accende quando c'è una quota: aprendo
-                un'attività già scritta si vede a colpo d'occhio se qualcuno
-                dovrà pagare, senza scorrere fino in fondo. */}
-            {!eRiunione && (
+  const pagamenti = (
             <Sezione
               titolo="Pagamenti"
               sottotitolo={
@@ -504,12 +499,9 @@ export function FormEvento({
                 />
               </div>
             </Sezione>
-            )}
+  );
 
-            {/* Quanto chiediamo alle squadre col gestionale collegato che
-                invitiamo: lo vedono nel loro, coi nostri metodi di pagamento,
-                e il conto lo fanno sui loro presenti. */}
-            {!eRiunione && !bloccati && (
+  const ospiti = (
               <Sezione
                 titolo="Squadre ospiti"
                 sottotitolo="Il costo per le squadre collegate che invitiamo: lo pagano come squadra, con i nostri metodi di pagamento."
@@ -536,8 +528,9 @@ export function FormEvento({
                   </select>
                 </Campo>
               </Sezione>
-            )}
+  );
 
+  const note = (
             <Sezione titolo="Note interne" sottotitolo="Le legge chi gestisce il calendario.">
               <Campo label="Note" span>
                 <textarea
@@ -548,7 +541,54 @@ export function FormEvento({
                 />
               </Campo>
             </Sezione>
-          </>
+  );
+
+  return (
+    <>
+      {evento && <input type="hidden" name="id" value={evento.id} />}
+
+      <div className="space-y-4">
+        {compatto ? (
+          cosa
+        ) : (
+          <SchedeModulo
+            schede={[
+              { chiave: 'cosa', titolo: 'Cosa e quando', contenuto: cosa },
+              { chiave: 'dove', titolo: 'Dove', contenuto: dove(false) },
+              ...(squadra.length > 0
+                ? [
+                    {
+                      chiave: 'responsabili',
+                      titolo: 'Responsabili',
+                      contenuto: (
+                        <Sezione
+                          titolo="Responsabili"
+                          sottotitolo="Chi tiene in mano l'attività: il nome a cui si chiede com'è la giornata."
+                        >
+                          <SceltaReferenti squadra={squadra} scelti={referenti} />
+                        </Sezione>
+                      ),
+                    },
+                  ]
+                : []),
+              ...(!eRiunione
+                ? [
+                    { chiave: 'partecipanti', titolo: 'Partecipanti', contenuto: chiCiSta },
+                    {
+                      chiave: 'pagamenti',
+                      titolo: 'Pagamenti',
+                      contenuto: (
+                        <>
+                          {pagamenti}
+                          {!bloccati && ospiti}
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+              { chiave: 'note', titolo: 'Note', contenuto: note },
+            ]}
+          />
         )}
       </div>
     </>
