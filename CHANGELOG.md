@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.120.1 — 29 settembre 2026
+
+### Corretto
+
+- **Squadre collegate, il nome nuovo.** Quando una squadra collegata cambiava
+  nome in «La mia squadra», il profilo arrivava ma la squadra nell'anagrafica
+  teneva il nome vecchio — ed è quello che si legge ovunque, sul badge di chi
+  organizza e fra gli ospiti. Ora segue il loro profilo: nome, e città e
+  recapiti quando li danno. Se un'altra squadra ha già quel nome, resta quello
+  di prima per non averne due uguali.
+
 ## 2.120.0 — 29 settembre 2026
 
 ### Aggiunto

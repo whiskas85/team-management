@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -154,11 +155,43 @@ export async function salvaProfiloRicevuto(c: CollegamentoSquadra, grezzo: unkno
     where: { id: c.id },
     data: { profilo: profilo as unknown as Prisma.InputJsonValue },
   });
+  if (c.squadraId) await allineaSquadra(c.squadraId, profilo);
   if (c.squadraId && profilo.logo && profilo.logo !== c.logoVersione) {
     await scaricaLogo({ ...c, profilo: profilo as unknown as Prisma.JsonValue }, profilo).catch(
       () => null,
     );
   }
+}
+
+/**
+ * La squadra dell'anagrafica segue il profilo che ci mandano: se cambiano nome
+ * lo cambia anche lei — è quello che si legge ovunque, sul badge
+ * dell'organizzatore e fra gli ospiti — e così città e recapiti, quando li
+ * danno. Quello che non ci dicono resta com'era scritto qui.
+ */
+async function allineaSquadra(squadraId: string, profilo: Profilo) {
+  const squadra = await prisma.squadraEsterna.findUnique({ where: { id: squadraId } });
+  if (!squadra) return;
+  const dati: Prisma.SquadraEsternaUpdateInput = {};
+  if (profilo.nome !== squadra.nome) {
+    // un'altra squadra con quel nome c'è già: meglio il nome vecchio che due uguali
+    const doppione = await prisma.squadraEsterna.findUnique({ where: { nome: profilo.nome } });
+    if (!doppione) dati.nome = profilo.nome;
+  }
+  for (const k of ['citta', 'provincia', 'sito', 'email', 'telefono'] as const) {
+    if (profilo[k] && profilo[k] !== squadra[k]) dati[k] = profilo[k];
+  }
+  if (Object.keys(dati).length === 0) return;
+  await prisma.squadraEsterna.update({ where: { id: squadraId }, data: dati });
+  // gli inviti portano il nome copiato: si rinominano anche loro
+  if (dati.nome) {
+    await prisma.squadraOspite
+      .updateMany({ where: { squadraId }, data: { nome: profilo.nome } })
+      .catch(() => null);
+  }
+  revalidatePath('/admin/squadre', 'layout');
+  revalidatePath('/admin/collegamenti');
+  revalidatePath('/calendario', 'layout');
 }
 
 /** Scarica il logo di una squadra collegata e lo mette sulla sua scheda. */
