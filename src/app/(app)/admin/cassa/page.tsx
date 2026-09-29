@@ -195,13 +195,18 @@ export default async function CassaPage({
   // i versamenti a credito sono soldi che entrano, i resi soldi che escono;
   // l'uso su una quota no, è un passaggio interno
   const daCrediti: Voce[] = crediti
-    .filter((c) => c.tipo === 'VERSAMENTO' || c.tipo === 'RESO')
+    .filter((c) => c.tipo === 'VERSAMENTO' || c.tipo === 'DA_QUOTA' || c.tipo === 'RESO')
     .map((c) => ({
       chiave: `c-${c.id}`,
       data: c.data,
-      entrata: c.tipo === 'VERSAMENTO',
+      entrata: c.tipo !== 'RESO',
       importo: Math.abs(Number(c.importo)),
-      descrizione: c.tipo === 'VERSAMENTO' ? 'Versamento a credito' : 'Credito restituito',
+      descrizione:
+        c.tipo === 'VERSAMENTO'
+          ? 'Versamento a credito'
+          : c.tipo === 'DA_QUOTA'
+            ? `Credito da «${c.descrizione}»`
+            : 'Credito restituito',
       dettaglio: `${c.user.cognome} ${c.user.nome}${c.user.callsign ? ` · ${c.user.callsign}` : ''}${c.note ? ` · ${c.note}` : ''}`,
       categoria: 'Credito',
       metodo: c.metodo?.nome ?? null,

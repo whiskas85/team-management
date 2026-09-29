@@ -3,19 +3,21 @@ import { prisma } from './db';
 import { quoteTutteSaldate } from './casse';
 
 /**
- * Il credito: soldi versati prima delle quote.
+ * Il credito: soldi già in cassa che restano di chi li ha dati.
  *
- * Jak dà 30 € alla segreteria. Se ha delle quote aperte in quella cassa, i
- * soldi le pagano subito; quello che avanza resta suo, come credito, e paga da
- * solo le quote che arriveranno. Lui lo vede nei suoi pagamenti, chi tiene la
- * cassa vede chi ha credito e quanto.
+ * Nasce soprattutto da una quota pagata che non serve più — l'evento si
+ * annulla, uno non può più venire — quando chi aveva pagato, invece del
+ * rimborso, preferisce tenerli per la prossima. Si può anche registrare un
+ * versamento a credito, senza una quota di mezzo.
  *
- * Il credito è un registro (MovimentoCredito), non un numero scritto: +30 al
- * versamento, −20 legato alla quota quando la paga. La quota intanto si
- * ritrova 20 € incassati, come se li avesse dati allora. Il saldo della cassa
- * è quindi l'incassato sulle quote **più** il credito che resta: i soldi si
- * contano una volta sola, e le quote pagate col credito si leggono come tutte
- * le altre.
+ * **Si spende come un pagamento**: quando si paga una quota il credito è
+ * proposto per primo, già scelto, e chi paga (o chi incassa) può preferire un
+ * altro metodo. Non si scala mai da solo.
+ *
+ * È un registro (MovimentoCredito), non un numero scritto: +20 quando nasce,
+ * −10 legato alla quota quando la paga, e la quota si ritrova 10 € incassati.
+ * Il saldo della cassa è l'incassato sulle quote **più** il credito che resta:
+ * i soldi si contano una volta sola.
  */
 
 const centesimi = (n: number) => Math.round(n * 100) / 100;
@@ -63,75 +65,116 @@ const statoDaImporti = (importo: number, pagato: number) =>
   pagato <= 0.001 ? ('DA_PAGARE' as const) : pagato + 0.001 >= importo ? ('PAGATO' as const) : ('PARZIALE' as const);
 
 /**
- * Paga col credito le quote aperte di una persona in una cassa, dalla più
- * vecchia. Si chiama dopo un versamento e ogni volta che nasce una quota: il
- * credito non aspetta nessuno. Restano fuori le quote per cui la persona ha
- * detto di aver già pagato in un altro modo, e quelle gestite fuori.
+ * Paga una quota col credito di chi la deve, nella sua cassa: tutta, o fin
+ * dove arriva il credito (fino a `massimo`, se chi paga ne vuole usare meno).
+ * Chi era convocato passa titolare quando tutte le sue quote dell'attività
+ * sono chiuse, come quando l'incasso lo registra la segreteria.
  *
- * Restituisce quanto è stato usato.
+ * Restituisce quanto è stato usato: zero se non c'era credito o niente da pagare.
  */
-export async function usaCredito(userId: string, cassaId: string | null): Promise<number> {
-  let credito = await saldoCredito(userId, cassaId);
-  if (credito <= 0) return 0;
+export async function pagaConCredito(paymentId: string, massimo?: number): Promise<number> {
+  const q = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!q || q.tipo === 'RIMBORSO') return 0;
+  if (q.status !== 'DA_PAGARE' && q.status !== 'PARZIALE') return 0;
+  const credito = await saldoCredito(q.userId, q.cassaId);
+  const resto = centesimi(Number(q.importo) - Number(q.pagato));
+  const quanto = centesimi(Math.min(resto, credito, massimo ?? Infinity));
+  if (quanto <= 0) return 0;
 
-  const aperte = await prisma.payment.findMany({
-    where: {
-      userId,
-      cassaId,
-      tipo: { not: 'RIMBORSO' },
-      status: { in: ['DA_PAGARE', 'PARZIALE'] },
-      dichiaratoIl: null,
-    },
-    orderBy: [{ scadenza: 'asc' }, { createdAt: 'asc' }],
+  const pagato = centesimi(Number(q.pagato) + quanto);
+  const status = statoDaImporti(Number(q.importo), pagato);
+  await prisma.$transaction([
+    prisma.movimentoCredito.create({
+      data: {
+        userId: q.userId,
+        cassaId: q.cassaId,
+        tipo: 'USO',
+        importo: -quanto,
+        paymentId: q.id,
+        descrizione: q.descrizione,
+      },
+    }),
+    prisma.payment.update({
+      where: { id: q.id },
+      data: {
+        pagato,
+        status,
+        pagatoIl: status === 'PAGATO' ? new Date() : null,
+        // pagata: la segnalazione di un altro metodo non serve più
+        ...(status === 'PAGATO' ? { dichiaratoIl: null } : {}),
+      },
+    }),
+  ]);
+
+  if (status === 'PAGATO' && q.eventId && (await quoteTutteSaldate(q.eventId, q.userId))) {
+    await prisma.eventRsvp.updateMany({
+      where: { eventId: q.eventId, userId: q.userId, assegnazione: 'CONVOCATO' },
+      data: { assegnazione: 'TITOLARE' },
+    });
+    revalidatePath(`/calendario/${q.eventId}`);
+  }
+  return quanto;
+}
+
+/**
+ * Una quota pagata diventa credito: i soldi restano in cassa e tornano di chi
+ * li aveva dati, da spendere su un'altra attività. La quota si chiude
+ * (annullata, con la nota), e un rimborso eventualmente chiesto per lei non
+ * serve più.
+ *
+ * Restituisce quanto è diventato credito.
+ */
+export async function quotaInCredito(paymentId: string, chi: string): Promise<number> {
+  const q = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: { rimborso: true },
   });
+  if (!q || q.tipo === 'RIMBORSO') return 0;
 
-  let usato = 0;
-  const eventiDaPromuovere = new Set<string>();
-  for (const q of aperte) {
-    if (credito <= 0) break;
-    const resto = centesimi(Number(q.importo) - Number(q.pagato));
-    if (resto <= 0) continue;
-    const quanto = centesimi(Math.min(resto, credito));
-    const pagato = centesimi(Number(q.pagato) + quanto);
-    const status = statoDaImporti(Number(q.importo), pagato);
-    await prisma.$transaction([
-      prisma.movimentoCredito.create({
-        data: {
-          userId,
-          cassaId,
-          tipo: 'USO',
-          importo: -quanto,
-          paymentId: q.id,
-          descrizione: q.descrizione,
-        },
-      }),
-      prisma.payment.update({
-        where: { id: q.id },
-        data: {
-          pagato,
-          status,
-          pagatoIl: status === 'PAGATO' ? new Date() : null,
-        },
-      }),
-    ]);
-    credito = centesimi(credito - quanto);
-    usato = centesimi(usato + quanto);
-    if (status === 'PAGATO' && q.eventId) eventiDaPromuovere.add(q.eventId);
-  }
+  // la parte già pagata col credito torna com'era, il resto nasce ora
+  const giaCredito = await riprendiCredito(q.id);
+  const fresca = await prisma.payment.findUnique({ where: { id: q.id } });
+  const contanti = centesimi(Number(fresca?.pagato ?? 0));
+  const nota = `Trasformata in credito il ${new Date().toLocaleDateString('it-IT')} (${chi})`;
 
-  // Il posto si tiene pagando, anche col credito: chi era convocato diventa
-  // titolare quando tutte le sue quote dell'attività sono chiuse, come quando
-  // l'incasso lo registra la segreteria.
-  for (const eventId of eventiDaPromuovere) {
-    if (await quoteTutteSaldate(eventId, userId)) {
-      await prisma.eventRsvp.updateMany({
-        where: { eventId, userId, assegnazione: 'CONVOCATO' },
-        data: { assegnazione: 'TITOLARE' },
-      });
-      revalidatePath(`/calendario/${eventId}`);
-    }
-  }
-  return usato;
+  await prisma.$transaction([
+    ...(contanti > 0
+      ? [
+          prisma.movimentoCredito.create({
+            data: {
+              userId: q.userId,
+              cassaId: q.cassaId,
+              tipo: 'DA_QUOTA' as const,
+              importo: contanti,
+              descrizione: q.descrizione,
+              // la data in cui i soldi sono entrati davvero
+              data: q.pagatoIl ?? new Date(),
+            },
+          }),
+        ]
+      : []),
+    prisma.payment.update({
+      where: { id: q.id },
+      data: {
+        pagato: 0,
+        status: 'ANNULLATO',
+        pagatoIl: null,
+        note: [q.note, nota].filter(Boolean).join(' · '),
+      },
+    }),
+    ...(q.rimborso && q.rimborso.status !== 'PAGATO'
+      ? [
+          prisma.payment.update({
+            where: { id: q.rimborso.id },
+            data: {
+              status: 'ANNULLATO',
+              note: [q.rimborso.note, 'Non serve: tenuto come credito'].filter(Boolean).join(' · '),
+            },
+          }),
+        ]
+      : []),
+  ]);
+  return centesimi(contanti + giaCredito);
 }
 
 /** Quanto di una quota è stato pagato col credito, e non ancora ripreso. */

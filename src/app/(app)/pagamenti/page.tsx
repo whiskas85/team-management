@@ -8,7 +8,8 @@ import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { dichiaraPagamento } from '@/actions/metodi';
-import { chiediRimborso } from '@/actions/pagamenti';
+import { chiediRimborso, trasformaInCredito } from '@/actions/pagamenti';
+import { SceltaPagamento } from '@/components/SceltaPagamento';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { daSaldare } from '@/lib/da-saldare';
 import { MetodiPagamento, type MetodoDaMostrare } from '@/components/MetodiPagamento';
@@ -24,7 +25,16 @@ export default async function MieiPagamentiPage() {
       include: {
         metodo: { select: { nome: true } },
         cassa: { select: { nome: true } },
-        event: { select: { id: true, titolo: true, inizio: true } },
+        event: {
+          select: {
+            id: true,
+            titolo: true,
+            inizio: true,
+            status: true,
+            // la mia risposta: dice se la quota mi serve ancora
+            rsvps: { where: { userId: me.id }, select: { status: true } },
+          },
+        },
         rimborso: { select: { id: true, status: true } },
         crediti: { select: { importo: true } },
       },
@@ -52,6 +62,12 @@ export default async function MieiPagamentiPage() {
   }
   const crediti = [...perCassa.values()].filter((c) => c.credito > 0.001);
   const credito = crediti.reduce((t, c) => t + c.credito, 0);
+  /** Il credito disponibile nella cassa di una quota. */
+  const creditoPer = (p: (typeof pagamenti)[number]) =>
+    Math.max(0, perCassa.get(p.cassaId ?? 'club')?.credito ?? 0);
+  /** La quota non serve più: attività annullata, o non ci vado. */
+  const nonServe = (p: (typeof pagamenti)[number]) =>
+    !!p.event && (p.event.status === 'ANNULLATA' || p.event.rsvps[0]?.status !== 'PRESENTE');
   /** Quanto di una quota l'ha pagato il credito. */
   const dalCredito = (p: (typeof pagamenti)[number]) =>
     -p.crediti.reduce((t, c) => t + Number(c.importo), 0);
@@ -84,7 +100,7 @@ export default async function MieiPagamentiPage() {
           etichetta="Credito"
           valore={fmtEuro(credito)}
           dettaglio={
-            credito > 0 ? 'si usa da solo sulle prossime quote' : 'nessun versamento in attesa'
+            credito > 0 ? 'lo usi quando paghi una quota' : 'niente da spendere'
           }
           tono={credito > 0 ? 'ok' : 'neutro'}
         />
@@ -106,7 +122,7 @@ export default async function MieiPagamentiPage() {
                 </span>
               ))}
               <span className="block text-xs text-muted">
-                Le prossime quote di quella cassa lo scalano da sole: non devi fare niente.
+                Quando paghi una quota di quella cassa te lo proponiamo per primo: basta un tocco.
               </span>
             </p>
           ) : (
@@ -119,6 +135,8 @@ export default async function MieiPagamentiPage() {
                 <span className="min-w-0 flex-1 break-words">
                   {m.tipo === 'VERSAMENTO'
                     ? 'Versamento'
+                    : m.tipo === 'DA_QUOTA'
+                      ? `Tenuto come credito da «${m.descrizione}»`
                     : m.tipo === 'USO'
                       ? `Usato per «${m.descrizione}»`
                       : m.tipo === 'RIPRESO'
@@ -187,6 +205,8 @@ export default async function MieiPagamentiPage() {
                   pagamento={p}
                   metodi={metodi.filter((m) => m.cassaId === p.cassaId)}
                   cassa={p.cassa?.nome ?? null}
+                  credito={creditoPer(p)}
+                  nonServe={nonServe(p)}
                 />
               </div>
             </div>
@@ -246,6 +266,8 @@ export default async function MieiPagamentiPage() {
                   pagamento={p}
                   metodi={metodi.filter((m) => m.cassaId === p.cassaId)}
                   cassa={p.cassa?.nome ?? null}
+                  credito={creditoPer(p)}
+                  nonServe={nonServe(p)}
                 />
                     </td>
                   </tr>
@@ -299,6 +321,8 @@ function Dichiara({
   pagamento,
   metodi,
   cassa = null,
+  credito,
+  nonServe,
 }: {
   pagamento: {
     id: string;
@@ -316,35 +340,56 @@ function Dichiara({
   metodi: { id: string; nome: string; istruzioni: string | null }[];
   /** A chi va pagata, se non al club: il nome della sua cassa. */
   cassa?: string | null;
+  /** Il credito disponibile nella cassa di questa quota. */
+  credito: number;
+  /** La quota non serve più (attività annullata, o non ci va): si può tenere come credito. */
+  nonServe: boolean;
 }) {
-  // quota già versata: se serve, da qui si chiede indietro
+  // quota già versata: se non serve più si tiene come credito, oppure si
+  // chiede indietro la parte pagata in contanti
   if (
     pagamento.status === 'PAGATO' &&
     pagamento.tipo !== 'RIMBORSO' &&
     Number(pagamento.pagato) > 0
   ) {
-    // pagata tutta col credito: se non partecipa più, torna credito da sola
     const dalCredito = -(pagamento.crediti ?? []).reduce((t, c) => t + Number(c.importo), 0);
-    if (Number(pagamento.pagato) - dalCredito <= 0.001) {
-      return <span className="text-xs text-nvg">pagata col credito</span>;
-    }
-    if (pagamento.rimborso) {
-      return (
-        <span className="text-xs text-warn">
-          {pagamento.rimborso.status === 'PAGATO' ? 'rimborsato' : 'rimborso richiesto'}
-        </span>
-      );
-    }
+    const inContanti = Number(pagamento.pagato) - dalCredito > 0.001;
+    const rimborsoAperto = pagamento.rimborso && pagamento.rimborso.status !== 'PAGATO';
     return (
-      <AzioneBottone
-        azione={chiediRimborso}
-        valori={{ id: pagamento.id }}
-        icona="riapri"
-        conferma="Chiedere il rimborso di questa quota?"
-        className="btn-ghost btn-sm"
-      >
-        Chiedi rimborso
-      </AzioneBottone>
+      <span className="flex flex-wrap items-center justify-end gap-2">
+        {!inContanti && <span className="text-xs text-nvg">pagata col credito</span>}
+        {pagamento.rimborso && (
+          <span className="text-xs text-warn">
+            {pagamento.rimborso.status === 'PAGATO' ? 'rimborsato' : 'rimborso richiesto'}
+          </span>
+        )}
+        {nonServe && (!pagamento.rimborso || rimborsoAperto) && (
+          <AzioneBottone
+            azione={trasformaInCredito}
+            valori={{ id: pagamento.id }}
+            icona="incassa"
+            conferma={
+              rimborsoAperto
+                ? 'Tenere i soldi come credito invece del rimborso? Li spendi alla prossima quota.'
+                : 'Tenere i soldi di questa quota come credito? Li spendi alla prossima quota.'
+            }
+            className="btn-ghost btn-sm"
+          >
+            Tieni come credito
+          </AzioneBottone>
+        )}
+        {inContanti && !pagamento.rimborso && (
+          <AzioneBottone
+            azione={chiediRimborso}
+            valori={{ id: pagamento.id }}
+            icona="riapri"
+            conferma="Chiedere il rimborso di questa quota?"
+            className="btn-ghost btn-sm"
+          >
+            Chiedi rimborso
+          </AzioneBottone>
+        )}
+      </span>
     );
   }
 
@@ -357,7 +402,7 @@ function Dichiara({
   if (pagamento.tipo === 'RIMBORSO') {
     return <span className="text-xs text-warn">in attesa di erogazione</span>;
   }
-  if (metodi.length === 0) {
+  if (metodi.length === 0 && credito <= 0) {
     return <span className="text-xs text-muted">Salda con {cassa ?? 'la segreteria'}</span>;
   }
 
@@ -372,6 +417,60 @@ function Dichiara({
     iban: primoIban(m.istruzioni),
   }));
   const giaSegnalato = !!pagamento.dichiaratoIl;
+
+  // i metodi di sempre e la segnalazione: da soli, o come alternativa al credito
+  const AltriMetodi = () => (
+    <>
+        {!giaSegnalato && (
+        <div>
+          <p className="titolo-sezione">Come pagare</p>
+          <p className="mb-2 mt-0.5 text-[11px] text-muted">
+            Tocca il metodo con cui paghi: lo trovi già scelto qui sotto.
+          </p>
+          <MetodiPagamento metodi={comePagare} campoMetodo={`metodo-${pagamento.id}`} />
+        </div>
+      )}
+
+      <FormAzione azione={dichiaraPagamento} className="space-y-4 border-t border-line pt-4">
+        <input type="hidden" name="id" value={pagamento.id} />
+        <p className="titolo-sezione">{giaSegnalato ? 'La tua segnalazione' : 'Hai pagato? Segnalalo'}</p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Campo label="Con quale metodo *">
+            <select
+              id={`metodo-${pagamento.id}`}
+              name="metodoId"
+              required
+              className="input"
+              defaultValue={pagamento.metodoId ?? ''}
+            >
+              <option value="">— seleziona —</option>
+              {metodi.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome}
+                </option>
+              ))}
+            </select>
+          </Campo>
+
+          <Campo label="Quando">
+            <input
+              type="date"
+              name="quando"
+              defaultValue={inputDate(pagamento.dichiaratoIl ?? new Date())}
+              className="input"
+            />
+          </Campo>
+        </div>
+
+        <Invia icona="incassa">Segnala il pagamento</Invia>
+        <p className="text-xs text-muted">
+          La quota risulterà saldata quando{' '}
+          {cassa ? `chi gestisce «${cassa}»` : 'la segreteria'} avrà verificato l’incasso.
+        </p>
+      </FormAzione>
+    </>
+  );
 
   /*
    * Un pulsante solo, «Paga», che apre tutto quello che serve a chi paga:
@@ -403,54 +502,21 @@ function Dichiara({
           )}
         </div>
 
-        {!giaSegnalato && (
-          <div>
-            <p className="titolo-sezione">Come pagare</p>
-            <p className="mb-2 mt-0.5 text-[11px] text-muted">
-              Tocca il metodo con cui paghi: lo trovi già scelto qui sotto.
-            </p>
-            <MetodiPagamento metodi={comePagare} campoMetodo={`metodo-${pagamento.id}`} />
-          </div>
+        {credito > 0 && !giaSegnalato ? (
+          <SceltaPagamento
+            paymentId={pagamento.id}
+            credito={credito}
+            daPagare={Number(pagamento.importo) - Number(pagamento.pagato)}
+          >
+            {metodi.length > 0 ? (
+              <AltriMetodi />
+            ) : (
+              <p className="text-sm text-muted">Il resto si salda con {cassa ?? 'la segreteria'}.</p>
+            )}
+          </SceltaPagamento>
+        ) : (
+          <AltriMetodi />
         )}
-
-        <FormAzione azione={dichiaraPagamento} className="space-y-4 border-t border-line pt-4">
-          <input type="hidden" name="id" value={pagamento.id} />
-          <p className="titolo-sezione">{giaSegnalato ? 'La tua segnalazione' : 'Hai pagato? Segnalalo'}</p>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Campo label="Con quale metodo *">
-              <select
-                id={`metodo-${pagamento.id}`}
-                name="metodoId"
-                required
-                className="input"
-                defaultValue={pagamento.metodoId ?? ''}
-              >
-                <option value="">— seleziona —</option>
-                {metodi.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-
-            <Campo label="Quando">
-              <input
-                type="date"
-                name="quando"
-                defaultValue={inputDate(pagamento.dichiaratoIl ?? new Date())}
-                className="input"
-              />
-            </Campo>
-          </div>
-
-          <Invia icona="incassa">Segnala il pagamento</Invia>
-          <p className="text-xs text-muted">
-            La quota risulterà saldata quando{' '}
-            {cassa ? `chi gestisce «${cassa}»` : 'la segreteria'} avrà verificato l’incasso.
-          </p>
-        </FormAzione>
       </div>
     </BottoneModale>
   );

@@ -290,6 +290,16 @@ export default async function ProfiloPage() {
           tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
           href="/pagamenti"
         />
+        {/* il credito: soldi già in cassa, da spendere quando si paga */}
+        {credito > 0.001 && (
+          <Statistica
+            etichetta="Credito"
+            valore={fmtEuro(credito)}
+            dettaglio="lo usi quando paghi una quota"
+            tono="ok"
+            href="/pagamenti"
+          />
+        )}
         {tesserato && (
           <Statistica
             etichetta="Nel club da"

@@ -51,8 +51,32 @@ export function raggruppaPerAttivita<T extends Pagamento>(righe: T[]): GruppoAtt
   return [...gruppi.values()].sort((a, b) => Number(!a.eventId) - Number(!b.eventId));
 }
 
+/**
+ * Gli incassati, e tutti, si leggono per data di pagamento: un elenco solo,
+ * dal più recente, senza gruppi — quello che interessa è cosa è entrato e
+ * quando, non di che giornata fosse. Le altre viste restano per attività.
+ */
+export function gruppiDellaVista<T extends Pagamento>(
+  righe: T[],
+  perData: boolean,
+): GruppoAttivita<T>[] {
+  if (!perData) return raggruppaPerAttivita(righe);
+  return [
+    {
+      chiave: 'per-data',
+      titolo: '',
+      eventId: null,
+      quando: null,
+      righe,
+      aperto: 0,
+    },
+  ];
+}
+
 /** Il titolo di un gruppo: l'attività, quando, quanti sono e quanto manca. */
 export function TitoloGruppo({ gruppo }: { gruppo: GruppoAttivita<unknown> }) {
+  // l'elenco per data non ha un titolo: è uno solo
+  if (gruppo.chiave === 'per-data') return null;
   return (
     <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
       {gruppo.eventId ? (

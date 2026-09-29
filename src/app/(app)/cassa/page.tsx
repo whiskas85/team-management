@@ -12,12 +12,17 @@ import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/compone
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
-import { segnaNonGestito, segnaPagato, tornaDaGestire } from '@/actions/pagamenti';
+import {
+  segnaNonGestito,
+  segnaPagato,
+  tornaDaGestire,
+  trasformaInCredito,
+} from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
-import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
+import { gruppiDellaVista, TitoloGruppo } from '@/components/GruppiAttivita';
 import { MetodiCassa } from '@/components/MetodiCassa';
 import { CreditiCassa } from '@/components/CreditiCassa';
-import { creditoInCassa } from '@/lib/credito';
+import { creditiDellaCassa, creditoInCassa } from '@/lib/credito';
 import { elencoOperatori } from '@/lib/query';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +76,8 @@ export default async function CassaPage({
         : 'aperti'
   ) as Filtro;
 
+  const perData = filtro === 'pagati' || filtro === 'tutti';
+
   const dove: Prisma.PaymentWhereInput =
     filtro === 'dagestire'
       ? DA_GESTIRE
@@ -85,7 +92,11 @@ export default async function CassaPage({
   const [pagamenti, tutti, tuttiMetodi] = await Promise.all([
     prisma.payment.findMany({
       where: { ...dellaCassa, ...dove },
-      orderBy: [{ scadenza: 'asc' }, { createdAt: 'desc' }],
+      // incassati e tutti per data di pagamento, dal più recente; le altre
+      // viste per scadenza, che è quello che si guarda quando si sollecita
+      orderBy: perData
+        ? [{ pagatoIl: { sort: 'desc', nulls: 'last' } }, { updatedAt: 'desc' }]
+        : [{ scadenza: 'asc' }, { createdAt: 'desc' }],
       include: {
         user: {
           select: {
@@ -115,10 +126,12 @@ export default async function CassaPage({
   // per incassare e per il sollecito servono solo quelli accesi
   const metodi = tuttiMetodi.filter((m) => m.attivo);
   // chi può versare un credito, e quanto credito la cassa tiene già
-  const [persone, credito] = await Promise.all([
+  const [persone, credito, crediti] = await Promise.all([
     elencoOperatori(false),
     creditoInCassa(cassa.id),
+    creditiDellaCassa(cassa.id),
   ]);
+  const creditoDi = new Map(crediti.map((c) => [c.userId, c.credito] as const));
 
   const quote = tutti.filter((p) => p.tipo !== 'RIMBORSO');
   const aperte = quote.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
@@ -241,7 +254,7 @@ export default async function CassaPage({
       ) : (
         // divisi per attività: «del Corso CQB chi manca?» si legge a colpo d'occhio
         <div className="space-y-6">
-          {raggruppaPerAttivita(pagamenti).map((g) => (
+          {gruppiDellaVista(pagamenti, perData).map((g) => (
             <section key={g.chiave}>
               <TitoloGruppo gruppo={g} />
         <Elenco
@@ -261,7 +274,7 @@ export default async function CassaPage({
                 <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
-                  <Incassa pagamento={p} metodi={metodi} />
+                  <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
               </div>
             </div>
@@ -301,7 +314,7 @@ export default async function CassaPage({
                       <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
-                  <Incassa pagamento={p} metodi={metodi} />
+                  <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
                     </td>
                   </tr>
@@ -358,30 +371,55 @@ function Stato({
 function Incassa({
   pagamento,
   metodi,
+  credito,
 }: {
   pagamento: {
     id: string;
     tipo: string;
     status: string;
     importo: unknown;
+    pagato: unknown;
     descrizione: string;
     dichiaratoIl: Date | null;
     metodoId: string | null;
   };
   metodi: { id: string; nome: string }[];
+  /** Il credito della persona in questa cassa: all'incasso si propone per primo. */
+  credito: number;
 }) {
+  const rimborso = pagamento.tipo === 'RIMBORSO';
+  // una quota pagata che non serve più (attività annullata…) resta in cassa
+  // come credito di chi l'ha pagata; da un rimborso, se preferisce tenerli
+  const inCredito = (
+    <AzioneBottone
+      azione={trasformaInCredito}
+      valori={{ id: pagamento.id }}
+      conferma={
+        rimborso
+          ? 'Niente rimborso: i soldi restano in cassa come credito della persona. Procedere?'
+          : 'Trasformare questa quota pagata in credito? La quota si chiude e i soldi restano alla persona, da spendere su un’altra attività.'
+      }
+      className="text-xs text-muted hover:text-nvg"
+    >
+      {rimborso ? 'tieni come credito' : 'in credito'}
+    </AzioneBottone>
+  );
+
   if (
     pagamento.status === 'PAGATO' ||
     pagamento.status === 'ANNULLATO' ||
     pagamento.status === 'NON_GESTITO'
   ) {
+    if (pagamento.status === 'PAGATO' && !rimborso && Number(pagamento.pagato) > 0) {
+      return inCredito;
+    }
     return <span className="text-xs text-muted">—</span>;
   }
 
   const dovuto = Number(pagamento.importo);
-  const rimborso = pagamento.tipo === 'RIMBORSO';
 
   return (
+    <>
     <BottoneModale
       etichetta={rimborso ? 'Eroga' : 'Incassa'}
       icona="incassa"
@@ -421,7 +459,20 @@ function Incassa({
           </Campo>
 
           <Campo label="Metodo">
-            <select name="metodoId" defaultValue={pagamento.metodoId ?? ''} className="input">
+            <select
+              name="metodoId"
+              // col credito già scelto, se ne ha e non ha segnalato un
+              // pagamento fatto in un altro modo
+              defaultValue={
+                credito > 0 && !rimborso && !pagamento.dichiaratoIl
+                  ? 'CREDITO'
+                  : (pagamento.metodoId ?? '')
+              }
+              className="input"
+            >
+              {credito > 0 && !rimborso && (
+                <option value="CREDITO">Credito · {fmtEuro(credito)} disponibili</option>
+              )}
               <option value="">— non indicato —</option>
               {metodi.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -443,6 +494,8 @@ function Incassa({
         </p>
       </FormAzione>
     </BottoneModale>
+    {rimborso && inCredito}
+    </>
   );
 }
 

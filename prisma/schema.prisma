@@ -1098,6 +1098,7 @@ enum TipoMovimento {
 /// Cosa è successo a un credito.
 enum TipoCredito {
   VERSAMENTO // soldi entrati in cassa, non ancora legati a una quota
+  DA_QUOTA // una quota già pagata che non serve più (evento annullato…): i soldi restano, come credito
   USO // una quota pagata col credito: esce dal credito, entra nella quota
   RIPRESO // una quota pagata col credito che non è più dovuta: torna credito
   RESO // restituito in contanti a chi l'aveva versato: esce dalla cassa

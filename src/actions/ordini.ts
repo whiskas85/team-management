@@ -14,7 +14,6 @@ import {
   totaleRighe,
 } from '@/lib/mercatino';
 import { enumVal, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
-import { usaCredito } from '@/lib/credito';
 
 /**
  * Il carrello e gli ordini del merchandising.
@@ -267,8 +266,6 @@ export async function inviaOrdine(_prev: StatoForm, fd: FormData): Promise<Stato
     // il carrello si svuota solo di quello che è finito nell'ordine
     await tx.rigaCarrello.deleteMany({ where: { id: { in: buone.map((r) => r.id) } } });
   });
-  // chi ha credito nella cassa del club paga l'ordine con quello
-  await usaCredito(me.id, null);
 
   aggiorna();
   return {

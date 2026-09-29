@@ -5,6 +5,30 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.114.0 — 29 settembre 2026
+
+### Cambiato
+
+- **Il credito, rifatto.** Non si scala più da solo: si spende quando si paga.
+  - **Da dove nasce:** da una quota già pagata che non serve più. Se l'evento
+    si annulla o uno non ci va più, i soldi possono restare in cassa come
+    credito invece di essere rimborsati.
+    - Chi aveva pagato lo fa da sé, dai suoi pagamenti, con **Tieni come
+      credito** accanto a «Chiedi rimborso».
+    - Chi tiene la cassa lo fa su qualsiasi quota pagata («in credito»), o da
+      una richiesta di rimborso («tieni come credito»), che si chiude.
+    - Resta anche «Registra versamento», per soldi dati senza una quota di
+      mezzo.
+  - **Come si spende:** come un pagamento. Nella finestra **Paga** di una quota
+    il credito è la prima scelta, già selezionata, con «Altro metodo» a un
+    tocco. Se non basta paga fin dove arriva, e il resto si paga con un altro
+    metodo. Anche chi incassa trova «Credito» fra i metodi, già scelto quando
+    la persona ne ha.
+  - **Dove si vede:** nel profilo, un riquadro «Credito», e nei propri
+    pagamenti, con la storia dei movimenti.
+- **Casse:** «Incassati» e «Tutti» sono in ordine di data di pagamento, dal
+  più recente, in un elenco unico. Le altre viste restano divise per attività.
+
 ## 2.113.6 — 29 settembre 2026
 
 ### Corretto

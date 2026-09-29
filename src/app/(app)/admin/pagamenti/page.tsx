@@ -10,6 +10,7 @@ import { Conferma, Fisarmonica, FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import {
+  trasformaInCredito,
   eliminaPagamento,
   salvaPagamento,
   segnaNonGestito,
@@ -17,10 +18,10 @@ import {
   tornaDaGestire,
 } from '@/actions/pagamenti';
 import { AzioneBottone } from '@/components/AzioneBottone';
-import { raggruppaPerAttivita, TitoloGruppo } from '@/components/GruppiAttivita';
+import { gruppiDellaVista, TitoloGruppo } from '@/components/GruppiAttivita';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
 import { CreditiCassa } from '@/components/CreditiCassa';
-import { creditoInCassa } from '@/lib/credito';
+import { creditiDellaCassa, creditoInCassa } from '@/lib/credito';
 
 const FILTRI = {
   dagestire: 'Da gestire',
@@ -67,6 +68,8 @@ export default async function AdminPagamentiPage({
         : 'aperti'
   ) as Filtro;
 
+  const perData = filtro === 'pagati' || filtro === 'tutti';
+
   const dove: Prisma.PaymentWhereInput =
     filtro === 'dagestire'
       ? DA_GESTIRE
@@ -89,7 +92,11 @@ export default async function AdminPagamentiPage({
   const [pagamenti, tutti, operatori, eventi] = await Promise.all([
     prisma.payment.findMany({
       where: { ...dove, cassaId: null, ...(sp.tipo ? { tipo: sp.tipo as 'ALTRO' } : {}) },
-      orderBy: [{ scadenza: 'asc' }, { createdAt: 'desc' }],
+      // incassati e tutti per data di pagamento, dal più recente; le altre
+      // viste per scadenza, che è quello che si guarda quando si sollecita
+      orderBy: perData
+        ? [{ pagatoIl: { sort: 'desc', nulls: 'last' } }, { updatedAt: 'desc' }]
+        : [{ scadenza: 'asc' }, { createdAt: 'desc' }],
       include: {
         user: { select: { id: true, nome: true, cognome: true, callsign: true } },
         // l'attività fa da titolo al gruppo: nome e data
@@ -131,6 +138,10 @@ export default async function AdminPagamentiPage({
 
   // soldi in cassa che sono ancora di chi li ha versati
   const credito = await creditoInCassa(null);
+  // il credito di ognuno: all'incasso si propone per primo
+  const creditoDi = new Map(
+    (await creditiDellaCassa(null)).map((c) => [c.userId, c.credito] as const),
+  );
 
   const aperti = tutti.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
   const daIncassare = aperti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
@@ -319,7 +330,7 @@ export default async function AdminPagamentiPage({
       ) : (
         // divisi per attività: di una giornata si vede subito chi manca
         <div className="space-y-6">
-          {raggruppaPerAttivita(pagamenti).map((g) => (
+          {gruppiDellaVista(pagamenti, perData).map((g) => (
             <section key={g.chiave}>
               <TitoloGruppo gruppo={g} />
         <Elenco
@@ -340,7 +351,7 @@ export default async function AdminPagamentiPage({
                 </>
               }
               elimina={<EliminaPagamento pagamento={p} />}
-              azioni={<AzioniPagamento pagamento={p} metodi={metodi} />}
+              azioni={<AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {p.status !== 'PAGATO' && p.dichiaratoIl ? (
@@ -412,7 +423,7 @@ export default async function AdminPagamentiPage({
                     </td>
                     <td className="whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <AzioniPagamento pagamento={p} metodi={metodi} />
+                        <AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                         <EliminaPagamento pagamento={p} />
                       </div>
                     </td>
@@ -439,6 +450,7 @@ type Riga = {
   descrizione: string;
   dichiaratoIl: Date | null;
   metodoId: string | null;
+  userId: string;
 };
 
 /**
@@ -449,9 +461,12 @@ type Riga = {
 function AzioniPagamento({
   pagamento,
   metodi,
+  credito,
 }: {
   pagamento: Riga;
   metodi: { id: string; nome: string }[];
+  /** Il credito della persona nella cassa del club: si propone per primo. */
+  credito: number;
 }) {
   // gestita fuori è chiusa come una pagata: niente «Incassa»
   const saldato = pagamento.status === 'PAGATO' || pagamento.status === 'NON_GESTITO';
@@ -502,9 +517,18 @@ function AzioniPagamento({
               <Campo label="Metodo">
                 <select
                   name="metodoId"
-                  defaultValue={pagamento.metodoId ?? ''}
+                  // col credito già scelto, se ne ha e non ha segnalato un
+                  // pagamento fatto in un altro modo
+                  defaultValue={
+                    credito > 0 && !rimborso && !pagamento.dichiaratoIl
+                      ? 'CREDITO'
+                      : (pagamento.metodoId ?? '')
+                  }
                   className="input"
                 >
+                  {credito > 0 && !rimborso && (
+                    <option value="CREDITO">Credito · {fmtEuro(credito)} disponibili</option>
+                  )}
                   <option value="">— non indicato —</option>
                   {metodi.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -528,6 +552,23 @@ function AzioniPagamento({
         </BottoneModale>
       )}
 
+      {/* una quota pagata che non serve più (attività annullata…) può
+          restare in cassa come credito di chi l'ha pagata; da una richiesta
+          di rimborso, se preferisce tenerli */}
+      {((!rimborso && Number(pagamento.pagato) > 0) || (rimborso && !saldato)) && (
+        <AzioneBottone
+          azione={trasformaInCredito}
+          valori={{ id: pagamento.id }}
+          conferma={
+            rimborso
+              ? 'Niente rimborso: i soldi restano in cassa come credito della persona. Procedere?'
+              : 'Trasformare questa quota pagata in credito? La quota si chiude e i soldi restano alla persona, da spendere su un’altra attività.'
+          }
+          className="text-xs text-muted hover:text-nvg"
+        >
+          {rimborso ? 'tieni come credito' : 'in credito'}
+        </AzioneBottone>
+      )}
       <FuoriGestionale pagamento={pagamento} />
     </div>
   );

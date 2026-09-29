@@ -13,10 +13,9 @@ type Metodo = { id: string; nome: string };
 /**
  * Chi ha credito in una cassa, e il modo di aggiungerne.
  *
- * Il versamento è il gesto della segreteria quando uno le dà dei soldi senza
- * una quota precisa da saldare: entrano in cassa e restano suoi, e le quote li
- * scalano da sole. Qui si vede di chi sono i soldi che la cassa tiene per
- * conto d'altri.
+ * Il credito nasce da una quota pagata che non serve più, o da un versamento
+ * senza quota: i soldi restano in cassa e restano suoi, e li spende quando
+ * paga. Qui si vede di chi sono i soldi che la cassa tiene per conto d'altri.
  */
 export async function CreditiCassa({
   cassaId,
@@ -37,8 +36,8 @@ export async function CreditiCassa({
           <p className="titolo-sezione">Crediti</p>
           <p className="mt-1 text-xs text-muted">
             {crediti.length === 0
-              ? 'Nessuno ha credito. Chi versa soldi senza una quota da saldare li trova qui, e le sue prossime quote li scalano da sole.'
-              : `${fmtEuro(totale)} in cassa per conto di ${crediti.length === 1 ? 'una persona' : `${crediti.length} persone`}: li scalano le loro prossime quote.`}
+              ? 'Nessuno ha credito. Nasce da una quota pagata che non serve più (evento annullato…) o da un versamento, e si spende quando si paga.'
+              : `${fmtEuro(totale)} in cassa per conto di ${crediti.length === 1 ? 'una persona' : `${crediti.length} persone`}: li spendono quando pagano le prossime quote.`}
           </p>
         </div>
         <BottoneModale
