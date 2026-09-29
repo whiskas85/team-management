@@ -596,17 +596,8 @@ model SquadraOspite {
   motivoRifiuto   String?
   /// I «forse» della squadra collegata, se ce li manda.
   operatoriForse  Int?
-  /// Quando ci hanno detto di aver versato il dovuto, e quanto.
-  versatoIl       DateTime?
-  versatoImporto  Decimal?             @db.Decimal(10, 2)
-  /// Come dicono di aver pagato, e cosa hanno scritto.
-  versatoMetodo   String?
-  versatoNote     String?
-  /// Chi tiene la cassa ha confermato l'incasso: da qui i soldi sono in cassa.
-  confermatoIl    DateTime?
-  confermatoDaId  String?
-  /// Il movimento del registro della cassa del club, se sono finiti lì.
-  movimentoCassaId String?
+  /// I pagamenti che ci hanno segnalato: uno, o più se la squadra cresce.
+  versamenti      VersamentoSquadra[]
 
   @@unique([eventId, nome])
   @@index([eventId])
@@ -1084,9 +1075,8 @@ model Event {
   origineMandaForse     Boolean          @default(false)
   /// Gli ultimi numeri mandati all'organizzatore: se non cambiano non si rimandano.
   origineUltimiNumeri   String?
-  /// Quando abbiamo segnalato di aver versato il dovuto all'organizzatore, e quanto.
-  origineVersatoIl      DateTime?
-  origineVersatoImporto Decimal?         @db.Decimal(10, 2)
+  /// Quello che abbiamo versato all'organizzatore, un pagamento per volta.
+  versamentiOrganizzatore VersamentoSquadra[] @relation("VersamentiOrganizzatore")
 
   /// Quanto chiediamo alle squadre ospiti collegate: a operatore o per squadra.
   costoOspiti           Decimal?         @db.Decimal(10, 2)
@@ -1094,8 +1084,6 @@ model Event {
   /// In che cassa finiscono i soldi delle squadre ospiti. Vuota = quella del club.
   cassaOspitiId         String?
   cassaOspiti           Cassa?           @relation("CassaOspiti", fields: [cassaOspitiId], references: [id], onDelete: SetNull)
-  /// L'organizzatore ha confermato di aver ricevuto il nostro versamento.
-  origineVersatoConfermatoIl DateTime?
   /// L'ultimo riepilogo dei numeri mandato alle squadre invitate.
   numeriCondivisi       String?
 
@@ -1251,6 +1239,38 @@ model Payment {
 /// La cassa del club non è una riga di questa tabella: è l'assenza di una
 /// cassa. Così tutto quello che c'era prima resta del club senza toccarlo, e
 /// ogni vista del club si scrive «dove la cassa è vuota».
+/// Un pagamento fra squadre collegate, per un'attività condivisa a pagamento.
+///
+/// Come la quota di un operatore: chi paga lo segnala, chi incassa lo
+/// conferma, e da lì i soldi sono in cassa. Se ne fanno quanti servono: se
+/// dopo il primo si aggiunge qualcuno, il resto si paga con un altro.
+///
+/// La stessa tabella tiene i due lati. Da chi organizza la riga sta sotto
+/// l'ospite che ha pagato (`squadraOspiteId`), con l'id che le ha dato chi
+/// paga (`idRemoto`); da chi è ospite sta sotto la sua copia dell'attività
+/// (`eventId`), e il suo id è quello che viaggia.
+model VersamentoSquadra {
+  id               String         @id @default(cuid())
+  squadraOspiteId  String?
+  squadraOspite    SquadraOspite? @relation(fields: [squadraOspiteId], references: [id], onDelete: Cascade)
+  eventId          String?
+  event            Event?         @relation("VersamentiOrganizzatore", fields: [eventId], references: [id], onDelete: Cascade)
+  idRemoto         String?
+  importo          Decimal        @db.Decimal(10, 2)
+  /// Come dicono di aver pagato (il nome di un metodo di chi incassa), e la nota.
+  metodo           String?
+  note             String?
+  segnalatoIl      DateTime       @default(now())
+  /// Chi incassa l'ha visto arrivare: da qui i soldi sono in cassa.
+  confermatoIl     DateTime?
+  confermatoDaId   String?
+  /// Il movimento del registro della cassa del club, se sono finiti lì.
+  movimentoCassaId String?
+
+  @@unique([squadraOspiteId, idRemoto])
+  @@index([eventId])
+}
+
 model Cassa {
   id        String   @id @default(cuid())
   nome      String   @unique

@@ -141,42 +141,63 @@ export async function impostaMandaForse(_prev: StatoForm, fd: FormData): Promise
 }
 
 /**
- * «Abbiamo pagato»: il dovuto all'organizzatore, calcolato sui nostri
- * presenti. Lo si segnala, e loro lo vedono accanto al nostro nome. Premuto di
- * nuovo, si ritira.
+ * «Paga»: un pagamento all'organizzatore, come la quota di un operatore. Lo si
+ * segnala e resta da confermare finché chi incassa non lo vede arrivare; da lì
+ * è nella sua cassa. Se ne fanno quanti servono: se dopo il primo si aggiunge
+ * qualcuno, il dovuto cresce e il resto si paga con un altro.
  */
 export async function segnalaVersamento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const r = await accettata(fd);
   if ('errore' in r) return { errore: r.errore };
-  const ritira = str(fd, 'ritira') === '1';
-  if (ritira && r.e.origineVersatoConfermatoIl) {
-    return { errore: 'L’incasso è già stato confermato: non si ritira più.' };
-  }
   const { costo, metodi } = datiOrigine(r.e.origineDati);
-  if (!ritira && !costo) return { errore: 'L’organizzatore non ha chiesto niente.' };
-  const importo = ritira ? null : dovutoAllOrganizzatore(costo!, contaPresenti(r.e.rsvps).presenti);
+  if (!costo) return { errore: 'L’organizzatore non ha chiesto niente.' };
+  const importo = Math.round(Number(str(fd, 'importo').replace(',', '.')) * 100) / 100;
+  if (!Number.isFinite(importo) || importo <= 0 || importo > 100_000) {
+    return { errore: 'Scrivi quanto avete pagato.' };
+  }
   // il metodo è uno dei loro: quello che arriva dal modulo si controlla qui
-  const metodo = ritira ? null : (metodi.find((m) => m.nome === str(fd, 'metodo'))?.nome ?? null);
-  const note = ritira ? null : (strOpt(fd, 'note')?.slice(0, 300) ?? null);
-  await prisma.event.update({
-    where: { id: r.e.id },
-    data: {
-      origineVersatoIl: ritira ? null : new Date(),
-      origineVersatoImporto: importo,
-      origineVersatoConfermatoIl: null,
-    },
+  const metodo = metodi.find((m) => m.nome === str(fd, 'metodo'))?.nome ?? null;
+  if (metodi.length > 0 && !metodo) return { errore: 'Scegli come avete pagato.' };
+  const note = strOpt(fd, 'note')?.slice(0, 300) ?? null;
+  const v = await prisma.versamentoSquadra.create({
+    data: { eventId: r.e.id, importo, metodo, note },
   });
   if (r.c.stato === 'ATTIVO') {
-    await accoda(r.c.id, 'evento-versato', { id: r.idRemoto, importo, metodo, note }).catch(
-      () => null,
-    );
+    await accoda(r.c.id, 'evento-versato', {
+      id: r.idRemoto,
+      versamento: { id: v.id, importo, metodo, note },
+    }).catch(() => null);
   }
   aggiorna(r.e.id);
   return {
-    ok: ritira
-      ? 'Segnalazione ritirata.'
-      : `Pagamento segnalato a ${profiloDi(r.c).nome}: ${importo?.toFixed(2)} €. Lo confermano quando lo vedono arrivare.`,
+    ok: `Pagamento di ${importo.toFixed(2)} € segnalato a ${profiloDi(r.c).nome}: resta da confermare finché non lo vedono arrivare.`,
   };
+}
+
+/** Una segnalazione sbagliata, tolta prima che l'organizzatore la confermi. */
+export async function ritiraVersamento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const r = await accettata(fd);
+  if ('errore' in r) return { errore: r.errore };
+  const v = await prisma.versamentoSquadra.findFirst({
+    where: { id: str(fd, 'versamento'), eventId: r.e.id },
+  });
+  if (!v) return { errore: 'Pagamento non trovato.' };
+  if (v.confermatoIl) return { errore: 'L’incasso è già stato confermato: non si ritira più.' };
+  await prisma.versamentoSquadra.delete({ where: { id: v.id } });
+  if (r.c.stato === 'ATTIVO') {
+    await accoda(r.c.id, 'evento-versato', {
+      id: r.idRemoto,
+      versamento: { id: idDelVersamento(v.id, r.e.id) },
+      ritira: true,
+    }).catch(() => null);
+  }
+  aggiorna(r.e.id);
+  return { ok: 'Segnalazione ritirata.' };
+}
+
+/** L'id con cui l'altro lato conosce un versamento (quello di prima si chiama «precedente»). */
+function idDelVersamento(id: string, eventId: string) {
+  return id === `precedente-${eventId}` ? 'precedente' : id;
 }
 
 /**

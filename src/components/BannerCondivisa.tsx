@@ -1,6 +1,10 @@
 import { fmtDateTime, fmtEuro } from '@/lib/format';
 import { descriviCosto, dovutoAllOrganizzatore, type DatiOrigine } from '@/lib/eventi-condivisi';
-import { impostaMandaForse, segnalaVersamento } from '@/actions/eventi-condivisi';
+import {
+  impostaMandaForse,
+  ritiraVersamento,
+  segnalaVersamento,
+} from '@/actions/eventi-condivisi';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { BottoneModale } from './Modale';
@@ -30,8 +34,7 @@ export function BannerCondivisa({
   tipologie,
   nostri,
   mandaForse,
-  versato,
-  confermatoIl,
+  versamenti,
   casse,
   sondaggioId,
 }: {
@@ -50,10 +53,14 @@ export function BannerCondivisa({
   nostri: { presenti: number; forse: number };
   /** Se all'organizzatore mandiamo anche i «forse». */
   mandaForse: boolean;
-  /** Se abbiamo segnalato di aver versato il dovuto. */
-  versato: { importo: number; il: Date } | null;
-  /** Chi organizza ha confermato di aver ricevuto il versamento. */
-  confermatoIl: Date | null;
+  /** I pagamenti fatti all'organizzatore: segnalati, e confermati da loro. */
+  versamenti: {
+    id: string;
+    importo: number;
+    metodo: string | null;
+    il: Date;
+    confermatoIl: Date | null;
+  }[];
   /** Le nostre casse, per la quota interna da impostare accettando. */
   casse: { id: string; nome: string }[];
   /** Il sondaggio «partecipiamo?» aperto sull'invito. */
@@ -65,6 +72,10 @@ export function BannerCondivisa({
   );
   const totale = righe.reduce((t, n) => t + (n.presenti ?? 0), 0);
   const dovuto = dati.costo ? dovutoAllOrganizzatore(dati.costo, nostri.presenti) : null;
+  // quello che resta da pagare: il dovuto di adesso meno tutto quello già
+  // segnalato, confermato o no. Se si aggiunge qualcuno, torna a salire.
+  const segnalati = versamenti.reduce((t, v) => t + v.importo, 0);
+  const resto = dovuto !== null ? Math.max(0, Math.round((dovuto - segnalati) * 100) / 100) : 0;
   return (
     <div
       className={`card mb-6 space-y-3 ${invitata ? 'border-nvg/50' : ''}`}
@@ -191,32 +202,41 @@ export function BannerCondivisa({
             </span>
           </p>
 
-          {versato ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              {confermatoIl ? (
-                <span className="text-nvg">
-                  Pagati {fmtEuro(versato.importo)}: {organizzatore.nome} ha confermato l’incasso il{' '}
-                  {fmtDateTime(confermatoIl)}.
-                </span>
-              ) : (
-                <>
-                  <span className="text-warn">
-                    Segnalati {fmtEuro(versato.importo)} il {fmtDateTime(versato.il)}: aspetta che{' '}
-                    {organizzatore.nome} confermi l’incasso.
-                  </span>
-                  {admin && (
-                    <FormAzione azione={segnalaVersamento} className="contents">
-                      <input type="hidden" name="id" value={eventId} />
-                      <input type="hidden" name="ritira" value="1" />
-                      <Invia icona="annulla" className="btn-ghost btn-sm">
-                        Ritira
-                      </Invia>
-                    </FormAzione>
+          {versamenti.length > 0 && (
+            <ul className="mt-2 space-y-1 text-xs">
+              {versamenti.map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center gap-2">
+                  {v.confermatoIl ? (
+                    <span className="text-nvg">
+                      Pagati {fmtEuro(v.importo)}
+                      {v.metodo ? ` (${v.metodo})` : ''}: {organizzatore.nome} ha confermato
+                      l’incasso il {fmtDateTime(v.confermatoIl)}.
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-warn">
+                        Segnalati {fmtEuro(v.importo)}
+                        {v.metodo ? ` (${v.metodo})` : ''} il {fmtDateTime(v.il)}: da confermare
+                        da {organizzatore.nome}.
+                      </span>
+                      {admin && (
+                        <FormAzione azione={ritiraVersamento} className="contents">
+                          <input type="hidden" name="id" value={eventId} />
+                          <input type="hidden" name="versamento" value={v.id} />
+                          <Invia icona="annulla" className="btn-ghost btn-sm">
+                            Ritira
+                          </Invia>
+                        </FormAzione>
+                      )}
+                    </>
                   )}
-                </>
+                </li>
+              ))}
+              {resto === 0 && dovuto !== null && dovuto > 0 && (
+                <li className="text-muted">Il dovuto di adesso è coperto.</li>
               )}
-            </div>
-          ) : null}
+            </ul>
+          )}
 
           <div className="mt-2 flex flex-wrap gap-2">
             <BottoneModale
@@ -227,9 +247,9 @@ export function BannerCondivisa({
             >
               <MetodiOrganizzatore metodi={dati.metodi} organizzatore={organizzatore.nome} />
             </BottoneModale>
-            {admin && !versato && dovuto > 0 && (
+            {admin && resto > 0 && (
               <BottoneModale
-                etichetta={`Paga ${fmtEuro(dovuto)}`}
+                etichetta={`Paga ${fmtEuro(resto)}`}
                 icona="incassa"
                 titolo={`Paga ${organizzatore.nome}`}
                 className="btn-primary btn-sm"
@@ -237,14 +257,33 @@ export function BannerCondivisa({
                 <FormAzione azione={segnalaVersamento}>
                   <input type="hidden" name="id" value={eventId} />
                   <p className="text-sm">
-                    Da versare: <strong className="num">{fmtEuro(dovuto)}</strong>
+                    Dovuto: <strong className="num">{fmtEuro(dovuto)}</strong>
                     {dati.costo.per === 'OPERATORE' && (
                       <span className="text-muted">
                         {' '}
                         ({fmtEuro(dati.costo.importo)} × {nostri.presenti} presenti)
                       </span>
                     )}
+                    {segnalati > 0 && (
+                      <>
+                        <br />
+                        Già pagati: <span className="num">{fmtEuro(segnalati)}</span> · resta{' '}
+                        <strong className="num">{fmtEuro(resto)}</strong>
+                      </>
+                    )}
                   </p>
+                  <Campo label="Quanto pagate (€)" span>
+                    <input
+                      name="importo"
+                      type="number"
+                      inputMode="decimal"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      defaultValue={resto}
+                      className="input num"
+                    />
+                  </Campo>
                   <MetodiOrganizzatore
                     metodi={dati.metodi}
                     organizzatore={organizzatore.nome}

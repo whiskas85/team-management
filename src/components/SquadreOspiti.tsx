@@ -27,10 +27,10 @@ export type Ospite = {
   operatoriForse?: number | null;
   /** Quanto ci deve, se chiediamo un costo alle squadre ospiti. */
   dovuto?: string | null;
-  /** Se ci ha detto di aver versato, e quanto. */
-  versato?: string | null;
-  /** Quando abbiamo confermato l'incasso: da lì i soldi sono in cassa. */
-  confermato?: string | null;
+  /** Quanto dei loro pagamenti è già confermato, cioè in cassa. */
+  incassati?: string | null;
+  /** I pagamenti che ci hanno segnalato e che aspettano una conferma. */
+  daConfermare?: { id: string; testo: string }[];
   /** Chi guarda tiene la cassa degli ospiti: può confermare l'incasso. */
   puoConfermare?: boolean;
 };
@@ -136,11 +136,8 @@ export function SquadreOspiti({
                           : 'Gestionale collegato',
                         o.accesso === 'GESTIONE' ? 'possono modificarla' : null,
                         o.dovuto ? `devono ${o.dovuto}` : null,
-                        o.versato
-                          ? o.confermato
-                            ? `incassati ${o.versato.split(' il ')[0]} · confermato ${o.confermato}`
-                            : `segnalato ${o.versato} · da confermare`
-                          : null,
+                        o.incassati ? `incassati ${o.incassati}` : null,
+                        ...(o.daConfermare ?? []).map((v) => `segnalato ${v.testo} · da confermare`),
                       ]
                         .filter(Boolean)
                         .join(' · ')
@@ -191,14 +188,18 @@ export function SquadreOspiti({
                     {/* il link è di quella squadra: mandarlo è il gesto per cui
                         questa riga esiste — tranne per le collegate, che
                         l'attività la ricevono nel loro gestionale */}
-                    {o.collegata && o.versato && !o.confermato && o.puoConfermare && (
-                      <FormAzione azione={confermaIncassoOspite} className="contents">
-                        <input type="hidden" name="id" value={o.id} />
-                        <Invia icona="incassa" className="btn-primary btn-sm">
-                          Conferma incasso
-                        </Invia>
-                      </FormAzione>
-                    )}
+                    {o.collegata &&
+                      o.puoConfermare &&
+                      (o.daConfermare ?? []).map((v, i, tutti) => (
+                        <FormAzione key={v.id} azione={confermaIncassoOspite} className="contents">
+                          <input type="hidden" name="id" value={v.id} />
+                          <Invia icona="incassa" className="btn-primary btn-sm">
+                            {tutti.length > 1
+                              ? `Conferma ${v.testo.split(' il ')[0]}`
+                              : 'Conferma incasso'}
+                          </Invia>
+                        </FormAzione>
+                      ))}
                     {!o.collegata && (
                       <CondividiEvento
                         indirizzo={o.link}

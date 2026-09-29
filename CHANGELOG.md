@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.125.0 — 29 settembre 2026
+
+### Cambiato
+
+- **Pagamenti fra squadre come quelli dei nostri.** Chi è ospite paga con
+  **Paga**, sceglie quanto, come e una nota, e segnala: il pagamento resta
+  **da confermare**. Chi organizza lo trova nella sezione **Squadre ospiti**
+  della cassa scelta per l'attività (e nel pallino di Pagamenti o della sua
+  cassa, insieme alle quote dei nostri da confermare); con **Conferma incasso**
+  entra in cassa: un'entrata nel registro del club, o l'incassato dell'altra
+  cassa. L'ospite vede ogni pagamento confermato.
+- **Più pagamenti per la stessa attività.** Se dopo il primo pagamento si
+  aggiunge qualcuno, il dovuto cresce e **Paga** torna con quello che resta. Ogni
+  pagamento ha il suo stato, e quelli non ancora confermati si possono ritirare
+  uno per uno. Il pagamento fatto prima di questa versione diventa il primo
+  della lista.
+
 ## 2.124.1 — 29 settembre 2026
 
 ### Corretto

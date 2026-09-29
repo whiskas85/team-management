@@ -117,9 +117,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [pagamentiDaConfermare, rimborsiDaErogare] = puoGestirePagamenti(utente.roles)
     ? await Promise.all([
-        prisma.payment.count({
-          where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
-        }),
+        prisma.payment
+          .count({
+            where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
+          })
+          .then(async (n) => n + (await ospitiDaConfermare(null))),
         prisma.payment.count({
           where: { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] }, cassaId: null },
         }),
@@ -463,7 +465,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: mieCasse.length === 1 ? mieCasse[0].nome : 'Le mie casse',
       icona: 'incassa',
       gruppo: 'principale',
-      badge: inAttesa,
+      badge: inAttesa + (await ospitiDaConfermare(mieCasse.map((c) => c.id))),
     });
   }
 
@@ -757,4 +759,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </main>
     </div>
   );
+}
+
+/**
+ * I pagamenti delle squadre ospiti collegate che aspettano una conferma, come
+ * le quote segnalate dai nostri: nella cassa del club (null) o in queste.
+ */
+function ospitiDaConfermare(casse: string[] | null) {
+  return prisma.versamentoSquadra.count({
+    where: {
+      confermatoIl: null,
+      squadraOspite: {
+        collegamentoId: { not: null },
+        event: { cassaOspitiId: casse === null ? null : { in: casse } },
+      },
+    },
+  });
 }

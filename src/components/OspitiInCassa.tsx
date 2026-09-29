@@ -12,50 +12,58 @@ import { Invia } from './Bottone';
  * un'entrata del registro).
  */
 export async function OspitiInCassa({ cassaId }: { cassaId: string | null }) {
-  const ospiti = await prisma.squadraOspite.findMany({
+  const versamenti = await prisma.versamentoSquadra.findMany({
     where: {
-      collegamentoId: { not: null },
-      versatoIl: { not: null },
-      event: { cassaOspitiId: cassaId },
+      squadraOspite: { collegamentoId: { not: null }, event: { cassaOspitiId: cassaId } },
     },
-    orderBy: [{ confermatoIl: { sort: 'desc', nulls: 'first' } }, { versatoIl: 'desc' }],
+    // prima quelli da confermare, poi i più recenti
+    orderBy: [{ confermatoIl: { sort: 'desc', nulls: 'first' } }, { segnalatoIl: 'desc' }],
     take: 30,
-    include: { event: { select: { id: true, titolo: true, inizio: true } } },
+    include: {
+      squadraOspite: {
+        select: { nome: true, event: { select: { id: true, titolo: true } } },
+      },
+    },
   });
-  if (ospiti.length === 0) return null;
-  const daConfermare = ospiti.filter((o) => !o.confermatoIl).length;
+  if (versamenti.length === 0) return null;
+  const daConfermare = versamenti.filter((v) => !v.confermatoIl).length;
 
   return (
-    <div className="card mb-6">
+    <div className="card mb-6" id="squadre-ospiti">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <p className="titolo-sezione">Squadre ospiti</p>
-        <p className="text-xs text-muted">
+        <p className={`text-xs ${daConfermare > 0 ? 'text-warn' : 'text-muted'}`}>
           {daConfermare > 0
             ? `${daConfermare} ${daConfermare === 1 ? 'pagamento' : 'pagamenti'} da confermare`
             : 'Tutto confermato'}
         </p>
       </div>
       <ul className="divide-y divide-line">
-        {ospiti.map((o) => (
-          <li key={o.id} className="flex flex-wrap items-center gap-3 py-2">
+        {versamenti.map((v) => (
+          <li key={v.id} className="flex flex-wrap items-center gap-3 py-2">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">
-                {o.nome}{' '}
-                <Link href={`/calendario/${o.event.id}`} className="text-muted hover:text-nvg">
-                  · {o.event.titolo}
+                {v.squadraOspite!.nome}{' '}
+                <Link
+                  href={`/calendario/${v.squadraOspite!.event.id}`}
+                  className="text-muted hover:text-nvg"
+                >
+                  · {v.squadraOspite!.event.titolo}
                 </Link>
               </p>
               <p className="text-xs text-muted">
-                Segnalato il {fmtDateTime(o.versatoIl)}
-                {o.versatoMetodo ? ` · ${o.versatoMetodo}` : ''}
-                {o.versatoNote ? ` · «${o.versatoNote}»` : ''}
-                {o.confermatoIl ? ` · confermato il ${fmtDateTime(o.confermatoIl)}` : ''}
+                Segnalato il {fmtDateTime(v.segnalatoIl)}
+                {v.metodo ? ` · ${v.metodo}` : ''}
+                {v.note ? ` · «${v.note}»` : ''}
+                {v.confermatoIl ? ` · confermato il ${fmtDateTime(v.confermatoIl)}` : ''}
               </p>
             </div>
-            <span className="num text-sm font-semibold">{fmtEuro(Number(o.versatoImporto ?? 0))}</span>
-            {!o.confermatoIl && (
+            <span className="num text-sm font-semibold">{fmtEuro(Number(v.importo))}</span>
+            {v.confermatoIl ? (
+              <span className="text-xs text-nvg">in cassa</span>
+            ) : (
               <FormAzione azione={confermaIncassoOspite} className="contents">
-                <input type="hidden" name="id" value={o.id} />
+                <input type="hidden" name="id" value={v.id} />
                 <Invia icona="incassa" className="btn-primary btn-sm">
                   Conferma incasso
                 </Invia>

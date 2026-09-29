@@ -137,8 +137,18 @@ export default async function CassaPage({
   const quote = tutti.filter((p) => p.tipo !== 'RIMBORSO');
   const aperte = quote.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
   const daIncassare = aperte.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
-  const incassato = quote.reduce((t, p) => t + Number(p.pagato), 0);
-  const daConfermare = tutti.filter((p) => p.status !== 'PAGATO' && p.dichiaratoIl).length;
+  // i pagamenti delle squadre ospiti collegate che finiscono in questa cassa:
+  // da confermare come le quote dei nostri, e confermati sono incassati
+  const ospiti = await prisma.versamentoSquadra.findMany({
+    where: { squadraOspite: { collegamentoId: { not: null }, event: { cassaOspitiId: cassa.id } } },
+    select: { importo: true, confermatoIl: true },
+  });
+  const incassato =
+    quote.reduce((t, p) => t + Number(p.pagato), 0) +
+    ospiti.filter((v) => v.confermatoIl).reduce((t, v) => t + Number(v.importo), 0);
+  const daConfermare =
+    tutti.filter((p) => p.status !== 'PAGATO' && p.dichiaratoIl).length +
+    ospiti.filter((v) => !v.confermatoIl).length;
 
   // come si paga, da mettere nel messaggio: i metodi che chi paga usa da sé
   const comePagare = metodi

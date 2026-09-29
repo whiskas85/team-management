@@ -184,24 +184,28 @@ export async function rispondiInvito(_prev: StatoForm, fd: FormData): Promise<St
  */
 export async function confermaIncassoOspite(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  const ospite = await prisma.squadraOspite.findUnique({
+  const v = await prisma.versamentoSquadra.findUnique({
     where: { id: str(fd, 'id') },
-    include: { event: { select: { id: true, titolo: true, cassaOspitiId: true } } },
+    include: {
+      squadraOspite: {
+        include: { event: { select: { id: true, titolo: true, cassaOspitiId: true } } },
+      },
+    },
   });
-  if (!ospite) return { errore: 'Invito non trovato.' };
+  const ospite = v?.squadraOspite;
+  if (!v || !ospite) return { errore: 'Pagamento non trovato.' };
   if (!(await puoGestireCassa(me, ospite.event.cassaOspitiId))) {
     return { errore: 'Conferma chi tiene la cassa in cui vanno i soldi degli ospiti.' };
   }
-  if (!ospite.versatoIl || ospite.versatoImporto === null) {
-    return { errore: 'Non hanno ancora segnalato un pagamento.' };
-  }
-  if (ospite.confermatoIl) return { errore: 'Già confermato.' };
+  if (v.confermatoIl) return { errore: 'Già confermato.' };
 
+  // nella cassa del club diventa un'entrata del registro; nelle altre casse
+  // conta nell'incassato di quella cassa
   let movimentoCassaId: string | null = null;
   if (!ospite.event.cassaOspitiId) {
-    const metodo = ospite.versatoMetodo
+    const metodo = v.metodo
       ? await prisma.metodoPagamento.findFirst({
-          where: { nome: ospite.versatoMetodo, cassaId: null },
+          where: { nome: v.metodo, cassaId: null },
           select: { id: true },
         })
       : null;
@@ -209,22 +213,23 @@ export async function confermaIncassoOspite(_prev: StatoForm, fd: FormData): Pro
       data: {
         tipo: 'ENTRATA',
         descrizione: `${ospite.nome} · ${ospite.event.titolo}`,
-        importo: ospite.versatoImporto,
+        importo: v.importo,
         categoria: 'Squadre ospiti',
-        note: ospite.versatoNote,
+        note: v.note,
         metodoId: metodo?.id ?? null,
         registratoById: me.id,
       },
     });
     movimentoCassaId = movimento.id;
   }
-  await prisma.squadraOspite.update({
-    where: { id: ospite.id },
+  await prisma.versamentoSquadra.update({
+    where: { id: v.id },
     data: { confermatoIl: new Date(), confermatoDaId: me.id, movimentoCassaId },
   });
   if (ospite.collegamentoId) {
     await accoda(ospite.collegamentoId, 'evento-versamento-confermato', {
       id: ospite.event.id,
+      versamento: v.idRemoto,
     }).catch(() => null);
   }
   aggiorna(ospite.event.id);

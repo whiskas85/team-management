@@ -129,9 +129,18 @@ export default async function DashboardPage({
         : [],
       admin ? prisma.user.count({ where: { stato: 'SQUADRA' } }) : 0,
       cassa
-        ? prisma.payment.count({
-            where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
-          })
+        ? Promise.all([
+            prisma.payment.count({
+              where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
+            }),
+            // e quelli delle squadre ospiti collegate, che finiscono nel club
+            prisma.versamentoSquadra.count({
+              where: {
+                confermatoIl: null,
+                squadraOspite: { collegamentoId: { not: null }, event: { cassaOspitiId: null } },
+              },
+            }),
+          ]).then(([a, b]) => a + b)
         : 0,
       cassa
         ? prisma.payment.findMany({

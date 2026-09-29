@@ -118,7 +118,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       collegate: { select: { id: true, titolo: true } },
       createdBy: { select: { nome: true, cognome: true } },
       // le squadre di fuori invitate, con il loro link
-      ospiti: { orderBy: { creatoIl: 'asc' } },
+      ospiti: {
+        orderBy: { creatoIl: 'asc' },
+        include: { versamenti: { orderBy: { segnalatoIl: 'asc' } } },
+      },
+      // quello che abbiamo pagato all'organizzatore, se l'attività è di un altro
+      versamentiOrganizzatore: { orderBy: { segnalatoIl: 'asc' } },
       // il sondaggio «partecipiamo?» aperto su un invito
       sondaggio: { select: { id: true } },
       // organizzata da un'altra squadra collegata: chi, e com'è il collegamento
@@ -639,7 +644,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const referentiScelti = evento.referenti.map((r) => r.userId);
 
   // chi tiene la cassa in cui vanno i soldi degli ospiti conferma i loro incassi
-  const puoConfermareOspiti = evento.ospiti.some((o) => o.versatoIl && !o.confermatoIl)
+  const puoConfermareOspiti = evento.ospiti.some((o) => o.versamenti.some((v) => !v.confermatoIl))
     ? await puoGestireCassa(me, evento.cassaOspitiId)
     : false;
   const ospiti = evento.ospiti.map((o) => ({
@@ -664,13 +669,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             ),
           )
         : null,
-    versato:
-      o.versatoIl && o.versatoImporto !== null
-        ? `${fmtEuro(Number(o.versatoImporto))} il ${fmtDateTime(o.versatoIl)}${
-            o.versatoMetodo ? ` (${o.versatoMetodo})` : ''
-          }`
-        : null,
-    confermato: o.confermatoIl ? fmtDateTime(o.confermatoIl) : null,
+    // i loro pagamenti: quanto è già in cassa, e quelli che aspettano una conferma
+    incassati: o.versamenti.some((v) => v.confermatoIl)
+      ? fmtEuro(
+          o.versamenti.filter((v) => v.confermatoIl).reduce((t, v) => t + Number(v.importo), 0),
+        )
+      : null,
+    daConfermare: o.versamenti
+      .filter((v) => !v.confermatoIl)
+      .map((v) => ({
+        id: v.id,
+        testo: `${fmtEuro(Number(v.importo))} il ${fmtDateTime(v.segnalatoIl)}${
+          v.metodo ? ` (${v.metodo})` : ''
+        }`,
+      })),
     puoConfermare: puoConfermareOspiti,
   }));
   const organizzatore = organizzatoreDi(evento.origineCollegamento);
@@ -1213,12 +1225,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           tipologie={tipologie.filter((t) => t.attivo !== false)}
           nostri={contaPresenti(evento.rsvps)}
           mandaForse={evento.origineMandaForse}
-          versato={
-            evento.origineVersatoIl && evento.origineVersatoImporto !== null
-              ? { importo: Number(evento.origineVersatoImporto), il: evento.origineVersatoIl }
-              : null
-          }
-          confermatoIl={evento.origineVersatoConfermatoIl}
+          versamenti={evento.versamentiOrganizzatore.map((v) => ({
+            id: v.id,
+            importo: Number(v.importo),
+            metodo: v.metodo,
+            il: v.segnalatoIl,
+            confermatoIl: v.confermatoIl,
+          }))}
           casse={casseAttive}
           sondaggioId={evento.sondaggio?.id ?? null}
         />
