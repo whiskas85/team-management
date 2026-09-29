@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.113.3 — 29 settembre 2026
+
+### Cambiato
+
+- **Polizze giornaliere: una linea del tempo al posto del badge.** A sinistra
+  delle giocate scende una linea con una tappa prima di ogni giocata che
+  consuma polizze:
+  - in cima, quante sono in cassa e quando le ha contate il portale;
+  - dopo ogni giocata, quante ne restano, con accanto quante se n'è mangiate.
+  Verde da 5 in su, rosso sotto le 5. Sotto zero compare il punto esclamativo
+  con quante ne mancano.
+- La soglia delle polizze è **sotto le 5** dappertutto (riquadro «Polizze
+  prova», previsione, avviso di ricomprarle): con 5 in cassa non è ancora
+  allarme.
+
 ## 2.113.2 — 29 settembre 2026
 
 ### Cambiato

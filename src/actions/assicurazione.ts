@@ -155,11 +155,11 @@ async function sincronizzaGiacenza(
  *
  * **Si avvisa quando il numero scende**, non a ogni lettura: riaprire la cassa
  * o rileggere il portale non è una notizia. Ogni polizza consumata sotto
- * soglia manda la sua — cinque, quattro, tre è una discesa, e ognuna è più
+ * soglia manda la sua — quattro, tre, due è una discesa, e ognuna è più
  * urgente della precedente.
  */
 async function avvisaScorteBasse(prima: number | null, adesso: number | null) {
-  if (adesso === null || adesso > SCORTA_POLIZZE) return;
+  if (adesso === null || adesso >= SCORTA_POLIZZE) return;
   if (prima !== null && adesso >= prima) return;
 
   await avvisa(await chiSegueINuovi(), {

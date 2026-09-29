@@ -1,7 +1,8 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { puoAmministrare } from '@/lib/domain';
-import { fmtDateTime } from '@/lib/format';
+import { fmtDate, fmtDateTime } from '@/lib/format';
 import {
   ETICHETTA_ASSICURAZIONE,
   SCORTA_POLIZZE,
@@ -112,15 +113,24 @@ export default async function PolizzePage() {
       {conOspiti.length === 0 ? (
         <Vuoto testo="Nelle attività in programma non si è segnato nessuno da fuori: non c’è niente da assicurare." />
       ) : (
-        <div className="space-y-4">
+        // La linea del tempo delle polizze: si parte da quelle in cassa e dopo
+        // ogni giocata che ne consuma c'è una tappa con quante ne restano. Le
+        // giocate stanno fra una tappa e l'altra, così si legge «prima di
+        // questa ne ho 5, dopo 3», e dove si va sotto zero lo si vede subito.
+        <div className="relative pl-9">
+          <span
+            aria-hidden
+            className="absolute bottom-3 left-[11px] top-3 w-0.5 rounded-full bg-line"
+          />
+          <TappaPolizze residuo={inCassa} lette={giacenza?.polizzeLetteIl ?? null} />
           {conOspiti.map((a) => (
-            <div key={a.id} className="card">
+            <Fragment key={a.id}>
+            <div className="card my-4">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line pb-3">
                 <Link href={`/calendario/${a.id}`} className="font-medium hover:text-nvg">
                   {a.titolo}
                 </Link>
                 <span className="flex flex-wrap items-center gap-2">
-                  <ContoPolizze conto={conto.get(a.id)} />
                   {/* Si dice solo quando c'e' una decisione da sapere: il caso
                       normale — segue l'interruttore, che e' spento — non
                       merita un'etichetta su ogni card. */}
@@ -247,6 +257,10 @@ export default async function PolizzePage() {
                 ))}
               </div>
             </div>
+            {conto.has(a.id) && (
+              <TappaPolizze residuo={conto.get(a.id)!.residuo} serve={conto.get(a.id)!.serve} />
+            )}
+            </Fragment>
           ))}
         </div>
       )}
@@ -287,41 +301,64 @@ export default async function PolizzePage() {
 }
 
 /**
- * Quante polizze si mangia una giocata, e quante ne restano dopo: il conto
- * scala in ordine di data. Sotto zero diventa rosso col punto esclamativo:
- * lì le polizze sono finite e qualcuno resta scoperto.
+ * Una tappa della linea delle polizze: quante ce ne sono a quel punto.
+ *
+ * In cima, quelle in cassa con la data in cui il portale le ha contate; dopo
+ * ogni giocata, quelle che restano con accanto quante se n'è mangiate. Verde
+ * finché sono almeno la scorta, rosso sotto; sotto zero sono finite, e lo
+ * dice il punto esclamativo con quante ne mancano.
  */
-function ContoPolizze({ conto }: { conto?: { serve: number; residuo: number | null } }) {
-  if (!conto) return null;
-  const { serve, residuo } = conto;
-  const polizze = serve === 1 ? '1 polizza' : `${serve} polizze`;
-  if (residuo === null) {
-    return (
-      <span className="num rounded-full border border-line bg-surface2 px-2 py-0.5 text-[11px] text-muted">
-        −{polizze}
-      </span>
-    );
-  }
-  if (residuo < 0) {
-    return (
-      <span
-        title="Le polizze in cassa non bastano per questa giocata: vanno comprate prima."
-        className="num inline-flex items-center gap-1.5 rounded-full border border-danger/60 bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger"
-      >
-        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-bg">
-          !
-        </span>
-        −{polizze} · {residuo === -1 ? 'ne manca 1' : `ne mancano ${-residuo}`}
-      </span>
-    );
-  }
+function TappaPolizze({
+  residuo,
+  serve,
+  lette,
+}: {
+  /** Nullo: il portale non ha ancora detto quante sono. */
+  residuo: number | null;
+  /** Quante ne consuma la giocata appena sopra: manca sulla prima tappa. */
+  serve?: number;
+  /** Sulla prima tappa: quando il portale le ha contate. */
+  lette?: Date | null;
+}) {
+  const finite = residuo !== null && residuo < 0;
   const tono =
-    residuo <= SCORTA_POLIZZE
-      ? 'border-warn/50 bg-warn/10 text-warn'
-      : 'border-nvg/40 bg-nvg/10 text-nvg';
+    residuo === null ? 'text-muted' : residuo < SCORTA_POLIZZE ? 'text-danger' : 'text-nvg';
+  const pallino =
+    residuo === null ? 'bg-muted' : residuo < SCORTA_POLIZZE ? 'bg-danger' : 'bg-nvg';
   return (
-    <span className={`num rounded-full border px-2 py-0.5 text-[11px] ${tono}`}>
-      −{polizze} · {residuo === 1 ? 'resta 1' : `restano ${residuo}`}
-    </span>
+    <div className="relative flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
+      <span
+        aria-hidden
+        className={`absolute -left-[34px] top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-4 border-bg ${pallino}`}
+      />
+      {residuo === null ? (
+        <span className="text-sm text-muted">
+          Polizze in cassa non ancora lette dal portale: aggiornale dal riquadro «Polizze prova».
+        </span>
+      ) : (
+        <span className={`flex items-baseline gap-1.5 ${tono}`}>
+          <span className="num text-2xl font-semibold leading-none">
+            {finite ? 0 : residuo}
+          </span>
+          <span className="text-sm">{(finite ? 0 : residuo) === 1 ? 'polizza' : 'polizze'}</span>
+        </span>
+      )}
+      {serve !== undefined && (
+        <span className="num rounded-full border border-line bg-surface2 px-2 py-0.5 text-[11px] text-muted">
+          −{serve === 1 ? '1 polizza' : `${serve} polizze`}
+        </span>
+      )}
+      {finite && (
+        <span className="num inline-flex items-center gap-1.5 rounded-full border border-danger/60 bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-bg">
+            !
+          </span>
+          finite: {residuo === -1 ? 'ne manca 1' : `ne mancano ${-residuo!}`}
+        </span>
+      )}
+      {lette && residuo !== null && (
+        <span className="text-xs text-muted">aggiornate al {fmtDate(lette)}</span>
+      )}
+    </div>
   );
 }

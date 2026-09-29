@@ -86,7 +86,7 @@ export function TimelinePolizze({
       <p className="mt-2 flex items-baseline gap-2">
         <span
           className={`num text-2xl font-semibold ${
-            giacenza <= SCORTA_POLIZZE ? 'text-danger' : 'text-nvg'
+            giacenza < SCORTA_POLIZZE ? 'text-danger' : 'text-nvg'
           }`}
         >
           {giacenza}
@@ -111,9 +111,9 @@ export function TimelinePolizze({
       <ol className="mt-4 space-y-3 border-l border-line pl-4">
         {righe.map((r) => {
           const tono =
-            r.residuo < 0 ? 'text-danger' : r.residuo <= SCORTA_POLIZZE ? 'text-warn' : 'text-nvg';
+            r.residuo < 0 ? 'text-danger' : r.residuo < SCORTA_POLIZZE ? 'text-warn' : 'text-nvg';
           const barra =
-            r.residuo < 0 ? 'bg-danger' : r.residuo <= SCORTA_POLIZZE ? 'bg-warn' : 'bg-nvg';
+            r.residuo < 0 ? 'bg-danger' : r.residuo < SCORTA_POLIZZE ? 'bg-warn' : 'bg-nvg';
           return (
             <li key={r.id} className="relative">
               {/* il pallino sulla linea: sta fuori dal bordo, all'altezza
