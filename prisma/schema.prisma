@@ -403,6 +403,12 @@ model CollegamentoSquadra {
   @@index([stato])
 }
 
+/// Il costo chiesto alle squadre ospiti: tanto a operatore, o una cifra per squadra.
+enum CostoOspitiPer {
+  OPERATORE
+  SQUADRA
+}
+
 /// Cosa può fare, su un'attività nostra, la squadra collegata che invitiamo.
 enum AccessoEvento {
   /// La vede e basta, come col link di oggi.
@@ -588,6 +594,11 @@ model SquadraOspite {
   risposta        RispostaInvito?
   /// Perché hanno detto di no, se l'hanno scritto.
   motivoRifiuto   String?
+  /// I «forse» della squadra collegata, se ce li manda.
+  operatoriForse  Int?
+  /// Quando ci hanno detto di aver versato il dovuto, e quanto.
+  versatoIl       DateTime?
+  versatoImporto  Decimal?             @db.Decimal(10, 2)
 
   @@unique([eventId, nome])
   @@index([eventId])
@@ -1058,6 +1069,19 @@ model Event {
   /// Un invito tolto dalla vista senza rispondere: l'organizzatore non lo sa,
   /// e continua ad aggiornarlo — semplicemente qui non si vede più.
   origineNascosta       Boolean          @default(false)
+  /// Se mandiamo all'organizzatore anche i «forse», oltre ai presenti.
+  origineMandaForse     Boolean          @default(false)
+  /// Gli ultimi numeri mandati all'organizzatore: se non cambiano non si rimandano.
+  origineUltimiNumeri   String?
+  /// Quando abbiamo segnalato di aver versato il dovuto all'organizzatore, e quanto.
+  origineVersatoIl      DateTime?
+  origineVersatoImporto Decimal?         @db.Decimal(10, 2)
+
+  /// Quanto chiediamo alle squadre ospiti collegate: a operatore o per squadra.
+  costoOspiti           Decimal?         @db.Decimal(10, 2)
+  costoOspitiPer        CostoOspitiPer?
+  /// L'ultimo riepilogo dei numeri mandato alle squadre invitate.
+  numeriCondivisi       String?
 
   @@unique([origineCollegamentoId, origineIdRemoto])
   /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.

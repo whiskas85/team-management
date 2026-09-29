@@ -3,6 +3,7 @@ import type { CollegamentoSquadra, Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { accoda } from './federazione-coda';
 import { profiloDi } from './federazione';
+import { marchio } from './mia-squadra';
 import { stagioneAttiva } from './stagioni';
 
 /**
@@ -42,6 +43,21 @@ export type EventoCondiviso = {
   annullata: boolean;
   motivoAnnullamento: string | null;
   referenti: { callsign: string | null; telefono: string | null }[];
+  /** Quanto chiediamo alle squadre ospiti: a operatore o per squadra. */
+  costo: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
+  /** Come ci si paga: i nostri metodi di pagamento. */
+  metodi: { nome: string; istruzioni: string | null }[];
+};
+
+/** Una riga del riepilogo «chi viene»: una squadra e i suoi numeri. */
+export type NumeriSquadra = {
+  nome: string;
+  presenti: number | null;
+  forse: number | null;
+  /** Chi organizza. */
+  organizzatore?: boolean;
+  /** La squadra che riceve il riepilogo: il suo numero lo sa già meglio lei. */
+  voi?: boolean;
 };
 
 /** Quello che si manda di una nostra attività. */
@@ -55,6 +71,14 @@ export async function eventoDaCondividere(eventId: string): Promise<EventoCondiv
     },
   });
   if (!e) return null;
+  // i metodi di pagamento del club: sono quelli con cui ci pagano gli ospiti
+  const metodi = e.costoOspiti
+    ? await prisma.metodoPagamento.findMany({
+        where: { attivo: true, cassaId: null },
+        orderBy: { ordine: 'asc' },
+        select: { nome: true, istruzioni: true },
+      })
+    : [];
   const iso = (d: Date | null) => (d ? d.toISOString() : null);
   return {
     id: e.id,
@@ -79,6 +103,57 @@ export async function eventoDaCondividere(eventId: string): Promise<EventoCondiv
     annullata: e.status === 'ANNULLATA',
     motivoAnnullamento: e.motivoAnnullamento,
     referenti: e.referenti.map((r) => ({ callsign: r.utente.callsign, telefono: r.utente.telefono })),
+    costo:
+      e.costoOspiti && Number(e.costoOspiti) > 0
+        ? { importo: Number(e.costoOspiti), per: e.costoOspitiPer ?? 'OPERATORE' }
+        : null,
+    metodi,
+  };
+}
+
+/**
+ * Chi viene, squadra per squadra: noi, e tutti gli ospiti (collegati o col
+ * link). È il riepilogo che vedono tutte le squadre collegate invitate.
+ */
+async function riepilogoNumeri(eventId: string) {
+  const [e, m] = await Promise.all([
+    prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        rsvps: { select: { status: true, presente: true } },
+        ospiti: {
+          orderBy: { creatoIl: 'asc' },
+          select: {
+            id: true,
+            nome: true,
+            operatori: true,
+            operatoriForse: true,
+            risposta: true,
+          },
+        },
+      },
+    }),
+    marchio(),
+  ]);
+  if (!e) return null;
+  const nostri = contaPresenti(e.rsvps);
+  return {
+    noi: { nome: m.nome, presenti: nostri.presenti, forse: nostri.forse, organizzatore: true },
+    ospiti: e.ospiti.filter((o) => o.risposta !== 'RIFIUTATA'),
+  };
+}
+
+/**
+ * Quanti ne portiamo. Dopo l'appello contano quelli che c'erano davvero;
+ * prima, chi ha detto di esserci.
+ */
+export function contaPresenti(rsvps: { status: string; presente: boolean | null }[]) {
+  const appello = rsvps.some((r) => r.presente !== null);
+  return {
+    presenti: appello
+      ? rsvps.filter((r) => r.presente === true).length
+      : rsvps.filter((r) => r.status === 'PRESENTE').length,
+    forse: appello ? 0 : rsvps.filter((r) => r.status === 'FORSE').length,
   };
 }
 
@@ -97,20 +172,88 @@ export async function diffondiEvento(eventId: string) {
     },
   });
   if (inviti.length === 0) return;
-  const evento = await eventoDaCondividere(eventId);
-  if (!evento) return;
+  const [evento, riepilogo] = await Promise.all([
+    eventoDaCondividere(eventId),
+    riepilogoNumeri(eventId),
+  ]);
+  if (!evento || !riepilogo) return;
   for (const o of inviti) {
+    // lo stesso riepilogo per tutti, con segnata la riga di chi lo riceve
+    const numeri: NumeriSquadra[] = [
+      riepilogo.noi,
+      ...riepilogo.ospiti.map((x) => ({
+        nome: x.nome,
+        presenti: x.operatori,
+        forse: x.operatoriForse,
+        ...(x.id === o.id ? { voi: true } : {}),
+      })),
+    ];
     await accoda(
       o.collegamentoId!,
       'evento',
       {
         id: eventId,
         evento,
+        numeri,
         accesso: o.accesso ?? 'VISUALIZZAZIONE',
         invitaAltri: o.invitaAltri,
       } as unknown as Prisma.InputJsonValue,
       { chiave: eventId },
     );
+  }
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { numeriCondivisi: firmaNumeri(riepilogo) },
+  });
+}
+
+const firmaNumeri = (r: NonNullable<Awaited<ReturnType<typeof riepilogoNumeri>>>) =>
+  JSON.stringify([
+    r.noi.presenti,
+    r.noi.forse,
+    ...r.ospiti.map((o) => [o.id, o.operatori, o.operatoriForse]),
+  ]);
+
+/**
+ * Le adesioni sono cambiate: i numeri vanno a chi li deve sapere.
+ *
+ * - Su un'attività **di un'altra squadra** che abbiamo accettato: i nostri
+ *   presenti (e i «forse», se abbiamo scelto di mandarli) vanno a chi organizza.
+ * - Su una **nostra** attività con squadre collegate invitate: il riepilogo
+ *   aggiornato va a tutte loro.
+ *
+ * Si manda solo se qualcosa è cambiato davvero.
+ */
+export async function segnalaNumeri(eventId: string) {
+  const e = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      status: true,
+      origineIdRemoto: true,
+      origineMandaForse: true,
+      origineUltimiNumeri: true,
+      numeriCondivisi: true,
+      origineCollegamento: { select: { id: true, stato: true } },
+      rsvps: { select: { status: true, presente: true } },
+      _count: { select: { ospiti: { where: { collegamentoId: { not: null } } } } },
+    },
+  });
+  if (!e) return;
+
+  if (e.origineCollegamento && e.origineIdRemoto) {
+    if (e.status === 'INVITATA' || e.origineCollegamento.stato !== 'ATTIVO') return;
+    const { presenti, forse } = contaPresenti(e.rsvps);
+    const corpo = { id: e.origineIdRemoto, presenti, forse: e.origineMandaForse ? forse : null };
+    const firma = `${corpo.presenti}|${corpo.forse}`;
+    if (firma === e.origineUltimiNumeri) return;
+    await prisma.event.update({ where: { id: eventId }, data: { origineUltimiNumeri: firma } });
+    await accoda(e.origineCollegamento.id, 'evento-numeri', corpo, { chiave: e.origineIdRemoto });
+    return;
+  }
+
+  if (e._count.ospiti > 0) {
+    const r = await riepilogoNumeri(eventId);
+    if (r && firmaNumeri(r) !== e.numeriCondivisi) await diffondiEvento(eventId);
   }
 }
 
@@ -170,6 +313,18 @@ export function eventoRicevuto(v: unknown): EventoCondiviso | null {
       const x = r as Record<string, unknown>;
       return [{ callsign: testo(x.callsign, 60), telefono: testo(x.telefono, 40) }];
     }),
+    costo: (() => {
+      const c = e.costo && typeof e.costo === 'object' ? (e.costo as Record<string, unknown>) : null;
+      const importo = c ? numero(c.importo) : null;
+      if (!c || importo === null || importo <= 0 || importo > 100_000) return null;
+      return { importo, per: c.per === 'SQUADRA' ? ('SQUADRA' as const) : ('OPERATORE' as const) };
+    })(),
+    metodi: (Array.isArray(e.metodi) ? e.metodi.slice(0, 10) : []).flatMap((m) => {
+      if (!m || typeof m !== 'object') return [];
+      const x = m as Record<string, unknown>;
+      const nome = testo(x.nome, 80);
+      return nome ? [{ nome, istruzioni: testo(x.istruzioni, 1000) }] : [];
+    }),
   };
 }
 
@@ -180,12 +335,45 @@ export type DatiOrigine = {
   tipo: string | null;
   /** L'hanno annullata loro: se la riaprono, torna viva anche qui. */
   annullataDaLoro?: boolean;
+  /** Chi viene, squadra per squadra, come ce lo manda chi organizza. */
+  numeri: NumeriSquadra[];
+  costo: EventoCondiviso['costo'];
+  metodi: EventoCondiviso['metodi'];
+};
+
+const VUOTI: DatiOrigine = {
+  campo: null,
+  referenti: [],
+  tipo: null,
+  numeri: [],
+  costo: null,
+  metodi: [],
 };
 
 export const datiOrigine = (v: unknown): DatiOrigine =>
-  v && typeof v === 'object'
-    ? { campo: null, referenti: [], tipo: null, ...(v as object) }
-    : { campo: null, referenti: [], tipo: null };
+  v && typeof v === 'object' ? { ...VUOTI, ...(v as object) } : VUOTI;
+
+/** Il riepilogo arrivato, ripulito. */
+export function numeriRicevuti(v: unknown): NumeriSquadra[] {
+  if (!Array.isArray(v)) return [];
+  return v.slice(0, 30).flatMap((r) => {
+    if (!r || typeof r !== 'object') return [];
+    const x = r as Record<string, unknown>;
+    const nome = testo(x.nome, 120);
+    if (!nome) return [];
+    const intero = (n: unknown) =>
+      typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < 10_000 ? n : null;
+    return [
+      {
+        nome,
+        presenti: intero(x.presenti),
+        forse: intero(x.forse),
+        ...(x.organizzatore === true ? { organizzatore: true } : {}),
+        ...(x.voi === true ? { voi: true } : {}),
+      },
+    ];
+  });
+}
 
 function aggiornaPagine(id?: string) {
   revalidatePath('/calendario');
@@ -203,6 +391,7 @@ export async function riceviEvento(
   e: EventoCondiviso,
   accesso: 'VISUALIZZAZIONE' | 'GESTIONE',
   invitaAltri: boolean,
+  numeri: NumeriSquadra[] = [],
 ): Promise<{ id: string; nuovo: boolean }> {
   const esistente = await prisma.event.findUnique({
     where: {
@@ -250,6 +439,9 @@ export async function riceviEvento(
     referenti: e.referenti,
     tipo: e.tipo,
     annullataDaLoro,
+    numeri,
+    costo: e.costo,
+    metodi: e.metodi,
   } as unknown as Prisma.InputJsonValue;
 
   if (esistente) {
@@ -313,4 +505,12 @@ export function organizzatoreDi(
     nome: c.squadra?.nome ?? profiloDi(c).nome,
     logo: c.squadra?.logoPath ? `/api/squadre/${c.squadra.id}/logo` : null,
   };
+}
+
+/** Quanto si deve a chi organizza: a operatore (sui presenti) o una cifra per squadra. */
+export function dovutoAllOrganizzatore(
+  costo: NonNullable<EventoCondiviso['costo']>,
+  presenti: number,
+): number {
+  return Math.round((costo.per === 'SQUADRA' ? costo.importo : costo.importo * presenti) * 100) / 100;
 }

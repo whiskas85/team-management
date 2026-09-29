@@ -43,7 +43,12 @@ import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
 import { BannerCondivisa } from '@/components/BannerCondivisa';
-import { datiOrigine, organizzatoreDi } from '@/lib/eventi-condivisi';
+import {
+  contaPresenti,
+  datiOrigine,
+  dovutoAllOrganizzatore,
+  organizzatoreDi,
+} from '@/lib/eventi-condivisi';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
 import { NESSUNA_QUOTA } from '@/lib/quote';
 import { genereAllegato } from '@/lib/allegati';
@@ -641,6 +646,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     risposta: o.risposta,
     accesso: o.accesso,
     motivoRifiuto: o.motivoRifiuto,
+    operatoriForse: o.operatoriForse,
+    // il conto per le squadre collegate: a operatore sui loro presenti, o per squadra
+    dovuto:
+      o.collegamentoId && evento.costoOspiti && Number(evento.costoOspiti) > 0
+        ? fmtEuro(
+            dovutoAllOrganizzatore(
+              { importo: Number(evento.costoOspiti), per: evento.costoOspitiPer ?? 'OPERATORE' },
+              o.operatori ?? 0,
+            ),
+          )
+        : null,
+    versato:
+      o.versatoIl && o.versatoImporto !== null
+        ? `${fmtEuro(Number(o.versatoImporto))} il ${fmtDateTime(o.versatoIl)}`
+        : null,
   }));
   const organizzatore = organizzatoreDi(evento.origineCollegamento);
 
@@ -1180,6 +1200,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           invitata={evento.status === 'INVITATA'}
           admin={admin}
           tipologie={tipologie.filter((t) => t.attivo !== false)}
+          nostri={contaPresenti(evento.rsvps)}
+          mandaForse={evento.origineMandaForse}
+          versato={
+            evento.origineVersatoIl && evento.origineVersatoImporto !== null
+              ? { importo: Number(evento.origineVersatoImporto), il: evento.origineVersatoIl }
+              : null
+          }
         />
       )}
 

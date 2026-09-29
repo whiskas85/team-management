@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { diffondiEvento, ritiraEvento } from '@/lib/eventi-condivisi';
+import { diffondiEvento, ritiraEvento, segnalaNumeri } from '@/lib/eventi-condivisi';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
 import {
@@ -62,6 +62,9 @@ const CAMPI_DELL_ORGANIZZATORE = [
 ];
 
 function aggiorna(id?: string) {
+  // le adesioni cambiano quasi sempre passando di qui: i numeri vanno a chi
+  // li deve sapere — l'organizzatore, o le squadre collegate invitate
+  if (id) void segnalaNumeri(id).catch(() => null);
   revalidatePath('/calendario');
   revalidatePath('/dashboard');
   revalidatePath('/admin/statistiche');
@@ -208,6 +211,18 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     // a quale altra attività è legata: mai a sé stessa, che sarebbe un anello
     collegatoAId: strOpt(fd, 'collegatoAId') === id ? null : strOpt(fd, 'collegatoAId'),
     note: strOpt(fd, 'note'),
+    // il costo per le squadre ospiti collegate; se il modulo non l'ha
+    // mostrato (una riunione, un'attività di altri) resta com'era
+    ...(fd.has('costoOspiti')
+      ? {
+          costoOspiti: (() => {
+            const n = num(fd, 'costoOspiti');
+            return n !== null && n > 0 ? n : null;
+          })(),
+          costoOspitiPer:
+            str(fd, 'costoOspitiPer') === 'SQUADRA' ? ('SQUADRA' as const) : ('OPERATORE' as const),
+        }
+      : {}),
   };
 
   if (id) {

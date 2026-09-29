@@ -5,6 +5,28 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.122.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Numeri e costi delle squadre ospiti collegate** (fase 4 di
+  `docs/COLLEGAMENTO-SQUADRE.md`).
+  - **Le presenze passano da sole.** Chi ha accettato un'attività di un'altra
+    squadra manda all'organizzatore i suoi presenti ogni volta che cambiano
+    (dopo l'appello, quelli che c'erano davvero). I **«forse»** li manda solo se
+    lo sceglie, attività per attività, dal riquadro in testa alla scheda.
+  - **Chi organizza** li vede nella riga dell'ospite al posto del numero scritto
+    a mano, e il riepilogo aggiornato riparte verso tutte le squadre invitate.
+  - **Chi viene, per tutti:** nella scheda di chi è invitato, squadra per
+    squadra — chi organizza, gli altri ospiti e la propria riga — col totale.
+  - **Il costo per le squadre ospiti:** nel modulo dell'attività, sezione
+    «Squadre ospiti», un importo **a operatore presente** o **per tutta la
+    squadra**. Chi è invitato vede quanto deve versare (es. 5 € × 10 presenti =
+    50 €) con i metodi di pagamento dell'organizzatore; ai suoi fa pagare la
+    quota che decide lui.
+  - **«Abbiamo versato»:** chi è invitato lo segnala (e lo può ritirare), chi
+    organizza lo vede accanto al nome con la cifra e la data.
+
 ## 2.121.0 — 29 settembre 2026
 
 ### Aggiunto

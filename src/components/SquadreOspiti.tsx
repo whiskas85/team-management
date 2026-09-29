@@ -18,6 +18,12 @@ export type Ospite = {
   risposta?: string | null;
   accesso?: string | null;
   motivoRifiuto?: string | null;
+  /** I «forse» che la squadra collegata ci manda, se li manda. */
+  operatoriForse?: number | null;
+  /** Quanto ci deve, se chiediamo un costo alle squadre ospiti. */
+  dovuto?: string | null;
+  /** Se ci ha detto di aver versato, e quanto. */
+  versato?: string | null;
 };
 
 const RISPOSTA: Record<string, string> = {
@@ -113,9 +119,18 @@ export function SquadreOspiti({
                     ? `${o.motivoRifiuto ? `«${o.motivoRifiuto}»` : 'Non hanno scritto perché'}${
                         o.rispostoIl ? ` · ${o.rispostoIl}` : ''
                       }`
-                    : `Gestionale collegato${
-                        o.accesso === 'GESTIONE' ? ' · possono modificarla' : ''
-                      }${o.operatori !== null ? ` · ${o.operatori} operatori` : ''}`
+                    : [
+                        o.operatori !== null
+                          ? `${o.operatori} presenti${
+                              o.operatoriForse ? ` · ${o.operatoriForse} forse` : ''
+                            } (dal loro gestionale)`
+                          : 'Gestionale collegato',
+                        o.accesso === 'GESTIONE' ? 'possono modificarla' : null,
+                        o.dovuto ? `devono ${o.dovuto}` : null,
+                        o.versato ? `versato ${o.versato}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
                   : o.operatori === null
                   ? 'non ha ancora risposto'
                   : o.operatori === 0

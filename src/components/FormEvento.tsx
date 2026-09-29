@@ -56,6 +56,9 @@ type Evento = {
   linkRiunione: string | null;
   /** Riservata alla squadra o aperta a tutti: decide se serve la quota esterni. */
   visibilita?: string | null;
+  /** Quanto chiediamo alle squadre ospiti collegate. */
+  costoOspiti?: unknown;
+  costoOspitiPer?: string | null;
   tipo?: { riunione: boolean } | null;
 };
 
@@ -501,6 +504,38 @@ export function FormEvento({
                 />
               </div>
             </Sezione>
+            )}
+
+            {/* Quanto chiediamo alle squadre col gestionale collegato che
+                invitiamo: lo vedono nel loro, coi nostri metodi di pagamento,
+                e il conto lo fanno sui loro presenti. */}
+            {!eRiunione && !bloccati && (
+              <Sezione
+                titolo="Squadre ospiti"
+                sottotitolo="Il costo per le squadre collegate che invitiamo: lo pagano come squadra, con i nostri metodi di pagamento."
+              >
+                <Campo label="Costo (€)">
+                  <input
+                    name="costoOspiti"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    defaultValue={numero(evento?.costoOspiti) ?? ''}
+                    className="input"
+                    placeholder="vuoto = niente"
+                  />
+                </Campo>
+                <Campo label="Come si conta">
+                  <select
+                    name="costoOspitiPer"
+                    defaultValue={evento?.costoOspitiPer ?? 'OPERATORE'}
+                    className="input"
+                  >
+                    <option value="OPERATORE">a operatore presente</option>
+                    <option value="SQUADRA">per tutta la squadra</option>
+                  </select>
+                </Campo>
+              </Sezione>
             )}
 
             <Sezione titolo="Note interne" sottotitolo="Le legge chi gestisce il calendario.">

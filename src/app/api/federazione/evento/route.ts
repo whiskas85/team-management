@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mittente, profiloDi } from '@/lib/federazione';
-import { eventoRicevuto, riceviEvento } from '@/lib/eventi-condivisi';
+import { eventoRicevuto, numeriRicevuti, riceviEvento } from '@/lib/eventi-condivisi';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,13 @@ export async function POST(req: Request) {
   if (!evento) return NextResponse.json({ errore: 'Attività illeggibile.' }, { status: 400 });
   const accesso = m.dati.corpo.accesso === 'GESTIONE' ? 'GESTIONE' : 'VISUALIZZAZIONE';
 
-  const esito = await riceviEvento(c, evento, accesso, m.dati.corpo.invitaAltri === true);
+  const esito = await riceviEvento(
+    c,
+    evento,
+    accesso,
+    m.dati.corpo.invitaAltri === true,
+    numeriRicevuti(m.dati.corpo.numeri),
+  );
 
   if (esito.nuovo) {
     // a chi decide del calendario: c'è un invito che aspetta una risposta

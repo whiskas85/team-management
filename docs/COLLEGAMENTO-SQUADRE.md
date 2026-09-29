@@ -92,7 +92,7 @@ I messaggi aspettano in una coda e si ritentano: non si perde niente.
 3. Eventi invitati: stato INVITATO, accetta/rifiuta, sincronizzazione, badge.
    *Fatto in 2.120.0.* Il permesso «Gestione» e «può invitare altre squadre» si
    scelgono già e arrivano di là, ma hanno effetto dalla fase 5.
-4. Presenze automatiche e costi per le squadre ospiti.
+4. Presenze automatiche e costi per le squadre ospiti. *Fatto in 2.122.0.*
 5. Gestione condivisa e re-inviti.
 
 Ogni fase si prova fra `test` e `test2` prima della successiva.
