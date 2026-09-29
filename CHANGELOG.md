@@ -5,6 +5,13 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.113.2 — 29 settembre 2026
+
+### Cambiato
+
+- **Nuovi:** «Ultimo accesso» si legge come negli operatori, con data e ora
+  dell'ultima volta che hanno usato il gestionale, anche senza rifare l'accesso.
+
 ## 2.113.1 — 29 settembre 2026
 
 ### Cambiato

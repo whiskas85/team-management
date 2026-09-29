@@ -1,7 +1,7 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { STATI_CONTATTO, isAdmin, puoAmministrare, puoVedereNuovi } from '@/lib/domain';
-import { fmtDate, giorniA } from '@/lib/format';
+import { fmtDate, fmtDateTime, giorniA } from '@/lib/format';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { Intestazione, Statistica } from '@/components/ui';
 import { BottoneCreaOperatore } from '@/components/FormOperatore';
@@ -134,7 +134,13 @@ export default async function NuoviPage() {
       telefono: n.telefono,
       stato: n.stato,
       registrato: fmtDate(n.createdAt),
-      ultimoAccesso: n.ultimoAccesso ? fmtDate(n.ultimoAccesso) : null,
+      // come negli operatori: l'ultima volta che l'ha **usato**, con l'ora — chi
+      // ha spuntato «ricordami» non rifà l'accesso, ma ci passa lo stesso
+      ultimoAccesso: n.ultimaAttivita
+        ? fmtDateTime(n.ultimaAttivita)
+        : n.ultimoAccesso
+          ? fmtDateTime(n.ultimoAccesso)
+          : null,
       avvisi: n._count.iscrizioniPush > 0,
       versione: n.versioneApp,
       versioneVecchia: n.versioneApp !== null && n.versioneApp !== VERSIONE,
