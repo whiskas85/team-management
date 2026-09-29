@@ -7,6 +7,8 @@ import { BottoneModale } from './Modale';
 import { Campo } from './ui';
 import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
 import { RispostaInvito } from './RispostaInvito';
+import { MetodiPagamento } from './MetodiPagamento';
+import { primoIban, primoLink } from '@/lib/link';
 
 /**
  * In testa alla scheda di un'attività organizzata da un'altra squadra
@@ -243,10 +245,20 @@ export function BannerCondivisa({
                       </span>
                     )}
                   </p>
-                  <MetodiOrganizzatore metodi={dati.metodi} organizzatore={organizzatore.nome} />
+                  <MetodiOrganizzatore
+                    metodi={dati.metodi}
+                    organizzatore={organizzatore.nome}
+                    campoMetodo={`metodo-ospite-${eventId}`}
+                  />
                   {dati.metodi.length > 0 && (
                     <Campo label="Come avete pagato" span>
-                      <select name="metodo" required defaultValue="" className="input">
+                      <select
+                        id={`metodo-ospite-${eventId}`}
+                        name="metodo"
+                        required
+                        defaultValue=""
+                        className="input"
+                      >
                         <option value="" disabled>
                           — scegli —
                         </option>
@@ -313,13 +325,20 @@ export function BannerCondivisa({
   );
 }
 
-/** I metodi di pagamento di chi organizza, con le istruzioni (IBAN, numero…). */
+/**
+ * I metodi di pagamento di chi organizza, come quelli di una nostra cassa:
+ * descrizione, istruzioni, «Paga con …» se c'è un link, «Copia IBAN» se c'è
+ * un IBAN. Nel modulo «Paga» il metodo toccato si sceglie anche nel menu.
+ * Il nome fa da id: è quello che torna a loro con la segnalazione.
+ */
 function MetodiOrganizzatore({
   metodi,
   organizzatore,
+  campoMetodo,
 }: {
   metodi: DatiOrigine['metodi'];
   organizzatore: string;
+  campoMetodo?: string;
 }) {
   if (metodi.length === 0) {
     return (
@@ -329,17 +348,23 @@ function MetodiOrganizzatore({
     );
   }
   return (
-    <ul className="space-y-2 text-sm">
-      {metodi.map((m, i) => (
-        <li key={i} className="rounded-md border border-line px-3 py-2">
-          <span className="font-medium">{m.nome}</span>
-          {m.istruzioni && (
-            <span className="mt-0.5 block whitespace-pre-line text-xs text-muted">
-              {m.istruzioni}
-            </span>
-          )}
-        </li>
-      ))}
-    </ul>
+    <div>
+      {campoMetodo && (
+        <p className="mb-2 text-[11px] text-muted">
+          Tocca il metodo con cui paghi: lo trovi già scelto qui sotto.
+        </p>
+      )}
+      <MetodiPagamento
+        campoMetodo={campoMetodo}
+        metodi={metodi.map((m) => ({
+          id: m.nome,
+          nome: m.nome,
+          descrizione: m.descrizione,
+          istruzioni: m.istruzioni,
+          link: primoLink(m.istruzioni),
+          iban: primoIban(m.istruzioni),
+        }))}
+      />
+    </div>
   );
 }

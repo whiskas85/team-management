@@ -13,6 +13,7 @@ export type MetodoCassa = {
   descrizione: string | null;
   istruzioni: string | null;
   selfService: boolean;
+  esterni: boolean;
   ordine: number;
   attivo: boolean;
 };
@@ -104,9 +105,10 @@ export function MetodiCassa({
                 </BottoneModale>
               }
             >
-              {(m.selfService || !m.attivo) && (
+              {(m.selfService || m.esterni || !m.attivo) && (
                 <span className="flex flex-wrap gap-2">
                   {m.selfService && <Badge tono="ok">dichiarabile</Badge>}
+                  {m.esterni && <Badge tono="info">squadre esterne</Badge>}
                   {!m.attivo && <Badge tono="neutro">spento</Badge>}
                 </span>
               )}
@@ -224,6 +226,22 @@ function CampiMetodo({ metodo }: { metodo?: MetodoCassa }) {
           <span className="block text-[11px] text-muted">
             Il pagamento resta comunque da confermare da chi gestisce la cassa: serve solo a
             segnalare che il versamento è partito.
+          </span>
+        </span>
+      </label>
+
+      <label className="flex min-w-0 items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="esterni"
+          defaultChecked={metodo?.esterni ?? false}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span className="min-w-0">
+          Lo usano anche le squadre esterne
+          <span className="block text-[11px] text-muted">
+            Le squadre collegate che invitate a un’attività a pagamento lo vedono, con descrizione e
+            istruzioni, per versare la loro parte in questa cassa.
           </span>
         </span>
       </label>

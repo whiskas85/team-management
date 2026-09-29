@@ -43,7 +43,7 @@ export default async function MieiPagamentiPage() {
       // di tutte le casse: a ogni quota si mostrano solo quelli della sua
       where: { attivo: true, selfService: true },
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, istruzioni: true, cassaId: true },
+      select: { id: true, nome: true, descrizione: true, istruzioni: true, cassaId: true },
     }),
     prisma.movimentoCredito.findMany({
       where: { userId: me.id },
@@ -337,7 +337,7 @@ function Dichiara({
     /** I movimenti del credito legati a questa quota: dicono quanto ne ha pagato. */
     crediti?: { importo: unknown }[];
   };
-  metodi: { id: string; nome: string; istruzioni: string | null }[];
+  metodi: { id: string; nome: string; descrizione: string | null; istruzioni: string | null }[];
   /** A chi va pagata, se non al club: il nome della sua cassa. */
   cassa?: string | null;
   /** Il credito disponibile nella cassa di questa quota. */
@@ -412,6 +412,7 @@ function Dichiara({
   const comePagare: MetodoDaMostrare[] = metodi.map((m) => ({
     id: m.id,
     nome: m.nome,
+    descrizione: m.descrizione,
     istruzioni: m.istruzioni,
     link: primoLink(m.istruzioni),
     iban: primoIban(m.istruzioni),

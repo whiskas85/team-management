@@ -46,7 +46,7 @@ export type EventoCondiviso = {
   /** Quanto chiediamo alle squadre ospiti: a operatore o per squadra. */
   costo: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
   /** Come ci si paga: i nostri metodi di pagamento. */
-  metodi: { nome: string; istruzioni: string | null }[];
+  metodi: { nome: string; descrizione: string | null; istruzioni: string | null }[];
 };
 
 /** Una riga del riepilogo «chi viene»: una squadra e i suoi numeri. */
@@ -75,9 +75,10 @@ export async function eventoDaCondividere(eventId: string): Promise<EventoCondiv
   const metodi = e.costoOspiti
     ? await prisma.metodoPagamento.findMany({
         // quelli della cassa in cui vanno i soldi degli ospiti
-        where: { attivo: true, cassaId: e.cassaOspitiId ?? null },
+        // quelli abilitati per le squadre esterne: gli altri sono per i nostri
+        where: { attivo: true, esterni: true, cassaId: e.cassaOspitiId ?? null },
         orderBy: { ordine: 'asc' },
-        select: { nome: true, istruzioni: true },
+        select: { nome: true, descrizione: true, istruzioni: true },
       })
     : [];
   const iso = (d: Date | null) => (d ? d.toISOString() : null);
@@ -156,6 +157,25 @@ export function contaPresenti(rsvps: { status: string; presente: boolean | null 
       : rsvps.filter((r) => r.status === 'PRESENTE').length,
     forse: appello ? 0 : rsvps.filter((r) => r.status === 'FORSE').length,
   };
+}
+
+/**
+ * I metodi di una cassa sono cambiati (aggiunti, tolti, abilitati per le
+ * squadre esterne): le attività a pagamento che incassano lì li rimandano a
+ * chi è invitato, altrimenti di là resterebbero quelli vecchi.
+ */
+export async function rimandaMetodiDellaCassa(cassaId: string | null) {
+  const eventi = await prisma.event.findMany({
+    where: {
+      cassaOspitiId: cassaId,
+      costoOspiti: { gt: 0 },
+      inizio: { gte: new Date(Date.now() - 7 * 86_400_000) },
+      origineCollegamentoId: null,
+      ospiti: { some: { collegamentoId: { not: null } } },
+    },
+    select: { id: true },
+  });
+  for (const e of eventi) await diffondiEvento(e.id);
 }
 
 /**
@@ -324,7 +344,9 @@ export function eventoRicevuto(v: unknown): EventoCondiviso | null {
       if (!m || typeof m !== 'object') return [];
       const x = m as Record<string, unknown>;
       const nome = testo(x.nome, 80);
-      return nome ? [{ nome, istruzioni: testo(x.istruzioni, 1000) }] : [];
+      return nome
+        ? [{ nome, descrizione: testo(x.descrizione, 300), istruzioni: testo(x.istruzioni, 1000) }]
+        : [];
     }),
   };
 }

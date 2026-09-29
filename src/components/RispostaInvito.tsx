@@ -82,15 +82,22 @@ export function RispostaInvito({
           </Campo>
           {costo && (
             <div className="space-y-3 rounded-md border border-warn/40 bg-warn/5 p-3 sm:col-span-2">
-              <p className="text-sm text-warn">
-                È a pagamento: {organizzatore} chiede{' '}
-                <strong>
-                  {costo.importo.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}
-                  {costo.per === 'SQUADRA' ? ' per la squadra' : ' a operatore'}
-                </strong>
-                , da versare come squadra.
-              </p>
-              <Campo label="Quota per i vostri (€)" span>
+              {/* due soldi diversi, da non confondere: quello che la squadra
+                  versa a loro, e quello che i vostri versano alla squadra */}
+              <div>
+                <p className="titolo-sezione">Verso {organizzatore}</p>
+                <p className="mt-0.5 text-sm text-warn">
+                  Chiedono{' '}
+                  <strong>
+                    {costo.importo.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}
+                    {costo.per === 'SQUADRA' ? ' per la squadra' : ' a operatore'}
+                  </strong>
+                  , da versare come squadra. Il conto lo trovi nella scheda dell’attività, con
+                  «Paga»: lo segnali a loro e lo confermano nella loro cassa.
+                </p>
+              </div>
+              <p className="titolo-sezione border-t border-warn/30 pt-3">Per i vostri</p>
+              <Campo label="Quota per operatore (€)" span>
                 <input
                   name="quotaInterna"
                   type="number"
@@ -102,7 +109,7 @@ export function RispostaInvito({
                 />
               </Campo>
               {casse.length > 0 && (
-                <Campo label="In che cassa" span>
+                <Campo label="In che cassa entra" span>
                   <select name="cassaQuota" defaultValue="" className="input">
                     <option value="">Cassa del club</option>
                     {casse.map((c) => (

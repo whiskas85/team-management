@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.124.1 — 29 settembre 2026
+
+### Corretto
+
+- **Metodi di pagamento per le squadre esterne.** Un metodo lo vedono le
+  squadre collegate solo se è abilitato: nella sua modifica c'è **Lo usano
+  anche le squadre esterne** (badge «Squadre esterne» nell'elenco). Quando lo
+  si cambia, le attività a pagamento che incassano in quella cassa lo
+  rimandano da sole a chi è invitato.
+- **Info pagamenti e Paga, come per i nostri.** Si vedono anche le
+  descrizioni dei metodi; un metodo con un link ha il pulsante **Paga con …**,
+  uno con l'IBAN **Copia IBAN**, e toccarlo sceglie da solo «Come avete
+  pagato».
+- **Accetta un invito a pagamento.** La finestra separa quello che la squadra
+  versa all'organizzatore (con «Paga», dalla scheda) dalla quota dei vostri e
+  dalla cassa in cui entra.
+
 ## 2.124.0 — 29 settembre 2026
 
 ### Aggiunto

@@ -6,6 +6,8 @@ import { Icona } from './Icona';
 export type MetodoDaMostrare = {
   id: string;
   nome: string;
+  /** Cos'è, in due parole: «Bonifico al conto del club», «Satispay di Mario». */
+  descrizione?: string | null;
   istruzioni: string | null;
   /** Il link pescato dalle istruzioni, se c'è: diventa «Paga con …». */
   link: string | null;
@@ -116,6 +118,7 @@ export function MetodiPagamento({
         >
           <div className="min-w-0">
             <p className="font-medium text-ink">{m.nome}</p>
+            {m.descrizione && <p className="mt-0.5 text-xs text-ink/80">{m.descrizione}</p>}
             {m.istruzioni && (
               <p className="mt-0.5 whitespace-pre-line break-words text-xs text-muted [overflow-wrap:anywhere]">
                 {m.istruzioni}

@@ -924,6 +924,9 @@ model MetodoPagamento {
   istruzioni  String?
   /// Se vero l'operatore può dichiararlo da sé quando salda.
   selfService Boolean  @default(false)
+  /// Se vero lo vedono anche le squadre collegate che vengono da noi come
+  /// ospiti, per pagare la loro parte. Spento, resta un metodo per i nostri.
+  esterni     Boolean  @default(false)
   ordine      Int      @default(0)
   attivo      Boolean  @default(true)
   createdAt   DateTime @default(now())

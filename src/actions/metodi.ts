@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
 import { puoGestireCassa } from '@/lib/casse';
 import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
+import { rimandaMetodiDellaCassa } from '@/lib/eventi-condivisi';
 
 /**
  * Chi può toccare i metodi di questa cassa.
@@ -64,12 +65,14 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
     descrizione: strOpt(fd, 'descrizione'),
     istruzioni: strOpt(fd, 'istruzioni'),
     selfService: bool(fd, 'selfService'),
+    esterni: bool(fd, 'esterni'),
     attivo: bool(fd, 'attivo'),
   };
 
   if (id) {
     await prisma.metodoPagamento.update({ where: { id }, data: valori });
     aggiorna();
+    await rimandaMetodiDellaCassa(cassaId);
     return { ok: 'Metodo aggiornato.' };
   }
 
@@ -82,6 +85,7 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
     data: { ...valori, cassaId, ordine: (ultimo._max.ordine ?? -1) + 1 },
   });
   aggiorna();
+  await rimandaMetodiDellaCassa(cassaId);
   return { ok: 'Metodo aggiunto.' };
 }
 
@@ -109,6 +113,7 @@ export async function ordinaMetodi(_prev: StatoForm, fd: FormData): Promise<Stat
   );
 
   aggiorna();
+  await rimandaMetodiDellaCassa(cassaId);
   return {};
 }
 
@@ -131,11 +136,13 @@ export async function eliminaMetodo(_prev: StatoForm, fd: FormData): Promise<Sta
     // resta agganciato ai movimenti già registrati: lo disattiviamo soltanto
     await prisma.metodoPagamento.update({ where: { id }, data: { attivo: false } });
     aggiorna();
+    await rimandaMetodiDellaCassa(metodo.cassaId);
     return { ok: `Metodo usato in ${usato} movimenti: disattivato anziché eliminato.` };
   }
 
   await prisma.metodoPagamento.delete({ where: { id } });
   aggiorna();
+  await rimandaMetodiDellaCassa(metodo.cassaId);
   return { ok: 'Metodo eliminato.' };
 }
 
