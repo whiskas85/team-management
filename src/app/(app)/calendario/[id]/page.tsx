@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { profiloDi as profiloCollegamento } from '@/lib/federazione';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { StatoOperatore } from '@prisma/client';
@@ -121,7 +122,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       // le squadre di fuori invitate, con il loro link
       ospiti: {
         orderBy: { creatoIl: 'asc' },
-        include: { versamenti: { orderBy: { segnalatoIl: 'asc' } } },
+        include: {
+          versamenti: { orderBy: { segnalatoIl: 'asc' } },
+          collegamento: { select: { stato: true } },
+        },
       },
       // quello che abbiamo pagato all'organizzatore, se l'attività è di un altro
       versamentiOrganizzatore: { orderBy: { segnalatoIl: 'asc' } },
@@ -658,7 +662,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     collegata: !!o.collegamentoId,
     risposta: o.risposta,
     accesso: o.accesso,
+    invitaAltri: o.invitaAltri,
     motivoRifiuto: o.motivoRifiuto,
+    propostaDa: o.propostaDa,
+    // proposta da un'altra squadra, e noi non siamo ancora collegati con lei
+    attendeCollegamento: !!o.collegamentoId && o.collegamento?.stato !== 'ATTIVO',
     operatoriForse: o.operatoriForse,
     // il conto per le squadre collegate: a operatore sui loro presenti, o per squadra
     dovuto:
@@ -672,7 +680,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         : null,
     // il loro conto: dovuto, già in cassa, da confermare, scoperto
     conto:
-      o.collegamentoId && evento.costoOspiti && Number(evento.costoOspiti) > 0
+      // solo per chi ha accettato (o ha già pagato): prima non devono niente
+      o.collegamentoId &&
+      evento.costoOspiti &&
+      Number(evento.costoOspiti) > 0 &&
+      (o.risposta === 'ACCETTATA' || o.versamenti.length > 0)
         ? contoFraSquadre(
             dovutoAllOrganizzatore(
               { importo: Number(evento.costoOspiti), per: evento.costoOspitiPer ?? 'OPERATORE' },
@@ -692,6 +704,23 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     puoConfermare: puoConfermareOspiti,
   }));
   const organizzatore = organizzatoreDi(evento.origineCollegamento);
+  // le nostre squadre collegate da proporre, se chi organizza ce lo lascia fare
+  const collegateProponibili =
+    organizzatore && evento.origineInvitaAltri && admin
+      ? (
+          await prisma.collegamentoSquadra.findMany({
+            where: { stato: 'ATTIVO', id: { not: evento.origineCollegamentoId ?? undefined } },
+            select: { id: true, profilo: true, squadra: { select: { nome: true } } },
+          })
+        )
+          .map((c) => ({ id: c.id, nome: c.squadra?.nome ?? profiloCollegamento(c).nome }))
+          .sort((a, b) => a.nome.localeCompare(b.nome))
+      : [];
+  // ci hanno dato la gestione: i loro campi li modifichiamo anche noi
+  const gestita =
+    !!organizzatore &&
+    evento.origineAccesso === 'GESTIONE' &&
+    evento.origineCollegamento?.stato === 'ATTIVO';
 
   // Gli allegati li carica chi tiene in mano l'attività: l'admin, i team
   // leader e **i referenti di questa**. Il book lo scrive chi ci va, e spesso
@@ -1134,7 +1163,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     casse={casseAttive}
                     collegabili={collegabili}
                     soloLogistica={!admin}
-                    condivisaDa={organizzatore?.nome}
+                    condivisaDa={organizzatore && !gestita ? organizzatore.nome : undefined}
+                    gestitaCon={organizzatore && gestita ? organizzatore.nome : undefined}
                     // un nuovo forzato su un'attività di squadra ha bisogno del
                     // suo prezzo: senza, la card esterni resterebbe nascosta
                     conNuovi={evento.rsvps.some((r) => !vedeAttivitaSquadra(r.user.stato))}
@@ -1239,6 +1269,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             confermatoIl: v.confermatoIl,
           }))}
           casse={casseAttive}
+          invitaAltri={evento.origineInvitaAltri}
+          collegate={collegateProponibili}
           sondaggioId={evento.sondaggio?.id ?? null}
         />
       )}

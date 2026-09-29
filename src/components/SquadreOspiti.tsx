@@ -7,6 +7,7 @@ import { Invia } from './Bottone';
 import { Badge, Campo } from './ui';
 import {
   aggiungiSquadraOspite,
+  cambiaPermessiOspite,
   confermaIncassoOspite,
   segnaOperatoriOspite,
   togliSquadraOspite,
@@ -23,11 +24,17 @@ export type Ospite = {
   collegata?: boolean;
   risposta?: string | null;
   accesso?: string | null;
+  /** Se possono proporre altre squadre. */
+  invitaAltri?: boolean;
   motivoRifiuto?: string | null;
   /** I «forse» che la squadra collegata ci manda, se li manda. */
   operatoriForse?: number | null;
   /** Quanto ci deve, se chiediamo un costo alle squadre ospiti. */
   dovuto?: string | null;
+  /** La squadra ospite che l'ha proposta, se non l'abbiamo invitata noi. */
+  propostaDa?: string | null;
+  /** Il collegamento con loro è ancora una richiesta: l'invito parte quando accettano. */
+  attendeCollegamento?: boolean;
   /** Il loro conto: dovuto, già in cassa, da confermare, scoperto. */
   conto?: { dovuto: number; incassati: number; inAttesa: number; scoperto: number } | null;
   /** I pagamenti che ci hanno segnalato e che aspettano una conferma. */
@@ -136,6 +143,7 @@ export function SquadreOspiti({
                             } (dal loro gestionale)`
                           : 'Gestionale collegato',
                         o.accesso === 'GESTIONE' ? 'possono modificarla' : null,
+                        o.invitaAltri ? 'possono invitare altre squadre' : null,
                         ...(o.daConfermare ?? []).map((v) => `segnalato ${v.testo} · da confermare`),
                       ]
                         .filter(Boolean)
@@ -187,6 +195,45 @@ export function SquadreOspiti({
                     {/* il link è di quella squadra: mandarlo è il gesto per cui
                         questa riga esiste — tranne per le collegate, che
                         l'attività la ricevono nel loro gestionale */}
+                    {o.collegata && o.risposta !== 'RIFIUTATA' && (
+                      <BottoneModale
+                        etichetta="Permessi"
+                        icona="chiave"
+                        titolo={`Cosa può fare ${o.nome}`}
+                        className="btn-ghost btn-sm"
+                      >
+                        <FormAzione azione={cambiaPermessiOspite} className="space-y-3 text-sm">
+                          <input type="hidden" name="id" value={o.id} />
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="accesso"
+                              value="VISUALIZZAZIONE"
+                              defaultChecked={o.accesso !== 'GESTIONE'}
+                            />
+                            La vedono e basta
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="accesso"
+                              value="GESTIONE"
+                              defaultChecked={o.accesso === 'GESTIONE'}
+                            />
+                            Possono anche modificarla (titolo, date, luoghi, collegamenti)
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              name="invitaAltri"
+                              defaultChecked={!!o.invitaAltri}
+                            />
+                            Possono invitare altre squadre
+                          </label>
+                          <Invia icona="salva">Salva</Invia>
+                        </FormAzione>
+                      </BottoneModale>
+                    )}
                     {o.collegata &&
                       o.puoConfermare &&
                       (o.daConfermare ?? []).map((v, i, tutti) => (
@@ -217,6 +264,16 @@ export function SquadreOspiti({
                 ) : undefined
               }
             >
+              {(o.propostaDa || o.attendeCollegamento) && (
+                <span className="flex flex-wrap gap-x-3 text-xs">
+                  {o.propostaDa && <span className="text-muted">proposta da {o.propostaDa}</span>}
+                  {o.attendeCollegamento && (
+                    <span className="text-warn">
+                      aspetta che accettino il collegamento: poi l’invito parte da solo
+                    </span>
+                  )}
+                </span>
+              )}
               {o.collegata && o.risposta !== 'RIFIUTATA' && o.conto && (
                 <ContoFraSquadre conto={o.conto} />
               )}

@@ -2,6 +2,7 @@ import { fmtDateTime, fmtEuro } from '@/lib/format';
 import { descriviCosto, dovutoAllOrganizzatore, type DatiOrigine } from '@/lib/eventi-condivisi';
 import {
   impostaMandaForse,
+  proponiSquadra,
   ritiraVersamento,
   segnalaVersamento,
 } from '@/actions/eventi-condivisi';
@@ -35,6 +36,8 @@ export function BannerCondivisa({
   nostri,
   mandaForse,
   versamenti,
+  invitaAltri,
+  collegate,
   casse,
   sondaggioId,
 }: {
@@ -61,6 +64,10 @@ export function BannerCondivisa({
     il: Date;
     confermatoIl: Date | null;
   }[];
+  /** Chi organizza ci lascia invitare altre squadre. */
+  invitaAltri: boolean;
+  /** Le nostre squadre collegate, tranne chi organizza: quelle che possiamo proporre. */
+  collegate: { id: string; nome: string }[];
   /** Le nostre casse, per la quota interna da impostare accettando. */
   casse: { id: string; nome: string }[];
   /** Il sondaggio «partecipiamo?» aperto sull'invito. */
@@ -175,6 +182,47 @@ export function BannerCondivisa({
               </Invia>
             </FormAzione>
           )}
+        </div>
+      )}
+
+      {!invitata && invitaAltri && collegata && admin && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          <p className="text-xs text-muted">
+            {organizzatore.nome} ci lascia invitare altre squadre: l’invito parte da loro.
+          </p>
+          <BottoneModale
+            etichetta="Invita un’altra squadra"
+            icona="invita"
+            titolo="Invita un’altra squadra"
+            className="btn-ghost btn-sm"
+          >
+            {collegate.length === 0 ? (
+              <p className="text-sm text-muted">
+                Non abbiamo altre squadre collegate: si collegano da Squadre collegate.
+              </p>
+            ) : (
+              <FormAzione azione={proponiSquadra} className="space-y-4">
+                <input type="hidden" name="id" value={eventId} />
+                <Campo label="Quale squadra" span>
+                  <select name="collegamentoId" required defaultValue="" className="input">
+                    <option value="" disabled>
+                      — scegli fra le collegate —
+                    </option>
+                    {collegate.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <p className="text-xs text-muted">
+                  La proponiamo a {organizzatore.nome}, che la invita. Se non sono ancora collegati,
+                  le chiede il collegamento: quando lo accettano l’invito parte da solo.
+                </p>
+                <Invia icona="invita">Proponi</Invia>
+              </FormAzione>
+            )}
+          </BottoneModale>
         </div>
       )}
 

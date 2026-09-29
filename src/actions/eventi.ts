@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { diffondiEvento, ritiraEvento, segnalaNumeri } from '@/lib/eventi-condivisi';
 import { prisma } from '@/lib/db';
+import { accoda } from '@/lib/federazione-coda';
 import { stagioneAttiva } from '@/lib/stagioni';
 import {
   componiQuota,
@@ -61,6 +62,24 @@ const CAMPI_DELL_ORGANIZZATORE = [
   'linkRiunione',
 ];
 
+/**
+ * Una modifica fatta da noi su un'attività di cui ci hanno dato la gestione:
+ * va all'organizzatore, che la applica e la rimanda a tutte le squadre.
+ * Solo i campi suoi, e solo quelli che il modulo ha davvero mandato.
+ */
+async function proponiModifica(collegamentoId: string, idRemoto: string, scelti: Record<string, unknown>) {
+  const campi: Record<string, unknown> = {};
+  for (const k of CAMPI_DELL_ORGANIZZATORE) {
+    if (k === 'fieldId' || !(k in scelti)) continue;
+    const v = scelti[k];
+    campi[k] = v instanceof Date ? v.toISOString() : v;
+  }
+  await accoda(collegamentoId, 'evento-modifica', {
+    id: idRemoto,
+    campi,
+  } as unknown as Prisma.InputJsonValue).catch(() => null);
+}
+
 function aggiorna(id?: string) {
   // le adesioni cambiano quasi sempre passando di qui: i numeri vanno a chi
   // li deve sapere — l'organizzatore, o le squadre collegate invitate
@@ -89,14 +108,28 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   const id = str(fd, 'id');
   // Organizzata da un'altra squadra collegata: titolo, date, descrizione e
   // luoghi arrivano da loro, e qui non si toccano — il modulo non li mostra,
-  // e se arrivassero lo stesso si tengono quelli che ci sono
+  // e se arrivassero lo stesso si tengono quelli che ci sono. Tranne quando ci
+  // hanno dato la **gestione**: allora li si cambia anche da qui, e la modifica
+  // va a loro, che la applicano e la rimandano a tutti.
   const origine = id
     ? await prisma.event.findUnique({
         where: { id },
-        select: { origineCollegamentoId: true, titolo: true, inizio: true, fine: true },
+        select: {
+          origineCollegamentoId: true,
+          origineIdRemoto: true,
+          origineAccesso: true,
+          origineCollegamento: { select: { stato: true } },
+          titolo: true,
+          inizio: true,
+          fine: true,
+        },
       })
     : null;
-  const condivisa = !!origine?.origineCollegamentoId;
+  const gestita =
+    !!origine?.origineCollegamentoId &&
+    origine.origineAccesso === 'GESTIONE' &&
+    origine.origineCollegamento?.stato === 'ATTIVO';
+  const condivisa = !!origine?.origineCollegamentoId && !gestita;
   const titolo = condivisa ? origine!.titolo : str(fd, 'titolo');
   if (!titolo) return { errore: 'Il titolo è obbligatorio.' };
   // il team leader corregge, non crea: senza un'attività da sistemare non ha
@@ -230,10 +263,22 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   if (id) {
     const scelti: Record<string, unknown> = { ...(soloLogistica ? logistica : valori) };
     if (condivisa) for (const k of CAMPI_DELL_ORGANIZZATORE) delete scelti[k];
+    // i nostri campi non esistono di là: il campo scelto diventa un luogo
+    // scritto, con le sue coordinate, come quando arriva da loro
+    if (gestita && scelti.fieldId) {
+      const f = await prisma.field.findUnique({ where: { id: scelti.fieldId as string } });
+      if (f) {
+        scelti.luogo = [f.nome, f.indirizzo, f.citta].filter(Boolean).join(', ');
+        scelti.luogoLat = f.lat;
+        scelti.luogoLng = f.lng;
+      }
+      scelti.fieldId = null;
+    }
     await prisma.event.update({
       where: { id },
       data: scelti as typeof valori,
     });
+    if (gestita) await proponiModifica(origine!.origineCollegamentoId!, origine!.origineIdRemoto!, scelti);
 
     if (quote) await salvaQuoteCasse(id, quote);
     await salvaReferenti(id, fd);

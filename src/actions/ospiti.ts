@@ -238,3 +238,25 @@ export async function confermaIncassoOspite(_prev: StatoForm, fd: FormData): Pro
   revalidatePath('/cassa');
   return { ok: `Incasso di ${ospite.nome} confermato: è in cassa.` };
 }
+
+/**
+ * Cosa può fare una squadra collegata già invitata: vederla e basta, o anche
+ * modificarla; invitare altre squadre, o no. Arriva di là col prossimo
+ * aggiornamento, cioè subito.
+ */
+export async function cambiaPermessiOspite(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoInvitare(me.roles)) return { errore: 'Non puoi cambiare i permessi delle squadre ospiti.' };
+  const ospite = await prisma.squadraOspite.findUnique({ where: { id: str(fd, 'id') } });
+  if (!ospite?.collegamentoId) return { errore: 'Invito non trovato.' };
+  await prisma.squadraOspite.update({
+    where: { id: ospite.id },
+    data: {
+      accesso: str(fd, 'accesso') === 'GESTIONE' ? 'GESTIONE' : 'VISUALIZZAZIONE',
+      invitaAltri: fd.get('invitaAltri') === 'on',
+    },
+  });
+  await diffondiEvento(ospite.eventId).catch(() => null);
+  aggiorna(ospite.eventId);
+  return { ok: `Permessi di ${ospite.nome} aggiornati.` };
+}

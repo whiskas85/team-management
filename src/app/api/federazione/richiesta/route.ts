@@ -55,6 +55,8 @@ export async function POST(req: Request) {
     richiestoIl: new Date(),
     chiusoIl: null,
     decisoDa: null,
+    // arrivata con un link chiesto da una squadra collegata: si dice perché
+    nota: link.perConto ? `Proposta da ${link.perConto}.` : null,
   };
   await prisma.$transaction([
     prisma.collegamentoSquadra.upsert({

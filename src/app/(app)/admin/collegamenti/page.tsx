@@ -42,7 +42,9 @@ export default async function CollegamentiPage({
 
   const [link, collegamenti, squadre] = await Promise.all([
     prisma.linkCollegamento.findMany({
-      where: { revocatoIl: null, scadeIl: { gt: adesso } },
+      // quelli chiesti da una squadra collegata per conto di un'altra non si
+      // danno a mano: servono solo alla richiesta che arriva con loro
+      where: { revocatoIl: null, scadeIl: { gt: adesso }, perConto: null },
       orderBy: { creatoIl: 'desc' },
     }),
     prisma.collegamentoSquadra.findMany({
@@ -111,6 +113,11 @@ export default async function CollegamentiPage({
                       </p>
                     </div>
                   </div>
+                  {c.nota && (
+                    <p className="mb-3 rounded-md border border-nvg/40 bg-nvg/5 px-3 py-2 text-xs">
+                      {c.nota}
+                    </p>
+                  )}
                   <DettagliProfilo profilo={p} />
                   <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4">
                     <FormAzione azione={accettaRichiesta} className="min-w-0 flex-1 space-y-3">

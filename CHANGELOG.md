@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.126.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Gestione condivisa.** Una squadra invitata con **«Possono anche
+  modificarla»** cambia dalla sua scheda titolo, date, descrizione, luoghi e
+  collegamenti dell'attività. La modifica va all'organizzatore, che la applica e
+  la rimanda a tutte le squadre invitate. Costi, quote, stato e rilascio restano
+  dell'organizzatore.
+- **Re-inviti.** Una squadra invitata con **«Possono invitare altre squadre»**
+  ha il pulsante **Invita un'altra squadra**: sceglie una delle sue squadre
+  collegate e la propone. L'invito lo fa l'organizzatore: se è già collegato con
+  quella squadra parte subito; se no le chiede il collegamento (nelle sue
+  richieste si legge chi l'ha proposta e per quale attività), e l'invito parte
+  da solo quando lo accettano. Nella lista ospiti dell'organizzatore si vede «proposta da…»
+  e se si aspetta ancora il collegamento.
+- **Permessi delle squadre ospiti.** Accanto a ogni squadra collegata invitata,
+  **Permessi** cambia accesso e re-inviti anche dopo l'invito.
+
 ## 2.125.1 — 29 settembre 2026
 
 ### Corretto

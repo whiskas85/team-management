@@ -9,7 +9,7 @@ import { puoFareSondaggi } from '@/lib/sondaggi';
 import { eAtleta, idoneoPer, inSquadra, isAdmin, serveCertificato } from '@/lib/domain';
 import { annunciaSondaggioNuovo } from '@/actions/sondaggi';
 import { accoda } from '@/lib/federazione-coda';
-import { profiloDi } from '@/lib/federazione';
+import { manda, profiloDi } from '@/lib/federazione';
 import {
   contaPresenti,
   datiOrigine,
@@ -341,4 +341,58 @@ async function iscriviDalSondaggio(eventId: string, tipoId: string): Promise<str
     `Dal sondaggio: ${righe.length} ${righe.length === 1 ? 'persona iscritta' : 'persone iscritte'}.` +
     (esclusi.length ? ` Non iscritti: ${esclusi.join(', ')}.` : '')
   );
+}
+
+/**
+ * Proponiamo una nostra squadra collegata per un'attività di un'altra squadra
+ * che ci ha dato il permesso di invitarne altre. L'invito lo fa chi organizza:
+ * se non è ancora collegato con quella squadra, le chiediamo un link per lui,
+ * e lui le manda la richiesta di collegamento — l'invito parte quando la
+ * accettano.
+ */
+export async function proponiSquadra(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const r = await accettata(fd);
+  if ('errore' in r) return { errore: r.errore };
+  if (!r.e.origineInvitaAltri) return { errore: 'Su questa attività non potete invitare altre squadre.' };
+  if (r.c.stato !== 'ATTIVO') return { errore: 'Il collegamento con chi organizza non c’è più.' };
+  const terza = await prisma.collegamentoSquadra.findUnique({
+    where: { id: str(fd, 'collegamentoId') },
+  });
+  if (!terza || terza.stato !== 'ATTIVO' || terza.id === r.c.id) {
+    return { errore: 'Scegli una squadra collegata con noi.' };
+  }
+  const organizzatore = profiloDi(r.c).nome;
+  const nome = profiloDi(terza).nome;
+  const corpo = { id: r.idRemoto, squadra: { indirizzo: terza.indirizzo, nome } };
+  type Esito = { stato?: string; nome?: string };
+  let esito = await manda<Esito>(r.c.indirizzo, 'evento-proponi', corpo);
+  if (esito.ok && esito.dati.stato === 'SERVE_GETTONE') {
+    // non si conoscono: ci facciamo dare da loro un link per l'organizzatore
+    const g = await manda<{ token?: string }>(terza.indirizzo, 'gettone-collegamento', {
+      organizzatore,
+      attivita: r.e.titolo,
+    });
+    if (!g.ok || !g.dati.token) {
+      return { errore: `${nome} non risponde: ${g.ok ? 'nessun link' : g.errore}. Riprova più tardi.` };
+    }
+    esito = await manda<Esito>(r.c.indirizzo, 'evento-proponi', { ...corpo, token: g.dati.token });
+  }
+  if (!esito.ok) return { errore: `${organizzatore}: ${esito.errore}.` };
+  aggiorna(r.e.id);
+  switch (esito.dati.stato) {
+    case 'INVITATA':
+      return { ok: `${organizzatore} ha invitato ${nome}: l’attività arriva fra i loro inviti.` };
+    case 'GIA_INVITATA':
+      return { ok: `${nome} è già invitata.` };
+    case 'COLLEGAMENTO_RICHIESTO':
+      return {
+        ok: `${organizzatore} non era collegata con ${nome}: le ha chiesto il collegamento. Quando ${nome} lo accetta, l’invito parte da solo.`,
+      };
+    case 'IN_ATTESA_NOSTRA':
+      return {
+        ok: `${nome} aveva già chiesto il collegamento a ${organizzatore}: quando lo accettano, l’invito parte da solo.`,
+      };
+    default:
+      return { errore: 'Risposta inattesa dall’organizzatore.' };
+  }
 }

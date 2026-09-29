@@ -353,8 +353,13 @@ model IdentitaGestionale {
 model LinkCollegamento {
   id         String    @id @default(cuid())
   token      String    @unique
-  creatoDaId String
-  creatoDa   User      @relation(fields: [creatoDaId], references: [id], onDelete: Cascade)
+  /// Chi l'ha creato. Vuoto: l'ha chiesto una squadra collegata per conto di
+  /// un'altra, che vuole invitarci a un'attività (vedi `perConto`).
+  creatoDaId String?
+  creatoDa   User?     @relation(fields: [creatoDaId], references: [id], onDelete: Cascade)
+  /// Per chi e perché, quando non l'ha creato uno di noi: «Lupi Grigi per
+  /// Zero Dark Team, attività Op. Maronno». Passa sulla richiesta che arriva.
+  perConto   String?
   creatoIl   DateTime  @default(now())
   scadeIl    DateTime
   revocatoIl DateTime?
@@ -392,6 +397,9 @@ model CollegamentoSquadra {
   chiusoIl       DateTime?
   /// Chi l'ha deciso l'ultima volta, da noi: accettato, rifiutato, scollegato.
   decisoDa       String?
+  /// Perché è arrivata la richiesta, quando non viene da un nostro link dato
+  /// a mano: la squadra che l'ha proposta e per quale attività.
+  nota           String?
   aggiornatoIl   DateTime          @updatedAt
 
   messaggi        MessaggioFederazione[]
@@ -598,6 +606,9 @@ model SquadraOspite {
   operatoriForse  Int?
   /// I pagamenti che ci hanno segnalato: uno, o più se la squadra cresce.
   versamenti      VersamentoSquadra[]
+  /// Invitata su proposta di un'altra squadra ospite (che poteva invitarne
+  /// altre): il suo nome, per sapere da dove arriva.
+  propostaDa      String?
 
   @@unique([eventId, nome])
   @@index([eventId])

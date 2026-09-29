@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mittente } from '@/lib/federazione';
 import { salvaProfiloRicevuto } from '@/lib/federazione-coda';
+import { diffondiInvitiInAttesa } from '@/lib/reinviti';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,5 +24,7 @@ export async function POST(req: Request) {
     });
   }
   await salvaProfiloRicevuto(c, m.dati.corpo.profilo);
+  // gli inviti proposti mentre il collegamento era una richiesta partono ora
+  await diffondiInvitiInAttesa(c.id).catch(() => null);
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { diffondiInvitiInAttesa } from '@/lib/reinviti';
 import { randomBytes } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -196,6 +197,8 @@ export async function accettaRichiesta(_prev: StatoForm, fd: FormData): Promise<
   await liberaSquadra(squadra.id, c.id);
   await scaricaLogo(aggiornato, profilo).catch(() => null);
   await accoda(c.id, 'accettata', { profilo: await profiloNostro() } as Prisma.InputJsonValue);
+  // gli inviti proposti mentre aspettavano la nostra risposta partono ora
+  await diffondiInvitiInAttesa(c.id).catch(() => null);
   aggiorna();
   return { ok: `Collegati con ${profilo.nome}.` };
 }

@@ -125,6 +125,7 @@ export function FormEvento({
   referenti = [],
   collegabili = [],
   condivisaDa,
+  gestitaCon,
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
@@ -161,6 +162,12 @@ export function FormEvento({
    * luoghi li decide lei e arrivano da soli. Qui restano le cose nostre.
    */
   condivisaDa?: string;
+  /**
+   * Organizzata da un'altra squadra che ci ha dato la gestione: i suoi campi
+   * si modificano anche da qui, e la modifica va a lei. I costi per le squadre
+   * ospiti restano suoi.
+   */
+  gestitaCon?: string;
 }) {
   const bloccati = !!condivisaDa;
   const avvisoBloccati = bloccati && (
@@ -291,6 +298,13 @@ export function FormEvento({
   // schede; nella creazione veloce dal calendario resta la sola prima.
   const cosa = (
         <Sezione titolo="Cos'è">
+          {gestitaCon && (
+            <p className="rounded-md border border-nvg/40 bg-nvg/5 px-3 py-2 text-xs sm:col-span-2">
+              L’organizza <strong>{gestitaCon}</strong>, che ci ha dato la gestione: titolo, date,
+              descrizione e luoghi che cambi qui vanno a loro, che li applicano e li rimandano a
+              tutte le squadre invitate.
+            </p>
+          )}
           {bloccati ? (
             avvisoBloccati
           ) : (
@@ -599,7 +613,7 @@ export function FormEvento({
                       contenuto: (
                         <>
                           {pagamenti}
-                          {!bloccati && ospiti}
+                          {!bloccati && !gestitaCon && ospiti}
                         </>
                       ),
                     },
