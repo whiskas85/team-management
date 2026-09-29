@@ -367,7 +367,7 @@ function Dichiara({
           <AzioneBottone
             azione={trasformaInCredito}
             valori={{ id: pagamento.id }}
-            icona="incassa"
+            icona="freccia"
             conferma={
               rimborsoAperto
                 ? 'Tenere i soldi come credito invece del rimborso? Li spendi alla prossima quota.'
@@ -375,7 +375,7 @@ function Dichiara({
             }
             className="btn-ghost btn-sm"
           >
-            Tieni come credito
+            Credito
           </AzioneBottone>
         )}
         {inContanti && !pagamento.rimborso && (

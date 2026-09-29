@@ -154,9 +154,9 @@ export function BottoneCreaOperatore({
           <>
             <input type="hidden" name="contattoId" value={contatto.id} />
             <p className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2.5 text-sm">
-              Da contatto a <strong className="text-ink">nuovo</strong>: salvando esce dai contatti da
-              chiamare e comincia il percorso di tutti i nuovi. Il luogo di nascita chiedilo al
-              telefono: con la data serve per la polizza della prima giornata.
+              Da contatto a <strong className="text-ink">nuovo</strong>: gli creo l’accesso con i dati
+              che abbiamo e la password la genero io. Quello che manca glielo chiede il gestionale al
+              primo accesso. Salvando ti preparo il messaggio di benvenuto da mandargli.
             </p>
           </>
         )}
@@ -174,10 +174,10 @@ export function BottoneCreaOperatore({
           <Campo label="Nome *">
             <input name="nome" required className="input" defaultValue={tessera?.nome ?? contatto?.nome} />
           </Campo>
-          <Campo label="Cognome *">
+          <Campo label={contatto ? 'Cognome' : 'Cognome *'}>
             <input
               name="cognome"
-              required
+              required={!contatto}
               className="input"
               defaultValue={tessera?.cognome ?? contatto?.cognome ?? undefined}
             />
@@ -194,41 +194,51 @@ export function BottoneCreaOperatore({
           <Campo label="Callsign">
             <input name="callsign" className="input" />
           </Campo>
-          <Campo label="Telefono *">
-            <CampoTelefono name="telefono" required defaultValue={contatto?.telefono} />
+          <Campo label={contatto ? 'Telefono' : 'Telefono *'}>
+            <CampoTelefono name="telefono" required={!contatto} defaultValue={contatto?.telefono} />
           </Campo>
-          <Campo label="Data di nascita *">
+          {/* dal contatto quello che non si sa resta vuoto: glielo chiede il
+              gestionale al primo accesso, invece di bloccare qui */}
+          <Campo label={contatto ? 'Data di nascita' : 'Data di nascita *'}>
             <input
               type="date"
               name="dataNascita"
-              required
+              required={!contatto}
               className="input"
               defaultValue={contatto?.dataNascita ?? undefined}
             />
           </Campo>
-          <Campo label="Luogo di nascita *">
+          <Campo label={contatto ? 'Luogo di nascita' : 'Luogo di nascita *'}>
             <input
               name="luogoNascita"
-              required
+              required={!contatto}
               className="input"
               defaultValue={tessera?.luogoNascita ?? undefined}
+              placeholder={contatto ? 'se non lo sai, lo mette lui' : undefined}
             />
           </Campo>
-          <SceltaStato attuale={stato} />
-          <Campo label="Password provvisoria *" span>
-            <input name="password" type="text" minLength={8} required className="input" />
-          </Campo>
+          {!contatto && (
+            <>
+              <SceltaStato attuale={stato} />
+              <Campo label="Password provvisoria *" span>
+                <input name="password" type="text" minLength={8} required className="input" />
+              </Campo>
+            </>
+          )}
         </div>
 
-        {/* un contatto non è un atleta: l'incarico arriva quando entra in squadra */}
-        <SceltaRuoli attuali={stato === 'SQUADRA' ? ['ATLETA'] : []} />
+        {/* un contatto diventa un nuovo, senza incarichi: quelli arrivano
+            quando entra in squadra */}
+        {!contatto && <SceltaRuoli attuali={stato === 'SQUADRA' ? ['ATLETA'] : []} />}
 
-        <Invia icona="aggiungi">Crea operatore</Invia>
-        <p className="text-xs text-muted">
-          Comunica tu la password provvisoria: l’operatore potrà cambiarla dal suo profilo.
-          Telefono, data e luogo di nascita servono per tesseramento e polizza: chiederli adesso
-          costa un minuto, rincorrerli fra sei mesi molto di più.
-        </p>
+        <Invia icona="aggiungi">{contatto ? 'Crea l’accesso' : 'Crea operatore'}</Invia>
+        {!contatto && (
+          <p className="text-xs text-muted">
+            Comunica tu la password provvisoria: l’operatore potrà cambiarla dal suo profilo.
+            Telefono, data e luogo di nascita servono per tesseramento e polizza: chiederli adesso
+            costa un minuto, rincorrerli fra sei mesi molto di più.
+          </p>
+        )}
       </FormAzione>
     </BottoneModale>
   );

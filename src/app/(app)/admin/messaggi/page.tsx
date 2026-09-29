@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { isAdmin } from '@/lib/domain';
 import { fmtDateTime } from '@/lib/format';
 import { SCATENANTI } from '@/lib/messaggi';
-import { gruppiWhatsapp, statoPonte } from '@/lib/whatsapp';
+import { gruppiWhatsapp, statoPonte, statoRubrica } from '@/lib/whatsapp';
 import { Badge, Campo, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
@@ -49,7 +49,7 @@ const ORDINE: ScatenanteMessaggio[] = [
 export default async function MessaggiPage() {
   const me = await requirePermesso(isAdmin);
 
-  const [ponte, collegamento, modelli, coda, ultimi] = await Promise.all([
+  const [ponte, collegamento, modelli, coda, ultimi, rubrica] = await Promise.all([
     statoPonte(),
     prisma.collegamentoWhatsapp.findUnique({
       where: { id: 'whatsapp' },
@@ -68,6 +68,7 @@ export default async function MessaggiPage() {
       orderBy: { creatoIl: 'desc' },
       take: 15,
     }),
+    statoRubrica(),
   ]);
 
   const mio = collegamento?.utenteId === me.id;
@@ -111,6 +112,20 @@ export default async function MessaggiPage() {
             {collegamento?.ultimoInvio && (
               <p className="num mt-1 text-xs text-muted">
                 Ultimo invio {fmtDateTime(collegamento.ultimoInvio)} · {collegamento.ultimoEsito}
+              </p>
+            )}
+            {/* Cosa sa il ponte della rubrica: serve a capire perché un nome
+                non si trova — mai arrivato, arrivato senza numero, o la
+                richiesta è andata storta */}
+            {rubrica && (
+              <p className="num mt-1 text-xs text-muted">
+                Rubrica: {rubrica.totale} numeri · {rubrica.conNome} col nome
+                {rubrica.nomiSenzaNumero ? ` · ${rubrica.nomiSenzaNumero} nomi senza numero` : ''}
+                {rubrica.ultimaRichiesta
+                  ? ` · ultima richiesta ${fmtDateTime(new Date(rubrica.ultimaRichiesta))}${
+                      rubrica.esito ? `: ${rubrica.esito}` : ''
+                    }`
+                  : ''}
               </p>
             )}
           </div>

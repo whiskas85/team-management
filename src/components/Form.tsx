@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState, type ReactNode } from 'react';
 import { Icona, type NomeIcona } from './Icona';
 import { useModale } from './Modale';
 import { Credenziali } from './Credenziali';
+import { mostraBenvenuto } from './Benvenuto';
 import { ChiaveMcp } from './ChiaveMcp';
 import { ChiaveSito } from './ChiaveSito';
 import type { StatoForm } from '@/lib/form';
@@ -29,12 +30,20 @@ export function FormAzione({
   /** Indirizzo del gestionale, da mettere nel messaggio delle credenziali. */
   indirizzo?: string;
 }) {
-  const [stato, action] = useActionState(azione, {} as StatoForm);
+  // Il benvenuto a una persona appena creata si consegna al contenitore del
+  // guscio **qui**, appena arriva la risposta: il modulo che l'ha chiesto può
+  // sparire un istante dopo insieme alla sua riga, e il messaggio con lui.
+  const [stato, action] = useActionState(async (prev: StatoForm, fd: FormData) => {
+    const esito = await azione(prev, fd);
+    if (esito.credenziali?.benvenuto) mostraBenvenuto({ ...esito.credenziali, indirizzo });
+    return esito;
+  }, {} as StatoForm);
   const modale = useModale();
 
   // salvato: la finestra si chiude da sola sui dati ormai aggiornati
   useEffect(() => {
-    if (stato.ok && modale && !restaAperto && !stato.credenziali && !stato.chiave && !stato.chiaveSito) {
+    const inLinea = stato.credenziali && !stato.credenziali.benvenuto;
+    if (stato.ok && modale && !restaAperto && !inLinea && !stato.chiave && !stato.chiaveSito) {
       modale.chiudi();
     }
   }, [stato.ok, stato.credenziali, stato.chiave, stato.chiaveSito, modale, restaAperto]);
@@ -52,13 +61,14 @@ export function FormAzione({
         </div>
       )}
       {/* password appena generata: si consegna copiandola, non ricopiandola */}
-      {stato.credenziali && (
+      {stato.credenziali && !stato.credenziali.benvenuto && (
         <Credenziali
           utente={stato.credenziali.utente}
           password={stato.credenziali.password}
           link={stato.credenziali.link}
           telefono={stato.credenziali.telefono}
           userId={stato.credenziali.userId}
+          benvenuto={stato.credenziali.benvenuto}
           indirizzo={indirizzo}
         />
       )}

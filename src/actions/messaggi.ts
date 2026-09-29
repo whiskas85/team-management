@@ -14,7 +14,7 @@ import {
   statoPonte,
 } from '@/lib/whatsapp';
 import { enumVal, str, strOpt, type StatoForm } from '@/lib/form';
-import { componiMessaggioAccesso } from '@/lib/messaggio-accesso';
+import { componiMessaggioAccesso, componiMessaggioBenvenuto } from '@/lib/messaggio-accesso';
 import { perWhatsapp } from '@/lib/telefono';
 
 const SCATENANTI = [
@@ -133,6 +133,8 @@ export async function ricominciaWhatsapp(_prev: StatoForm, _fd: FormData): Promi
 export async function mandaAccessoWhatsapp(
   userId: string,
   link: string,
+  /** Persona appena creata: si manda il benvenuto intero, password compresa. */
+  benvenuto?: { nome: string; password: string },
 ): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin manda le credenziali.' };
@@ -160,11 +162,16 @@ export async function mandaAccessoWhatsapp(
     return { errore: 'Il link di accesso non è valido.' };
   }
 
-  const testo = componiMessaggioAccesso({
-    utente: utente.callsign || utente.email || utente.telefono || '',
-    password: '',
-    link,
-  });
+  const nomeUtente = utente.callsign || utente.email || utente.telefono || '';
+  const testo = benvenuto
+    ? componiMessaggioBenvenuto({
+        nome: benvenuto.nome,
+        utente: nomeUtente,
+        password: benvenuto.password,
+        link,
+        indirizzo: new URL(link).origin,
+      })
+    : componiMessaggioAccesso({ utente: nomeUtente, password: '', link });
 
   const esito = await inviaWhatsapp(numero, testo);
   if (!esito.ok) return { errore: `Non sono riuscito a mandarlo: ${esito.errore}` };
@@ -459,7 +466,11 @@ export async function aggiornaRubricaWhatsapp(_prev: StatoForm, _fd: FormData): 
 
   const r = await aggiornaRubricaPonte();
   if (!r.ok) return { errore: `Rubrica non aggiornata: ${r.errore}` };
+  const d = r.dati;
   return {
-    ok: `Rubrica aggiornata: ${r.dati.totale} numeri, ${r.dati.conNome} col nome salvato sul telefono.`,
+    ok:
+      `Rubrica: ${d.totale} numeri, ${d.conNome} col nome salvato sul telefono` +
+      (d.nomiSenzaNumero ? `, ${d.nomiSenzaNumero} nomi arrivati senza numero` : '') +
+      (d.esito ? ` (${d.esito}).` : '.'),
   };
 }

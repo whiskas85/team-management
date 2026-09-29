@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Icona } from './Icona';
 import { mostraToast } from './Toast';
-import { componiMessaggioAccesso } from '@/lib/messaggio-accesso';
+import { componiMessaggioAccesso, componiMessaggioBenvenuto } from '@/lib/messaggio-accesso';
 import { mandaAccessoWhatsapp } from '@/actions/messaggi';
 
 /**
@@ -25,6 +25,7 @@ export function Credenziali({
   telefono,
   userId,
   indirizzo,
+  benvenuto,
 }: {
   utente: string;
   password: string;
@@ -36,6 +37,8 @@ export function Credenziali({
   userId?: string;
   /** L'indirizzo a cui collegarsi, per chi entrerà a mano. */
   indirizzo?: string;
+  /** Persona appena creata: il messaggio è il benvenuto intero, password compresa. */
+  benvenuto?: { nome: string };
 }) {
   const [copiato, setCopiato] = useState<string | null>(null);
   const [fallito, setFallito] = useState(false);
@@ -53,13 +56,19 @@ export function Credenziali({
    * callsign, o l'email, o il telefono — perché al secondo accesso il link non
    * c'è più e bisogna sapere cosa scrivere nel primo campo.
    */
-  const messaggio = componiMessaggioAccesso({ utente, password, link, indirizzo });
+  const messaggio = benvenuto
+    ? componiMessaggioBenvenuto({ nome: benvenuto.nome, utente, password, link, indirizzo })
+    : componiMessaggioAccesso({ utente, password, link, indirizzo });
 
   /** Lo manda il numero della squadra, senza passare dal telefono di nessuno. */
   const mandaDalPonte = async () => {
     if (!userId || !link) return;
     setInvio('in corso');
-    const esito = await mandaAccessoWhatsapp(userId, link);
+    const esito = await mandaAccessoWhatsapp(
+      userId,
+      link,
+      benvenuto ? { nome: benvenuto.nome, password } : undefined,
+    );
     if (esito.errore) {
       mostraToast(esito.errore, 'errore');
       setInvio('fermo');
@@ -101,6 +110,12 @@ export function Credenziali({
 
   return (
     <div className="space-y-2 rounded-md border border-nvg/40 bg-nvg/5 p-3">
+      {/* il benvenuto si legge prima di mandarlo: è quello che riceverà */}
+      {benvenuto && (
+        <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded bg-surface2 p-3 font-sans text-xs leading-relaxed text-ink">
+          {messaggio}
+        </pre>
+      )}
       <Riga etichetta="Utente" valore={utente} />
       {link && <Riga etichetta="Link" valore={link} />}
       {/* La password resta qui sotto, ma fuori dal messaggio: serve a dettarla
@@ -126,14 +141,24 @@ export function Credenziali({
         <button
           type="button"
           onClick={() => copia(messaggio, 'Messaggio')}
-          className={`btn-sm ${telefono ? 'btn-ghost' : 'btn-primary'}`}
+          className={`btn-sm ${telefono && !benvenuto ? 'btn-ghost' : 'btn-primary'}`}
         >
           <Icona nome="carica" size={15} />
           {copiato === 'Messaggio' ? 'Messaggio copiato' : 'Copia il messaggio pronto'}
         </button>
         {/* La strada di sempre, che funziona anche col ponte spento: apre
             WhatsApp sul proprio telefono, con il messaggio già scritto. */}
-        {telefono && (
+        {telefono && benvenuto && (
+          <a
+            href={`https://wa.me/${telefono}?text=${encodeURIComponent(messaggio)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost btn-sm"
+          >
+            <Icona nome="whatsapp" size={15} /> Apri WhatsApp col messaggio
+          </a>
+        )}
+        {telefono && !benvenuto && (
           <a
             href={`https://wa.me/${telefono}?text=${encodeURIComponent(messaggio)}`}
             target="_blank"

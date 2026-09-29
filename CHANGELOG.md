@@ -5,6 +5,35 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.115.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Da contatto a nuovo, con l'accesso già pronto.** «Diventa un nuovo»
+  crea la persona con i dati che il contatto ha già: niente password da
+  inventare (la genera il gestionale), niente stato né ruoli da scegliere.
+  Cognome, telefono, data e luogo di nascita non sono più obbligatori.
+  - Appena creata si apre la **schermata di benvenuto**, con il messaggio
+    completo: benvenuto, come accedere (link, indirizzo, utente, password
+    provvisoria) e le istruzioni per cominciare.
+  - Il messaggio si **copia** con un pulsante, si manda dal numero del club
+    («Invia su WhatsApp») o si apre in WhatsApp dal proprio telefono.
+  - La schermata resta aperta finché non la chiudi: prima la riga del
+    contatto spariva, e il messaggio con lei.
+  - **Al primo accesso** il nuovo sceglie la sua password e poi completa lui i
+    dati che mancano: gli si chiedono solo quelli.
+
+### Cambiato
+
+- **Credito, pulsanti veri:** «→ Credito» (freccia) sulle quote pagate e sulle
+  richieste di rimborso, per chi tiene la cassa e nei pagamenti dell'utente.
+  Anche «Non gestito» e «Torna da gestire» sono pulsanti con icona.
+- **Rubrica WhatsApp:**
+  - in Messaggi si vede cosa sa il ponte: quanti numeri, quanti col nome,
+    quanti nomi arrivati senza numero, ed esito dell'ultima richiesta;
+  - il ponte usa il numero quando WhatsApp lo manda a parte, e ricava il numero
+    dietro un identificativo anonimo anche dai messaggi che arrivano.
+
 ## 2.114.0 — 29 settembre 2026
 
 ### Cambiato

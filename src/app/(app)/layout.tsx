@@ -26,10 +26,12 @@ import { filtroCanali, gestisceSegnalazioni } from '@/lib/segnalazioni-canali';
 import { filtroVisibilita } from '@/lib/query';
 import { iniziali } from '@/lib/format';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
+import { datiMancanti } from '@/lib/profilo-mancante';
 import { Nav, type VoceMenu } from '@/components/Nav';
 import { ContestoMenu } from '@/components/ContestoMenu';
 import { Diario } from '@/components/Diario';
 import { ContenitoreToast } from '@/components/Toast';
+import { ContenitoreBenvenuto } from '@/components/Benvenuto';
 import { puoVedereMerchandising } from '@/lib/mercatino';
 import { inTest } from '@/lib/ambiente';
 import { esci } from '@/actions/auth';
@@ -61,6 +63,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // pagina sta fuori dal gruppo, o si rimanderebbe a sé stessa.
   const daAccettare = await mancanze(utente.id);
   if (qualcosaManca(daAccettare)) redirect('/consensi');
+
+  // Un nuovo creato da un contatto entra con quello che si sapeva: il resto
+  // (cognome, telefono, data e luogo di nascita) lo mette lui, qui, una volta.
+  if (utente.stato === 'NUOVO' && (await datiMancanti(utente.id))) redirect('/completa-profilo');
 
   // contatori mostrati come pallino accanto alle voci di back office
   let certificatiDaVagliare = 0;
@@ -699,6 +705,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
 
       <ContenitoreToast />
+      <ContenitoreBenvenuto />
       {/* tiene il diario di bordo e raccoglie i guasti che nessuno vedrebbe */}
       <Diario />
 

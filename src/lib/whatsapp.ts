@@ -70,9 +70,27 @@ export function inviaWhatsapp(a: string, testo: string) {
   return chiama<{ id: string }>('/invia', { metodo: 'POST', corpo: { a, testo } });
 }
 
+/** Cosa sa il ponte della rubrica, e com'è andata l'ultima volta che l'ha chiesta. */
+export type StatoRubrica = {
+  totale: number;
+  conNome: number;
+  nomiSenzaNumero?: number;
+  contattiRicevuti?: number;
+  conNomeRicevuti?: number;
+  senzaNumero?: number;
+  ultimaRichiesta?: string | null;
+  esito?: string | null;
+};
+
 /** Chiede al ponte la rubrica da capo: i nomi salvati sul telefono collegato. */
 export function aggiornaRubricaPonte() {
-  return chiama<{ totale: number; conNome: number }>('/rubrica', { metodo: 'POST' });
+  return chiama<StatoRubrica>('/rubrica', { metodo: 'POST' });
+}
+
+/** Lo stato della rubrica senza cercare niente: per la pagina Messaggi. */
+export async function statoRubrica(): Promise<StatoRubrica | null> {
+  const r = await chiama<StatoRubrica & { collegato: boolean }>('/contatti?q=');
+  return r.ok && r.dati.collegato ? r.dati : null;
 }
 
 export function scollegaPonte() {

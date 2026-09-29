@@ -65,6 +65,19 @@ const rubrica = new Map();
  */
 const lidi = new Map(); // lid → numero
 const inAttesa = new Map(); // lid → { nome, notify }
+
+/*
+ * Cosa è arrivato davvero da WhatsApp: si vede nella pagina Messaggi. Senza
+ * questi numeri, «la rubrica non trova nessuno» non dice se i nomi non sono
+ * mai arrivati, se sono arrivati senza numero o se la richiesta è fallita.
+ */
+const diagnosi = {
+  contattiRicevuti: 0, // contatti arrivati negli eventi
+  conNomeRicevuti: 0, // di cui col nome della rubrica
+  senzaNumero: 0, // arrivati col solo identificativo anonimo (LID)
+  ultimaRichiesta: null, // quando si è chiesta la rubrica da capo
+  esito: null, // com'è andata
+};
 let salvataggio = null;
 
 async function caricaRubrica() {
@@ -128,12 +141,19 @@ function registraContatti(contatti) {
   for (const c of contatti ?? []) {
     const nome = c.name || null;
     const notify = c.notify || c.verifiedName || null;
+    diagnosi.contattiRicevuti++;
+    if (nome) diagnosi.conNomeRicevuti++;
+    // alcune versioni portano il numero a parte: lo si lega al LID subito
+    const lidC = soloLid(c.lid) ?? soloLid(c.id);
+    const pn = [c.phoneNumber, c.pnJid, c.jid].find((v) => v && String(v).endsWith('@s.whatsapp.net'));
+    if (lidC && pn) lidi.set(lidC, String(pn).split('@')[0].split(':')[0]);
     const numero = numeroDi(c);
     if (numero) {
       if (aggiorna(numero, nome, notify)) cambiati++;
       continue;
     }
     const lid = soloLid(c.lid) ?? soloLid(c.id);
+    if (lid) diagnosi.senzaNumero++;
     if (lid && (nome || notify)) {
       const prima = inAttesa.get(lid) ?? {};
       inAttesa.set(lid, { nome: nome ?? prima.nome ?? null, notify: notify ?? prima.notify ?? null });
@@ -173,6 +193,25 @@ function registraMessaggi(messaggi) {
   for (const m of messaggi ?? []) {
     if (!m.pushName || m.key?.fromMe) continue;
     const k = m.key ?? {};
+    // i messaggi dicono chi c'è dietro un LID: il mittente anonimo col suo numero
+    for (const [anonimo, conNumero] of [
+      [k.participant, k.participantPn],
+      [k.remoteJid, k.senderPn],
+    ]) {
+      const lidM = soloLid(anonimo);
+      if (lidM && conNumero && String(conNumero).endsWith('@s.whatsapp.net')) {
+        const numeroM = String(conNumero).split('@')[0].split(':')[0];
+        if (lidi.get(lidM) !== numeroM) {
+          lidi.set(lidM, numeroM);
+          const atteso = inAttesa.get(lidM);
+          if (atteso) {
+            aggiorna(numeroM, atteso.nome, atteso.notify);
+            inAttesa.delete(lidM);
+          }
+          cambiati++;
+        }
+      }
+    }
     const numero = numeroDi({
       phoneNumber: k.participantPn ?? k.senderPn,
       jid: k.participant ?? k.remoteJid,
@@ -211,11 +250,26 @@ async function risincronizzaRubrica() {
 
 /** Rubrica da capo, poi i gruppi: sono loro a tradurre i LID appena arrivati. */
 async function rubricaDaCapo() {
-  await risincronizzaRubrica();
-  registraGruppi(Object.values(await stato.socket.groupFetchAllParticipating()));
+  diagnosi.ultimaRichiesta = new Date().toISOString();
+  const primaRicevuti = diagnosi.contattiRicevuti;
+  try {
+    await risincronizzaRubrica();
+    registraGruppi(Object.values(await stato.socket.groupFetchAllParticipating()));
+    diagnosi.esito = `arrivati ${diagnosi.contattiRicevuti - primaRicevuti} contatti`;
+  } catch (e) {
+    diagnosi.esito = `errore: ${e?.message ?? e}`;
+    throw e;
+  }
+  log.warn({ diagnosi }, 'rubrica richiesta da capo');
+  return riepilogo();
+}
+
+function riepilogo() {
   return {
     totale: rubrica.size,
     conNome: [...rubrica.values()].filter((v) => v.nome).length,
+    nomiSenzaNumero: inAttesa.size,
+    ...diagnosi,
   };
 }
 
@@ -456,7 +510,7 @@ const server = createServer(async (req, res) => {
       const q = (url.searchParams.get('q') ?? '').trim();
       return rispondi(res, 200, {
         collegato: stato.collegato,
-        totale: rubrica.size,
+        ...riepilogo(),
         contatti: q ? cercaRubrica(q) : [],
       });
     }

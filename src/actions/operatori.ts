@@ -181,12 +181,15 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
   const email = str(fd, 'email').toLowerCase();
   const nome = str(fd, 'nome');
   const cognome = str(fd, 'cognome');
-  const password = str(fd, 'password');
+  // Da un contatto la password la genera il gestionale: si consegna col
+  // messaggio di benvenuto, e al primo accesso se ne sceglie una sua
+  const password = daContatto ? generaPassword() : str(fd, 'password');
   const telefono = str(fd, 'telefono');
   const luogoNascita = str(fd, 'luogoNascita');
   const dataNascita = data(fd, 'dataNascita');
 
-  if (!email || !nome || !cognome) return { errore: 'Email, nome e cognome sono obbligatori.' };
+  if (!email || !nome) return { errore: 'Email e nome sono obbligatori.' };
+  if (!cognome && !daContatto) return { errore: 'Il cognome è obbligatorio.' };
   if (password.length < 8) return { errore: 'La password provvisoria richiede almeno 8 caratteri.' };
 
   // Telefono, data e luogo di nascita si chiedono qui e non dopo: sono i dati
@@ -195,10 +198,15 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
   // Chi si registra da solo li compila nel modulo d'iscrizione; chi viene
   // inserito a mano non passa di lì, e senza questo controllo resterebbe una
   // scheda a metà.
-  if (!telefono) return { errore: 'Il telefono è obbligatorio.' };
-  if (!dataNascita) return { errore: 'La data di nascita è obbligatoria.' };
-  if (!luogoNascita) return { errore: 'Il luogo di nascita è obbligatorio.' };
-  if (dataNascita > new Date()) return { errore: 'La data di nascita è nel futuro.' };
+  //
+  // Da un contatto invece si parte con quello che si sa: quello che manca lo
+  // chiede il gestionale a lui, al primo accesso (vedi /completa-profilo).
+  if (!daContatto) {
+    if (!telefono) return { errore: 'Il telefono è obbligatorio.' };
+    if (!dataNascita) return { errore: 'La data di nascita è obbligatoria.' };
+    if (!luogoNascita) return { errore: 'Il luogo di nascita è obbligatorio.' };
+  }
+  if (dataNascita && dataNascita > new Date()) return { errore: 'La data di nascita è nel futuro.' };
   if (await prisma.user.findUnique({ where: { email } })) {
     return { errore: 'Esiste già un account con questa email.' };
   }
@@ -209,8 +217,10 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
     if (preso) return { errore: CALLSIGN_PRESO(callsign, preso) };
   }
 
-  const stato = soloNuovo ? 'NUOVO' : enumVal(fd, 'stato', STATI, 'SQUADRA');
-  const roles = soloNuovo ? [] : leggiRuoli(fd);
+  // dal contatto nasce sempre un nuovo, senza incarichi: il modulo non chiede
+  // né stato né ruoli, e il predefinito dell'admin («in squadra») qui è sbagliato
+  const stato = soloNuovo || daContatto ? 'NUOVO' : enumVal(fd, 'stato', STATI, 'SQUADRA');
+  const roles = soloNuovo || daContatto ? [] : leggiRuoli(fd);
 
   const creato = await prisma.user.create({
     data: {
@@ -218,10 +228,12 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
       nome,
       cognome,
       passwordHash: await hashPassword(password),
+      // generata da noi: al primo accesso se ne sceglie una sua
+      deveCambiarePassword: daContatto,
       callsign,
-      telefono,
+      telefono: telefono || null,
       dataNascita,
-      luogoNascita,
+      luogoNascita: luogoNascita || null,
       roles: stato === 'SQUADRA' && roles.length === 0 ? ['ATLETA'] : roles,
       stato,
     },
@@ -252,6 +264,28 @@ export async function creaOperatore(_prev: StatoForm, fd: FormData): Promise<Sta
   if (contattoId) {
     await prisma.contatto.delete({ where: { id: contattoId } }).catch(() => null);
     revalidatePath('/admin/contatti');
+
+    // Il benvenuto: come entrare, la password e le istruzioni di base, in un
+    // messaggio da copiare e mandargli. Il link lo fa entrare senza scrivere
+    // niente; la password serve se il link scade o entra da un altro telefono.
+    const { creaGettone } = await import('@/lib/gettoni');
+    const { headers } = await import('next/headers');
+    const h = await headers();
+    const host = h.get('x-forwarded-host') ?? h.get('host');
+    const protocollo = h.get('x-forwarded-proto') ?? 'http';
+    const gettone = await creaGettone(creato.id, me.id);
+    aggiorna();
+    return {
+      ok: `${nome} è fra i nuovi. Mandagli il messaggio di benvenuto: dentro c’è tutto.`,
+      credenziali: {
+        utente: callsign || email,
+        password,
+        link: host ? `${protocollo}://${host}/accesso/${gettone}` : undefined,
+        telefono: perWhatsapp(telefono) ?? undefined,
+        userId: creato.id,
+        benvenuto: { nome },
+      },
+    };
   }
 
   const tessera = strOpt(fd, 'tesseraNumero');
@@ -584,3 +618,41 @@ export async function chiediCancellazione(_prev: StatoForm, fd: FormData): Promi
 
 // Le note sono passate in `src/actions/note.ts`: hanno un titolo, stanno anche
 // sulle attività e le legge solo chi le ha scritte. Qui non ne resta niente.
+
+/**
+ * I dati mancanti, messi dalla persona al primo accesso: si scrivono solo
+ * quelli che mancavano, e poi si entra.
+ */
+export async function completaProfilo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const { datiMancanti } = await import('@/lib/profilo-mancante');
+  const mancano = await datiMancanti(me.id);
+  if (!mancano) redirect('/dashboard');
+
+  const valori: { cognome?: string; telefono?: string; dataNascita?: Date; luogoNascita?: string } =
+    {};
+  if (mancano.cognome) {
+    const cognome = str(fd, 'cognome');
+    if (!cognome) return { errore: 'Scrivi il tuo cognome.' };
+    valori.cognome = cognome;
+  }
+  if (mancano.telefono) {
+    const telefono = str(fd, 'telefono');
+    if (!telefono) return { errore: 'Scrivi il tuo numero di telefono.' };
+    valori.telefono = telefono;
+  }
+  if (mancano.dataNascita) {
+    const nascita = data(fd, 'dataNascita');
+    if (!nascita) return { errore: 'Indica la tua data di nascita.' };
+    if (nascita > new Date()) return { errore: 'La data di nascita è nel futuro.' };
+    valori.dataNascita = nascita;
+  }
+  if (mancano.luogoNascita) {
+    const luogo = str(fd, 'luogoNascita');
+    if (!luogo) return { errore: 'Indica dove sei nato.' };
+    valori.luogoNascita = luogo;
+  }
+
+  await prisma.user.update({ where: { id: me.id }, data: valori });
+  redirect('/dashboard');
+}

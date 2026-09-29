@@ -564,9 +564,10 @@ function AzioniPagamento({
               ? 'Niente rimborso: i soldi restano in cassa come credito della persona. Procedere?'
               : 'Trasformare questa quota pagata in credito? La quota si chiude e i soldi restano alla persona, da spendere su un’altra attività.'
           }
-          className="text-xs text-muted hover:text-nvg"
+          icona="freccia"
+          className="btn-ghost btn-sm"
         >
-          {rimborso ? 'tieni come credito' : 'in credito'}
+          Credito
         </AzioneBottone>
       )}
       <FuoriGestionale pagamento={pagamento} />
@@ -600,9 +601,10 @@ function FuoriGestionale({
       <AzioneBottone
         azione={tornaDaGestire}
         valori={{ id: pagamento.id }}
-        className="text-xs text-muted hover:text-nvg"
+        icona="riapri"
+        className="btn-ghost btn-sm"
       >
-        torna da gestire
+        Torna da gestire
       </AzioneBottone>
     );
   }
@@ -618,9 +620,10 @@ function FuoriGestionale({
       azione={segnaNonGestito}
       valori={{ id: pagamento.id }}
       conferma="Segnarla come gestita fuori dal gestionale? Conterà come pagata, ma in cassa non entrerà niente."
-      className="text-xs text-muted hover:text-nvg"
+      icona="annulla"
+      className="btn-ghost btn-sm"
     >
-      non gestito
+      Non gestito
     </AzioneBottone>
   );
 }

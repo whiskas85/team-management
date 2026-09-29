@@ -19,6 +19,11 @@ export type StatoForm = {
     telefono?: string;
     /** Di chi sono queste credenziali: serve al pulsante che le manda dal ponte. */
     userId?: string;
+    /**
+     * Persona appena creata: al posto del solo accesso si consegna il
+     * benvenuto intero — come entrare, la password e le istruzioni di base.
+     */
+    benvenuto?: { nome: string };
   };
   /**
    * Chiave appena creata per un assistente. Come le credenziali viaggia a
