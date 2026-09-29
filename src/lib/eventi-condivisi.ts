@@ -545,3 +545,20 @@ export function descriviCosto(costo: NonNullable<EventoCondiviso['costo']>): str
   );
   return costo.per === 'SQUADRA' ? `${cifra} per la squadra` : `${cifra} a operatore`;
 }
+
+/**
+ * Dove sta un conto fra squadre: il dovuto di adesso, quanto è già in cassa
+ * (confermato), quanto aspetta la conferma, e quanto resta scoperto — cioè
+ * non ancora pagato né segnalato. Serve uguale ai due lati.
+ */
+export function contoFraSquadre(
+  dovuto: number,
+  versamenti: { importo: unknown; confermatoIl: Date | null }[],
+) {
+  const somma = (vs: typeof versamenti) =>
+    Math.round(vs.reduce((t, v) => t + Number(v.importo), 0) * 100) / 100;
+  const incassati = somma(versamenti.filter((v) => v.confermatoIl));
+  const inAttesa = somma(versamenti.filter((v) => !v.confermatoIl));
+  const scoperto = Math.max(0, Math.round((dovuto - incassati - inAttesa) * 100) / 100);
+  return { dovuto, incassati, inAttesa, scoperto };
+}

@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.125.1 — 29 settembre 2026
+
+### Corretto
+
+- **Chi organizza vede il conto di ogni squadra ospite.** Nella scheda
+  dell'attività e nella sezione **Squadre ospiti** della cassa: dovuto, pagati
+  (confermati), da confermare e **scoperti**, squadra per squadra, con sotto
+  ogni pagamento. Compaiono anche le squadre che non hanno ancora pagato
+  niente.
+- **Chi paga ritrova i pagamenti in Pagamenti e nel registro.** Nuova sezione
+  **Da pagare ad altre squadre**: attività per attività il dovuto, i pagati, quelli
+  in attesa di conferma, lo scoperto e il pulsante per pagarlo. Quando
+  l'organizzatore conferma, il pagamento diventa un'**uscita** del registro
+  della cassa del club (categoria «Altre squadre»).
+
 ## 2.125.0 — 29 settembre 2026
 
 ### Cambiato

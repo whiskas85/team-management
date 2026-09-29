@@ -48,6 +48,7 @@ import {
   contaPresenti,
   datiOrigine,
   dovutoAllOrganizzatore,
+  contoFraSquadre,
   organizzatoreDi,
 } from '@/lib/eventi-condivisi';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
@@ -669,12 +670,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             ),
           )
         : null,
-    // i loro pagamenti: quanto è già in cassa, e quelli che aspettano una conferma
-    incassati: o.versamenti.some((v) => v.confermatoIl)
-      ? fmtEuro(
-          o.versamenti.filter((v) => v.confermatoIl).reduce((t, v) => t + Number(v.importo), 0),
-        )
-      : null,
+    // il loro conto: dovuto, già in cassa, da confermare, scoperto
+    conto:
+      o.collegamentoId && evento.costoOspiti && Number(evento.costoOspiti) > 0
+        ? contoFraSquadre(
+            dovutoAllOrganizzatore(
+              { importo: Number(evento.costoOspiti), per: evento.costoOspitiPer ?? 'OPERATORE' },
+              o.operatori ?? 0,
+            ),
+            o.versamenti,
+          )
+        : null,
     daConfermare: o.versamenti
       .filter((v) => !v.confermatoIl)
       .map((v) => ({

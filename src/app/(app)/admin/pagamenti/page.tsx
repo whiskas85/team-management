@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
+import { PagamentiAdAltreSquadre } from '@/components/PagamentiAdAltreSquadre';
 import type { Prisma } from '@prisma/client';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -272,6 +273,7 @@ export default async function AdminPagamentiPage({
       </Fisarmonica>
 
       <OspitiInCassa cassaId={null} />
+      <PagamentiAdAltreSquadre />
       <CreditiCassa cassaId={null} persone={operatori} metodi={metodi} />
 
       {daConfermare > 0 && filtro !== 'dagestire' && (

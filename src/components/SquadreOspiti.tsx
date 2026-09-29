@@ -1,4 +1,5 @@
 import { BottoneElimina, CardRiga } from './CardRiga';
+import { ContoFraSquadre } from './ContoFraSquadre';
 import { CondividiEvento } from './CondividiEvento';
 import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
@@ -27,8 +28,8 @@ export type Ospite = {
   operatoriForse?: number | null;
   /** Quanto ci deve, se chiediamo un costo alle squadre ospiti. */
   dovuto?: string | null;
-  /** Quanto dei loro pagamenti è già confermato, cioè in cassa. */
-  incassati?: string | null;
+  /** Il loro conto: dovuto, già in cassa, da confermare, scoperto. */
+  conto?: { dovuto: number; incassati: number; inAttesa: number; scoperto: number } | null;
   /** I pagamenti che ci hanno segnalato e che aspettano una conferma. */
   daConfermare?: { id: string; testo: string }[];
   /** Chi guarda tiene la cassa degli ospiti: può confermare l'incasso. */
@@ -135,8 +136,6 @@ export function SquadreOspiti({
                             } (dal loro gestionale)`
                           : 'Gestionale collegato',
                         o.accesso === 'GESTIONE' ? 'possono modificarla' : null,
-                        o.dovuto ? `devono ${o.dovuto}` : null,
-                        o.incassati ? `incassati ${o.incassati}` : null,
                         ...(o.daConfermare ?? []).map((v) => `segnalato ${v.testo} · da confermare`),
                       ]
                         .filter(Boolean)
@@ -217,7 +216,11 @@ export function SquadreOspiti({
                   />
                 ) : undefined
               }
-            />
+            >
+              {o.collegata && o.risposta !== 'RIFIUTATA' && o.conto && (
+                <ContoFraSquadre conto={o.conto} />
+              )}
+            </CardRiga>
           ))}
         </div>
       )}
