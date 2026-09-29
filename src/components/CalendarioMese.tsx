@@ -15,6 +15,8 @@ export type GiornoEvento = {
   inizio: string; // ISO: il server component non può passare Date ai client
   fine: string | null;
   mioStato: string | null;
+  /** Organizzata da un'altra squadra collegata. */
+  organizzatore?: { nome: string; logo: string | null } | null;
 };
 
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
@@ -489,6 +491,8 @@ function BarraEvento({ barra }: { barra: Barra }) {
       ? 'border-line bg-surface2 text-muted line-through'
       : e.status === 'CREATA'
         ? 'border-dashed border-warn/50 bg-warn/10 text-warn'
+        : e.status === 'INVITATA'
+          ? 'border-dashed border-nvg/50 bg-nvg/10 text-nvg'
         : conclusa
           ? 'border-line bg-surface2 text-ink/75'
           : classeColore(e.colore);
@@ -497,7 +501,7 @@ function BarraEvento({ barra }: { barra: Barra }) {
     <Link
       href={`/calendario/${e.id}`}
       onClick={(ev) => ev.stopPropagation()}
-      title={`${e.titolo} · ${e.tipo}`}
+      title={`${e.titolo} · ${e.tipo}${e.organizzatore ? ` · organizza ${e.organizzatore.nome}` : ''}`}
       style={{ gridColumn: `${da + 1} / span ${per}`, gridRow: corsia + 1 }}
       className={`pointer-events-auto block truncate border px-1 py-0.5 text-[10px] leading-tight transition-opacity hover:opacity-80 ${stile} ${
         inizia ? 'ml-0.5 rounded-l' : 'rounded-l-none border-l-0'
@@ -511,6 +515,17 @@ function BarraEvento({ barra }: { barra: Barra }) {
         ) : (
           <span className="hidden sm:inline">{ora(e.inizio)} </span>
         ))}
+      {/* di un'altra squadra: il loro logo davanti al titolo */}
+      {inizia && e.organizzatore?.logo && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={e.organizzatore.logo}
+          alt=""
+          width={11}
+          height={11}
+          className="mr-0.5 inline-block h-[11px] w-[11px] rounded-full align-[-2px]"
+        />
+      )}
       {e.titolo}
     </Link>
   );

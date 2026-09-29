@@ -234,6 +234,7 @@ export const tonoPagamento: Record<string, Tono> = {
 
 export const tonoEvento: Record<string, Tono> = {
   CREATA: 'warn',
+  INVITATA: 'ok',
   RILASCIATA: 'ok',
   ANNULLATA: 'danger',
   CONCLUSA: 'neutro',
@@ -241,6 +242,7 @@ export const tonoEvento: Record<string, Tono> = {
 
 export const etichettaEvento: Record<string, string> = {
   CREATA: 'Bozza',
+  INVITATA: 'Invito',
   RILASCIATA: 'Rilasciata',
   ANNULLATA: 'Annullata',
   CONCLUSA: 'Conclusa',

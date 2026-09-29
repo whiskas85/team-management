@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin, puoSchierare } from '@/lib/domain';
 import { intOpt, str, strOpt, type StatoForm } from '@/lib/form';
+import { diffondiEvento, ritiraEvento } from '@/lib/eventi-condivisi';
 
 /**
  * Le squadre di fuori invitate a giocare con noi.
@@ -37,10 +38,17 @@ export async function aggiungiSquadraOspite(_prev: StatoForm, fd: FormData): Pro
   const squadraId = strOpt(fd, 'squadraId');
   let nome = strOpt(fd, 'nome') ?? '';
 
+  // Una squadra col gestionale collegato riceve l'attività nel suo calendario
+  // (docs/COLLEGAMENTO-SQUADRE.md): col link di sempre come ripiego.
+  let collegamentoId: string | null = null;
   if (squadraId) {
-    const conosciuta = await prisma.squadraEsterna.findUnique({ where: { id: squadraId } });
+    const conosciuta = await prisma.squadraEsterna.findUnique({
+      where: { id: squadraId },
+      include: { collegamento: { select: { id: true, stato: true } } },
+    });
     if (!conosciuta) return { errore: 'Quella squadra non è più in anagrafica.' };
     nome = conosciuta.nome;
+    if (conosciuta.collegamento?.stato === 'ATTIVO') collegamentoId = conosciuta.collegamento.id;
   }
   if (!nome) return { errore: 'Scegli una squadra o scrivi il nome di chi viene.' };
 
@@ -55,10 +63,22 @@ export async function aggiungiSquadraOspite(_prev: StatoForm, fd: FormData): Pro
       // la chiave della porta: sta in chiaro perché il link va mostrato e
       // copiato, e non apre niente di più della pagina di quell'invito
       token: randomBytes(16).toString('base64url'),
+      ...(collegamentoId
+        ? {
+            collegamentoId,
+            accesso: str(fd, 'accesso') === 'GESTIONE' ? ('GESTIONE' as const) : ('VISUALIZZAZIONE' as const),
+            invitaAltri: fd.get('invitaAltri') === 'on',
+            risposta: 'IN_ATTESA' as const,
+          }
+        : {}),
     },
   });
 
   aggiorna(eventId);
+  if (collegamentoId) {
+    await diffondiEvento(eventId).catch(() => null);
+    return { ok: `${nome} è fra gli ospiti: l’attività arriva nel loro gestionale, fra gli inviti.` };
+  }
   return { ok: `${nome} è fra gli ospiti: manda il link al loro referente.` };
 }
 
@@ -71,6 +91,8 @@ export async function togliSquadraOspite(_prev: StatoForm, fd: FormData): Promis
   if (!ospite) return { errore: 'Invito non trovato.' };
 
   await prisma.squadraOspite.delete({ where: { id } });
+  // dal loro calendario sparisce (o resta annullata, se l'avevano accettata)
+  if (ospite.collegamentoId) await ritiraEvento(ospite.collegamentoId, ospite.eventId).catch(() => null);
 
   aggiorna(ospite.eventId);
   return { ok: `${ospite.nome} non è più fra gli ospiti: il suo link non apre più niente.` };

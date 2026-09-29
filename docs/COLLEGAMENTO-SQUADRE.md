@@ -85,11 +85,13 @@ I messaggi aspettano in una coda e si ritentano: non si perde niente.
 
 ## Ordine di lavoro
 
-1. *La mia squadra* e marchio configurabile; ambiente **test2**
+1. *(fatto, 2.118.0)* *La mia squadra* e marchio configurabile; ambiente **test2**
    (`test2.zerodarkteam.it`, squadra e logo fittizi) per provare il
    collegamento senza toccare la produzione.
-2. Collegamento: link e QR, richieste, accetta, profilo, scollega.
+2. *(fatto, 2.119.0)* Collegamento: link e QR, richieste, accetta, profilo, scollega.
 3. Eventi invitati: stato INVITATO, accetta/rifiuta, sincronizzazione, badge.
+   *Fatto in 2.120.0.* Il permesso «Gestione» e «può invitare altre squadre» si
+   scelgono già e arrivano di là, ma hanno effetto dalla fase 5.
 4. Presenze automatiche e costi per le squadre ospiti.
 5. Gestione condivisa e re-inviti.
 

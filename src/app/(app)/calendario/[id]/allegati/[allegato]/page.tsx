@@ -40,7 +40,7 @@ export default async function PaginaAllegato({
 
   const e = allegato.event;
   const admin = isAdmin(me.roles);
-  if (e.status === 'CREATA' && !admin) notFound();
+  if ((e.status === 'CREATA' || e.status === 'INVITATA') && !admin) notFound();
 
   const partecipo =
     (await prisma.eventRsvp.count({ where: { eventId: e.id, userId: me.id } })) > 0;

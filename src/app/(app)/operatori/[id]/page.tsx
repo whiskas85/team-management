@@ -52,7 +52,7 @@ export default async function SchedaCompagnoPage({
       stato: true,
       createdAt: true,
       rsvps: {
-        where: { event: { status: { not: 'CREATA' } } },
+        where: { event: { status: { notIn: ['CREATA', 'INVITATA'] } } },
         select: {
           status: true,
           presente: true,

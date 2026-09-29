@@ -25,11 +25,27 @@ export async function accoda(
   collegamentoId: string,
   tipo: string,
   corpo: Prisma.InputJsonValue,
-  { sostituisci = false }: { sostituisci?: boolean } = {},
+  {
+    sostituisci = false,
+    chiave,
+  }: {
+    sostituisci?: boolean;
+    /** Sostituisce solo i messaggi dello stesso tipo con questo «id» nel corpo. */
+    chiave?: string;
+  } = {},
 ) {
-  // un profilo nuovo rende inutile quello vecchio ancora in coda
-  if (sostituisci)
-    await prisma.messaggioFederazione.deleteMany({ where: { collegamentoId, tipo } });
+  // un profilo nuovo rende inutile quello vecchio ancora in coda; per le
+  // attività, la versione nuova di quella attività
+  if (sostituisci || chiave) {
+    await prisma.messaggioFederazione.deleteMany({
+      where: {
+        collegamentoId,
+        tipo,
+        // solo quelli non ancora tentati: uno che sta fallendo tiene il suo posto nella fila
+        ...(chiave ? { corpo: { path: ['id'], equals: chiave }, tentativi: 0 } : {}),
+      },
+    });
+  }
   await prisma.messaggioFederazione.create({ data: { collegamentoId, tipo, corpo } });
   await svuotaCoda(collegamentoId).catch(() => null);
 }

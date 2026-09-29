@@ -50,7 +50,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       select: { eventId: true },
     });
     if (!ospite || ospite.eventId !== e.id) return new NextResponse('Non trovato', { status: 404 });
-    if (!allegato.pubblico || e.status === 'CREATA') {
+    if (!allegato.pubblico || e.status === 'CREATA' || e.status === 'INVITATA') {
       return new NextResponse('Non trovato', { status: 404 });
     }
   } else {
@@ -70,7 +70,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     if (!me) return new NextResponse('Non autenticato', { status: 401 });
 
     const admin = isAdmin(me.roles);
-    if (e.status === 'CREATA' && !admin) return new NextResponse('Non trovato', { status: 404 });
+    if ((e.status === 'CREATA' || e.status === 'INVITATA') && !admin)
+      return new NextResponse('Non trovato', { status: 404 });
 
     // le stesse tre condizioni con cui si apre la scheda: chi amministra, chi
     // è fra i partecipanti, chi ha diritto di vedere quel tipo di attività

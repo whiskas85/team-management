@@ -42,6 +42,8 @@ import { FormRiunione } from '@/components/FormRiunione';
 import { SegnaEventoLetto } from '@/components/SegnaEventoLetto';
 import { CondividiEvento } from '@/components/CondividiEvento';
 import { SquadreOspiti } from '@/components/SquadreOspiti';
+import { BannerCondivisa } from '@/components/BannerCondivisa';
+import { datiOrigine, organizzatoreDi } from '@/lib/eventi-condivisi';
 import { AllegatiEvento } from '@/components/AllegatiEvento';
 import { NESSUNA_QUOTA } from '@/lib/quote';
 import { genereAllegato } from '@/lib/allegati';
@@ -111,6 +113,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       createdBy: { select: { nome: true, cognome: true } },
       // le squadre di fuori invitate, con il loro link
       ospiti: { orderBy: { creatoIl: 'asc' } },
+      // organizzata da un'altra squadra collegata: chi, e com'è il collegamento
+      origineCollegamento: {
+        select: {
+          stato: true,
+          profilo: true,
+          squadra: { select: { id: true, nome: true, logoPath: true } },
+        },
+      },
       // il book di missione e quello che gli sta intorno
       allegati: {
         orderBy: [{ ordine: 'asc' }, { creatoIl: 'asc' }],
@@ -195,7 +205,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   if (!evento) notFound();
 
   const admin = isAdmin(me.roles);
-  if (evento.status === 'CREATA' && !admin) notFound();
+  if ((evento.status === 'CREATA' || evento.status === 'INVITATA') && !admin) notFound();
+  // un invito di un'altra squadra non ancora accettato si guarda come una
+  // bozza: niente adesioni, niente ospiti, niente commenti
+  const bozza = evento.status === 'CREATA' || evento.status === 'INVITATA';
   // chi amministra apre tutto: nell'elenco vede gia' ogni attivita', e trovare
   // un 404 aprendo una riga che il calendario gli mostra sarebbe assurdo.
   // Chi è fra i partecipanti la apre sempre: se lo si è aggiunto a mano — un
@@ -413,7 +426,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       ? 'border-warn bg-warn/20 text-warn'
       : evento.status === 'RILASCIATA'
       ? 'border-nvg/50 bg-nvg/15 text-nvg'
-      : evento.status === 'CREATA'
+      : bozza
         ? 'border-warn/50 bg-warn/15 text-warn'
         : evento.status === 'ANNULLATA'
           ? 'border-danger/50 bg-danger/15 text-danger'
@@ -601,7 +614,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         // le preferite in cima: sono quelle che si invitano davvero
         where: { stato: { not: 'DISATTIVATA' } },
         orderBy: [{ stato: 'asc' }, { nome: 'asc' }],
-        select: { id: true, nome: true },
+        select: { id: true, nome: true, collegamento: { select: { stato: true } } },
       })
     : [];
   // La rosa, per spuntare i referenti nel modulo: si scelgono fra chi è in
@@ -623,7 +636,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     operatori: o.operatori,
     link: `${origine}/invito/${o.token}`,
     rispostoIl: o.rispostoIl ? fmtDateTime(o.rispostoIl) : null,
+    // invitata col collegamento fra gestionali: l'attività è nel loro calendario
+    collegata: !!o.collegamentoId,
+    risposta: o.risposta,
+    accesso: o.accesso,
   }));
+  const organizzatore = organizzatoreDi(evento.origineCollegamento);
 
   // Gli allegati li carica chi tiene in mano l'attività: l'admin, i team
   // leader e **i referenti di questa**. Il book lo scrive chi ci va, e spesso
@@ -1042,7 +1060,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 all'admin vuol dire che la squadra lo saprà il giorno dopo.
                 Quote, posti e destinatari restano di chi gestisce il
                 calendario: lì si decide, non si corregge. */}
-            {(admin || tl) && (
+            {/* di un'altra squadra, titolo e luoghi li decide lei: al team
+                leader qui non resta niente da sistemare */}
+            {(admin || (tl && !organizzatore)) && (
               <BottoneModale
                 etichetta={admin ? 'Modifica' : 'Luoghi e titolo'}
                 icona="modifica"
@@ -1064,6 +1084,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     casse={casseAttive}
                     collegabili={collegabili}
                     soloLogistica={!admin}
+                    condivisaDa={organizzatore?.nome}
                     // un nuovo forzato su un'attività di squadra ha bisogno del
                     // suo prezzo: senza, la card esterni resterebbe nascosta
                     conNuovi={evento.rsvps.some((r) => !vedeAttivitaSquadra(r.user.stato))}
@@ -1147,6 +1168,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         }
       />
 
+      {organizzatore && (
+        <BannerCondivisa
+          eventId={evento.id}
+          organizzatore={organizzatore}
+          dati={datiOrigine(evento.origineDati)}
+          accesso={evento.origineAccesso}
+          aggiornataIl={evento.origineAggiornataIl}
+          collegata={evento.origineCollegamento?.stato === 'ATTIVO'}
+          invitata={evento.status === 'INVITATA'}
+          admin={admin}
+        />
+      )}
+
       {inCorso && (
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-nvg/40 bg-nvg/10 px-4 py-3 text-nvg">
           <span className="text-base font-semibold">IN CORSO</span>
@@ -1175,7 +1209,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       {evento.status !== 'RILASCIATA' && (
         <div
           className={`mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-4 py-3 ${
-            evento.status === 'CREATA'
+            bozza
               ? 'border-warn/40 bg-warn/10 text-warn'
               : evento.status === 'ANNULLATA'
                 ? 'border-danger/40 bg-danger/10 text-danger'
@@ -1186,7 +1220,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             {etichettaEvento[evento.status].toUpperCase()}
           </span>
           <span className="text-sm">
-            {evento.status === 'CREATA'
+            {evento.status === 'INVITATA'
+              ? 'Invito di un’altra squadra: accettalo o rifiutalo qui sopra. Nessuno lo vede ancora.'
+              : bozza
               ? 'Bozza: non è ancora visibile agli operatori e non accetta adesioni.'
               : evento.status === 'ANNULLATA'
                 ? 'Attività annullata: le adesioni sono chiuse.'
@@ -1475,10 +1511,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 mandare un indirizzo che si apre solo per chi gestisce il calendario
                 è un modo per farsi richiamare. Da rilasciata in poi sì, anche a
                 cose fatte — di una giocata finita si manda volentieri il racconto. */}
-            {(evento.status !== 'CREATA' || admin) && (
+            {(!bozza || admin) && (
               <div className="piede mt-5 justify-between">
                 <p className="text-[11px] text-muted">
-                  {evento.status === 'CREATA'
+                  {bozza
                     ? 'Bozza: finché non la rilasci non la vede nessuno.'
                     : evento.status === 'RILASCIATA'
                       ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
@@ -1490,7 +1526,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       — rilasciarla, concluderla, annullarla — e prima stavano
                       nelle card dell'elenco, dove si premevano di sfuggita
                       passando. Qui si arriva dopo averla letta. */}
-                  {admin && (
+                  {admin && evento.status !== 'INVITATA' && (
                     <AzioniEvento
                       id={evento.id}
                       titolo={evento.titolo}
@@ -1504,7 +1540,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       compatto
                     />
                   )}
-                  {evento.status !== 'CREATA' && (
+                  {!bozza && (
                     <CondividiEvento
                       indirizzo={indirizzoPagina}
                       etichetta="Condividi l’attività"
@@ -1520,11 +1556,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               subito dopo «quando e dove»: con chi si gioca. Una bozza non ha
               ospiti da invitare — il link non aprirebbe niente — e si mostra
               da rilasciata in poi. */}
-          {evento.status !== 'CREATA' && (
+          {/* su un'attività di un'altra squadra gli ospiti li invita chi organizza */}
+          {!bozza && !organizzatore && (
             <SquadreOspiti
               eventId={evento.id}
               ospiti={ospiti}
-              conosciute={conosciute}
+              conosciute={conosciute.map((c) => ({
+                id: c.id,
+                nome: c.nome,
+                collegata: c.collegamento?.stato === 'ATTIVO',
+              }))}
               puoGestire={tl}
               puoCondividere={inMano}
             />
@@ -1553,7 +1594,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               serve più davanti agli occhi: chi c'era lo dice l'appello. Resta
               ripiegato — dentro ci sono anche quote e assicurazioni — e si
               apre se serve. Agli altri resta com'è. */}
-          {evento.status !== 'CREATA' && (
+          {!bozza && (
           <Ripiegabile
             chiuso={tl && terminata && iniziata}
             titolo={`Risposte, quote e assicurazioni · ${evento.rsvps.length}`}
@@ -1998,7 +2039,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           {/* Come sopra: una bozza non la legge nessuno, e una casella per
               commentare una cosa che non esiste ancora è solo un invito a
               parlare da soli. */}
-          {evento.status !== 'CREATA' && (
+          {!bozza && (
           <Social
             eventId={evento.id}
             commenti={commenti as Commento[]}
@@ -2114,7 +2155,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             ) : chiuso ? (
               <p className="text-sm text-muted">
-                {evento.status === 'CREATA'
+                {bozza
                   ? 'Attività in bozza: non è ancora stata rilasciata.'
                   : evento.status === 'ANNULLATA'
                     ? evento.motivoAnnullamento

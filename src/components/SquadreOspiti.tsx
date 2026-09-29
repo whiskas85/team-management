@@ -13,6 +13,16 @@ export type Ospite = {
   /** L'indirizzo completo della sua pagina: è quello che si manda fuori. */
   link: string;
   rispostoIl: string | null;
+  /** Invitata col collegamento fra gestionali: l'attività è nel loro calendario. */
+  collegata?: boolean;
+  risposta?: string | null;
+  accesso?: string | null;
+};
+
+const RISPOSTA: Record<string, string> = {
+  IN_ATTESA: 'nel loro gestionale, fra gli inviti',
+  ACCETTATA: 'nel loro gestionale: accettata',
+  RIFIUTATA: 'nel loro gestionale: rifiutata',
 };
 
 /**
@@ -36,7 +46,7 @@ export function SquadreOspiti({
   eventId: string;
   ospiti: Ospite[];
   /** Le squadre già in anagrafica, da scegliere invece di riscriverle. */
-  conosciute: { id: string; nome: string }[];
+  conosciute: { id: string; nome: string; collegata?: boolean }[];
   puoGestire: boolean;
   /**
    * Può mandare via il link di una squadra già invitata, ma non invitarne o
@@ -78,7 +88,11 @@ export function SquadreOspiti({
               key={o.id}
               titolo={o.nome}
               sottotitolo={
-                o.operatori === null
+                o.collegata
+                  ? `${RISPOSTA[o.risposta ?? 'IN_ATTESA']}${
+                      o.accesso === 'GESTIONE' ? ' · possono modificarla' : ''
+                    }${o.operatori !== null ? ` · ${o.operatori} operatori` : ''}`
+                  : o.operatori === null
                   ? 'non ha ancora risposto'
                   : o.operatori === 0
                     ? `ha detto che non vengono · ${o.rispostoIl}`
@@ -123,11 +137,14 @@ export function SquadreOspiti({
                     </FormAzione>
 
                     {/* il link è di quella squadra: mandarlo è il gesto per cui
-                        questa riga esiste */}
-                    <CondividiEvento
-                      indirizzo={o.link}
-                      etichetta={`Condividi il link di ${o.nome}`}
-                    />
+                        questa riga esiste — tranne per le collegate, che
+                        l'attività la ricevono nel loro gestionale */}
+                    {!o.collegata && (
+                      <CondividiEvento
+                        indirizzo={o.link}
+                        etichetta={`Condividi il link di ${o.nome}`}
+                      />
+                    )}
                   </>
                 ) : puoCondividere ? (
                   /* Chi non gestisce ma tiene in mano l'attività può solo
@@ -161,10 +178,32 @@ export function SquadreOspiti({
                   {conosciute.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.nome}
+                      {s.collegata ? ' · gestionale collegato' : ''}
                     </option>
                   ))}
                 </select>
               </Campo>
+
+              {conosciute.some((s) => s.collegata) && (
+                <div className="space-y-2 rounded-md border border-line p-3 text-sm sm:col-span-2">
+                  <p className="text-xs text-muted">
+                    Solo per le squadre col <strong>gestionale collegato</strong>: l’attività arriva
+                    nel loro calendario, fra gli inviti, e si aggiorna da sola.
+                  </p>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="accesso" value="VISUALIZZAZIONE" defaultChecked />
+                    La vedono e basta
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="accesso" value="GESTIONE" />
+                    Possono anche modificarla
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" name="invitaAltri" />
+                    Possono invitare altre squadre
+                  </label>
+                </div>
+              )}
 
               <Campo label="Oppure il nome" span>
                 <input name="nome" className="input" placeholder="Come si chiamano" />

@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.120.0 — 29 settembre 2026
+
+### Aggiunto
+
+- **Eventi condivisi fra gestionali collegati** (fase 3 di
+  `docs/COLLEGAMENTO-SQUADRE.md`).
+  - **Chi organizza** invita dalla scheda dell'attività, in «Squadre ospiti»:
+    le squadre col gestionale collegato sono segnate nell'elenco, e per loro si
+    sceglie se **la vedono e basta** o **possono anche modificarla**, e se
+    possono invitare altre squadre (di partenza no). Nella riga dell'ospite si
+    legge com'è messa di là: fra gli inviti, accettata o rifiutata.
+  - **Chi è invitato** la trova nel calendario nel nuovo stato **Invito**: come
+    una bozza la vede solo chi gestisce il calendario, con un avviso in cima al
+    calendario e una notifica sul telefono. Dalla scheda si **accetta** (diventa
+    una bozza nostra: quote, posti e rilascio si decidono qui) o si **rifiuta**
+    (sparisce, e l'organizzatore lo sa); lasciata lì resta fra gli inviti.
+  - **Si aggiorna da sola**: titolo, date, descrizione, luoghi, campo e referenti
+    (col callsign) arrivano dall'organizzatore a ogni sua modifica, e nel modulo
+    di chi è invitato non si toccano. Se l'organizzatore la annulla, si annulla
+    anche di qua col suo motivo; se ritira l'invito o la elimina, un invito non
+    ancora accettato sparisce e uno accettato resta, annullato.
+  - **Si vede chi organizza**: badge con logo e nome della squadra sulle card
+    del calendario, nello storico, nella vista mensile e in testa alla scheda,
+    con i loro referenti da chiamare. Se il collegamento viene tolto, l'attività
+    resta com'era con l'avviso che non si aggiorna più.
+
 ## 2.119.1 — 29 settembre 2026
 
 ### Corretto

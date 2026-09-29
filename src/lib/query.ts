@@ -4,6 +4,7 @@ import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
 import { faseAttivita } from './giorni';
 import type { EventoLista } from '@/components/CardEvento';
+import { organizzatoreDi } from './eventi-condivisi';
 
 /**
  * Chi vede quali attività.
@@ -31,7 +32,8 @@ export const filtroVisibilita = (
     : { visibilita: 'TUTTI' };
 
   return {
-    status: { not: 'CREATA' },
+    // le bozze, e gli inviti di altre squadre non ancora accettati
+    status: { notIn: ['CREATA', 'INVITATA'] },
     OR: [aperte, ...(userId ? [{ rsvps: { some: { userId } } }] : [])],
   };
 };
@@ -76,6 +78,10 @@ export async function eventiPerLista({
       quoteCasse: { select: { importo: true, importoEsterni: true } },
       // se c'è la riga, quest'attività l'ho già aperta
       letture: { where: { userId }, select: { userId: true } },
+      // organizzata da un'altra squadra collegata: il badge con nome e logo
+      origineCollegamento: {
+        select: { profilo: true, squadra: { select: { id: true, nome: true, logoPath: true } } },
+      },
     },
   });
 
@@ -98,6 +104,7 @@ export async function eventiPerLista({
   };
 
   return eventi.map((e) => ({
+    organizzatore: organizzatoreDi(e.origineCollegamento),
     id: e.id,
     titolo: e.titolo,
     tipo: e.tipo?.nome ?? 'Senza tipologia',

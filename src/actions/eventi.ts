@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { diffondiEvento, ritiraEvento } from '@/lib/eventi-condivisi';
 import { prisma } from '@/lib/db';
 import { stagioneAttiva } from '@/lib/stagioni';
 import {
@@ -42,6 +43,24 @@ const RSVP = ['PRESENTE', 'ASSENTE', 'FORSE'] as const;
 const ASSEGNAZIONI = ['NON_ASSEGNATO', 'CONVOCATO', 'TITOLARE', 'TOC', 'RISERVA'] as const;
 
 
+/** Su un'attività di un'altra squadra collegata, i campi che decide lei. */
+const CAMPI_DELL_ORGANIZZATORE = [
+  'titolo',
+  'descrizione',
+  'inizio',
+  'fine',
+  'durataOre',
+  'fieldId',
+  'luogo',
+  'luogoLat',
+  'luogoLng',
+  'ritrovo',
+  'ritrovoLat',
+  'ritrovoLng',
+  'oraRitrovo',
+  'linkRiunione',
+];
+
 function aggiorna(id?: string) {
   revalidatePath('/calendario');
   revalidatePath('/dashboard');
@@ -65,16 +84,26 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   }
 
   const id = str(fd, 'id');
-  const titolo = str(fd, 'titolo');
+  // Organizzata da un'altra squadra collegata: titolo, date, descrizione e
+  // luoghi arrivano da loro, e qui non si toccano — il modulo non li mostra,
+  // e se arrivassero lo stesso si tengono quelli che ci sono
+  const origine = id
+    ? await prisma.event.findUnique({
+        where: { id },
+        select: { origineCollegamentoId: true, titolo: true, inizio: true, fine: true },
+      })
+    : null;
+  const condivisa = !!origine?.origineCollegamentoId;
+  const titolo = condivisa ? origine!.titolo : str(fd, 'titolo');
   if (!titolo) return { errore: 'Il titolo è obbligatorio.' };
   // il team leader corregge, non crea: senza un'attività da sistemare non ha
   // niente da fare qui
   if (soloLogistica && !id) return { errore: 'Solo l’admin può creare un’attività.' };
 
-  const inizio = data(fd, 'inizio');
+  const inizio = condivisa ? origine!.inizio : data(fd, 'inizio');
   if (!soloLogistica && !inizio) return { errore: 'La data di inizio è obbligatoria.' };
 
-  const fine = data(fd, 'fine');
+  const fine = condivisa ? origine!.fine : data(fd, 'fine');
   if (fine && inizio && fine < inizio) return { errore: 'La fine non può precedere l’inizio.' };
   // un anno a tre cifre il browser lo lascia passare: qui si ferma, prima che
   // un'attività lunga secoli finisca nelle statistiche di tutti
@@ -182,9 +211,11 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
   };
 
   if (id) {
+    const scelti: Record<string, unknown> = { ...(soloLogistica ? logistica : valori) };
+    if (condivisa) for (const k of CAMPI_DELL_ORGANIZZATORE) delete scelti[k];
     await prisma.event.update({
       where: { id },
-      data: soloLogistica ? logistica : valori,
+      data: scelti as typeof valori,
     });
 
     if (quote) await salvaQuoteCasse(id, quote);
@@ -194,6 +225,8 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     // giro le quote non nascevano più, e chi era titolare non vedeva niente
     // fra i suoi pagamenti.
     await allineaQuoteEvento(id);
+    // le squadre collegate invitate ricevono l'attività aggiornata
+    await diffondiEvento(id).catch(() => null);
 
     aggiorna(id);
     revalidatePath('/pagamenti');
@@ -424,6 +457,9 @@ export async function rilasciaEvento(_prev: StatoForm, fd: FormData): Promise<St
 
   const attuale = await prisma.event.findUnique({ where: { id }, include: { tipo: true } });
   if (!attuale) return { errore: 'Attività non trovata.' };
+  if (attuale.status === 'INVITATA') {
+    return { errore: 'È un invito di un’altra squadra: prima accettalo, poi si rilascia.' };
+  }
   if (visibilita === 'TUTTI' && attuale.tipo?.soloInterno) {
     return {
       errore: `La tipologia "${attuale.tipo.nome}" è riservata alla squadra: non si può rilasciare a tutti.`,
@@ -460,6 +496,7 @@ export async function rilasciaEvento(_prev: StatoForm, fd: FormData): Promise<St
       });
   }
 
+  await diffondiEvento(id).catch(() => null);
   aggiorna(id);
   return {
     ok:
@@ -479,6 +516,11 @@ export async function cambiaStatoEvento(_prev: StatoForm, fd: FormData): Promise
   const id = str(fd, 'id');
   const status = enumOpt(fd, 'status', STATI);
   if (!status) return { errore: 'Stato non valido.' };
+
+  const corrente = await prisma.event.findUnique({ where: { id }, select: { status: true } });
+  if (corrente?.status === 'INVITATA') {
+    return { errore: 'È un invito di un’altra squadra: accettalo o rifiutalo dalla scheda.' };
+  }
 
   if (status === 'RILASCIATA') {
     const evento = await prisma.event.findUnique({ where: { id } });
@@ -500,6 +542,8 @@ export async function cambiaStatoEvento(_prev: StatoForm, fd: FormData): Promise
     // allora, e lasciarlo lì farebbe sembrare annullata un'attività viva
     data: { status, motivoAnnullamento: status === 'ANNULLATA' ? motivo : null },
   });
+  // un annullamento (o una riapertura) arriva anche alle squadre collegate
+  await diffondiEvento(id).catch(() => null);
 
   aggiorna(id);
   const messaggi: Record<string, string> = {
@@ -548,7 +592,14 @@ export async function eliminaEvento(_prev: StatoForm, fd: FormData): Promise<Sta
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può eliminare gli eventi.' };
 
-  await prisma.event.delete({ where: { id: str(fd, 'id') } });
+  const id = str(fd, 'id');
+  // le squadre collegate invitate la tolgono dal loro calendario
+  const collegate = await prisma.squadraOspite.findMany({
+    where: { eventId: id, collegamentoId: { not: null } },
+    select: { collegamentoId: true },
+  });
+  await prisma.event.delete({ where: { id } });
+  for (const o of collegate) await ritiraEvento(o.collegamentoId!, id).catch(() => null);
   aggiorna();
   redirect('/calendario');
 }

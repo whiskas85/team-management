@@ -15,7 +15,8 @@ export default async function StatistichePage() {
       select: { id: true, nome: true, cognome: true, callsign: true, roles: true, stato: true },
     }),
     prisma.event.findMany({
-      where: { status: { not: 'ANNULLATA' } },
+      // gli inviti di altre squadre non ancora accettati non sono attività nostre
+      where: { status: { notIn: ['ANNULLATA', 'INVITATA'] } },
       select: {
         id: true,
         titolo: true,

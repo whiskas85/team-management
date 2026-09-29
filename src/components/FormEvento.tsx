@@ -119,6 +119,7 @@ export function FormEvento({
   squadra = [],
   referenti = [],
   collegabili = [],
+  condivisaDa,
 }: {
   campi: CampoGioco[];
   tipologie: Tipologia[];
@@ -150,7 +151,19 @@ export function FormEvento({
   squadra?: { id: string; nome: string; cognome: string; callsign: string | null }[];
   /** I referenti già scelti, per ritrovarli spuntati riaprendo il modulo. */
   referenti?: string[];
+  /**
+   * Organizzata da un'altra squadra collegata: titolo, date, descrizione e
+   * luoghi li decide lei e arrivano da soli. Qui restano le cose nostre.
+   */
+  condivisaDa?: string;
 }) {
+  const bloccati = !!condivisaDa;
+  const avvisoBloccati = bloccati && (
+    <p className="text-xs text-muted sm:col-span-2">
+      Titolo, date, descrizione e luoghi li decide <strong className="text-ink">{condivisaDa}</strong>:
+      qui arrivano da soli quando li cambia.
+    </p>
+  );
   const conQuota =
     numero(evento?.costo) !== null ||
     numero(evento?.costoEsterni) !== null ||
@@ -181,6 +194,12 @@ export function FormEvento({
       titolo="Dove"
       sottotitolo="Il campo dall'elenco, oppure un indirizzo qualsiasi. E dove ci si trova prima."
     >
+      {bloccati ? (
+        <p className="text-xs text-muted sm:col-span-2">
+          Campo, indirizzo e ritrovo li decide <strong className="text-ink">{condivisaDa}</strong>.
+        </p>
+      ) : (
+        <>
       <Campo label="Campo">
         <select name="fieldId" defaultValue={evento?.fieldId ?? ''} className="input">
           <option value="">— nessuno —</option>
@@ -228,6 +247,8 @@ export function FormEvento({
           <OraRitrovo valore={inputDateTime(evento?.oraRitrovo)} />
         </>
       )}
+        </>
+      )}
 
       {/* I referenti stanno qui, con la logistica, e non fra le cose che
           decide solo l'admin: sono il nome a cui chiedere, cambiano da
@@ -265,15 +286,19 @@ export function FormEvento({
 
       <div className="space-y-4">
         <Sezione titolo="Cos'è">
-          <Campo label="Titolo *" span>
-            <input
-              name="titolo"
-              required
-              defaultValue={evento?.titolo}
-              className="input"
-              placeholder="es. Op. Silent Ridge"
-            />
-          </Campo>
+          {bloccati ? (
+            avvisoBloccati
+          ) : (
+            <Campo label="Titolo *" span>
+              <input
+                name="titolo"
+                required
+                defaultValue={evento?.titolo}
+                className="input"
+                placeholder="es. Op. Silent Ridge"
+              />
+            </Campo>
+          )}
 
           <Campo label="Tipologia">
             <select name="tipoId" defaultValue={evento?.tipoId ?? ''} className="input">
@@ -289,7 +314,7 @@ export function FormEvento({
 
           {/* Quanto dura la gara sul volantino. Su una riunione non vuol
               dire niente, quindi lì non compare: il modulo è già lungo. */}
-          {!eRiunione && (
+          {!eRiunione && !bloccati && (
             <Campo label="Durata dichiarata (ore)">
               <input
                 type="number"
@@ -311,10 +336,12 @@ export function FormEvento({
             </Campo>
           )}
 
-          <InizioFine
-            inizio={inputDateTime(evento?.inizio) || (inizioPredefinito ?? '')}
-            fine={inputDateTime(evento?.fine)}
-          />
+          {!bloccati && (
+            <InizioFine
+              inizio={inputDateTime(evento?.inizio) || (inizioPredefinito ?? '')}
+              fine={inputDateTime(evento?.fine)}
+            />
+          )}
 
           {/* La stagione: di solito quella in corso, ma la gara di settembre
               si organizza a giugno e appartiene all'anno dopo. Da qui dipendono
@@ -341,6 +368,7 @@ export function FormEvento({
             </Campo>
           )}
 
+          {!bloccati && (
           <Campo label="Descrizione" span>
             <textarea
               name="descrizione"
@@ -350,6 +378,7 @@ export function FormEvento({
               placeholder="Cosa si fa, equipaggiamento richiesto, note logistiche…"
             />
           </Campo>
+          )}
         </Sezione>
 
         {!compatto && (

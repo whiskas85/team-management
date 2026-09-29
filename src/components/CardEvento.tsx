@@ -6,6 +6,7 @@ import { Icona } from './Icona';
 import { AdesioneEvento } from './AdesioneEvento';
 import { fmtDateTime, fmtEuro, umanizza } from '@/lib/format';
 import { etichettaEvento, tonoEvento, tonoRsvp } from '@/lib/domain';
+import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
 import type { FaseAttivita } from '@/lib/giorni';
 
 export type EventoLista = {
@@ -44,6 +45,8 @@ export type EventoLista = {
   mioPresente: boolean | null;
   /** Perché è saltata: nello storico «annullata» da sola non dice niente. */
   motivoAnnullamento: string | null;
+  /** Organizzata da un'altra squadra collegata: chi, col suo logo. */
+  organizzatore?: Organizzatore | null;
 };
 
 /**
@@ -158,6 +161,11 @@ export function CardEvento({
               {e.visibilita === 'INVITO' && <span className="text-muted"> · su invito</span>}
             </p>
             <h3 className="mt-1 break-words font-medium">{e.titolo}</h3>
+            {e.organizzatore && (
+              <p className="mt-1">
+                <BadgeOrganizzatore organizzatore={e.organizzatore} />
+              </p>
+            )}
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
             {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
           </div>
@@ -252,6 +260,7 @@ export function RigaStorico({ e }: { e: EventoLista }) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
           {e.tipo}
         </p>
+        {e.organizzatore && <BadgeOrganizzatore organizzatore={e.organizzatore} />}
         {e.motivoAnnullamento && (
           <p className="mt-0.5 text-[11px] text-danger">
             Annullata: {e.motivoAnnullamento}

@@ -21,6 +21,7 @@ import { Invia } from '@/components/Bottone';
 import { FormEvento } from '@/components/FormEvento';
 import { AzioniEvento, EliminaEvento } from '@/components/AzioniEvento';
 import { CalendarioMese, type GiornoEvento } from '@/components/CalendarioMese';
+import { organizzatoreDi } from '@/lib/eventi-condivisi';
 import { InProgramma } from '@/components/InProgramma';
 import { salvaEvento } from '@/actions/eventi';
 import { listinoAttivo } from '@/lib/quote';
@@ -29,10 +30,10 @@ import { stagioneAttiva, stagioniAperte } from '@/lib/stagioni';
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string }>;
+  searchParams: Promise<{ vista?: string; rifiutato?: string }>;
 }) {
   const me = await requireUser();
-  const { vista } = await searchParams;
+  const { vista, rifiutato } = await searchParams;
   // Si apre su quello che c'è da fare, non sulla griglia del mese: chi entra
   // nel calendario vuole sapere cosa viene, e il mese è la vista che si sceglie
   // quando si cerca una data precisa.
@@ -82,6 +83,12 @@ export default async function CalendarioPage({
             inizio: true,
             fine: true,
             rsvps: { where: { userId: me.id }, select: { status: true } },
+            origineCollegamento: {
+              select: {
+                profilo: true,
+                squadra: { select: { id: true, nome: true, logoPath: true } },
+              },
+            },
           },
         })
       : [];
@@ -96,6 +103,7 @@ export default async function CalendarioPage({
     inizio: e.inizio.toISOString(),
     fine: e.fine ? e.fine.toISOString() : null,
     mioStato: e.rsvps[0]?.status ?? null,
+    organizzatore: organizzatoreDi(e.origineCollegamento),
   }));
 
   // In programma ci sono anche le attività cominciate e non ancora chiuse: in
@@ -176,6 +184,10 @@ export default async function CalendarioPage({
   const bozze = admin
     ? await prisma.event.count({ where: { status: 'CREATA', inizio: { gte: new Date() } } })
     : 0;
+  // gli inviti delle squadre collegate che aspettano una risposta
+  const inviti = admin
+    ? await prisma.event.count({ where: { status: 'INVITATA', inizio: { gte: new Date() } } })
+    : 0;
 
   return (
     <>
@@ -206,6 +218,21 @@ export default async function CalendarioPage({
           </div>
         }
       />
+
+      {rifiutato && (
+        <div className="mb-4 rounded-md border border-line bg-surface2 px-4 py-2.5 text-sm text-muted">
+          Invito rifiutato: {rifiutato} sa che non venite.
+        </div>
+      )}
+
+      {admin && inviti > 0 && (
+        <div className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-2.5 text-sm text-nvg">
+          {inviti === 1
+            ? "C'è 1 invito di un'altra squadra"
+            : `Ci sono ${inviti} inviti di altre squadre`}
+          : aprili per accettarli o rifiutarli. Finché aspettano li vedi solo tu.
+        </div>
+      )}
 
       {admin && bozze > 0 && (
         <div className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">

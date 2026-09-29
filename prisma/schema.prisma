@@ -53,6 +53,9 @@ enum EventVisibility {
 
 enum EventStatus {
   CREATA // bozza: la vede solo chi gestisce il calendario
+  /// Organizzata da un'altra squadra collegata, che ci ha invitati: come una
+  /// bozza la vede solo chi gestisce il calendario, finché non la accetta.
+  INVITATA
   RILASCIATA // pubblicata secondo la visibilità scelta
   CONCLUSA
   ANNULLATA
@@ -391,9 +394,28 @@ model CollegamentoSquadra {
   decisoDa       String?
   aggiornatoIl   DateTime          @updatedAt
 
-  messaggi MessaggioFederazione[]
+  messaggi        MessaggioFederazione[]
+  /// Le attività che ci hanno invitati a fare con loro.
+  eventiRicevuti  Event[]         @relation("EventiDaCollegamento")
+  /// Le nostre attività a cui li abbiamo invitati.
+  inviti          SquadraOspite[] @relation("InvitiCollegati")
 
   @@index([stato])
+}
+
+/// Cosa può fare, su un'attività nostra, la squadra collegata che invitiamo.
+enum AccessoEvento {
+  /// La vede e basta, come col link di oggi.
+  VISUALIZZAZIONE
+  /// Chi ha i diritti sul loro calendario può anche modificarla.
+  GESTIONE
+}
+
+/// Com'è messa, dall'altra parte, l'attività a cui abbiamo invitato una squadra collegata.
+enum RispostaInvito {
+  IN_ATTESA
+  ACCETTATA
+  RIFIUTATA
 }
 
 /// Quello che si manda a un gestionale collegato, in coda finché non arriva.
@@ -556,6 +578,14 @@ model SquadraOspite {
   token      String          @unique
   rispostoIl DateTime?
   creatoIl   DateTime        @default(now())
+
+  /// Invitata attraverso il collegamento fra gestionali: l'attività arriva
+  /// nel loro calendario, e i numeri tornano da soli. Nullo = link di sempre.
+  collegamentoId  String?
+  collegamento    CollegamentoSquadra? @relation("InvitiCollegati", fields: [collegamentoId], references: [id], onDelete: SetNull)
+  accesso         AccessoEvento?
+  invitaAltri     Boolean              @default(false)
+  risposta        RispostaInvito?
 
   @@unique([eventId, nome])
   @@index([eventId])
@@ -1009,6 +1039,22 @@ model Event {
   referenti    ReferenteEvento[] @relation("ReferentiEvento")
   /// Le squadre di fuori invitate a giocare con noi, con il loro link.
   ospiti       SquadraOspite[] @relation("OspitiEvento")
+
+  /// Organizzata da un'altra squadra collegata (docs/COLLEGAMENTO-SQUADRE.md):
+  /// qui ce n'è una copia, che si aggiorna da sola quando loro la cambiano.
+  origineCollegamentoId String?
+  origineCollegamento   CollegamentoSquadra? @relation("EventiDaCollegamento", fields: [origineCollegamentoId], references: [id], onDelete: SetNull)
+  /// L'id dell'attività nel loro gestionale.
+  origineIdRemoto       String?
+  origineAccesso        AccessoEvento?
+  /// Se possiamo invitare anche altre squadre (fase successiva).
+  origineInvitaAltri    Boolean          @default(false)
+  /// Quello che arriva da loro e non ha un campo nostro: il campo dove si
+  /// gioca, i referenti col callsign.
+  origineDati           Json?
+  origineAggiornataIl   DateTime?
+
+  @@unique([origineCollegamentoId, origineIdRemoto])
   /// Le quote aggiunte con il + nel modulo: valgono solo per questa attività.
   vociAttivita VoceAttivita[]
   /// Il book di missione e quello che gli sta intorno.
