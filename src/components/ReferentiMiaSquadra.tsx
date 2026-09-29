@@ -17,6 +17,11 @@ const RUOLI = ['Presidente', 'Vicepresidente', 'Segretario', 'Referente', 'Refer
  * Chi rappresenta la squadra verso fuori. Si sceglie fra gli operatori, e per
  * ognuno si decide quali recapiti far vedere: fuori compare col callsign, mai
  * col nome.
+ *
+ * I campi non sono controllati apposta: finita l'azione React riporta il
+ * modulo ai valori di partenza, e con i campi controllati le tendine tornavano
+ * vuote — al salvataggio dopo si mandava una lista vuota, e i referenti
+ * sparivano. Così ripartono da quelli salvati.
  */
 export function ReferentiMiaSquadra({
   persone,
@@ -31,8 +36,6 @@ export function ReferentiMiaSquadra({
       : [{ userId: '', ruolo: 'Presidente', mostraTelefono: true, mostraEmail: false }]
     ).map((r, i) => ({ ...r, chiave: i })),
   );
-  const cambia = (chiave: number, dati: Partial<Referente>) =>
-    setRighe((rr) => rr.map((r) => (r.chiave === chiave ? { ...r, ...dati } : r)));
 
   return (
     <div className="space-y-2">
@@ -48,20 +51,13 @@ export function ReferentiMiaSquadra({
         >
           <input
             name="referenteRuolo"
-            value={r.ruolo}
-            onChange={(e) => cambia(r.chiave, { ruolo: e.target.value })}
+            defaultValue={r.ruolo}
             list="ruoli-mia-squadra"
             placeholder="Ruolo"
             aria-label="Ruolo"
             className="input"
           />
-          <select
-            name="referenteId"
-            value={r.userId}
-            onChange={(e) => cambia(r.chiave, { userId: e.target.value })}
-            aria-label="Chi"
-            className="input"
-          >
+          <select name="referenteId" defaultValue={r.userId} aria-label="Chi" className="input">
             <option value="">— scegli —</option>
             {persone.map((p) => (
               <option key={p.id} value={p.id}>
@@ -69,24 +65,18 @@ export function ReferentiMiaSquadra({
               </option>
             ))}
           </select>
+          {/* il valore è il numero della riga: la persona si può cambiare dopo */}
           <label className="flex items-center gap-1.5 text-xs text-muted">
             <input
               type="checkbox"
               name="mostraTelefono"
               value={i}
-              checked={r.mostraTelefono}
-              onChange={(e) => cambia(r.chiave, { mostraTelefono: e.target.checked })}
+              defaultChecked={r.mostraTelefono}
             />
             telefono
           </label>
           <label className="flex items-center gap-1.5 text-xs text-muted">
-            <input
-              type="checkbox"
-              name="mostraEmail"
-              value={i}
-              checked={r.mostraEmail}
-              onChange={(e) => cambia(r.chiave, { mostraEmail: e.target.checked })}
-            />
+            <input type="checkbox" name="mostraEmail" value={i} defaultChecked={r.mostraEmail} />
             email
           </label>
           <button

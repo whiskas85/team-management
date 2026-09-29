@@ -16,6 +16,7 @@ export function RitagliaFoto({
   azione = salvaFotoProfilo,
   png = false,
   cosa = 'foto',
+  rimovibile = true,
 }: {
   fotoAttuale: string | null;
   /** Dove va il ritaglio: la foto profilo, se non si dice altro. */
@@ -24,6 +25,8 @@ export function RitagliaFoto({
   png?: boolean;
   /** Come chiamarla nei pulsanti e nei messaggi. */
   cosa?: 'foto' | 'logo';
+  /** Se c'è il pulsante per toglierla: un logo di partenza si sostituisce e basta. */
+  rimovibile?: boolean;
 }) {
   const Cosa = cosa === 'logo' ? 'Logo' : 'Foto';
   const [sorgente, setSorgente] = useState<string | null>(null);
@@ -135,7 +138,7 @@ export function RitagliaFoto({
               />
             </label>
 
-            {fotoAttuale && (
+            {fotoAttuale && rimovibile && (
               <button
                 type="button"
                 onClick={rimuovi}

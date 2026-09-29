@@ -54,7 +54,7 @@ export default async function MiaSquadraPage() {
               <Campo label="Nome della squadra">
                 <input
                   name="nome"
-                  defaultValue={s?.nome ?? ''}
+                  defaultValue={m.nome}
                   placeholder={PARTENZA.nome}
                   className="input"
                 />
@@ -62,7 +62,7 @@ export default async function MiaSquadraPage() {
               <Campo label="Nome del gestionale">
                 <input
                   name="nomeGestionale"
-                  defaultValue={s?.nomeGestionale ?? ''}
+                  defaultValue={m.nomeGestionale}
                   placeholder={PARTENZA.nomeGestionale}
                   className="input"
                 />
@@ -70,7 +70,7 @@ export default async function MiaSquadraPage() {
               <Campo label="Motto">
                 <input
                   name="motto"
-                  defaultValue={s?.motto ?? ''}
+                  defaultValue={m.motto}
                   placeholder={PARTENZA.motto}
                   className="input"
                 />
@@ -111,7 +111,7 @@ export default async function MiaSquadraPage() {
               </Campo>
             </div>
             <p className="text-xs text-muted">
-              Un campo lasciato vuoto usa il valore di partenza, scritto in grigio.
+              Nome, gestionale e motto svuotati tornano a quelli di partenza (in grigio).
             </p>
             <Invia icona="salva">Salva il profilo</Invia>
           </FormAzione>
@@ -120,7 +120,9 @@ export default async function MiaSquadraPage() {
         <div className="card">
           <p className="titolo-sezione mb-4">Logo</p>
           <RitagliaFoto
-            fotoAttuale={s?.logoPath ? m.logoUrl : null}
+            fotoAttuale={m.logoUrl}
+            // quello di partenza non si toglie: si sostituisce
+            rimovibile={!!s?.logoPath}
             azione={salvaLogoSquadra}
             png
             cosa="logo"
@@ -140,6 +142,10 @@ export default async function MiaSquadraPage() {
         </p>
         <FormAzione azione={salvaReferenti}>
           <ReferentiMiaSquadra
+            // dopo un salvataggio riparte da quello che è stato salvato davvero
+            key={referenti
+              .map((r) => `${r.userId}:${r.ruolo}:${r.mostraTelefono}:${r.mostraEmail}`)
+              .join('|')}
             persone={persone.map((p) => ({
               id: p.id,
               etichetta: `${p.cognome} ${p.nome}${p.callsign ? ` · ${p.callsign}` : ''}`,

@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.119.1 — 29 settembre 2026
+
+### Corretto
+
+- **La mia squadra, i referenti spariti.** Dopo il salvataggio le tendine
+  tornavano vuote e, al salvataggio successivo, i referenti venivano cancellati.
+  Ora ripartono da quelli salvati.
+- **La mia squadra, i campi in grigio e il logo mancante.** Nome, gestionale e
+  motto di partenza si vedevano solo come suggerimento grigio, e il riquadro
+  del logo era vuoto anche se il logo in alto c'era. Ora i campi sono compilati
+  con i valori in uso, e il riquadro mostra il logo che si vede nell'intestazione
+  (quello di partenza si sostituisce, non si toglie).
+
+### Aggiunto
+
+- **Automazione Rilascio → «prova-collegamento»:** test e test2 si collegano da
+  soli con un browser, e il log dice passaggio per passaggio com'è andata.
+
 ## 2.119.0 — 29 settembre 2026
 
 ### Aggiunto
