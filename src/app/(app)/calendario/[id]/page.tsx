@@ -61,6 +61,7 @@ import { ContaRisposte } from '@/components/ContaRisposte';
 import { BottoneModale } from '@/components/Modale';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
+import { MappaPunti } from '@/components/MappaPunti';
 import { metaNaviga } from '@/components/Naviga';
 import { ComeArrivare, type Tappa } from '@/components/ComeArrivare';
 import { Quando } from '@/components/Quando';
@@ -859,6 +860,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     })
   ).map((a) => ({ id: a.id, titolo: a.titolo, quando: fmtDateTime(a.inizio) }));
 
+  // i due punti della mappa: dove si lascia la macchina (il campo, o il luogo
+  // scritto con le sue coordinate) e il ritrovo
+  const parcheggio =
+    evento.field?.lat != null && evento.field?.lng != null
+      ? { lat: evento.field.lat, lng: evento.field.lng }
+      : !evento.field && evento.luogoLat != null && evento.luogoLng != null
+        ? { lat: evento.luogoLat, lng: evento.luogoLng }
+        : null;
+  const ritrovoPunto =
+    evento.ritrovoLat != null && evento.ritrovoLng != null
+      ? { lat: evento.ritrovoLat, lng: evento.ritrovoLng }
+      : null;
+
   const tappe: Tappa[] = [
     ...(metaRitrovo && evento.ritrovo
       ? [{ etichetta: 'Luogo di ritrovo', testo: evento.ritrovo, meta: metaRitrovo }]
@@ -1409,16 +1423,23 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 </p>
               )}
 
-              {evento.field?.lat != null && evento.field?.lng != null && (
+              {/* Parcheggio e ritrovo sulla stessa mappa, ognuno col suo nome:
+                  due mappe separate si confrontavano a occhio. Con un posto
+                  solo resta la mappa di sempre, che si sposta e si ingrandisce. */}
+              {parcheggio && ritrovoPunto ? (
                 <div className="mt-3">
-                  <Mappa
-                    lat={evento.field.lat}
-                    lng={evento.field.lng}
-                    nome={evento.field.nome}
-                    altezza={200}
+                  <MappaPunti
+                    punti={[
+                      { ...ritrovoPunto, etichetta: 'Ritrovo', lettera: 'R', colore: '#e8590c' },
+                      { ...parcheggio, etichetta: 'Parcheggio', lettera: 'P', colore: '#1c64d8' },
+                    ]}
                   />
                 </div>
-              )}
+              ) : parcheggio ? (
+                <div className="mt-3">
+                  <Mappa lat={parcheggio.lat} lng={parcheggio.lng} nome={dove.nome} altezza={200} />
+                </div>
+              ) : null}
 
               {tappe.length > 0 && (
                 <div className="mt-3">

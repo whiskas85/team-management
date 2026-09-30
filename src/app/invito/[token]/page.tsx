@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { fmtTime } from '@/lib/format';
 import { Logo } from '@/components/Logo';
 import { Mappa } from '@/components/Mappa';
+import { MappaPunti } from '@/components/MappaPunti';
 import { Naviga } from '@/components/Naviga';
 import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -146,6 +147,14 @@ export default async function PaginaInvito({
   const lat = e.ritrovoLat ?? e.field?.lat ?? e.luogoLat;
   const lng = e.ritrovoLng ?? e.field?.lng ?? e.luogoLng;
   const indirizzo = e.ritrovo ?? e.field?.indirizzo ?? e.luogo;
+  // se il ritrovo ha coordinate sue e anche il campo le ha, vanno tutti e due
+  // sulla stessa mappa: il ritrovo e il parcheggio del campo
+  const pLat = e.field?.lat ?? e.luogoLat;
+  const pLng = e.field?.lng ?? e.luogoLng;
+  const duePunti =
+    e.ritrovoLat != null && e.ritrovoLng != null && pLat != null && pLng != null
+      ? { ritrovo: { lat: e.ritrovoLat, lng: e.ritrovoLng }, parcheggio: { lat: pLat, lng: pLng } }
+      : null;
 
   const referenti = e.referenti.map((r) => ({
     id: r.userId,
@@ -191,7 +200,16 @@ export default async function PaginaInvito({
             )}
           </div>
 
-          {lat != null && lng != null && <Mappa lat={lat} lng={lng} altezza={200} />}
+          {duePunti ? (
+            <MappaPunti
+              punti={[
+                { ...duePunti.ritrovo, etichetta: 'Ritrovo', lettera: 'R', colore: '#e8590c' },
+                { ...duePunti.parcheggio, etichetta: 'Parcheggio', lettera: 'P', colore: '#1c64d8' },
+              ]}
+            />
+          ) : (
+            lat != null && lng != null && <Mappa lat={lat} lng={lng} altezza={200} />
+          )}
 
           <div className="mt-3">
             <Naviga

@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.128.0 — 30 settembre 2026
+
+### Cambiato
+
+- **Una mappa sola, con parcheggio e ritrovo.** Quando un'attività ha sia il
+  posto (il campo, o il luogo scritto) sia un ritrovo con le sue coordinate,
+  la scheda mostra una mappa sola con due segnaposti: **P · Parcheggio** in blu
+  e **R · Ritrovo** in arancio. I colori sono fissi, distinguibili anche da chi
+  è daltonico, e la lettera dentro il segnaposto dice lo stesso senza colore.
+  L'inquadratura tiene dentro tutti e due. Sotto, ogni nome apre il punto su
+  Google Maps, e «Come arrivare» resta dov'era. Con un posto solo resta la mappa
+  di sempre. Lo stesso vale nella pagina d'invito delle squadre ospiti.
+
 ## 2.127.2 — 30 settembre 2026
 
 ### Cambiato
