@@ -219,3 +219,42 @@ export async function riprendiCredito(paymentId: string): Promise<number> {
   ]);
   return parte;
 }
+
+/**
+ * Un'attività annullata non la deve più nessuno: le sue quote si chiudono.
+ *
+ * - la parte pagata col credito torna credito;
+ * - una quota rimasta senza un euro incassato sparisce, come quando uno toglie
+ *   l'adesione: nella cassa non resta nessuno «che deve» per un'attività che
+ *   non c'è;
+ * - una quota pagata a metà si chiude a quanto è entrato: il resto non è più
+ *   dovuto. Quello che è entrato resta dov'è — la persona lo tiene come credito
+ *   o chiede il rimborso, come per ogni attività annullata.
+ *
+ * Le quote pagate per intero e i rimborsi non si toccano. Riaprendo
+ * l'attività le quote rinascono dalle adesioni.
+ */
+export async function chiudiQuoteAnnullata(eventId: string): Promise<void> {
+  const quote = await prisma.payment.findMany({
+    where: { eventId, tipo: { not: 'RIMBORSO' }, status: { in: ['DA_PAGARE', 'PARZIALE', 'PAGATO'] } },
+    select: { id: true },
+  });
+  for (const { id } of quote) {
+    await riprendiCredito(id);
+    const q = await prisma.payment.findUnique({ where: { id } });
+    if (!q || q.status === 'PAGATO') continue;
+    if (Number(q.pagato) <= 0) {
+      await prisma.payment.delete({ where: { id } });
+    } else {
+      await prisma.payment.update({
+        where: { id },
+        data: {
+          importo: q.pagato,
+          status: 'PAGATO',
+          pagatoIl: q.pagatoIl ?? new Date(),
+          note: [q.note, 'Attività annullata: chiusa a quanto versato'].filter(Boolean).join(' · '),
+        },
+      });
+    }
+  }
+}

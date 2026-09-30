@@ -21,7 +21,7 @@ import {
 import { annoCredibile, annoSbagliato, giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
 import { quoteTutteSaldate } from '@/lib/casse';
-import { parteDaCredito, riprendiCredito } from '@/lib/credito';
+import { chiudiQuoteAnnullata, parteDaCredito, riprendiCredito } from '@/lib/credito';
 import { Prisma } from '@prisma/client';
 import {
   MOTIVO_NON_IDONEO,
@@ -495,6 +495,10 @@ export async function cambiaStatoEvento(_prev: StatoForm, fd: FormData): Promise
     // allora, e lasciarlo lì farebbe sembrare annullata un'attività viva
     data: { status, motivoAnnullamento: status === 'ANNULLATA' ? motivo : null },
   });
+  // annullata: nella cassa non resta nessuno che la deve. Riaperta (o
+  // comunque viva): le quote tornano in pari con le adesioni
+  if (status === 'ANNULLATA') await chiudiQuoteAnnullata(id);
+  else await allineaQuoteEvento(id);
   // un annullamento (o una riapertura) arriva anche alle squadre collegate
   await diffondiEvento(id).catch(() => null);
 
@@ -745,7 +749,8 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
     prisma.payment.findMany({ where: { eventId, userId, tipo: { not: 'RIMBORSO' } } }),
   ]);
 
-  const dovuta = deveLaQuota(rsvp, conFormazione(evento));
+  // un'attività annullata non la deve nessuno (vedi chiudiQuoteAnnullata)
+  const dovuta = evento.status !== 'ANNULLATA' && deveLaQuota(rsvp, conFormazione(evento));
 
   // Una quota per cassa: quella del club, e una per ogni altra cassa che
   // l'attività prevede — il campo al club, l'istruttore a Mario. Le deve la

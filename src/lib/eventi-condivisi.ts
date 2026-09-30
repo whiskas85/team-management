@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache';
 import type { CollegamentoSquadra, Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { accoda } from './federazione-coda';
+import { chiudiQuoteAnnullata } from './credito';
 import { profiloDi } from './federazione';
 import { marchio } from './mia-squadra';
 import { stagioneAttiva } from './stagioni';
@@ -478,6 +479,8 @@ export async function riceviEvento(
       where: { id: esistente.id },
       data: { ...dati, ...stato, origineDati },
     });
+    // annullata da loro: le quote dei nostri si chiudono come per una nostra
+    if (stato.status === 'ANNULLATA') await chiudiQuoteAnnullata(esistente.id);
     aggiornaPagine(esistente.id);
     return { id: esistente.id, nuovo: false };
   }
@@ -518,6 +521,7 @@ export async function riceviRitiro(c: CollegamentoSquadra, idRemoto: string) {
         motivoAnnullamento: `Invito ritirato da ${profiloDi(c).nome}`,
       },
     });
+    await chiudiQuoteAnnullata(e.id);
   }
   aggiornaPagine(e.id);
 }

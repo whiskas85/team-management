@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.8.3 — 30 settembre 2026
+
+### Corretto
+
+- **Un'attività annullata non la deve più nessuno.** Annullandola, le quote
+  restavano aperte, e nella cassa c'era ancora chi «doveva» per un'attività
+  che non si fa più. Ora si chiudono da sole: chi non aveva versato niente non
+  deve più niente, chi aveva versato una parte la vede chiusa a quanto ha dato
+  (e può tenerlo come credito o chiedere il rimborso, come prima), e la parte
+  pagata col credito torna credito. Vale anche per le attività annullate o
+  ritirate dalla squadra che le organizza. Riaprendo l'attività le quote
+  rinascono dalle adesioni. Le attività già annullate vengono sistemate
+  all'aggiornamento.
+
 ## 3.8.2 — 30 settembre 2026
 
 ### Corretto
