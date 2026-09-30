@@ -10,6 +10,7 @@ import { isAdmin } from '@/lib/domain';
 import { UPLOAD_DIR, eliminaAllegato } from '@/lib/storage';
 import { strOpt, type StatoForm } from '@/lib/form';
 import { diffondiProfilo } from '@/lib/federazione-coda';
+import { daHex } from '@/lib/tema';
 
 const MAX_BYTE = 1_500_000;
 
@@ -120,4 +121,20 @@ export async function salvaReferenti(_prev: StatoForm, fd: FormData): Promise<St
   return {
     ok: righe.length === 1 ? 'Un referente salvato.' : `${righe.length} referenti salvati.`,
   };
+}
+
+/** Il tema della squadra: il colore d'accento e scuro o chiaro. Vale per tutti. */
+export async function salvaTemaSquadra(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  if (!(await soloAdmin())) return { errore: 'Solo l’admin cambia il tema della squadra.' };
+  const accento = (strOpt(fd, 'accento') ?? '').toLowerCase();
+  if (!daHex(accento)) return { errore: 'Scegli un colore.' };
+  const modo = strOpt(fd, 'modo') === 'chiaro' ? 'chiaro' : 'scuro';
+  await prisma.miaSquadra.upsert({
+    where: { id: 'mia' },
+    create: { id: 'mia', temaAccento: accento, temaModo: modo },
+    update: { temaAccento: accento, temaModo: modo },
+  });
+  // tocca ogni pagina: tutte si ridisegnano coi colori nuovi
+  revalidatePath('/', 'layout');
+  return { ok: 'Tema salvato: vale per tutti, da adesso.' };
 }

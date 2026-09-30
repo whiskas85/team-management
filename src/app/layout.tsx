@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { RegistraApp } from '@/components/RegistraApp';
 import { marchio } from '@/lib/mia-squadra';
+import { temaPagina } from '@/lib/tema-server';
 
 /*
  * Il nome viene da «La mia squadra»: la scheda del browser e l'app installata
@@ -29,17 +30,27 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = {
-  themeColor: '#050605',
-  width: 'device-width',
-  initialScale: 1,
-  // a schermo intero la barra di sistema non deve coprire i contenuti
-  viewportFit: 'cover',
-};
+export async function generateViewport(): Promise<Viewport> {
+  const { t } = await temaPagina();
+  return {
+    // la barra del telefono prende il fondo del tema
+    themeColor: t.colori.bg,
+    width: 'device-width',
+    initialScale: 1,
+    // a schermo intero la barra di sistema non deve coprire i contenuti
+    viewportFit: 'cover',
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Il tema si scrive qui, sul server, in testa alla pagina: arriva già coi
+  // suoi colori, senza il lampo del tema di partenza prima di quello giusto.
+  const { t, css } = await temaPagina();
   return (
-    <html lang="it">
+    <html lang="it" data-contrasto={t.forte ? '' : undefined}>
+      <head>
+        <style id="tema" dangerouslySetInnerHTML={{ __html: css }} />
+      </head>
       <body className="min-h-[100dvh] antialiased">
         <RegistraApp />
         {children}

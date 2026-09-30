@@ -464,7 +464,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           ? prisma.tipoAttivita.findMany({
               where: { OR: [{ attivo: true }, { id: evento.tipoId ?? '' }] },
               orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-              select: { id: true, nome: true, attivo: true },
+              select: { id: true, nome: true, attivo: true, soloInterno: true },
             })
           : Promise.resolve([]),
         // Nuovi compresi, anche sull'attività di sola squadra: lì restano
@@ -905,7 +905,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       ? {
           chiave: 'nuovi',
           n: inGiocata.nuovi,
-          classe: 'text-sky-300',
+          classe: 'text-info',
           testo: inGiocata.nuovi === 1 ? 'nuovo' : 'nuovi',
         }
       : null,
@@ -987,7 +987,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           'text-warn',
           convocati,
         ),
-        ...dividi('toc', 'TOC · sala controllo', 'text-sky-300', toc),
+        ...dividi('toc', 'TOC · sala controllo', 'text-info', toc),
         ...dividi('riserve', 'Riserve', 'text-warn', riserve),
         ...dividi('daassegnare', 'Da assegnare', 'text-muted', daAssegnare),
         ...dividi('forse', 'Forse', 'text-warn', forse),
@@ -1259,6 +1259,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           invitata={evento.status === 'INVITATA'}
           admin={admin}
           tipologie={tipologie.filter((t) => t.attivo !== false)}
+          listino={listino}
+          stagioneId={evento.stagioneId}
+          giorni={giorniEvento.length}
           nostri={contaPresenti(evento.rsvps)}
           mandaForse={evento.origineMandaForse}
           versamenti={evento.versamentiOrganizzatore.map((v) => ({
@@ -2072,7 +2075,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
                                           : a === 'TOC'
 
-                                            ? 'border-sky-400 bg-sky-400/15 text-sky-300'
+                                            ? 'border-info bg-info/15 text-info'
 
                                             : a === 'RISERVA'
 

@@ -1,3 +1,5 @@
+import { tavolozza } from '@/lib/tema';
+import { temaSquadra } from '@/lib/tema-server';
 import type { MetadataRoute } from 'next';
 import { marchio } from '@/lib/mia-squadra';
 
@@ -14,6 +16,8 @@ export const dynamic = 'force-dynamic';
  * quasi sempre; chi non l'ha fatto viene mandato al login lo stesso.
  */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  // il fondo del tema della squadra: è il colore con cui l'app si apre
+  const fondo = tavolozza(await temaSquadra()).colori.bg;
   const m = await marchio();
   return {
     name: m.nomeGestionale,
@@ -23,8 +27,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#050605',
-    theme_color: '#050605',
+    background_color: fondo,
+    theme_color: fondo,
     lang: 'it',
     categories: ['sports', 'productivity'],
     icons: [

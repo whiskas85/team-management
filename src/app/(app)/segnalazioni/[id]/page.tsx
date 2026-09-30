@@ -126,7 +126,7 @@ export default async function SegnalazionePage({ params }: { params: Promise<{ i
           {/* anonima: detto per intero, non solo col badge — chi gestisce deve
               sapere perché non trova un nome, chi l'ha scritta che è al sicuro */}
           {s.anonima && (
-            <p className="mb-4 flex items-start gap-2 rounded-md border border-violet-400/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-200">
+            <p className="mb-4 flex items-start gap-2 rounded-md border border-viola/30 bg-viola/10 px-3 py-2 text-xs text-viola">
               <Icona nome="scudo" size={14} />
               {mia
                 ? 'L’hai inviata in forma anonima: il tuo nome non lo vede nessuno, nemmeno l’admin. Le risposte arrivano a te lo stesso.'

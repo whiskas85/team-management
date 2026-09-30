@@ -430,7 +430,7 @@ function Griglia({
                     <span
                       className={`num inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
                         isOggi
-                          ? 'bg-nvg font-semibold text-black'
+                          ? 'bg-nvg font-semibold text-nvgink'
                           : festa
                             ? `font-semibold ${delMese ? 'text-danger' : 'text-danger/50'}`
                             : delMese

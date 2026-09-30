@@ -5,6 +5,39 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.127.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Tema della squadra.** In **La mia squadra**, sezione **Tema**, l'admin
+  sceglie il colore d'accento e il fondo **scuro** o **chiaro**, e vale per
+  tutti. Il colore si sceglie in tre modi: fra quelli **presi dal logo**, fra
+  quelli **pronti** o **libero**. Un'anteprima mostra il risultato prima di
+  salvare. Il contrasto lo sistema il gestionale: se un colore non si legge sul
+  fondo scelto, lo schiarisce o lo scurisce quanto basta (WCAG 4,5:1) e lo dice.
+  La schermata d'accesso resta notturna, col colore della squadra.
+- **Aspetto e accessibilità, nel profilo.** Ognuno sceglie per sé fra il tema
+  della squadra (di partenza), **alto contrasto scuro** e **alto contrasto
+  chiaro** (per ipovedenti, testo almeno 7:1), **daltonismo rosso-verde**
+  (tavolozza Okabe-Ito) e **daltonismo blu-giallo**. Questi temi non si
+  colorano. In più c'è **testo più grande**, che vale con qualunque tema. Il
+  fuoco da tastiera ora si vede sempre, e chi ha chiesto al sistema meno
+  animazioni non le trova più.
+- **Accettare un invito, con le quote vere.** La finestra **Accetta l'invito**
+  ha le stesse card della scheda Pagamenti, con le stesse voci del listino
+  filtrate allo stesso modo. La **quota esterni** compare se la tipologia
+  scelta si può rilasciare ai nuovi.
+
+### Cambiato
+
+- **Quanto chiede l'altra squadra lo sa solo l'admin.** È il prezzo d'acquisto:
+  accanto alla quota interna farebbe vedere il ricarico. Sulla card il badge
+  **A pagamento** lo vede solo l'admin, e senza cifra. Nella scheda il conto
+  verso l'organizzatore è solo per l'admin. Il sondaggio «Partecipiamo?» non
+  scrive più il costo. In Pagamenti, «Da pagare ad altre squadre» è solo per
+  l'admin. Accettando, il costo dell'organizzatore non si propone più come
+  quota.
+
 ## 2.126.1 — 29 settembre 2026
 
 ### Aggiunto

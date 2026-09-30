@@ -4,7 +4,7 @@ import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
 import { faseAttivita } from './giorni';
 import type { EventoLista } from '@/components/CardEvento';
-import { datiOrigine, descriviCosto, organizzatoreDi } from './eventi-condivisi';
+import { datiOrigine, organizzatoreDi } from './eventi-condivisi';
 
 /**
  * Chi vede quali attività.
@@ -42,6 +42,12 @@ type Opzioni = {
   stato: StatoOperatore;
   userId: string;
   vedeBozze?: boolean;
+  /**
+   * Chi guarda è admin. Solo lui sa che un'attività di un'altra squadra è a
+   * pagamento, e quanto chiedono: è il prezzo d'acquisto, e accanto alla
+   * quota interna farebbe vedere il ricarico a tutti.
+   */
+  admin?: boolean;
   dove?: Prisma.EventWhereInput;
   ordine?: 'asc' | 'desc';
   limite?: number;
@@ -52,6 +58,7 @@ export async function eventiPerLista({
   stato,
   userId,
   vedeBozze = false,
+  admin = false,
   dove = {},
   ordine = 'asc',
   limite,
@@ -107,12 +114,11 @@ export async function eventiPerLista({
 
   return eventi.map((e) => ({
     organizzatore: organizzatoreDi(e.origineCollegamento),
-    // di un'altra squadra e a pagamento: quanto chiedono, sulla card
-    costoOrganizzatore: (() => {
-      const c = e.origineCollegamento ? datiOrigine(e.origineDati).costo : null;
-      return c ? descriviCosto(c) : null;
-    })(),
-    costoChiesto: e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
+    // di un'altra squadra e a pagamento: lo sa solo l'admin, e senza cifra
+    // sulla card (vedi `admin` qui sopra)
+    pagaOrganizzatore: admin && !!e.origineCollegamento && !!datiOrigine(e.origineDati).costo,
+    // la cifra serve solo all'admin che accetta l'invito
+    costoChiesto: admin && e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
     sondaggioId: e.sondaggio?.id ?? null,
     propostaDa: e.origineCollegamento ? (datiOrigine(e.origineDati).propostaDa ?? null) : null,
     id: e.id,
@@ -127,6 +133,7 @@ export async function eventiPerLista({
     fase: faseAttivita(e, ora),
     visibilita: e.visibilita,
     inizio: e.inizio,
+    fine: e.fine,
     costo: quotaDi(e),
     maxPartecipanti: e.maxPartecipanti,
     campo: e.field ? `${e.field.nome}${e.field.citta ? ` · ${e.field.citta}` : ''}` : null,

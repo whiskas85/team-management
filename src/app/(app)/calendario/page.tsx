@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { festivitaVicine } from '@/lib/festivita';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { giorniDi } from '@/lib/giorni';
 import { eventiPerLista, filtroVisibilita } from '@/lib/query';
 import { etichettaEvento, isAdmin, puoSchierare, tonoEvento } from '@/lib/domain';
 import { fmtDateLong, fmtDateTime, umanizza } from '@/lib/format';
@@ -55,7 +56,7 @@ export default async function CalendarioPage({
         prisma.tipoAttivita.findMany({
           where: { attivo: true },
           orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-          select: { id: true, nome: true },
+          select: { id: true, nome: true, soloInterno: true },
         }),
         listinoAttivo(),
         stagioneAttiva(),
@@ -126,6 +127,7 @@ export default async function CalendarioPage({
           stato: me.stato,
           userId: me.id,
           vedeBozze: admin,
+          admin,
           dove:
             attuale === 'inviti'
               ? // gli inviti delle squadre collegate non ancora accettati
@@ -172,6 +174,7 @@ export default async function CalendarioPage({
           stato: me.stato,
           userId: me.id,
           vedeBozze: admin,
+          admin,
           dove: { inizio: { gte: new Date() }, status: { notIn: ['ANNULLATA', 'INVITATA'] } },
           limite: 6,
         })
@@ -338,6 +341,9 @@ export default async function CalendarioPage({
                           costo={e.costoChiesto}
                           casse={casse}
                           sondaggioId={e.sondaggioId}
+                          listino={listino}
+                          stagioneId={stagione?.id ?? null}
+                          giorni={giorniDi(new Date(e.inizio), e.fine ? new Date(e.fine) : null).length}
                         />
                       }
                     />

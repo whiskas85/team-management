@@ -521,87 +521,87 @@ export const COLORI_TIPOLOGIA: Record<
 > = {
   verde: {
     etichetta: 'Verde',
-    tinta: '#4cff00',
-    bordo: 'border-[#4cff00]/40 bg-[#4cff00]/20 text-[#4cff00]',
-    pieno: 'bg-[#4cff00]',
+    tinta: 'rgb(var(--t-verde))',
+    bordo: 'border-[rgb(var(--t-verde)/0.4)] bg-[rgb(var(--t-verde)/0.2)] text-[rgb(var(--t-verde))]',
+    pieno: 'bg-[rgb(var(--t-verde))]',
   },
   turchese: {
     etichetta: 'Turchese',
-    tinta: '#2dd4bf',
-    bordo: 'border-[#2dd4bf]/40 bg-[#2dd4bf]/20 text-[#2dd4bf]',
-    pieno: 'bg-[#2dd4bf]',
+    tinta: 'rgb(var(--t-turchese))',
+    bordo: 'border-[rgb(var(--t-turchese)/0.4)] bg-[rgb(var(--t-turchese)/0.2)] text-[rgb(var(--t-turchese))]',
+    pieno: 'bg-[rgb(var(--t-turchese))]',
   },
   azzurro: {
     etichetta: 'Azzurro',
-    tinta: '#38bdf8',
-    bordo: 'border-[#38bdf8]/40 bg-[#38bdf8]/20 text-[#38bdf8]',
-    pieno: 'bg-[#38bdf8]',
+    tinta: 'rgb(var(--t-azzurro))',
+    bordo: 'border-[rgb(var(--t-azzurro)/0.4)] bg-[rgb(var(--t-azzurro)/0.2)] text-[rgb(var(--t-azzurro))]',
+    pieno: 'bg-[rgb(var(--t-azzurro))]',
   },
   blu: {
     etichetta: 'Blu',
-    tinta: '#5b8def',
-    bordo: 'border-[#5b8def]/40 bg-[#5b8def]/20 text-[#5b8def]',
-    pieno: 'bg-[#5b8def]',
+    tinta: 'rgb(var(--t-blu))',
+    bordo: 'border-[rgb(var(--t-blu)/0.4)] bg-[rgb(var(--t-blu)/0.2)] text-[rgb(var(--t-blu))]',
+    pieno: 'bg-[rgb(var(--t-blu))]',
   },
   viola: {
     etichetta: 'Viola',
-    tinta: '#a78bfa',
-    bordo: 'border-[#a78bfa]/40 bg-[#a78bfa]/20 text-[#a78bfa]',
-    pieno: 'bg-[#a78bfa]',
+    tinta: 'rgb(var(--t-viola))',
+    bordo: 'border-[rgb(var(--t-viola)/0.4)] bg-[rgb(var(--t-viola)/0.2)] text-[rgb(var(--t-viola))]',
+    pieno: 'bg-[rgb(var(--t-viola))]',
   },
   fucsia: {
     etichetta: 'Fucsia',
-    tinta: '#e879f9',
-    bordo: 'border-[#e879f9]/40 bg-[#e879f9]/20 text-[#e879f9]',
-    pieno: 'bg-[#e879f9]',
+    tinta: 'rgb(var(--t-fucsia))',
+    bordo: 'border-[rgb(var(--t-fucsia)/0.4)] bg-[rgb(var(--t-fucsia)/0.2)] text-[rgb(var(--t-fucsia))]',
+    pieno: 'bg-[rgb(var(--t-fucsia))]',
   },
   rosa: {
     etichetta: 'Rosa',
-    tinta: '#f9a8d4',
-    bordo: 'border-[#f9a8d4]/40 bg-[#f9a8d4]/20 text-[#f9a8d4]',
-    pieno: 'bg-[#f9a8d4]',
+    tinta: 'rgb(var(--t-rosa))',
+    bordo: 'border-[rgb(var(--t-rosa)/0.4)] bg-[rgb(var(--t-rosa)/0.2)] text-[rgb(var(--t-rosa))]',
+    pieno: 'bg-[rgb(var(--t-rosa))]',
   },
   rosso: {
     etichetta: 'Rosso',
-    tinta: '#ff5a4f',
-    bordo: 'border-[#ff5a4f]/40 bg-[#ff5a4f]/20 text-[#ff5a4f]',
-    pieno: 'bg-[#ff5a4f]',
+    tinta: 'rgb(var(--t-rosso))',
+    bordo: 'border-[rgb(var(--t-rosso)/0.4)] bg-[rgb(var(--t-rosso)/0.2)] text-[rgb(var(--t-rosso))]',
+    pieno: 'bg-[rgb(var(--t-rosso))]',
   },
   arancione: {
     etichetta: 'Arancione',
-    tinta: '#fb923c',
-    bordo: 'border-[#fb923c]/40 bg-[#fb923c]/20 text-[#fb923c]',
-    pieno: 'bg-[#fb923c]',
+    tinta: 'rgb(var(--t-arancione))',
+    bordo: 'border-[rgb(var(--t-arancione)/0.4)] bg-[rgb(var(--t-arancione)/0.2)] text-[rgb(var(--t-arancione))]',
+    pieno: 'bg-[rgb(var(--t-arancione))]',
   },
   ambra: {
     etichetta: 'Ambra',
-    tinta: '#ffb300',
-    bordo: 'border-[#ffb300]/40 bg-[#ffb300]/20 text-[#ffb300]',
-    pieno: 'bg-[#ffb300]',
+    tinta: 'rgb(var(--t-ambra))',
+    bordo: 'border-[rgb(var(--t-ambra)/0.4)] bg-[rgb(var(--t-ambra)/0.2)] text-[rgb(var(--t-ambra))]',
+    pieno: 'bg-[rgb(var(--t-ambra))]',
   },
   giallo: {
     etichetta: 'Giallo',
-    tinta: '#fde047',
-    bordo: 'border-[#fde047]/40 bg-[#fde047]/20 text-[#fde047]',
-    pieno: 'bg-[#fde047]',
+    tinta: 'rgb(var(--t-giallo))',
+    bordo: 'border-[rgb(var(--t-giallo)/0.4)] bg-[rgb(var(--t-giallo)/0.2)] text-[rgb(var(--t-giallo))]',
+    pieno: 'bg-[rgb(var(--t-giallo))]',
   },
   sabbia: {
     etichetta: 'Sabbia',
-    tinta: '#d4b483',
-    bordo: 'border-[#d4b483]/40 bg-[#d4b483]/20 text-[#d4b483]',
-    pieno: 'bg-[#d4b483]',
+    tinta: 'rgb(var(--t-sabbia))',
+    bordo: 'border-[rgb(var(--t-sabbia)/0.4)] bg-[rgb(var(--t-sabbia)/0.2)] text-[rgb(var(--t-sabbia))]',
+    pieno: 'bg-[rgb(var(--t-sabbia))]',
   },
   bianco: {
     etichetta: 'Bianco',
-    tinta: '#e7ede7',
-    bordo: 'border-[#e7ede7]/40 bg-[#e7ede7]/20 text-[#e7ede7]',
-    pieno: 'bg-[#e7ede7]',
+    tinta: 'rgb(var(--t-bianco))',
+    bordo: 'border-[rgb(var(--t-bianco)/0.4)] bg-[rgb(var(--t-bianco)/0.2)] text-[rgb(var(--t-bianco))]',
+    pieno: 'bg-[rgb(var(--t-bianco))]',
   },
   grigio: {
     etichetta: 'Grigio',
-    tinta: '#7f8a7f',
-    bordo: 'border-[#7f8a7f]/40 bg-[#7f8a7f]/20 text-[#7f8a7f]',
-    pieno: 'bg-[#7f8a7f]',
+    tinta: 'rgb(var(--t-grigio))',
+    bordo: 'border-[rgb(var(--t-grigio)/0.4)] bg-[rgb(var(--t-grigio)/0.2)] text-[rgb(var(--t-grigio))]',
+    pieno: 'bg-[rgb(var(--t-grigio))]',
   },
 };
 
@@ -613,7 +613,7 @@ export const classeColore = (colore?: string | null) =>
 export const classePiena = (colore?: string | null) =>
   COLORI_TIPOLOGIA[colore ?? 'grigio']?.pieno ?? COLORI_TIPOLOGIA.grigio.pieno;
 
-/** La tinta in esadecimale, per quello che si disegna in SVG (la torta). */
+/** La tinta come colore CSS del tema, per quello che si disegna in SVG (la torta). */
 export const tintaColore = (colore?: string | null) =>
   COLORI_TIPOLOGIA[colore ?? 'grigio']?.tinta ?? COLORI_TIPOLOGIA.grigio.tinta;
 

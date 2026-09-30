@@ -48,7 +48,7 @@ const COLORI: Record<TonoToast, string> = {
   ok: 'border-nvg/50 bg-nvg/15 text-nvg',
   warn: 'border-warn/50 bg-warn/15 text-warn',
   errore: 'border-danger/50 bg-danger/15 text-danger',
-  info: 'border-sky-400/50 bg-sky-400/15 text-sky-300',
+  info: 'border-info/50 bg-info/15 text-info',
 };
 
 /**

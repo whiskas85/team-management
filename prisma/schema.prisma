@@ -160,6 +160,11 @@ model User {
   allergie             String? // allergie e note mediche, su più righe
   /// Foto del profilo: percorso relativo dentro UPLOAD_DIR.
   fotoPath             String?
+  /// Il tema scelto per sé: nullo = quello della squadra; altrimenti uno di
+  /// accessibilità (vedi src/lib/tema.ts).
+  tema                 String?
+  /// Tutto il testo un po' più grande, per chi fatica a leggere.
+  testoGrande          Boolean        @default(false)
   roles                Role[]         @default([])
   stato                StatoOperatore @default(NUOVO)
   createdAt            DateTime       @default(now())
@@ -476,6 +481,10 @@ model MiaSquadra {
   sito           String?
   email          String?
   telefono       String?
+  /// Il tema, uguale per tutti: il colore d'accento (#rrggbb) e «scuro» o
+  /// «chiaro». Vuoti = quelli di partenza (verde visore, scuro).
+  temaAccento    String?
+  temaModo       String?
   aggiornatoIl   DateTime @updatedAt
 }
 

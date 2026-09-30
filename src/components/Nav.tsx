@@ -287,7 +287,7 @@ export function Nav({ voci, marchio, preferiti, utente, esci, test = false }: Pr
           Il fondo è pieno, non trasparente: quando l'intestazione scorre via
           sul telefono le passa dietro, e non deve trasparire. */}
       {test && (
-        <div className="sticky top-0 z-40 flex h-[calc(1.75rem+env(safe-area-inset-top))] items-center justify-center border-b border-warn/50 bg-[#372904] pt-[env(safe-area-inset-top)] text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">
+        <div className="sticky top-0 z-40 flex h-[calc(1.75rem+env(safe-area-inset-top))] items-center justify-center border-b border-warn/50 bg-surface pt-[env(safe-area-inset-top)] text-[11px] font-semibold uppercase tracking-[0.2em] text-warn [background-image:linear-gradient(rgb(var(--c-warn)/0.2),rgb(var(--c-warn)/0.2))]">
           Ambiente di test
         </div>
       )}
@@ -471,7 +471,7 @@ export function Nav({ voci, marchio, preferiti, utente, esci, test = false }: Pr
                 // solo colore che sfuma, niente sfocatura: il bordo di una
                 // sfocatura resta netto anche sotto una maschera, e si vedeva
                 // come una riga nel punto in cui la testata finiva
-                className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 -z-10 bg-[linear-gradient(to_bottom,#0e110e_0%,#0e110e_55%,rgba(14,17,14,0.85)_72%,rgba(14,17,14,0)_100%)]"
+                className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 -z-10 bg-[linear-gradient(to_bottom,rgb(var(--c-surface))_0%,rgb(var(--c-surface))_55%,rgb(var(--c-surface)/0.85)_72%,rgb(var(--c-surface)/0)_100%)]"
               />
               {/* la maniglia: dice che il foglio si tira giù */}
               <span className="mb-0.5 h-1 w-20 rounded-full bg-muted/50" aria-hidden />

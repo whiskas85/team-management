@@ -132,7 +132,7 @@ export function QuoteEvento({
 /** Il segno accanto a una voce che paga la polizza giornaliera. */
 function SegnoPolizza() {
   return (
-    <span className="ml-1 text-sky-300" title="Paga la polizza giornaliera">
+    <span className="ml-1 text-info" title="Paga la polizza giornaliera">
       · polizza
     </span>
   );

@@ -35,7 +35,7 @@ export function RegistrazioniInAttesa({ righe }: { righe: RegistrazioneInAttesa[
         <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-nvg">
           Da approvare
         </h2>
-        <span className="rounded-full bg-nvg px-2 py-0.5 text-[11px] font-semibold text-black">
+        <span className="rounded-full bg-nvg px-2 py-0.5 text-[11px] font-semibold text-nvgink">
           {righe.length}
         </span>
       </div>

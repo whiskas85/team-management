@@ -28,7 +28,7 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
   return (
     <div className="login-card px-5 py-[clamp(1rem,3dvh,2rem)] sm:px-12 sm:py-10">
       <div className="mb-[clamp(0.75rem,2.5dvh,2rem)] text-center">
-        <h2 className="login-display text-[clamp(1.15rem,4vw,1.9rem)] font-bold tracking-[0.12em] text-nvg [text-shadow:0_0_12px_rgba(76,255,0,.6)]">
+        <h2 className="login-display text-[clamp(1.15rem,4vw,1.9rem)] font-bold tracking-[0.12em] text-nvg [text-shadow:0_0_12px_rgb(var(--c-notte)/.6)]">
           ACCESSO PROTETTO
         </h2>
         <p className="login-sottotitolo login-terminale mt-1 text-[clamp(0.75rem,2.4vw,1.1rem)] tracking-[0.18em] text-nvg/45 sm:mt-2">
@@ -129,7 +129,7 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
               className={
                 r.tono === 'warn'
                   ? 'text-warn'
-                  : 'text-nvg [text-shadow:0_0_8px_rgba(76,255,0,.6)]'
+                  : 'text-nvg [text-shadow:0_0_8px_rgb(var(--c-notte)/.6)]'
               }
             >
               {r.esito}

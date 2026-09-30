@@ -21,6 +21,8 @@ export type EventoLista = {
   fase: FaseAttivita | null;
   visibilita: string | null;
   inizio: Date;
+  /** Quando finisce, se lo si sa: per contare i giorni che occupa. */
+  fine?: Date | string | null;
   costo: number | null;
   maxPartecipanti: number | null;
   titolari: number;
@@ -48,7 +50,8 @@ export type EventoLista = {
   /** Organizzata da un'altra squadra collegata: chi, col suo logo. */
   organizzatore?: Organizzatore | null;
   /** Quanto chiede chi organizza, se chiede qualcosa: «5,00 € a operatore». */
-  costoOrganizzatore?: string | null;
+  /** Di un'altra squadra e a pagamento: lo vede solo l'admin, senza la cifra. */
+  pagaOrganizzatore?: boolean;
   costoChiesto?: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
   /** Il sondaggio da cui è nata, o aperto su di lei. */
   sondaggioId?: string | null;
@@ -178,9 +181,9 @@ export function CardEvento({
                 Proposta da <strong className="text-ink">{e.propostaDa}</strong>
               </p>
             )}
-            {e.costoOrganizzatore && (
+            {e.pagaOrganizzatore && (
               <p className="mt-1">
-                <Badge tono="warn">A pagamento · {e.costoOrganizzatore}</Badge>
+                <Badge tono="warn">A pagamento</Badge>
               </p>
             )}
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
@@ -242,7 +245,7 @@ export function CardEvento({
       {/* Il piede: qui si fa. La risposta e — per chi gestisce — il rilascio
           di una bozza, tutto allineato a destra come in tutte le card. */}
       {piede && (
-        <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-[calc(0.5rem-1px)] border-t border-line bg-white/[0.045] px-4 py-3 [&>div]:justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-[calc(0.5rem-1px)] border-t border-line bg-ink/[0.045] px-4 py-3 [&>div]:justify-end">
           {e.adesioniAperte && (
             <AdesioneEvento
               eventId={e.id}

@@ -77,7 +77,7 @@ export function BadgeAnonima() {
   return (
     <span
       title="Il nome di chi l’ha scritta non lo vede nessuno, nemmeno l’admin"
-      className="badge border-violet-400/40 bg-violet-400/15 text-violet-300"
+      className="badge border-viola/40 bg-viola/15 text-viola"
     >
       <Icona nome="scudo" size={11} /> Segnalazione anonima
     </span>
@@ -115,11 +115,11 @@ export function BadgeFirmaCanale({
     return (
       <span
         title="Il nome di chi scrive non lo vede nessuno, nemmeno l’admin"
-        className={`inline-flex items-center border-2 border-violet-400/70 bg-violet-500/25 uppercase tracking-[0.06em] text-violet-200 ${misura}`}
+        className={`inline-flex items-center border-2 border-viola/70 bg-viola/25 uppercase tracking-[0.06em] text-viola ${misura}`}
       >
         <Icona nome="scudo" size={icona} /> Anonime
         {grande && (
-          <span className="font-normal normal-case tracking-normal text-violet-200/80">
+          <span className="font-normal normal-case tracking-normal text-viola/80">
             · il tuo nome non lo vede nessuno, nemmeno l’admin
           </span>
         )}
@@ -129,11 +129,11 @@ export function BadgeFirmaCanale({
   if (firma === 'A_SCELTA') {
     return (
       <span
-        className={`inline-flex items-center border-2 border-violet-400/40 bg-violet-400/10 uppercase tracking-[0.06em] text-violet-300 ${misura}`}
+        className={`inline-flex items-center border-2 border-viola/40 bg-viola/10 uppercase tracking-[0.06em] text-viola ${misura}`}
       >
         <Icona nome="scudo" size={icona} /> Anonime o col nome
         {grande && (
-          <span className="font-normal normal-case tracking-normal text-violet-200/80">
+          <span className="font-normal normal-case tracking-normal text-viola/80">
             · scegli tu, ogni volta
           </span>
         )}

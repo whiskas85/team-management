@@ -31,28 +31,36 @@ export default {
         'esce-sinistra': 'esce-sinistra 0.26s ease-out both',
         'esce-destra': 'esce-destra 0.26s ease-out both',
       },
-      // Palette del logo. Valori espliciti (non var CSS) così restano
-      // utilizzabili i modificatori di opacità tipo `bg-nvg/10`.
+      // I colori del tema (src/lib/tema.ts): variabili CSS con i tre canali,
+      // così il tema cambia in testa alla pagina e i modificatori di opacità
+      // tipo `bg-nvg/10` continuano a funzionare.
       colors: {
-        bg: '#050605',
-        surface: '#0e110e',
-        surface2: '#151a15',
-        line: '#232a23',
-        ink: '#e7ede7',
-        muted: '#7f8a7f',
-        nvg: '#4cff00',
-        nvgdim: '#34ad00',
+        ...Object.fromEntries(
+          [
+            'bg',
+            'surface',
+            'surface2',
+            'line',
+            'ink',
+            'muted',
+            'nvg',
+            'nvgdim',
+            'nvgink',
+            'info',
+            'viola',
+            'warn',
+            'danger',
+          ].map((k) => [k, `rgb(var(--c-${k}) / <alpha-value>)`]),
+        ),
         itgreen: '#008c45',
         itred: '#cd212a',
-        warn: '#ffb300',
-        danger: '#ff4438',
       },
       fontFamily: {
         sans,
         mono: sans,
       },
       boxShadow: {
-        nvg: '0 0 0 1px rgba(76,255,0,.35), 0 0 24px -6px rgba(76,255,0,.45)',
+        nvg: '0 0 0 1px rgb(var(--c-nvg) / .35), 0 0 24px -6px rgb(var(--c-nvg) / .45)',
       },
     },
   },

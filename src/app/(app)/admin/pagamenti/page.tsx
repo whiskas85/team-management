@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { elencoOperatori } from '@/lib/query';
-import { puoGestirePagamenti, tonoPagamento } from '@/lib/domain';
+import { isAdmin, puoGestirePagamenti, tonoPagamento } from '@/lib/domain';
 import { fmtDate, fmtEuro, inputDate, nomeCompleto, umanizza } from '@/lib/format';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Conferma, Fisarmonica, FormAzione } from '@/components/Form';
@@ -56,7 +56,7 @@ export default async function AdminPagamentiPage({
 }: {
   searchParams: Promise<{ filtro?: string; tipo?: string }>;
 }) {
-  await requirePermesso(puoGestirePagamenti);
+  const utente = await requirePermesso(puoGestirePagamenti);
   const sp = await searchParams;
 
   // senza un filtro scelto si apre su ciò che va gestito, se c'è qualcosa:
@@ -273,11 +273,12 @@ export default async function AdminPagamentiPage({
       </Fisarmonica>
 
       <OspitiInCassa cassaId={null} />
-      <PagamentiAdAltreSquadre />
+      {/* quanto paghiamo alle altre squadre: prezzo d'acquisto, solo l'admin */}
+      {isAdmin(utente.roles) && <PagamentiAdAltreSquadre />}
       <CreditiCassa cassaId={null} persone={operatori} metodi={metodi} />
 
       {daConfermare > 0 && filtro !== 'dagestire' && (
-        <div className="mb-5 flex flex-col gap-2 rounded-md border border-sky-400/40 bg-sky-400/10 px-4 py-3 text-sm text-sky-300 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-2 rounded-md border border-info/40 bg-info/10 px-4 py-3 text-sm text-info sm:flex-row sm:items-center sm:justify-between">
           <span>
             {daConfermare === 1
               ? 'Un operatore ha segnalato un pagamento'
@@ -490,7 +491,7 @@ function AzioniPagamento({
             <input type="hidden" name="id" value={pagamento.id} />
 
             {pagamento.dichiaratoIl && (
-              <p className="rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-xs text-sky-300">
+              <p className="rounded-md border border-info/40 bg-info/10 px-3 py-2 text-xs text-info">
                 L’operatore ha segnalato il pagamento il {fmtDate(pagamento.dichiaratoIl)}.
                 Controlla che sia arrivato e conferma.
               </p>

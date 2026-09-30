@@ -129,7 +129,7 @@ export default async function LoginPage({
 
   return (
     <main
-      className={`${pixel.variable} ${titoli.variable} ${terminale.variable} login-schermo flex min-h-[100dvh] items-center justify-center px-4 py-[clamp(0.75rem,3dvh,2.5rem)]`}
+      className={`${pixel.variable} ${titoli.variable} ${terminale.variable} login-schermo notte flex min-h-[100dvh] items-center justify-center px-4 py-[clamp(0.75rem,3dvh,2.5rem)]`}
     >
       <div className="w-full max-w-5xl">
         {avvisoLink && (
@@ -148,10 +148,10 @@ export default async function LoginPage({
 
           <div className="login-marchio mt-[clamp(0.5rem,1.5dvh,1.5rem)] flex items-center gap-3">
             {/* più piccolo sul telefono: la porta deve stare in uno schermo */}
-            <span className="rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40 sm:hidden">
+            <span className="rounded-full shadow-[0_0_18px_rgb(var(--c-notte)/.45)] ring-1 ring-nvg/40 sm:hidden">
               <Logo size={36} src={m.logoUrl} />
             </span>
-            <span className="hidden rounded-full shadow-[0_0_18px_rgba(76,255,0,.45)] ring-1 ring-nvg/40 sm:inline-flex">
+            <span className="hidden rounded-full shadow-[0_0_18px_rgb(var(--c-notte)/.45)] ring-1 ring-nvg/40 sm:inline-flex">
               <Logo size={52} src={m.logoUrl} />
             </span>
             <span className="text-left leading-tight">

@@ -2,6 +2,7 @@ import type { StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
 import { vedeAttivitaSquadra } from './domain';
 import { num } from './form';
+import { quoteTutteSaldate } from './casse';
 
 /**
  * Quanto costa un'attività a una certa persona.
@@ -270,4 +271,116 @@ export async function componiQuota(
   const dettaglio = forzato ? `${spaccato} · importo fissato a ${aMano.toFixed(2)} €` : spaccato;
 
   return { quota: aMano ?? somma, dettaglio };
+}
+
+/**
+ * Salva le quote aggiunte con il + e quelle delle altre casse.
+ *
+ * Le quote aggiunte valgono solo per questa attività: si tengono quelle
+ * rimaste nel modulo, con la loro spunta, e spariscono quelle tolte. Poi ogni
+ * cassa diversa dal club ha la sua quota: la squadra paga le righe spuntate
+ * nella sua card, gli esterni quelle della loro — se lì non ce n'è nessuna di
+ * quella cassa, pagano come la squadra, con la stessa regola del club. Più
+ * righe della stessa cassa fanno un pagamento solo, con i nomi di tutte. Una
+ * cassa senza più niente da chiedere perde la quota. La card che il modulo non
+ * ha mostrato non si tocca.
+ */
+export async function salvaQuoteCasse(eventId: string, quote: QuoteAttivita) {
+  const lati = [
+    ...(quote.lati.squadra ? [false] : []),
+    ...(quote.lati.esterni ? [true] : []),
+  ];
+
+  // le quote aggiunte con il +
+  const esistenti = await prisma.voceAttivita.findMany({
+    where: { eventId, OR: lati.map((perEsterni) => ({ perEsterni })) },
+    select: { id: true },
+  });
+  const tenute = new Set(
+    quote.aggiunte
+      .map((a) => a.id)
+      .filter((id): id is string => !!id && esistenti.some((e) => e.id === id)),
+  );
+  await prisma.voceAttivita.deleteMany({
+    where: { eventId, OR: lati.map((perEsterni) => ({ perEsterni })), id: { notIn: [...tenute] } },
+  });
+  for (const a of quote.aggiunte) {
+    const dati = {
+      nome: a.nome,
+      importo: a.importo,
+      cassaId: a.cassaId,
+      scelta: a.scelta,
+      perEsterni: a.perEsterni,
+      perPolizza: a.perPolizza,
+    };
+    if (a.id && tenute.has(a.id)) {
+      await prisma.voceAttivita.update({ where: { id: a.id }, data: dati });
+    } else {
+      await prisma.voceAttivita.create({ data: { eventId, ...dati } });
+    }
+  }
+
+  // una quota per ogni altra cassa
+  const gia = await prisma.quotaCassa.findMany({ where: { eventId } });
+  const casse = new Set<string>([
+    ...gia.map((q) => q.cassaId),
+    ...[...quote.squadra.keys(), ...quote.esterni.keys()].filter((c): c is string => c !== null),
+  ]);
+  for (const cassaId of casse) {
+    const q = gia.find((x) => x.cassaId === cassaId) ?? null;
+    const rs = quote.squadra.get(cassaId);
+    const re = quote.esterni.get(cassaId);
+    const importo = quote.lati.squadra ? sommaRighe(rs) : q ? Number(q.importo) : null;
+    const importoEsterni = quote.lati.esterni
+      ? sommaRighe(re)
+      : q?.importoEsterni == null
+        ? null
+        : Number(q.importoEsterni);
+
+    if ((importo ?? 0) <= 0 && (importoEsterni ?? 0) <= 0) {
+      if (q) await togliQuotaCassa(q);
+      continue;
+    }
+
+    const nomi = [...new Set([...(rs ?? []), ...(re ?? [])].map((r) => r.nome))];
+    const valori = {
+      descrizione: nomi.join(' + ') || q?.descrizione || 'Quota',
+      importo: importo ?? 0,
+      importoEsterni,
+    };
+    await prisma.quotaCassa.upsert({
+      where: { eventId_cassaId: { eventId, cassaId } },
+      create: { eventId, cassaId, ...valori },
+      update: valori,
+    });
+  }
+}
+
+/**
+ * Toglie la quota di un'altra cassa da un'attività.
+ *
+ * Chi non l'aveva ancora pagata non la deve più; quello che è già entrato
+ * resta dov'è — se e come restituirlo lo decide chi tiene quella cassa. Chi
+ * era convocato solo perché mancava questa quota diventa titolare.
+ */
+export async function togliQuotaCassa(quota: { id: string; eventId: string; cassaId: string }) {
+  await prisma.quotaCassa.delete({ where: { id: quota.id } });
+  await prisma.payment.deleteMany({
+    where: {
+      eventId: quota.eventId,
+      cassaId: quota.cassaId,
+      tipo: { not: 'RIMBORSO' },
+      pagato: 0,
+    },
+  });
+
+  const convocati = await prisma.eventRsvp.findMany({
+    where: { eventId: quota.eventId, assegnazione: 'CONVOCATO' },
+    select: { id: true, userId: true },
+  });
+  for (const c of convocati) {
+    if (await quoteTutteSaldate(quota.eventId, c.userId)) {
+      await prisma.eventRsvp.update({ where: { id: c.id }, data: { assegnazione: 'TITOLARE' } });
+    }
+  }
 }

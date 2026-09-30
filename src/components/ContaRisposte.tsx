@@ -95,7 +95,7 @@ export function ContaRisposte({
             <span className="text-muted">interni</span>
           </span>
           <span>
-            <span className="num text-sm font-semibold text-sky-300">{inGiocata.nuovi}</span>{' '}
+            <span className="num text-sm font-semibold text-info">{inGiocata.nuovi}</span>{' '}
             <span className="text-muted">{inGiocata.nuovi === 1 ? 'nuovo' : 'nuovi'}</span>
           </span>
           {inGiocata.conOspiti && (

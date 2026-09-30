@@ -10,6 +10,8 @@ import { Invia } from '@/components/Bottone';
 import { RitagliaFoto } from '@/components/RitagliaFoto';
 import { ReferentiMiaSquadra } from '@/components/ReferentiMiaSquadra';
 import { salvaLogoSquadra, salvaMiaSquadra, salvaReferenti } from '@/actions/mia-squadra';
+import { SceltaTemaSquadra } from '@/components/SceltaTemaSquadra';
+import { temaSquadra } from '@/lib/tema-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,9 +25,10 @@ export const dynamic = 'force-dynamic';
  */
 export default async function MiaSquadraPage() {
   await requirePermesso(isAdmin);
-  const [s, m, referenti, persone] = await Promise.all([
+  const [s, m, tema, referenti, persone] = await Promise.all([
     leggiMiaSquadra(),
     marchio(),
+    temaSquadra(),
     prisma.referenteMiaSquadra.findMany({ orderBy: { ordine: 'asc' } }),
     prisma.user.findMany({
       where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] } },
@@ -132,6 +135,15 @@ export default async function MiaSquadraPage() {
             quello di partenza.
           </p>
         </div>
+      </div>
+
+      <div className="card mt-6">
+        <p className="titolo-sezione">Tema</p>
+        <p className="mb-4 mt-1 text-xs text-muted">
+          I colori del gestionale, uguali per tutti: un colore d’accento e il fondo scuro o chiaro.
+          Chi ne ha bisogno sceglie dal suo profilo un tema per ipovedenti o daltonici.
+        </p>
+        <SceltaTemaSquadra iniziale={tema} logoUrl={m.logoUrl} />
       </div>
 
       <div className="card mt-6">

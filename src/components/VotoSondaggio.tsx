@@ -20,7 +20,7 @@ export type OpzioneVoto = {
 export function BadgeSegreto() {
   return (
     <span title="Si vedono i conti, non chi ha votato cosa — nemmeno chi ha fatto la domanda">
-      <span className="badge border-violet-400/40 bg-violet-400/15 text-violet-300">
+      <span className="badge border-viola/40 bg-viola/15 text-viola">
         voto segreto
       </span>
     </span>

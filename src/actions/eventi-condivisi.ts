@@ -9,11 +9,19 @@ import { puoFareSondaggi } from '@/lib/sondaggi';
 import { eAtleta, idoneoPer, inSquadra, isAdmin, serveCertificato } from '@/lib/domain';
 import { annunciaSondaggioNuovo } from '@/actions/sondaggi';
 import { accoda } from '@/lib/federazione-coda';
+import {
+  leggiQuoteAttivita,
+  salvaQuoteCasse,
+  sommaRighe,
+  spaccatoRighe,
+  type RigaQuota,
+} from '@/lib/quote';
+import { giorniDi } from '@/lib/giorni';
+import { stagioneAttiva } from '@/lib/stagioni';
 import { manda, profiloDi } from '@/lib/federazione';
 import {
   contaPresenti,
   datiOrigine,
-  descriviCosto,
   dovutoAllOrganizzatore,
   segnalaNumeri,
 } from '@/lib/eventi-condivisi';
@@ -56,7 +64,7 @@ export async function accettaInvitoEvento(_prev: StatoForm, fd: FormData): Promi
     where: { id: r.e.id },
     data: { status: 'CREATA', tipoId: tipo.id },
   });
-  await impostaQuotaInterna(r.e.id, fd, profiloDi(r.c).nome);
+  await impostaQuote(r.e.id, fd);
   // chi ha risposto al sondaggio sulle partecipazioni entra già fra gli iscritti
   const dalSondaggio = await iscriviDalSondaggio(r.e.id, tipo.id);
   if (r.c.stato === 'ATTIVO') {
@@ -201,30 +209,42 @@ function idDelVersamento(id: string, eventId: string) {
 }
 
 /**
- * La quota per i nostri, scelta accettando un invito a pagamento: una quota
- * dell'attività come quelle aggiunte col + nella scheda Pagamenti, nella cassa
- * scelta. Riaprendo la modifica la si ritrova lì, e lì la si cambia.
+ * Le quote per i nostri, scelte accettando: le stesse card della scheda
+ * Pagamenti — squadra e, se la tipologia si rilascia ai nuovi, esterni — con
+ * le voci del listino e quelle aggiunte, cassa per cassa. Riaprendo la
+ * modifica le si ritrova lì, e lì le si cambia.
  */
-async function impostaQuotaInterna(eventId: string, fd: FormData, organizzatore: string) {
-  const importo = Number(str(fd, 'quotaInterna').replace(',', '.'));
-  if (!Number.isFinite(importo) || importo <= 0) return;
-  const cassaScelta = strOpt(fd, 'cassaQuota');
-  const cassa = cassaScelta
-    ? await prisma.cassa.findFirst({ where: { id: cassaScelta, attiva: true }, select: { id: true } })
-    : null;
-  const nome = `Quota ${organizzatore}`;
-  await prisma.voceAttivita.create({
-    data: { eventId, perEsterni: false, nome, importo, cassaId: cassa?.id ?? null, scelta: true },
+async function impostaQuote(eventId: string, fd: FormData) {
+  const e = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { stagioneId: true, inizio: true, fine: true },
   });
-  if (cassa) {
-    await prisma.quotaCassa.upsert({
-      where: { eventId_cassaId: { eventId, cassaId: cassa.id } },
-      create: { eventId, cassaId: cassa.id, descrizione: nome, importo },
-      update: { descrizione: nome, importo },
-    });
-  } else {
-    await prisma.event.update({ where: { id: eventId }, data: { costo: importo, dettaglioCosto: nome } });
-  }
+  if (!e) return;
+  const stagioneId = e.stagioneId ?? (await stagioneAttiva()).id;
+  const quote = await leggiQuoteAttivita(fd, stagioneId, giorniDi(e.inizio, e.fine).length);
+  const club = (righe: RigaQuota[] | undefined) => ({
+    quota: sommaRighe(righe),
+    dettaglio: spaccatoRighe(righe),
+  });
+  const squadra = club(quote.squadra.get(null));
+  const esterni = club(quote.esterni.get(null));
+  await prisma.event.update({
+    where: { id: eventId },
+    data: {
+      stagioneId,
+      ...(quote.lati.squadra
+        ? { costo: squadra.quota, dettaglioCosto: squadra.dettaglio, vociSquadra: quote.tariffe.squadra }
+        : {}),
+      ...(quote.lati.esterni
+        ? {
+            costoEsterni: esterni.quota,
+            dettaglioCostoEsterni: esterni.dettaglio,
+            vociEsterni: quote.tariffe.esterni,
+          }
+        : {}),
+    },
+  });
+  await salvaQuoteCasse(eventId, quote);
 }
 
 /**
@@ -262,7 +282,8 @@ export async function apriSondaggioInvito(_prev: StatoForm, fd: FormData): Promi
       domanda: `Partecipiamo a «${e.titolo}» di ${organizzatore}?`,
       dettaglio: [
         `Ci invita ${organizzatore}: ${quando}${e.luogo ? `, ${e.luogo}` : ''}.`,
-        costo ? `È a pagamento: ${descriviCosto(costo)}.` : null,
+        // quanto chiedono non si scrive: il sondaggio lo leggono tutti, e il
+        // prezzo d'acquisto lo sa solo l'admin. La quota la decide lui accettando
         strOpt(fd, 'nota'),
       ]
         .filter(Boolean)

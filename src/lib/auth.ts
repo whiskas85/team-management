@@ -64,6 +64,9 @@ export type SessionUser = {
   roles: Role[];
   stato: StatoOperatore;
   ultimaAttivita: Date | null;
+  /** Il tema scelto per sé, se non segue quello della squadra. */
+  tema?: string | null;
+  testoGrande?: boolean;
 };
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
@@ -93,6 +96,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         roles: true,
         stato: true,
         ultimaAttivita: true,
+        tema: true,
+        testoGrande: true,
       },
     });
     if (!user || user.stato === 'DISABILITATO') return null;

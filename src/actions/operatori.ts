@@ -10,6 +10,7 @@ import { isAdmin, isContatto, puoVedereNuovi, puoVedereOperatori } from '@/lib/d
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { perWhatsapp } from '@/lib/telefono';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
+import { eTemaPersonale } from '@/lib/tema';
 import { collegaTessera } from './figt';
 import { data, enumVal, str, strOpt, bool, type StatoForm } from '@/lib/form';
 
@@ -655,4 +656,20 @@ export async function completaProfilo(_prev: StatoForm, fd: FormData): Promise<S
 
   await prisma.user.update({ where: { id: me.id }, data: valori });
   redirect('/dashboard');
+}
+
+/**
+ * L'aspetto, per sé: il tema della squadra o uno di accessibilità, e il testo
+ * più grande. Non tocca nessun altro.
+ */
+export async function salvaAspetto(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const scelto = str(fd, 'tema');
+  const tema = eTemaPersonale(scelto) && scelto !== 'squadra' ? scelto : null;
+  await prisma.user.update({
+    where: { id: me.id },
+    data: { tema, testoGrande: bool(fd, 'testoGrande') },
+  });
+  revalidatePath('/', 'layout');
+  return { ok: tema ? 'Tema cambiato: vale solo per te.' : 'Segui il tema della squadra.' };
 }

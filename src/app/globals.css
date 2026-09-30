@@ -2,22 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Palette estratta dal logo Zero Dark Team: fondo nero, verde visore notturno,
-   bianco osso e il tricolore come dettaglio. */
+/* I colori del tema, come tre numeri r g b (vedi src/lib/tema.ts). Questi sono
+   quelli di partenza — fondo nero e verde visore notturno — e valgono dove il
+   tema non arriva (una pagina d'errore); il tema vero lo scrive il layout in
+   testa a ogni pagina, sopra di questi. */
 :root {
-  --bg: #050605;
-  --surface: #0e110e;
-  --surface-2: #151a15;
-  --border: #232a23;
-  --text: #e7ede7;
-  --muted: #7f8a7f;
-  --nvg: #4cff00;
-  --nvg-dim: #34ad00;
+  --c-bg: 5 6 5;
+  --c-surface: 14 17 14;
+  --c-surface2: 21 26 21;
+  --c-line: 35 42 35;
+  --c-ink: 231 237 231;
+  --c-muted: 127 138 127;
+  --c-nvg: 76 255 0;
+  --c-nvgdim: 51 168 2;
+  --c-nvgink: 0 0 0;
+  --c-info: 125 211 252;
+  --c-viola: 196 181 253;
+  --c-warn: 255 179 0;
+  --c-danger: 255 68 56;
+  --t-verde: 76 255 0;
+  --t-turchese: 45 212 191;
+  --t-azzurro: 56 189 248;
+  --t-blu: 91 141 239;
+  --t-viola: 167 139 250;
+  --t-fucsia: 232 121 249;
+  --t-rosa: 249 168 212;
+  --t-rosso: 255 90 79;
+  --t-arancione: 251 146 60;
+  --t-ambra: 255 179 0;
+  --t-giallo: 253 224 71;
+  --t-sabbia: 212 180 131;
+  --t-bianco: 231 237 231;
+  --t-grigio: 127 138 127;
+  --c-notte: 76 255 0;
+  color-scheme: dark;
+
+  /* i nomi di prima, per le regole scritte a mano e per l'SVG */
+  --bg: rgb(var(--c-bg));
+  --surface: rgb(var(--c-surface));
+  --surface-2: rgb(var(--c-surface2));
+  --border: rgb(var(--c-line));
+  --text: rgb(var(--c-ink));
+  --muted: rgb(var(--c-muted));
+  --nvg: rgb(var(--c-nvg));
+  --nvg-dim: rgb(var(--c-nvgdim));
   --it-green: #008c45;
   --it-red: #cd212a;
-  --warn: #ffb300;
-  --danger: #ff4438;
-  color-scheme: dark;
+  --warn: rgb(var(--c-warn));
+  --danger: rgb(var(--c-danger));
+}
+
+/* Il fuoco da tastiera si vede sempre, in ogni tema (WCAG 2.4.7): un bordo
+   nel colore della squadra attorno a quello che si sta per premere. */
+:where(a, button, summary, select, [role='button'], [role='tab'], [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--c-nvg));
+  outline-offset: 2px;
+}
+/* ad alto contrasto più spesso, e le card con il bordo pieno */
+[data-contrasto] :where(a, button, summary, select, [role='button'], [role='tab'], [tabindex]):focus-visible {
+  outline-width: 3px;
+}
+
+/* Chi ha chiesto al sistema meno movimento non lo trova qui (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 * {
@@ -45,11 +100,11 @@ body {
 
 body {
   background-image:
-    radial-gradient(900px 500px at 50% -10%, rgba(76, 255, 0, 0.06), transparent 70%),
+    radial-gradient(900px 500px at 50% -10%, rgb(var(--c-nvg) / 0.06), transparent 70%),
     repeating-linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.014) 0px,
-      rgba(255, 255, 255, 0.014) 1px,
+      rgb(var(--c-ink) / 0.014) 0px,
+      rgb(var(--c-ink) / 0.014) 1px,
       transparent 1px,
       transparent 3px
     );
@@ -76,7 +131,7 @@ body {
    * che schiarisca qualunque fondo ci sia sotto, card o riga annidata.
    */
   .piede {
-    @apply flex flex-wrap items-center justify-end gap-2 border-t border-line bg-white/[0.045];
+    @apply flex flex-wrap items-center justify-end gap-2 border-t border-line bg-ink/[0.045];
     margin: 0.75rem calc(var(--pad, 1rem) * -1) calc(var(--pad, 1rem) * -1);
     padding: 0.5rem var(--pad, 1rem);
     border-bottom-left-radius: calc(0.5rem - 1px);
@@ -112,7 +167,7 @@ body {
   }
 
   .btn-primary {
-    @apply btn bg-nvg text-black hover:bg-[#63ff26];
+    @apply btn bg-nvg text-nvgink hover:bg-nvg/85;
   }
 
   .btn-ghost {
@@ -174,8 +229,26 @@ body {
 
 .login-schermo {
   background:
-    radial-gradient(ellipse 70% 55% at 50% 38%, rgba(76, 255, 0, 0.1), transparent 70%),
-    transparent;
+    radial-gradient(ellipse 70% 55% at 50% 38%, rgb(var(--c-notte) / 0.1), transparent 70%),
+    rgb(var(--c-bg));
+}
+
+/* La schermata d'accesso è notturna in ogni tema: i colori di base tornano
+   quelli del buio, e l'accento è quello della squadra schiarito per il nero. */
+.notte {
+  --c-bg: 5 6 5;
+  --c-surface: 14 17 14;
+  --c-surface2: 21 26 21;
+  --c-line: 35 42 35;
+  --c-ink: 231 237 231;
+  --c-muted: 127 138 127;
+  --c-nvg: var(--c-notte);
+  --c-nvgdim: var(--c-notte);
+  --c-nvgink: 0 0 0;
+  --c-warn: 255 179 0;
+  --c-danger: 255 68 56;
+  color-scheme: dark;
+  color: rgb(var(--c-ink));
 }
 
 .login-pixel {
@@ -203,11 +276,11 @@ body {
   font-size: clamp(2.2rem, 8.5vw, 6rem);
   line-height: 1;
   letter-spacing: 0.04em;
-  background: repeating-linear-gradient(to bottom, #7dff3a 0 3px, #2fbf00 3px 4px);
+  background: repeating-linear-gradient(to bottom, rgb(var(--c-notte)) 0 3px, rgb(var(--c-notte) / 0.6) 3px 4px);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 6px rgba(76, 255, 0, 0.65)) drop-shadow(0 0 20px rgba(76, 255, 0, 0.3));
+  filter: drop-shadow(0 0 6px rgb(var(--c-notte) / 0.65)) drop-shadow(0 0 20px rgb(var(--c-notte) / 0.3));
 }
 
 .login-titolo::after {
@@ -218,22 +291,22 @@ body {
   transform: translate(0.06em, 0.08em);
   background: none;
   -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 1px rgba(76, 255, 0, 0.5);
+  -webkit-text-stroke: 1px rgb(var(--c-notte) / 0.5);
   pointer-events: none;
 }
 
 .login-card {
-  border: 1px solid rgba(76, 255, 0, 0.45);
+  border: 1px solid rgb(var(--c-notte) / 0.45);
   background: rgba(3, 8, 3, 0.85);
   box-shadow:
-    0 0 0 1px rgba(76, 255, 0, 0.06),
-    0 0 44px -10px rgba(76, 255, 0, 0.35),
-    inset 0 0 60px rgba(76, 255, 0, 0.04);
+    0 0 0 1px rgb(var(--c-notte) / 0.06),
+    0 0 44px -10px rgb(var(--c-notte) / 0.35),
+    inset 0 0 60px rgb(var(--c-notte) / 0.04);
 }
 
 .login-campo {
   width: 100%;
-  border: 1px solid rgba(76, 255, 0, 0.35);
+  border: 1px solid rgb(var(--c-notte) / 0.35);
   background: #000;
   padding: 0.55rem 0.85rem;
   font-family: var(--font-terminale), monospace;
@@ -247,14 +320,14 @@ body {
 }
 
 .login-campo::placeholder {
-  color: rgba(76, 255, 0, 0.3);
+  color: rgb(var(--c-notte) / 0.3);
 }
 
 .login-campo:focus {
   border-color: var(--nvg);
   box-shadow:
-    0 0 0 1px rgba(76, 255, 0, 0.4),
-    0 0 18px -4px rgba(76, 255, 0, 0.6);
+    0 0 0 1px rgb(var(--c-notte) / 0.4),
+    0 0 18px -4px rgb(var(--c-notte) / 0.6);
 }
 
 .login-pulsante {
@@ -269,15 +342,15 @@ body {
   font-weight: 700;
   letter-spacing: 0.15em;
   color: var(--nvg);
-  text-shadow: 0 0 8px rgba(76, 255, 0, 0.7);
+  text-shadow: 0 0 8px rgb(var(--c-notte) / 0.7);
   transition:
     background-color 0.15s,
     box-shadow 0.15s;
 }
 
 .login-pulsante:hover:not(:disabled) {
-  background: rgba(76, 255, 0, 0.08);
-  box-shadow: 0 0 26px -6px rgba(76, 255, 0, 0.8);
+  background: rgb(var(--c-notte) / 0.08);
+  box-shadow: 0 0 26px -6px rgb(var(--c-notte) / 0.8);
 }
 
 .login-pulsante:disabled {
@@ -291,14 +364,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(76, 255, 0, 0.6);
+  border: 1px solid rgb(var(--c-notte) / 0.6);
   padding: 0.45rem 0.9rem;
   font-family: var(--font-display), sans-serif;
   font-size: clamp(0.85rem, 2.6vw, 1rem);
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--nvg);
-  text-shadow: 0 0 8px rgba(76, 255, 0, 0.6);
+  text-shadow: 0 0 8px rgb(var(--c-notte) / 0.6);
   transition:
     background-color 0.15s,
     box-shadow 0.15s,
@@ -308,8 +381,8 @@ body {
 .login-pulsante-secondario:hover,
 .login-pulsante-secondario:focus-visible {
   border-color: var(--nvg);
-  background: rgba(76, 255, 0, 0.08);
-  box-shadow: 0 0 22px -6px rgba(76, 255, 0, 0.8);
+  background: rgb(var(--c-notte) / 0.08);
+  box-shadow: 0 0 22px -6px rgb(var(--c-notte) / 0.8);
   outline: none;
 }
 

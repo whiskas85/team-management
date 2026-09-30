@@ -12,6 +12,8 @@ import { BottoneModale } from './Modale';
 import { Campo } from './ui';
 import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
 import { RispostaInvito } from './RispostaInvito';
+import type { TipologiaInvito } from './ModuloAccettaInvito';
+import type { VoceListino } from './CampiRichiesta';
 import { MetodiPagamento } from './MetodiPagamento';
 import { primoIban, primoLink } from '@/lib/link';
 
@@ -33,6 +35,9 @@ export function BannerCondivisa({
   invitata,
   admin,
   tipologie,
+  listino,
+  stagioneId,
+  giorni,
   nostri,
   mandaForse,
   versamenti,
@@ -51,7 +56,11 @@ export function BannerCondivisa({
   invitata: boolean;
   admin: boolean;
   /** Le nostre tipologie: accettando se ne sceglie una. */
-  tipologie: { id: string; nome: string }[];
+  tipologie: TipologiaInvito[];
+  /** Il listino e la stagione, per le quote accettando. */
+  listino: VoceListino[];
+  stagioneId: string | null;
+  giorni: number;
   /** I nostri numeri, contati adesso: quelli del riepilogo arrivano in ritardo. */
   nostri: { presenti: number; forse: number };
   /** Se all'organizzatore mandiamo anche i «forse». */
@@ -226,7 +235,9 @@ export function BannerCondivisa({
         </div>
       )}
 
-      {!invitata && dati.costo && dovuto !== null && (
+      {/* quanto chiedono e quanto si paga loro: solo l'admin. È il prezzo
+          d'acquisto, e accanto alla quota interna farebbe vedere il ricarico */}
+      {!invitata && admin && dati.costo && dovuto !== null && (
         <div className="border-t border-line pt-3 text-sm">
           <p className="text-[11px] uppercase tracking-[0.06em] text-muted">
             Da versare a {organizzatore.nome}
@@ -388,7 +399,7 @@ export function BannerCondivisa({
             )}
             . Finché non rispondi la vedi solo tu, come una bozza.
           </p>
-          {dati.costo && (
+          {admin && dati.costo && (
             <p className="mt-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
               È a pagamento: <strong>{descriviCosto(dati.costo)}</strong>, da versare a{' '}
               {organizzatore.nome} come squadra. Accettando puoi impostare la quota per i vostri.
@@ -401,6 +412,9 @@ export function BannerCondivisa({
                 organizzatore={organizzatore.nome}
                 ritorno="/calendario?vista=inviti"
                 tipologie={tipologie}
+                listino={listino}
+                stagioneId={stagioneId}
+                giorni={giorni}
                 tipoLoro={dati.tipo}
                 costo={dati.costo}
                 casse={casse}

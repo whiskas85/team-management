@@ -9,7 +9,7 @@ export function BadgeFigt({ il }: { il: Date }) {
   return (
     <span
       title={`Affiliata FIGT · dati dal portale del ${fmtDate(il)}`}
-      className="badge border-sky-400/40 bg-sky-400/15 text-sky-300"
+      className="badge border-info/40 bg-info/15 text-info"
     >
       FIGT
     </span>
@@ -18,7 +18,7 @@ export function BadgeFigt({ il }: { il: Date }) {
 
 export function BadgeGiovanile() {
   return (
-    <span className="badge border-amber-400/40 bg-amber-400/15 text-amber-300">
+    <span className="badge border-warn/40 bg-warn/15 text-warn">
       Settore giovanile
     </span>
   );

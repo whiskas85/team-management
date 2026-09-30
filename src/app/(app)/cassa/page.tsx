@@ -443,7 +443,7 @@ function Incassa({
         <input type="hidden" name="id" value={pagamento.id} />
 
         {pagamento.dichiaratoIl && (
-          <p className="rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-xs text-sky-300">
+          <p className="rounded-md border border-info/40 bg-info/10 px-3 py-2 text-xs text-info">
             Ha segnalato il pagamento il {fmtDate(pagamento.dichiaratoIl)}. Controlla che sia
             arrivato e conferma.
           </p>

@@ -24,6 +24,9 @@ import { Notifiche } from '@/components/Notifiche';
 import { GRUPPI_SANGUIGNI } from '@/lib/medico';
 import { aggiornaConsensi, aggiornaProfilo, cambiaPassword } from '@/actions/operatori';
 import { CampoTelefono } from '@/components/CampoTelefono';
+import { SceltaAspetto } from '@/components/SceltaAspetto';
+import { temaSquadra } from '@/lib/tema-server';
+import { eTemaPersonale } from '@/lib/tema';
 
 function Dato({
   etichetta,
@@ -209,7 +212,7 @@ export default async function ProfiloPage() {
       )}
 
       {utente.stato === 'NUOVO' && (
-        <div className="mb-6 rounded-md border border-sky-400/40 bg-sky-400/10 px-4 py-3 text-sm text-sky-300">
+        <div className="mb-6 rounded-md border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
           Sei un contatto del team: puoi vedere e partecipare agli eventi aperti. Quando il team
           deciderà di proporti l’ingresso, troverai qui il modulo di iscrizione.
         </div>
@@ -485,6 +488,15 @@ export default async function ProfiloPage() {
           </div>
           <Invia icona="salva">Salva dati di emergenza</Invia>
         </FormAzione>
+      </Fisarmonica>
+
+      {/* -------------------------------------------------- aspetto */}
+      <Fisarmonica titolo="Aspetto e accessibilità">
+        <SceltaAspetto
+          squadra={await temaSquadra()}
+          tema={eTemaPersonale(utente.tema) ? utente.tema : 'squadra'}
+          testoGrande={utente.testoGrande}
+        />
       </Fisarmonica>
 
       {/* -------------------------------------------------- privacy */}

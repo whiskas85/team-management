@@ -43,6 +43,7 @@ export default async function DashboardPage({
     eventiPerLista({
       stato: me.stato,
       userId: me.id,
+      admin: isAdmin(me.roles),
       dove: { inizio: { gte: inizioOggi }, status: { not: 'ANNULLATA' } },
       limite: 6,
     }),
@@ -443,7 +444,7 @@ function Avviso({
   const stili = {
     warn: 'border-warn/40 bg-warn/10 text-warn',
     danger: 'border-danger/40 bg-danger/10 text-danger',
-    info: 'border-sky-400/40 bg-sky-400/10 text-sky-300',
+    info: 'border-info/40 bg-info/10 text-info',
   }[tono];
 
   return (
