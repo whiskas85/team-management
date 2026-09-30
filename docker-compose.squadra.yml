@@ -1,0 +1,93 @@
+# Il gestionale di un'altra squadra, ospitato sulla nostra macchina e
+# raggiunto col suo nome (es. https://gestionale.pippo.it).
+#
+# Non lo si lancia a mano: lo prepara e lo aggiorna deploy/squadra-server.sh,
+# chiamato dall'automazione Rilascio (modi «squadra-nuova» e «rilascio»).
+#
+# È un gestionale vero, come la produzione — non un test:
+#   - niente password del proxy, niente accessi rapidi, AMBIENTE=prod;
+#   - database, allegati, chiavi e identità suoi: dei nostri dati non vede
+#     niente, e noi dei suoi nemmeno dall'app (sono due gestionali diversi,
+#     che si parlano solo se si collegano come due squadre qualsiasi);
+#   - lavori automatici e notifiche push con chiavi sue.
+#
+# **Non si costruisce**: usa l'immagine della produzione, `gestionale-app`,
+# appena ricostruita dal rilascio. Stesso codice di ops.zerodarkteam.it, e
+# nessuna build in più su una macchina da 4 GB.
+#
+# Il ponte WhatsApp non c'è: è legato a un numero di telefono, e quello della
+# macchina è il nostro.
+
+name: gestionale-squadra
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zd-sq-${SQUADRA:?serve il nome breve della squadra}-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?serve un utente per il database}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?serve una password per il database}
+      POSTGRES_DB: ${POSTGRES_DB:-zerodark}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-zerodark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  app:
+    image: gestionale-app:latest
+    container_name: zd-sq-${SQUADRA}-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione sua}
+      # come la chiamano gli altri gestionali: il suo nome, non il nostro
+      INDIRIZZO_PUBBLICO: https://${DOMINIO:?serve il nome a dominio della squadra}
+      COOKIE_SECURE: "1"
+      DEBUG_LOGIN: "0"
+      AMBIENTE: prod
+      UPLOAD_DIR: /data/uploads
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?serve un'email per l'admin di partenza}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?serve una password per l'admin di partenza}
+      NODE_ENV: production
+      TZ: ${TZ:-Europe/Rome}
+      # nessun ponte: un messaggio fallisce invece di partire dal nostro numero
+      WHATSAPP_URL: http://ponte-assente.invalid:3001
+      SEGRETO_WHATSAPP: ""
+      SEGRETO_LAVORI: ${SEGRETO_LAVORI:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # chi è, finché non lo scrive in «La mia squadra»
+      NOME_SQUADRA: ${NOME_SQUADRA:-}
+      NOME_GESTIONALE: ${NOME_GESTIONALE:-}
+    volumes:
+      - uploads:/data/uploads
+    # default per il suo database, bordo per farsi raggiungere dal proxy
+    networks:
+      - default
+      - bordo
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+networks:
+  bordo:
+    external: true
+    name: zd-bordo
+
+volumes:
+  db-data:
+  uploads:

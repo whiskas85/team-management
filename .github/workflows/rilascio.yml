@@ -13,6 +13,12 @@
 #                    La produzione non la tocca.
 #   test-copia-dati  database e allegati della produzione copiati nel test. La
 #                    produzione la legge soltanto.
+#   squadra-nuova    il gestionale di un'altra squadra, ospitato qui col suo
+#                    nome (campi «squadra», «dominio», «nome», «email»). Prima
+#                    la squadra punta il suo nome a ops.zerodarkteam.it. Le
+#                    squadre ospitate si aggiornano poi da sole a ogni
+#                    «rilascio», con la stessa versione della produzione.
+#   squadre          solo lo stato delle squadre ospitate.
 #
 # Il lavoro del test lo fa deploy/test-server.sh, mandato al server da qui.
 #
@@ -35,7 +41,7 @@ on:
       modo:
         description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test'
         type: choice
-        options: [prova, rilascio, test, test-copia-dati, prova-collegamento]
+        options: [prova, rilascio, test, test-copia-dati, prova-collegamento, squadra-nuova, squadre]
         default: prova
       ramo:
         description: 'Solo per «test»: il ramo da mettere nel test'
@@ -46,6 +52,22 @@ on:
         type: choice
         options: [test, test2]
         default: test
+      squadra:
+        description: 'Solo per «squadra-nuova»: nome breve, minuscole e trattini (es. pippo)'
+        type: string
+        default: ''
+      dominio:
+        description: 'Solo per «squadra-nuova»: il loro nome, già puntato qui (es. gestionale.pippo.it)'
+        type: string
+        default: ''
+      nome:
+        description: 'Solo per «squadra-nuova»: il nome della squadra (es. Pippo Softair)'
+        type: string
+        default: ''
+      email:
+        description: 'Solo per «squadra-nuova»: email dell''admin di partenza (vuota = admin@dominio)'
+        type: string
+        default: ''
 
 # mai due lavori insieme sulla stessa macchina: due build in parallelo non
 # ci stanno nei suoi 4 GB
@@ -151,6 +173,9 @@ jobs:
           echo "== 3. Proxy"
           zd restart proxy
 
+          echo "== 3b. Squadre ospitate, con l'immagine appena costruita"
+          bash deploy/squadra-server.sh rilascia-tutte
+
           echo "== 4. Pulizia"
           docker image prune -f --filter until=24h
           # la cache delle build con un tetto, non con una data: a settimana
@@ -181,6 +206,31 @@ jobs:
           fi
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" "ISTANZA=$ISTANZA bash -s -- rilascia $RAMO" < deploy/test-server.sh
+
+      - name: Squadra ospitata, nuova
+        if: inputs.modo == 'squadra-nuova'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+          SQUADRA: ${{ inputs.squadra }}
+          DOMINIO: ${{ inputs.dominio }}
+          NOME: ${{ inputs.nome }}
+          EMAIL: ${{ inputs.email }}
+        run: |
+          # tutto finisce in un comando sul server: prima si guarda cosa c'e' dentro
+          printf '%s' "$SQUADRA" | grep -Eq '^[a-z][a-z0-9-]{1,29}$' || { echo "::error::Nome breve non valido: $SQUADRA"; exit 1; }
+          printf '%s' "$DOMINIO" | grep -Eq '^[a-z0-9.-]+$' || { echo "::error::Dominio non valido: $DOMINIO"; exit 1; }
+          printf '%s' "$NOME" | grep -Eq '^[[:alnum:] ._&-]*$' || { echo "::error::Nel nome solo lettere, cifre, spazi e . _ & -"; exit 1; }
+          printf '%s' "$EMAIL" | grep -Eq '^([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+)?$' || { echo "::error::Email non valida: $EMAIL"; exit 1; }
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" "SQUADRA='$SQUADRA' DOMINIO='$DOMINIO' NOME='$NOME' EMAIL='$EMAIL' bash -s -- nuova" < deploy/squadra-server.sh
+
+      - name: Squadre ospitate, stato
+        if: inputs.modo == 'squadre'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" 'bash -s -- stato' < deploy/squadra-server.sh
 
       - name: Test, copia dei dati dalla produzione
         if: inputs.modo == 'test-copia-dati'

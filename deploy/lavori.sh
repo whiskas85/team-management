@@ -12,41 +12,49 @@
 #
 #   */5 * * * * /opt/gestionale/deploy/lavori.sh
 #
-# **Il segreto non e' qui dentro.** Si legge da .env.prod, che sta sulla
-# macchina con i permessi 600 e fuori dal repository. Senza, lo script esce
-# senza fare niente e senza lamentarsi: e' la condizione normale di un ambiente
+# **Il segreto non e' qui dentro.** Si legge da .env.prod, e dal .env.squadra
+# di ogni squadra ospitata: stanno sulla macchina con i permessi 600 e fuori
+# dal repository. Senza, quel gestionale si salta senza lamentarsi: e' la condizione normale di un ambiente
 # dove i lavori automatici non si vogliono.
 
-CARTELLA=/opt/gestionale
 REGISTRO=/var/log/zd-lavori.log
 
-cd "$CARTELLA" || exit 0
+# Bussa al gestionale descritto da un file d'ambiente: la produzione e, dopo,
+# ognuna delle squadre ospitate (deploy/squadra-server.sh), ciascuna con la
+# sua chiave e il suo nome.
+bussa() {
+  ENV=$1
+  SEGRETO=$(grep '^SEGRETO_LAVORI=' "$ENV" 2>/dev/null | cut -d= -f2-)
+  [ -n "$SEGRETO" ] || return 0
 
-SEGRETO=$(grep '^SEGRETO_LAVORI=' .env.prod 2>/dev/null | cut -d= -f2-)
-[ -n "$SEGRETO" ] || exit 0
+  DOMINIO=$(grep '^DOMINIO=' "$ENV" 2>/dev/null | cut -d= -f2-)
+  [ -n "$DOMINIO" ] || return 0
 
-DOMINIO=$(grep '^DOMINIO=' .env.prod 2>/dev/null | cut -d= -f2-)
-[ -n "$DOMINIO" ] || exit 0
+  RISPOSTA=$(curl -fsS --max-time 120 -X POST \
+    -H "x-segreto-lavori: $SEGRETO" \
+    "https://$DOMINIO/api/lavori" 2>&1)
+  ESITO=$?
 
-RISPOSTA=$(curl -fsS --max-time 120 -X POST \
-  -H "x-segreto-lavori: $SEGRETO" \
-  "https://$DOMINIO/api/lavori" 2>&1)
-ESITO=$?
+  # Si scrive solo quando c'e' qualcosa da raccontare, e un giro a vuoto -- che
+  # e' la quasi totalita' -- non lascia una riga: altrimenti il registro sarebbe
+  # illeggibile proprio il giorno che serve. A vuoto vuol dire che non e' stato
+  # assicurato nessuno e non e' stato avvisato nessuno.
+  case "$RISPOSTA" in
+    *'"avvisati":0'*)
+      case "$RISPOSTA" in
+        *'"spento":true'*) return 0 ;;
+        *'"fatte":0,"rifiutate":[],"inAttesa":0'*) return 0 ;;
+      esac
+      ;;
+  esac
 
-# Si scrive solo quando c'e' qualcosa da raccontare, e un giro a vuoto -- che
-# e' la quasi totalita' -- non lascia una riga: altrimenti il registro sarebbe
-# illeggibile proprio il giorno che serve. A vuoto vuol dire che non e' stato
-# assicurato nessuno e non e' stato avvisato nessuno.
-case "$RISPOSTA" in
-  *'"avvisati":0'*)
-    case "$RISPOSTA" in
-      *'"spento":true'*) exit 0 ;;
-      *'"fatte":0,"rifiutate":[],"inAttesa":0'*) exit 0 ;;
-    esac
-    ;;
-esac
+  echo "$(date '+%F %T') $DOMINIO esito=$ESITO $RISPOSTA" >> "$REGISTRO"
+}
 
-echo "$(date '+%F %T') esito=$ESITO $RISPOSTA" >> "$REGISTRO"
+bussa /opt/gestionale/.env.prod
+for ENV_SQUADRA in /opt/squadra-*/.env.squadra; do
+  [ -f "$ENV_SQUADRA" ] && bussa "$ENV_SQUADRA"
+done
 
 # il registro non cresce all'infinito: restano le ultime mille righe
 if [ "$(wc -l < "$REGISTRO" 2>/dev/null || echo 0)" -gt 1000 ]; then

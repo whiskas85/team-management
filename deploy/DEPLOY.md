@@ -385,6 +385,64 @@ rm /opt/gestionale/siti/test.caddy
 docker exec zd-proxy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
+## Le squadre ospitate
+
+Un'altra squadra può avere il suo gestionale **sulla nostra macchina, col suo
+nome** (es. `https://gestionale.pippo.it`). Per lei è un gestionale suo a tutti
+gli effetti: database, allegati, chiavi, identità e admin suoi. Con noi si
+parla solo se ci si collega come due squadre qualsiasi
+(`docs/COLLEGAMENTO-SQUADRE.md`).
+
+**1. La squadra, sul pannello dove ha comprato il dominio.** Un record che
+porta il suo nome qui:
+
+| Tipo  | Nome          | Valore                  |
+|-------|---------------|-------------------------|
+| CNAME | `gestionale`  | `ops.zerodarkteam.it.`  |
+
+(o un record **A** con l'indirizzo di questa macchina). Meglio un sottodominio
+che `www`, che di solito è già il loro sito. **Il nome si sceglie una volta
+per tutte, prima di collegarsi con altre squadre**: i gestionali collegati si
+riconoscono per indirizzo, e cambiarlo dopo li scollega.
+
+**2. Noi, da GitHub.** Actions → Rilascio → Run workflow, modo
+**squadra-nuova**, con:
+
+- `squadra`: un nome breve, minuscole e trattini (`pippo`): diventa la
+  cartella `/opt/squadra-pippo` e i container `zd-sq-pippo-*`;
+- `dominio`: il loro nome, `gestionale.pippo.it`;
+- `nome`: come si chiamano, `Pippo Softair`;
+- `email`: di chi farà l'admin (vuota = `admin@` + dominio).
+
+Il gestionale nasce con chiavi nuove, lavori automatici e notifiche push
+suoi; se il DNS punta già qui, il proxy lo aggancia e Caddy chiede il
+certificato da solo. Se non punta ancora, gira lo stesso: si rilancia (o si
+aspetta il prossimo rilascio) e il proxy lo prende.
+
+**3. Le credenziali dell'admin** stanno solo sul server, in
+`/opt/squadra-pippo/ACCESSO.txt`: si girano alla squadra, che cambia la
+password dal profilo e completa «La mia squadra» (logo, colori, portale
+federale, collegamenti).
+
+**Da lì in poi non c'è niente da fare.** Il gestionale di una squadra ospitata
+usa l'immagine della produzione (`docker-compose.squadra.yml` non costruisce
+niente): a ogni **rilascio**, subito dopo la ricostruzione, tutte le squadre
+ospitate fanno il loro backup (`/root/backup/sq-<nome>-*.dump`, gli ultimi
+dieci) e ripartono con la versione nuova. `deploy/lavori.sh` bussa anche a
+loro, ciascuna con la sua chiave. Il modo **squadre** mostra come stanno.
+
+Cosa non hanno: il **ponte WhatsApp**, legato al numero di questa macchina,
+che è il nostro. E la macchina ha 4 GB: ogni squadra ne prende fino a 1,5
+(app 1 GB, database 512 MB). Una o due ci stanno; oltre, serve una macchina più
+grande.
+
+A mano, dal server:
+
+```bash
+bash /opt/gestionale/deploy/squadra-server.sh stato
+bash /opt/gestionale/deploy/squadra-server.sh rilascia pippo
+```
+
 ## Il sito pubblico su www
 
 Il sito della squadra (`www.zerodarkteam.it`) **non fa parte del gestionale**:
