@@ -38,6 +38,7 @@ export type NomeIcona =
   | 'apri'
   | 'cerca'
   | 'chiave'
+  | 'aiuto'
   | 'freccia'
   | 'maniglia'
   | 'allegato'
@@ -111,6 +112,9 @@ const PATHS: Record<NomeIcona, string> = {
   cerca: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM16.5 16.5 21 21',
   chiave: 'M15.5 8.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM10.5 11.5 4 18v2h2l1-1h2v-2h2l1.5-1.5',
   freccia: 'M5 12h14M13 6l6 6-6 6',
+  // il punto di domanda in un cerchio: l'aiuto della pagina
+  aiuto:
+    'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM9.7 9.5a2.4 2.4 0 1 1 3.2 2.3c-.6.3-1 .9-1 1.6v.3M12 17h.01',
   // sei puntini: la presa per trascinare, e l'unico punto da cui si trascina
   maniglia: 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
   allegato:

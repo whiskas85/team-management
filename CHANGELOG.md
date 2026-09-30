@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.1.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Aiuto su ogni pagina.** Accanto al titolo, vicino alla stellina, c'è un
+  **?** che spiega cosa si fa in quella pagina e con quali gesti. In cima c'è una
+  ricerca in tutto l'aiuto, per quando la domanda riguarda un'altra pagina.
+- **Pagina Aiuto**, in fondo al menu per tutti: tutte le spiegazioni divise per
+  argomento (Operativo, Squadra, Soldi, Comunicazione, Altre squadre,
+  Amministrazione, Account), con la ricerca e un indice. In più ci sono
+  argomenti che attraversano più pagine: chiaro/scuro e accessibilità, attività
+  con altre squadre.
+
 ## 3.0.0 — 30 settembre 2026
 
 Con questa versione il gestionale si collega con quelli delle altre squadre

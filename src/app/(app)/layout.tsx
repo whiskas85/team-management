@@ -703,6 +703,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const messiDaParte = new Set(preferiti);
   for (const v of voci) v.preferito = messiDaParte.has(v.href);
 
+
+  // l'aiuto, ultimo per tutti
+  voci.push({ href: '/aiuto', label: 'Aiuto', icona: 'aiuto', gruppo: 'aiuto' });
   return (
     /* 100dvh e non 100vh: su iPhone il vh conta anche la parte coperta dalle
        barre del browser, così la pagina risulta più alta dello schermo e la

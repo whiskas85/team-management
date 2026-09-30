@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Stellina } from './Preferiti';
+import { AiutoPagina } from './AiutoPagina';
 import type { ReactNode } from 'react';
 import type { Tono } from '@/lib/domain';
 
@@ -43,6 +44,7 @@ export function Intestazione({
         <div className="flex items-center gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{titolo}</h1>
           <Stellina />
+          <AiutoPagina />
         </div>
         {descrizione && (
           <p className="mt-2 whitespace-pre-wrap break-words text-base text-ink/90">
