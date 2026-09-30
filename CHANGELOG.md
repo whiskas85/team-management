@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.129.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Notte o giorno, lo sceglie ognuno.** Nel riquadro che si apre cliccando sul
+  proprio nome, in alto a destra, c'è la levetta **Notte / Giorno**. Vale solo
+  per sé e si ricorda. La squadra, in «La mia squadra», sceglie solo il fondo
+  **di partenza**, per chi non ha mai toccato la levetta. Con un tema ad alto
+  contrasto la levetta passa fra la sua versione scura e quella chiara. Con i
+  temi per daltonici, pensati per il buio, la levetta non c'è.
+
 ## 2.128.0 — 30 settembre 2026
 
 ### Cambiato

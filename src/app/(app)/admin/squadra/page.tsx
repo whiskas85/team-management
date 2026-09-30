@@ -140,8 +140,9 @@ export default async function MiaSquadraPage() {
       <div className="card mt-6">
         <p className="titolo-sezione">Tema</p>
         <p className="mb-4 mt-1 text-xs text-muted">
-          I colori del gestionale, uguali per tutti: un colore d’accento e il fondo scuro o chiaro.
-          Chi ne ha bisogno sceglie dal suo profilo un tema per ipovedenti o daltonici.
+          I colori del gestionale: il colore d’accento, uguale per tutti, e il fondo di partenza.
+          Notte o giorno poi lo sceglie ognuno con la levetta nel chip col suo nome; dal profilo,
+          chi ne ha bisogno, un tema per ipovedenti o daltonici.
         </p>
         <SceltaTemaSquadra iniziale={tema} logoUrl={m.logoUrl} />
       </div>

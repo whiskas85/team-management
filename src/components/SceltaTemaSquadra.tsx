@@ -161,7 +161,7 @@ export function SceltaTemaSquadra({
           </span>
         </label>
         <fieldset>
-          <legend className="label">Fondo</legend>
+          <legend className="label">Fondo di partenza</legend>
           <div className="flex gap-2">
             {(['scuro', 'chiaro'] as const).map((m) => (
               <button

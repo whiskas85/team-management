@@ -66,6 +66,9 @@ type Props = {
   esci: () => Promise<void>;
   /** Si è nell'ambiente di test: sopra l'intestazione compare la fascia gialla. */
   test?: boolean;
+  /** Notte o giorno adesso, e se la levetta per cambiarlo c'è. */
+  notte?: boolean;
+  levetta?: boolean;
 };
 
 /** Dove si aggancia l'intestazione in test: sotto la fascia gialla, tacca compresa. */
@@ -98,7 +101,16 @@ function voceAttiva(pathname: string, voci: VoceMenu[]) {
   return candidate.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
-export function Nav({ voci, marchio, preferiti, utente, esci, test = false }: Props) {
+export function Nav({
+  voci,
+  marchio,
+  preferiti,
+  utente,
+  esci,
+  test = false,
+  notte = true,
+  levetta = true,
+}: Props) {
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
@@ -368,7 +380,7 @@ export function Nav({ voci, marchio, preferiti, utente, esci, test = false }: Pr
               rubava larghezza alla colonna e le spostava il centro, così la
               barra cadeva un po' più a sinistra del contenuto. */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 md:right-8">
-            <MenuUtente utente={utente} esci={esci} />
+            <MenuUtente utente={utente} esci={esci} notte={notte} levetta={levetta} />
           </div>
         </div>
       </header>

@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { impostaNotte } from '@/actions/operatori';
 import type { Role } from '@prisma/client';
 import { Avatar, Badge } from './ui';
 import { Icona } from './Icona';
@@ -38,6 +40,8 @@ const APERTO = 240;
 export function MenuUtente({
   utente,
   esci,
+  notte,
+  levetta = true,
 }: {
   utente: {
     id: string;
@@ -50,8 +54,25 @@ export function MenuUtente({
     roles: Role[];
   };
   esci: () => Promise<void>;
+  /** Adesso è notte (tema scuro) o giorno (chiaro). */
+  notte: boolean;
+  /** Se la levetta c'è: i temi per daltonici sono solo notte. */
+  levetta?: boolean;
 }) {
   const [aperto, setAperto] = useState(false);
+  const router = useRouter();
+  const [cambiando, avvia] = useTransition();
+  // si sposta subito, senza aspettare il server: il tema arriva un attimo dopo
+  const [buio, setBuio] = useState(notte);
+  useEffect(() => setBuio(notte), [notte]);
+  const commuta = () => {
+    const nuovo = !buio;
+    setBuio(nuovo);
+    avvia(async () => {
+      await impostaNotte(nuovo);
+      router.refresh();
+    });
+  };
   const contenitore = useRef<HTMLDivElement>(null);
   const segnaposto = useRef<HTMLDivElement>(null);
 
@@ -186,6 +207,38 @@ export function MenuUtente({
                 <Icona nome="profilo" size={16} />
                 Il mio profilo
               </Link>
+
+              {/* Notte o giorno: lo decide ognuno per sé. La squadra sceglie
+                  solo da dove si parte, e al sole un fondo chiaro si legge
+                  meglio. */}
+              {levetta && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={buio}
+                  onClick={commuta}
+                  disabled={cambiando}
+                  tabIndex={aperto ? undefined : -1}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/90 transition-colors hover:bg-surface2"
+                >
+                  <span aria-hidden className="w-4 text-center">
+                    {buio ? '☾' : '☀'}
+                  </span>
+                  <span className="flex-1">{buio ? 'Notte' : 'Giorno'}</span>
+                  <span
+                    aria-hidden
+                    className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+                      buio ? 'border-nvg/60 bg-nvg/30' : 'border-line bg-surface2'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all motion-reduce:transition-none ${
+                        buio ? 'left-[1.1rem] bg-nvg' : 'left-0.5 bg-muted'
+                      }`}
+                    />
+                  </span>
+                </button>
+              )}
 
               <form action={esci} className="border-t border-line">
                 <button

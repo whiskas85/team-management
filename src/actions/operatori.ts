@@ -673,3 +673,20 @@ export async function salvaAspetto(_prev: StatoForm, fd: FormData): Promise<Stat
   revalidatePath('/', 'layout');
   return { ok: tema ? 'Tema cambiato: vale solo per te.' : 'Segui il tema della squadra.' };
 }
+
+/**
+ * La levetta notte/giorno, dal chip col proprio nome. Vale solo per sé: la
+ * squadra sceglie solo quello di partenza. Con un tema ad alto contrasto la
+ * levetta passa fra il suo scuro e il suo chiaro.
+ */
+export async function impostaNotte(notte: boolean): Promise<void> {
+  const me = await requireUser();
+  const u = await prisma.user.findUnique({ where: { id: me.id }, select: { tema: true } });
+  await prisma.user.update({
+    where: { id: me.id },
+    data: u?.tema?.startsWith('contrasto')
+      ? { tema: notte ? 'contrasto-scuro' : 'contrasto-chiaro' }
+      : { modo: notte ? 'scuro' : 'chiaro' },
+  });
+  revalidatePath('/', 'layout');
+}

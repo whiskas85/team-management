@@ -1,3 +1,4 @@
+import { temaPagina } from '@/lib/tema-server';
 import { marchio } from '@/lib/mia-squadra';
 import { redirect } from 'next/navigation';
 import { requireUser, segnaAttivita } from '@/lib/auth';
@@ -42,6 +43,8 @@ import { SegnaVersione } from '@/components/SegnaVersione';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const utente = await requireUser();
+  // notte o giorno adesso: la levetta nel chip col nome parte da qui
+  const temaDiPagina = await temaPagina();
 
   // password generata dall'admin: prima di ogni altra cosa se ne sceglie una
   // propria. La pagina sta fuori da questo gruppo, altrimenti si rimanderebbe
@@ -706,6 +709,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
        striscia in basso non arriva mai a toccare il fondo. */
     <div className="min-h-[100dvh] md:pl-60">
       <Nav
+        notte={temaDiPagina.t.scuro}
+        levetta={temaDiPagina.levetta}
         voci={voci}
         marchio={await marchio()}
         preferiti={preferiti}

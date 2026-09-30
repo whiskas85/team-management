@@ -7,6 +7,7 @@ import {
   eTemaPersonale,
   tavolozza,
   TEMA_PARTENZA,
+  type TemaPersonale,
   type TemaSquadra,
 } from './tema';
 
@@ -26,7 +27,14 @@ export const temaSquadra = cache(async (): Promise<TemaSquadra> => {
  */
 export const temaPagina = cache(async () => {
   const [squadra, utente] = await Promise.all([temaSquadra(), getCurrentUser().catch(() => null)]);
-  const personale = eTemaPersonale(utente?.tema) ? utente!.tema : 'squadra';
-  const t = tavolozza(squadra, personale as Parameters<typeof tavolozza>[1]);
-  return { t, css: cssTema(t, !!utente?.testoGrande) };
+  const personale = (eTemaPersonale(utente?.tema) ? utente!.tema : 'squadra') as TemaPersonale;
+  // la squadra dà solo notte o giorno di partenza: con la levetta decide ognuno
+  const modo = utente?.modo === 'chiaro' || utente?.modo === 'scuro' ? utente.modo : squadra.modo;
+  const t = tavolozza({ ...squadra, modo }, personale);
+  return {
+    t,
+    css: cssTema(t, !!utente?.testoGrande),
+    // i temi per daltonici sono pensati al buio: lì la levetta non c'è
+    levetta: personale === 'squadra' || personale.startsWith('contrasto'),
+  };
 });

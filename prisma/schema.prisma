@@ -165,6 +165,9 @@ model User {
   tema                 String?
   /// Tutto il testo un po' più grande, per chi fatica a leggere.
   testoGrande          Boolean        @default(false)
+  /// Notte o giorno, scelto con la levetta: «scuro» o «chiaro». Nullo = come
+  /// dice il tema della squadra, che è solo quello di partenza.
+  modo                 String?
   roles                Role[]         @default([])
   stato                StatoOperatore @default(NUOVO)
   createdAt            DateTime       @default(now())
