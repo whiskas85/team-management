@@ -414,26 +414,27 @@ riconoscono per indirizzo, e cambiarlo dopo li scollega.
 - `nome`: come si chiamano, `Pippo Softair`;
 - `email`: di chi farà l'admin (vuota = `admin@` + dominio).
 
-Il gestionale nasce con chiavi nuove, lavori automatici e notifiche push
-suoi; se il DNS punta già qui, il proxy lo aggancia e Caddy chiede il
+Il gestionale nasce con chiavi nuove, lavori automatici, notifiche push e
+**ponte WhatsApp** suoi; se il DNS punta già qui, il proxy lo aggancia e Caddy chiede il
 certificato da solo. Se non punta ancora, gira lo stesso: si rilancia (o si
 aspetta il prossimo rilascio) e il proxy lo prende.
 
 **3. Le credenziali dell'admin** stanno solo sul server, in
 `/opt/squadra-pippo/ACCESSO.txt`: si girano alla squadra, che cambia la
 password dal profilo e completa «La mia squadra» (logo, colori, portale
-federale, collegamenti).
+federale, collegamenti). Il **ponte WhatsApp** lo collega lui dal suo
+gestionale, inquadrando il codice col telefono di chi lo gestisce: ogni
+squadra ha il suo numero e la sua sessione, e la nostra non la vede.
 
 **Da lì in poi non c'è niente da fare.** Il gestionale di una squadra ospitata
-usa l'immagine della produzione (`docker-compose.squadra.yml` non costruisce
-niente): a ogni **rilascio**, subito dopo la ricostruzione, tutte le squadre
+usa le immagini della produzione, gestionale e ponte
+(`docker-compose.squadra.yml` non costruisce niente): a ogni **rilascio**, subito dopo la ricostruzione, tutte le squadre
 ospitate fanno il loro backup (`/root/backup/sq-<nome>-*.dump`, gli ultimi
 dieci) e ripartono con la versione nuova. `deploy/lavori.sh` bussa anche a
 loro, ciascuna con la sua chiave. Il modo **squadre** mostra come stanno.
 
-Cosa non hanno: il **ponte WhatsApp**, legato al numero di questa macchina,
-che è il nostro. E la macchina ha 4 GB: ogni squadra ne prende fino a 1,5
-(app 1 GB, database 512 MB). Una o due ci stanno; oltre, serve una macchina più
+La macchina ha 4 GB: ogni squadra ne prende fino a 2 (app 1 GB, database e
+ponte WhatsApp 512 MB ciascuno), anche se di solito ne usa molto meno. Una o due ci stanno; oltre, serve una macchina più
 grande.
 
 A mano, dal server:

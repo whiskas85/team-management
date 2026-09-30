@@ -9,14 +9,13 @@
 #   - database, allegati, chiavi e identità suoi: dei nostri dati non vede
 #     niente, e noi dei suoi nemmeno dall'app (sono due gestionali diversi,
 #     che si parlano solo se si collegano come due squadre qualsiasi);
-#   - lavori automatici e notifiche push con chiavi sue.
+#   - lavori automatici e notifiche push con chiavi sue;
+#   - il suo ponte WhatsApp, con la sua sessione: si collega col telefono di
+#     chi gestisce il suo gestionale, non col nostro.
 #
-# **Non si costruisce**: usa l'immagine della produzione, `gestionale-app`,
-# appena ricostruita dal rilascio. Stesso codice di ops.zerodarkteam.it, e
-# nessuna build in più su una macchina da 4 GB.
-#
-# Il ponte WhatsApp non c'è: è legato a un numero di telefono, e quello della
-# macchina è il nostro.
+# **Non si costruisce**: usa le immagini della produzione, `gestionale-app` e
+# `gestionale-whatsapp`, appena ricostruite dal rilascio. Stesso codice di
+# ops.zerodarkteam.it, e nessuna build in più su una macchina da 4 GB.
 
 name: gestionale-squadra
 
@@ -62,9 +61,9 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?serve una password per l'admin di partenza}
       NODE_ENV: production
       TZ: ${TZ:-Europe/Rome}
-      # nessun ponte: un messaggio fallisce invece di partire dal nostro numero
-      WHATSAPP_URL: http://ponte-assente.invalid:3001
-      SEGRETO_WHATSAPP: ""
+      # il suo ponte, nella sua rete: il nostro da qui non si vede
+      WHATSAPP_URL: http://whatsapp:3001
+      SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP:?serve la chiave del ponte WhatsApp}
       SEGRETO_LAVORI: ${SEGRETO_LAVORI:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
@@ -83,6 +82,25 @@ services:
         limits:
           memory: 1g
 
+  # Il ponte WhatsApp della squadra: stesso programma del nostro, sessione
+  # sua. Si collega inquadrando il codice dal gestionale della squadra, col
+  # telefono di chi lo gestisce. Resta nella rete della squadra: non è sulla
+  # rete del proxy e da fuori non si raggiunge.
+  whatsapp:
+    image: gestionale-whatsapp:latest
+    container_name: zd-sq-${SQUADRA}-whatsapp
+    restart: unless-stopped
+    environment:
+      SEGRETO_WHATSAPP: ${SEGRETO_WHATSAPP}
+      LIVELLO_LOG: ${LIVELLO_LOG_WHATSAPP:-warn}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - whatsapp:/dati
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
 networks:
   bordo:
     external: true
@@ -91,3 +109,4 @@ networks:
 volumes:
   db-data:
   uploads:
+  whatsapp:

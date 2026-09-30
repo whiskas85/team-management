@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.8.1 — 30 settembre 2026
+
+### Cambiato
+
+- **Squadre ospitate: ognuna col suo ponte WhatsApp.** Il ponte non è più
+  solo nostro: ogni squadra ospitata ne ha uno suo, con la sua sessione, da
+  collegare dal suo gestionale col telefono di chi lo gestisce.
+
 ## 3.8.0 — 30 settembre 2026
 
 ### Aggiunto
@@ -12,8 +20,8 @@ accanto a ZERO DARK.
 - **Squadre ospitate.** Un'altra squadra può avere il suo gestionale sulla
   nostra macchina, raggiunto col suo nome (es. `gestionale.pippo.it`): lei
   punta il nome da noi, noi lo creiamo dal Rilascio con il modo
-  «squadra-nuova». Ha dati, chiavi e admin suoi, lavori automatici e notifiche
-  compresi, e si aggiorna da solo a ogni rilascio, con la stessa versione
+  «squadra-nuova». Ha dati, chiavi e admin suoi, lavori automatici, notifiche
+  e ponte WhatsApp compresi (collegato al telefono di chi lo gestisce), e si aggiorna da solo a ogni rilascio, con la stessa versione
   nostra. Istruzioni in `deploy/DEPLOY.md`.
 
 ## 3.7.0 — 30 settembre 2026

@@ -15,7 +15,8 @@
 # Ogni squadra ha la sua cartella, /opt/squadra-<nome>, con il suo .env.squadra
 # (chiavi e password sue, permessi 600) e ACCESSO.txt con l'admin di partenza.
 # Il codice invece è quello della produzione: docker-compose.squadra.yml sta in
-# /opt/gestionale e usa l'immagine già costruita dal rilascio. Per questo
+# /opt/gestionale e usa le immagini già costruite dal rilascio (gestionale e
+# ponte WhatsApp). Per questo
 # «rilascia-tutte» lo chiama il rilascio della produzione, subito dopo la
 # ricostruzione: le squadre ospitate girano sempre la stessa versione nostra.
 #
@@ -33,6 +34,7 @@ PROD=/opt/gestionale
 DOMINIO_PROD=ops.zerodarkteam.it
 RETE=zd-bordo
 IMMAGINE=gestionale-app:latest
+IMMAGINE_WHATSAPP=gestionale-whatsapp:latest
 
 casuale() { openssl rand -hex "$1"; }
 
@@ -161,10 +163,13 @@ nuova() {
     echo "Il codice in $PROD e' piu' vecchio delle squadre ospitate: prima un rilascio della produzione."
     exit 1
   fi
-  if ! docker image inspect "$IMMAGINE" > /dev/null 2>&1; then
-    echo "Manca l'immagine $IMMAGINE: prima un rilascio della produzione."
-    exit 1
-  fi
+  local img
+  for img in "$IMMAGINE" "$IMMAGINE_WHATSAPP"; do
+    if ! docker image inspect "$img" > /dev/null 2>&1; then
+      echo "Manca l'immagine $img: prima un rilascio della produzione."
+      exit 1
+    fi
+  done
 
   echo "== Nuova squadra: $nome ($SQUADRA) su https://$dominio"
   mkdir -p "$CARTELLA"
@@ -185,6 +190,7 @@ SESSION_SECRET=$(casuale 32)
 SEED_ADMIN_EMAIL=$email
 SEED_ADMIN_PASSWORD=$admin_pw
 SEGRETO_LAVORI=$(casuale 24)
+SEGRETO_WHATSAPP=$(casuale 16)
 VAPID_PUBLIC_KEY=${push%% *}
 VAPID_PRIVATE_KEY=${push##* }
 VAPID_SUBJECT=mailto:$email
@@ -197,6 +203,9 @@ Admin di partenza (da girare alla squadra, che poi cambia la password
 dal profilo e completa «La mia squadra»: logo, colori, collegamenti):
   email:    $email
   password: $admin_pw
+
+Il ponte WhatsApp e' suo: lo collega l'admin dal gestionale, inquadrando il
+codice col telefono di chi lo gestisce.
 EOF
   umask 022
   rilascia "$SQUADRA"
@@ -207,6 +216,10 @@ rilascia() {
   prepara "$1"
   [ -f "$ENV" ] || { echo "La squadra $SQUADRA non c'e': prima «nuova»."; exit 1; }
   rete
+  # le squadre nate prima del ponte: la chiave si aggiunge una volta sola
+  if ! grep -q '^SEGRETO_WHATSAPP=' "$ENV"; then
+    (umask 077; echo "SEGRETO_WHATSAPP=$(casuale 16)" >> "$ENV")
+  fi
   if docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
     echo "== $SQUADRA: backup"
     mkdir -p /root/backup
@@ -215,8 +228,9 @@ rilascia() {
     # restano gli ultimi dieci
     ls -1t /root/backup/sq-"$SQUADRA"-*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f
   fi
-  echo "== $SQUADRA: avvio con l'immagine della produzione"
-  # up ricrea l'app solo se l'immagine e' cambiata: le migrazioni le fa lei
+  echo "== $SQUADRA: avvio con le immagini della produzione"
+  # up ricrea app e ponte solo se l'immagine e' cambiata: le migrazioni le fa
+  # l'app, e la sessione WhatsApp sta sul suo volume, quindi resta collegata
   zds up -d --pull never
   proxy
   local _
