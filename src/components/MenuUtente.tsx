@@ -212,32 +212,46 @@ export function MenuUtente({
                   solo da dove si parte, e al sole un fondo chiaro si legge
                   meglio. */}
               {levetta && (
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={buio}
-                  onClick={commuta}
-                  disabled={cambiando}
-                  tabIndex={aperto ? undefined : -1}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/90 transition-colors hover:bg-surface2"
-                >
-                  <span aria-hidden className="w-4 text-center">
-                    {buio ? '☾' : '☀'}
-                  </span>
-                  <span className="flex-1">{buio ? 'Notte' : 'Giorno'}</span>
-                  <span
-                    aria-hidden
-                    className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
-                      buio ? 'border-nvg/60 bg-nvg/30' : 'border-line bg-surface2'
-                    }`}
+                // Un selettore a due posizioni, «Chiaro» a sinistra e «Scuro» a
+                // destra: il cursore colorato scorre sotto quello scelto. Si
+                // legge da solo quale dei due è acceso, senza dover capire da
+                // che parte sta una levetta.
+                <div className="px-4 py-2.5">
+                  <div
+                    role="radiogroup"
+                    aria-label="Tema"
+                    className="relative grid grid-cols-2 rounded-full border border-line bg-surface2 p-0.5"
                   >
                     <span
-                      className={`absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all motion-reduce:transition-none ${
-                        buio ? 'left-[1.1rem] bg-nvg' : 'left-0.5 bg-muted'
-                      }`}
+                      aria-hidden
+                      className="absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-2px)] rounded-full bg-nvg shadow transition-transform duration-200 ease-out motion-reduce:transition-none"
+                      style={{ transform: buio ? 'translateX(100%)' : 'translateX(0)' }}
                     />
-                  </span>
-                </button>
+                    {([
+                      { scuro: false, segno: '☀', nome: 'Chiaro' },
+                      { scuro: true, segno: '☾', nome: 'Scuro' },
+                    ] as const).map((o) => {
+                      const scelto = buio === o.scuro;
+                      return (
+                        <button
+                          key={o.nome}
+                          type="button"
+                          role="radio"
+                          aria-checked={scelto}
+                          disabled={cambiando}
+                          tabIndex={aperto ? undefined : -1}
+                          onClick={() => !scelto && commuta()}
+                          className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full py-1.5 text-xs font-semibold transition-colors ${
+                            scelto ? 'text-nvgink' : 'text-muted hover:text-ink'
+                          }`}
+                        >
+                          <span aria-hidden>{o.segno}</span>
+                          {o.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               <form action={esci} className="border-t border-line">

@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.129.1 — 30 settembre 2026
+
+### Cambiato
+
+- **Chiaro / Scuro, un selettore che si capisce.** Al posto della levetta, nel
+  riquadro del proprio nome c'è un selettore a due posizioni: **☀ Chiaro** a
+  sinistra e **☾ Scuro** a destra. Il cursore colorato scorre sotto quello
+  acceso.
+
 ## 2.129.0 — 30 settembre 2026
 
 ### Aggiunto
