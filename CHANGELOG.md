@@ -5,6 +5,28 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.2.0 — 30 settembre 2026
+
+### Cambiato
+
+- **L'aiuto mostra i pulsanti veri.** Dove una spiegazione dice di premere
+  qualcosa, il pulsante è disegnato com'è sulla pagina — stessi colori, stessa
+  icona: le tre risposte Ci sono / Forse / Non ci sono, Paga, Rilascia,
+  Invita una squadra, i badge come «Iscrizioni chiuse». Si riconosce al primo
+  colpo invece di doverlo cercare.
+- **Spiegazioni più complete.** Ogni pagina racconta tutti i gesti che ci si
+  fanno, divisi per chi li può fare (operatore, Team Leader, admin), e i titoli
+  corrispondono a quello che si legge nel menu.
+
+### Aggiunto
+
+- **Primi passi**, in cima alla pagina Aiuto: come muoversi (menu, preferiti
+  con la stellina, ricerca con Ctrl+K, notifiche) e cosa vogliono dire colori,
+  badge e pulsanti.
+- Spiegazioni per le pagine che non l'avevano: Carrello, Ordini, Invio
+  richieste, Richieste di iscrizione, Certificati medici (amministrazione),
+  Messaggi segnalati, Ruoli, Guasti.
+
 ## 3.1.1 — 30 settembre 2026
 
 ### Cambiato
