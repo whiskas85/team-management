@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.6.0 — 30 settembre 2026
+
+### Cambiato
+
+- **Menu del telefono: la pagina sotto sta ferma.** Con il menu aperto scorre
+  solo il menu. Prima, tirando giù il foglio per chiuderlo e tornando su senza
+  staccare il dito, scorreva la pagina dietro. Ora resta dov'era, e alla
+  chiusura la si ritrova allo stesso punto.
+- **Il menu si scioglie come vetro.** Tirandolo giù, il foglio diventa via via
+  trasparente e il suo contenuto si sfoca, come se si sciogliesse nella
+  pagina, invece di sbiadire. Lasciato oltre la soglia finisce di sciogliersi
+  e si chiude; sotto la soglia torna al suo posto.
+
 ## 3.5.1 — 30 settembre 2026
 
 ### Cambiato

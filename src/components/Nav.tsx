@@ -117,7 +117,56 @@ export function Nav({
   // il foglio del menu tirato giù col dito, in pixel: oltre una certa misura si chiude
   const [tirato, setTirato] = useState(0);
   const contenutoMenu = useRef<HTMLDivElement>(null);
+  const foglioMenu = useRef<HTMLDivElement>(null);
   const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
+  // chiuso col gesto: il foglio finisce di sciogliersi prima di sparire
+  const [sciogliendo, setSciogliendo] = useState(false);
+  const chiudiSciogliendo = () => {
+    setSciogliendo(true);
+    setTimeout(() => {
+      setApertoMenu(false);
+      setSciogliendo(false);
+      setTirato(0);
+    }, 260);
+  };
+
+  // Menu aperto: la pagina sotto è ferma. Scorre solo il menu — anche quando
+  // il dito, tirando giù il foglio, cambia idea e torna su: prima in quel
+  // momento scorreva la pagina dietro. Su iPhone «overflow: hidden» sul body
+  // non basta: si inchioda la pagina dov'era e la si rimette lì alla chiusura.
+  useEffect(() => {
+    if (!apertoMenu) return;
+    const y = window.scrollY;
+    const b = document.body.style;
+    const prima = { position: b.position, top: b.top, width: b.width, overflow: b.overflow };
+    b.position = 'fixed';
+    b.top = `-${y}px`;
+    b.width = '100%';
+    b.overflow = 'hidden';
+    return () => {
+      Object.assign(b, prima);
+      window.scrollTo(0, y);
+    };
+  }, [apertoMenu]);
+
+  const tiratoRef = useRef(0);
+  useEffect(() => {
+    tiratoRef.current = tirato;
+  }, [tirato]);
+  // Mentre il foglio segue il dito, nessun altro scorrimento: l'ascolto è
+  // «non passivo» perché React non lascia fermare il tocco dai suoi eventi.
+  useEffect(() => {
+    const el = foglioMenu.current;
+    if (!el || !apertoMenu) return;
+    const ferma = (e: TouchEvent) => {
+      const scorre = contenutoMenu.current;
+      const dentroLista = scorre?.contains(e.target as Node);
+      // la lista scorre da sé; tutto il resto (testata, foglio tirato) no
+      if (tiratoRef.current > 0 || !dentroLista) e.preventDefault();
+    };
+    el.addEventListener('touchmove', ferma, { passive: false });
+    return () => el.removeEventListener('touchmove', ferma);
+  }, [apertoMenu]);
 
   // Menu aperto: su Android tirare giù la pagina la ricarica, e il gesto per
   // chiudere il menu finiva per farlo. Finché il menu è aperto la pagina
@@ -435,17 +484,39 @@ export function Nav({
       {/* ---------------------------------------------------- drawer mobile */}
       {apertoMenu && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setApertoMenu(false)} />
+          <div
+            className="absolute inset-0 bg-black/70 transition-opacity"
+            // il velo dietro si schiarisce con il foglio che se ne va
+            style={{ opacity: sciogliendo ? 0 : 1 - Math.min(tirato / 400, 0.7) }}
+            onClick={() => setApertoMenu(false)}
+            onTouchMove={(e) => e.preventDefault()}
+          />
           {/* Il pannello è una colonna: la testata — nome e chiusura — resta
               ferma, scorre solo il contenuto sotto. Tirato giù quando il
               contenuto è già in cima, il pannello segue il dito e si chiude:
               lo stesso gesto dei fogli che salgono dal fondo sul telefono. */}
           <div
-            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface"
-            style={{
-              transform: tirato ? `translateY(${tirato}px)` : undefined,
-              transition: tirato ? 'none' : 'transform 0.2s ease-out',
-            }}
+            ref={foglioMenu}
+            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line backdrop-blur-xl"
+            style={(() => {
+              // Più scende, più diventa vetro: il fondo si fa trasparente e il
+              // contenuto si sfoca, come se il foglio si sciogliesse nella
+              // pagina — non una dissolvenza, che lo farebbe solo sbiadire.
+              const p = sciogliendo ? 1 : Math.min(tirato / 320, 1);
+              return {
+                transform: sciogliendo
+                  ? 'translateY(35%) scale(0.97)'
+                  : tirato
+                    ? `translateY(${tirato}px) scale(${1 - p * 0.03})`
+                    : undefined,
+                backgroundColor: `rgb(var(--c-surface) / ${0.96 - p * 0.7})`,
+                filter: p > 0 ? `blur(${p * 9}px) saturate(${1 + p * 0.4})` : undefined,
+                transition:
+                  tirato && !sciogliendo
+                    ? 'none'
+                    : 'transform 0.26s ease-out, filter 0.26s ease-out, background-color 0.26s ease-out',
+              };
+            })()}
             onTouchStart={(e) => {
               const scorre = contenutoMenu.current;
               presa.current = {
@@ -469,9 +540,9 @@ export function Nav({
               else if (tirato) setTirato(0);
             }}
             onTouchEnd={() => {
-              if (tirato > 90) setApertoMenu(false);
-              setTirato(0);
               presa.current = null;
+              if (tirato > 90) chiudiSciogliendo();
+              else setTirato(0);
             }}
           >
             {/* La testata galleggia sopra il contenuto, col vetro delle altre
@@ -501,7 +572,10 @@ export function Nav({
 
             <div
               ref={contenutoMenu}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-[4.25rem]"
+              // mentre si tira il foglio, la lista sta ferma: si muove il foglio
+              className={`min-h-0 flex-1 overscroll-contain px-4 pb-8 pt-[4.25rem] ${
+                tirato > 0 ? 'overflow-hidden' : 'overflow-y-auto'
+              }`}
             >
               {/* Qui i preferiti sono le voci della barra in basso: riordinarli
                   vuol dire decidere cosa si ha sotto il pollice. Per questo si
