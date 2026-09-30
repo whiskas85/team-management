@@ -670,7 +670,11 @@ export async function salvaAspetto(_prev: StatoForm, fd: FormData): Promise<Stat
   const tema = eTemaPersonale(scelto) && scelto !== 'squadra' ? scelto : null;
   await prisma.user.update({
     where: { id: me.id },
-    data: { tema, testoGrande: bool(fd, 'testoGrande') },
+    data: {
+      tema,
+      testoGrande: bool(fd, 'testoGrande'),
+      testoGrandeMobile: bool(fd, 'testoGrandeMobile'),
+    },
   });
   revalidatePath('/', 'layout');
   return { ok: tema ? 'Tema cambiato: vale solo per te.' : 'Segui il tema della squadra.' };

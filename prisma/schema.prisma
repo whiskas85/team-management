@@ -163,8 +163,11 @@ model User {
   /// Il tema scelto per sé: nullo = quello della squadra; altrimenti uno di
   /// accessibilità (vedi src/lib/tema.ts).
   tema                 String?
-  /// Tutto il testo un po' più grande, per chi fatica a leggere.
+  /// Tutto il testo un po' più grande, per chi fatica a leggere: sul
+  /// computer (schermo largo)…
   testoGrande          Boolean        @default(false)
+  /// …e sul telefono, scelto a parte.
+  testoGrandeMobile    Boolean        @default(false)
   /// Notte o giorno, scelto con la levetta: «scuro» o «chiaro». Nullo = come
   /// dice il tema della squadra, che è solo quello di partenza.
   modo                 String?

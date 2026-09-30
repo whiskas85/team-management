@@ -37,7 +37,10 @@ export const temaPagina = cache(async () => {
   const t = tavolozza({ ...squadra, modo }, personale);
   return {
     t,
-    css: cssTema(t, !!utente?.testoGrande),
+    css: cssTema(t, {
+      computer: !!utente?.testoGrande,
+      telefono: !!utente?.testoGrandeMobile,
+    }),
     // i temi per daltonici sono pensati al buio: lì la levetta non c'è
     levetta: personale === 'squadra' || personale.startsWith('contrasto'),
   };

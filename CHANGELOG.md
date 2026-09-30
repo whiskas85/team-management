@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.7.0 — 30 settembre 2026
+
+### Cambiato
+
+- **Testo più grande: computer e telefono separati.** Nel profilo, in
+  «Aspetto e accessibilità», il testo più grande si sceglie a parte **sul
+  computer** e **sul telefono**: chi lo vuole grande solo sullo schermo
+  piccolo non se lo ritrova enorme sul monitor, e viceversa. Chi lo aveva già
+  acceso lo trova acceso su tutti e due.
+- **Menu del telefono: niente più vetro.** Tirato giù, il foglio scivola e
+  basta; lasciato oltre la soglia finisce di scendere e si chiude.
+
 ## 3.6.0 — 30 settembre 2026
 
 ### Cambiato

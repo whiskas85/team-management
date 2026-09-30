@@ -187,7 +187,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Come cambiare l’aspetto del gestionale solo per te.',
     passi: [
       { titolo: 'Chiaro / Scuro', testo: 'Tocca il tuo nome in alto a destra e scegli ☀ Chiaro o ☾ Scuro: vale solo per te, su tutti i tuoi dispositivi.' },
-      { titolo: 'Temi di accessibilità', testo: 'Nel profilo, **Aspetto e accessibilità**: il tema della squadra, l’alto contrasto (scuro o chiaro) per chi vede poco, i temi per daltonici rosso-verde e blu-giallo. **Testo più grande** ingrandisce tutto, pulsanti compresi, e si somma a qualunque tema. Guarda l’anteprima e premi [[p:salva|Salva l’aspetto]].' },
+      { titolo: 'Temi di accessibilità', testo: 'Nel profilo, **Aspetto e accessibilità**: il tema della squadra, l’alto contrasto (scuro o chiaro) per chi vede poco, i temi per daltonici rosso-verde e blu-giallo. **Testo più grande** ingrandisce tutto, pulsanti compresi, e si somma a qualunque tema: si sceglie a parte **sul computer** e **sul telefono**. Guarda l’anteprima e premi [[p:salva|Salva l’aspetto]].' },
     ],
     parole: 'tema notte giorno chiaro scuro daltonici ipovedenti contrasto testo grande aspetto',
   },

@@ -119,13 +119,13 @@ export function Nav({
   const contenutoMenu = useRef<HTMLDivElement>(null);
   const foglioMenu = useRef<HTMLDivElement>(null);
   const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
-  // chiuso col gesto: il foglio finisce di sciogliersi prima di sparire
-  const [sciogliendo, setSciogliendo] = useState(false);
-  const chiudiSciogliendo = () => {
-    setSciogliendo(true);
+  // chiuso col gesto: il foglio finisce di scendere prima di sparire
+  const [scendendo, setScendendo] = useState(false);
+  const chiudiScendendo = () => {
+    setScendendo(true);
     setTimeout(() => {
       setApertoMenu(false);
-      setSciogliendo(false);
+      setScendendo(false);
       setTirato(0);
     }, 260);
   };
@@ -487,7 +487,7 @@ export function Nav({
           <div
             className="absolute inset-0 bg-black/70 transition-opacity"
             // il velo dietro si schiarisce con il foglio che se ne va
-            style={{ opacity: sciogliendo ? 0 : 1 - Math.min(tirato / 400, 0.7) }}
+            style={{ opacity: scendendo ? 0 : 1 - Math.min(tirato / 400, 0.7) }}
             onClick={() => setApertoMenu(false)}
             onTouchMove={(e) => e.preventDefault()}
           />
@@ -497,26 +497,16 @@ export function Nav({
               lo stesso gesto dei fogli che salgono dal fondo sul telefono. */}
           <div
             ref={foglioMenu}
-            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line backdrop-blur-xl"
-            style={(() => {
-              // Più scende, più diventa vetro: il fondo si fa trasparente e il
-              // contenuto si sfoca, come se il foglio si sciogliesse nella
-              // pagina — non una dissolvenza, che lo farebbe solo sbiadire.
-              const p = sciogliendo ? 1 : Math.min(tirato / 320, 1);
-              return {
-                transform: sciogliendo
-                  ? 'translateY(35%) scale(0.97)'
-                  : tirato
-                    ? `translateY(${tirato}px) scale(${1 - p * 0.03})`
-                    : undefined,
-                backgroundColor: `rgb(var(--c-surface) / ${0.96 - p * 0.7})`,
-                filter: p > 0 ? `blur(${p * 9}px) saturate(${1 + p * 0.4})` : undefined,
-                transition:
-                  tirato && !sciogliendo
-                    ? 'none'
-                    : 'transform 0.26s ease-out, filter 0.26s ease-out, background-color 0.26s ease-out',
-              };
-            })()}
+            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface"
+            style={{
+              // segue il dito; lasciato oltre la soglia scivola giù fino in fondo
+              transform: scendendo
+                ? 'translateY(100%)'
+                : tirato
+                  ? `translateY(${tirato}px)`
+                  : undefined,
+              transition: tirato && !scendendo ? 'none' : 'transform 0.26s ease-out',
+            }}
             onTouchStart={(e) => {
               const scorre = contenutoMenu.current;
               presa.current = {
@@ -541,7 +531,7 @@ export function Nav({
             }}
             onTouchEnd={() => {
               presa.current = null;
-              if (tirato > 90) chiudiSciogliendo();
+              if (tirato > 90) chiudiScendendo();
               else setTirato(0);
             }}
           >

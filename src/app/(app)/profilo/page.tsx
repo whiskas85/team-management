@@ -496,6 +496,7 @@ export default async function ProfiloPage() {
           squadra={await temaSquadra()}
           tema={eTemaPersonale(utente.tema) ? utente.tema : 'squadra'}
           testoGrande={utente.testoGrande}
+          testoGrandeMobile={utente.testoGrandeMobile}
         />
       </Fisarmonica>
 

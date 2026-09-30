@@ -67,6 +67,7 @@ export type SessionUser = {
   /** Il tema scelto per sé, se non segue quello della squadra. */
   tema?: string | null;
   testoGrande?: boolean;
+  testoGrandeMobile?: boolean;
   /** Notte o giorno scelto con la levetta, se diverso da quello della squadra. */
   modo?: string | null;
 };
@@ -100,6 +101,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         ultimaAttivita: true,
         tema: true,
         testoGrande: true,
+        testoGrandeMobile: true,
         modo: true,
       },
     });

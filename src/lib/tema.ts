@@ -322,15 +322,32 @@ export function tavolozza(squadra: TemaSquadra, personale: TemaPersonale = 'squa
 
 const canali = (hex: string) => daHex(hex)!.join(' ');
 
-/** Le variabili CSS del tema, da mettere in testa alla pagina. */
-export function cssTema(t: Tavolozza, testoGrande = false): string {
+/** Dove finisce il telefono: lo stesso `md` di Tailwind che cambia il menu. */
+const LARGO = 768;
+
+/**
+ * Le variabili CSS del tema, da mettere in testa alla pagina. Il testo più
+ * grande si sceglie a parte per il computer e per il telefono.
+ */
+export function cssTema(
+  t: Tavolozza,
+  testoGrande: { computer?: boolean; telefono?: boolean } = {},
+): string {
   const righe = [
     ...TOKEN.map((k) => `--c-${k}:${canali(t.colori[k])}`),
     ...Object.entries(t.tinte).map(([k, v]) => `--t-${k}:${canali(v)}`),
     `--c-notte:${canali(t.notte)}`,
     `color-scheme:${t.scuro ? 'dark' : 'light'}`,
-    // il testo più grande: tutto è in rem, quindi cresce tutto insieme
-    ...(testoGrande ? ['font-size:112.5%'] : []),
   ];
-  return `:root{${righe.join(';')}}`;
+  // il testo più grande: tutto è in rem, quindi cresce tutto insieme
+  const { computer, telefono } = testoGrande;
+  const grande =
+    computer && telefono
+      ? ':root{font-size:112.5%}'
+      : computer
+        ? `@media (min-width:${LARGO}px){:root{font-size:112.5%}}`
+        : telefono
+          ? `@media (max-width:${LARGO - 0.02}px){:root{font-size:112.5%}}`
+          : '';
+  return `:root{${righe.join(';')}}${grande}`;
 }
