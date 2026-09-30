@@ -300,7 +300,7 @@ function StatoQuota({
 }: {
   pagamento: { status: string; dichiaratoIl: Date | null; pagatoIl: Date | null };
 }) {
-  if (pagamento.status !== 'PAGATO' && pagamento.dichiaratoIl) {
+  if ((pagamento.status === 'DA_PAGARE' || pagamento.status === 'PARZIALE') && pagamento.dichiaratoIl) {
     return (
       <span className="text-right">
         <Badge tono="info">In verifica</Badge>

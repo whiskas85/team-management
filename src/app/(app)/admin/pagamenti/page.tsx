@@ -48,7 +48,7 @@ const DA_GESTIRE: Prisma.PaymentWhereInput = {
   // solo il club: quelli delle altre casse li gestisce chi ne è responsabile
   cassaId: null,
   OR: [
-    { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
+    { status: { in: ['DA_PAGARE', 'PARZIALE'] }, dichiaratoIl: { not: null } },
     { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
   ],
 };
@@ -152,7 +152,7 @@ export default async function AdminPagamentiPage({
   const aperti = tutti.filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE');
   const daIncassare = aperti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
   const incassato = tutti.reduce((t, p) => t + Number(p.pagato), 0);
-  const daConfermare = tutti.filter((p) => p.status !== 'PAGATO' && p.dichiaratoIl).length;
+  const daConfermare = tutti.filter((p) => (p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl).length;
   const rimborsiAperti = tutti.filter(
     (p) => p.tipo === 'RIMBORSO' && p.status !== 'PAGATO' && p.status !== 'ANNULLATO',
   );
@@ -363,7 +363,7 @@ export default async function AdminPagamentiPage({
               azioni={<AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                {p.status !== 'PAGATO' && p.dichiaratoIl ? (
+                {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl ? (
                   <span className="flex flex-wrap items-center gap-2">
                     <Badge tono="info">Da confermare</Badge>
                     <NonArrivato id={p.id} descrizione={p.descrizione} />
@@ -413,7 +413,7 @@ export default async function AdminPagamentiPage({
                       {fmtEuro(Number(p.pagato))}
                     </td>
                     <td>
-                      {p.status !== 'PAGATO' && p.dichiaratoIl ? (
+                      {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl ? (
                         <>
                           <Badge tono="info">Da confermare</Badge>
                           <span className="num mt-0.5 block text-[11px] text-muted">
@@ -437,7 +437,7 @@ export default async function AdminPagamentiPage({
                     <td className="whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
-                        {p.status !== 'PAGATO' && p.dichiaratoIl && (
+                        {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
                           <NonArrivato id={p.id} descrizione={p.descrizione} />
                         )}
                         <EliminaPagamento pagamento={p} />

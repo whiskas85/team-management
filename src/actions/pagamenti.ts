@@ -644,7 +644,7 @@ export async function rifiutaSegnalazione(_prev: StatoForm, fd: FormData): Promi
   if (!(await puoGestireCassa(me, pagamento.cassaId))) {
     return { errore: 'Questo pagamento lo gestisce chi ne tiene la cassa.' };
   }
-  if (!pagamento.dichiaratoIl || pagamento.status === 'PAGATO') {
+  if (!pagamento.dichiaratoIl || (pagamento.status !== 'DA_PAGARE' && pagamento.status !== 'PARZIALE')) {
     return { errore: 'Non c’è una segnalazione da togliere.' };
   }
 

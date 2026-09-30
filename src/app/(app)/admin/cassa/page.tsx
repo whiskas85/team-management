@@ -135,7 +135,7 @@ export default async function CassaPage({
     .filter((p) => p.tipo === 'RIMBORSO')
     .reduce((t, p) => t + Number(p.pagato), 0);
   const rimborsiDaErogare = pagamenti
-    .filter((p) => p.tipo === 'RIMBORSO' && p.status !== 'PAGATO')
+    .filter((p) => p.tipo === 'RIMBORSO' && p.status !== 'PAGATO' && p.status !== 'ANNULLATO')
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
   const quoteDaIncassare = pagamenti
     .filter(

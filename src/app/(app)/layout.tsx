@@ -123,7 +123,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? await Promise.all([
         prisma.payment
           .count({
-            where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
+            where: { status: { in: ['DA_PAGARE', 'PARZIALE'] }, dichiaratoIl: { not: null }, cassaId: null },
           })
           .then(async (n) => n + (await ospitiDaConfermare(null))),
         prisma.payment.count({

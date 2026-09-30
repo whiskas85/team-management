@@ -56,7 +56,7 @@ export default async function AltreCassePage() {
     return {
       aperti: aperti.length,
       daIncassare: aperti.reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0),
-      daConfermare: suoi.filter((p) => p.status !== 'PAGATO' && p.dichiaratoIl).length,
+      daConfermare: suoi.filter((p) => (p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl).length,
       incassato: suoi.reduce((t, p) => t + Number(p.pagato), 0),
     };
   };

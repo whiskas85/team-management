@@ -132,7 +132,7 @@ export default async function DashboardPage({
       cassa
         ? Promise.all([
             prisma.payment.count({
-              where: { status: { not: 'PAGATO' }, dichiaratoIl: { not: null }, cassaId: null },
+              where: { status: { in: ['DA_PAGARE', 'PARZIALE'] }, dichiaratoIl: { not: null }, cassaId: null },
             }),
             // e quelli delle squadre ospiti collegate, che finiscono nel club
             prisma.versamentoSquadra.count({

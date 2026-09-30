@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.10.1 — 30 settembre 2026
+
+### Corretto
+
+- **Una quota trasformata in credito non torna più «da confermare».** Se era
+  stata segnalata come pagata, la segnalazione le restava attaccata anche dopo
+  il credito (o dopo «gestita fuori»), e la quota ricompariva fra i pagamenti
+  da gestire come se la persona dovesse ancora qualcosa. Ora una quota chiusa
+  perde la segnalazione, gli elenchi «da confermare» guardano solo le quote
+  ancora aperte, e i rimborsi annullati non contano più fra quelli da erogare.
+  Le quote già in questo stato vengono sistemate all'aggiornamento.
+
 ## 3.10.0 — 30 settembre 2026
 
 ### Aggiunto

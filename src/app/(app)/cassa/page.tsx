@@ -43,7 +43,7 @@ type Filtro = keyof typeof FILTRI;
 /** Chi aspetta una mossa: ha detto di aver pagato, o c'è un rimborso da restituire. */
 const DA_GESTIRE: Prisma.PaymentWhereInput = {
   OR: [
-    { status: { not: 'PAGATO' }, dichiaratoIl: { not: null } },
+    { status: { in: ['DA_PAGARE', 'PARZIALE'] }, dichiaratoIl: { not: null } },
     { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] } },
   ],
 };
@@ -149,7 +149,7 @@ export default async function CassaPage({
     quote.reduce((t, p) => t + Number(p.pagato), 0) +
     ospiti.filter((v) => v.confermatoIl).reduce((t, v) => t + Number(v.importo), 0);
   const daConfermare =
-    tutti.filter((p) => p.status !== 'PAGATO' && p.dichiaratoIl).length +
+    tutti.filter((p) => (p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl).length +
     ospiti.filter((v) => !v.confermatoIl).length;
 
   // come si paga, da mettere nel messaggio: i metodi che chi paga usa da sé
@@ -288,7 +288,7 @@ export default async function CassaPage({
                 <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
-                  {p.status !== 'PAGATO' && p.dichiaratoIl && (
+                  {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
                     <NonArrivato id={p.id} descrizione={p.descrizione} />
                   )}
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
@@ -331,7 +331,7 @@ export default async function CassaPage({
                       <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
-                  {p.status !== 'PAGATO' && p.dichiaratoIl && (
+                  {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
                     <NonArrivato id={p.id} descrizione={p.descrizione} />
                   )}
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
@@ -364,7 +364,7 @@ function Stato({
     allegatoTitolo?: string | null;
   };
 }) {
-  if (pagamento.status !== 'PAGATO' && pagamento.dichiaratoIl) {
+  if ((pagamento.status === 'DA_PAGARE' || pagamento.status === 'PARZIALE') && pagamento.dichiaratoIl) {
     return (
       <span className="text-right">
         <Badge tono="info">Da confermare</Badge>

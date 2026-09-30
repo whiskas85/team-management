@@ -159,6 +159,9 @@ export async function quotaInCredito(paymentId: string, chi: string): Promise<nu
         pagato: 0,
         status: 'ANNULLATO',
         pagatoIl: null,
+        // una quota chiusa non aspetta più conferme: senza, la vecchia
+        // segnalazione la faceva tornare «da confermare»
+        dichiaratoIl: null,
         note: [q.note, nota].filter(Boolean).join(' · '),
       },
     }),
