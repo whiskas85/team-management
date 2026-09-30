@@ -277,6 +277,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Il biglietto da visita della squadra: nome, nome del gestionale, motto, logo, recapiti, referenti — e il tema dei colori.',
     perChi: 'Admin',
     passi: [
+      { titolo: 'Collegamenti esterni', testo: 'In un posto solo: il portale federale FIGT (utenza, password, id anagrafica e id affiliazione, per tessere e polizze prova), i gestionali delle altre squadre e WhatsApp.' },
       { titolo: 'Profilo e logo', testo: 'Compila e premi [[p:salva|Salva il profilo]]. Sono anche i dati che vedono le squadre collegate; [[p:collegamento|Condividi il profilo]] li manda a chi vuoi.' },
       { titolo: 'Tema', testo: 'Il colore d’accento (preso dal logo, fra quelli pronti o libero) e il fondo di partenza, poi [[p:salva|Salva il tema]]. Il contrasto lo sistema il gestionale; chiaro o scuro lo sceglie poi ognuno per sé.' },
       { titolo: 'Referenti', testo: 'Chi rappresenta la squadra verso fuori, col callsign e i recapiti scelti: [[p:salva|Salva i referenti]].' },
@@ -548,7 +549,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Le tessere le emette la federazione: qui si importano dal portale e si abbinano alle persone.',
     perChi: 'Amministrazione',
     passi: [
-      { titolo: 'Collegare il portale', testo: '[[p:modifica|Collega il portale]] con le credenziali del portale federale: vengono provate subito.' },
+      { titolo: 'Collegare il portale', testo: 'Le credenziali del portale federale e l’id affiliazione si impostano in La mia squadra → Collegamenti esterni: da qui [[g:collegamento|Collega il portale]] porta lì.' },
       { titolo: 'Importare', testo: '[[p:tessera|Importa dal portale]] legge le tessere dell’anno; [[p:operatori|Importa anagrafiche]] prende i dati completi dei tesserati. Sono solo letture: sul portale non cambia niente.' },
       { titolo: 'Abbinare', testo: 'Le tessere che non si attribuiscono con certezza restano da abbinare: [[g:operatori|Proponi abbinamenti]] suggerisce a chi.' },
     ],

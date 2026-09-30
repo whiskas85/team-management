@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.5.0 — 30 settembre 2026
+
+### Cambiato
+
+- **Collegamenti esterni, tutti in La mia squadra.** Una sezione nuova raccoglie
+  quello che collega la squadra a servizi e gestionali di fuori, con lo stato di
+  ognuno:
+  - **portale federale FIGT (ASNWG)**: utenza, password, id anagrafica e **id
+    affiliazione**. Prima stavano in Tessere FIGT, che ora ha solo un pulsante
+    per arrivarci;
+  - **gestionali di altre squadre**: quante collegate, e le richieste da
+    accettare;
+  - **WhatsApp**: a che numero è collegato.
+  Nel menu «Collegamenti» non è più una voce a sé: sta sotto **La mia
+  squadra**, che porta anche il pallino delle richieste di collegamento.
+
 ## 3.4.0 — 30 settembre 2026
 
 ### Aggiunto

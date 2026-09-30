@@ -18,6 +18,7 @@ import { intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 
 function aggiorna() {
   revalidatePath('/admin/tessere');
+  revalidatePath('/admin/squadra');
   revalidatePath('/dashboard');
 }
 

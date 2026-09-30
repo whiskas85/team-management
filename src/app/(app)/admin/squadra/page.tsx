@@ -11,6 +11,8 @@ import { RitagliaFoto } from '@/components/RitagliaFoto';
 import { ReferentiMiaSquadra } from '@/components/ReferentiMiaSquadra';
 import { salvaLogoSquadra, salvaMiaSquadra, salvaReferenti } from '@/actions/mia-squadra';
 import { SceltaTemaSquadra } from '@/components/SceltaTemaSquadra';
+import { PortaleFigt } from '@/components/PortaleFigt';
+import { URL_ASNWG } from '@/lib/domain';
 import { temaSquadra } from '@/lib/tema-server';
 
 export const dynamic = 'force-dynamic';
@@ -25,10 +27,14 @@ export const dynamic = 'force-dynamic';
  */
 export default async function MiaSquadraPage() {
   await requirePermesso(isAdmin);
-  const [s, m, tema, referenti, persone] = await Promise.all([
+  const [s, m, tema, figt, collegate, richieste, whatsapp, referenti, persone] = await Promise.all([
     leggiMiaSquadra(),
     marchio(),
     temaSquadra(),
+    prisma.credenzialeFigt.findUnique({ where: { id: 'figt' } }),
+    prisma.collegamentoSquadra.count({ where: { stato: 'ATTIVO' } }),
+    prisma.collegamentoSquadra.count({ where: { stato: 'DA_ACCETTARE' } }),
+    prisma.collegamentoWhatsapp.findUnique({ where: { id: 'whatsapp' } }),
     prisma.referenteMiaSquadra.findMany({ orderBy: { ordine: 'asc' } }),
     prisma.user.findMany({
       where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] } },
@@ -135,6 +141,63 @@ export default async function MiaSquadraPage() {
             quello di partenza.
           </p>
         </div>
+      </div>
+
+      {/* ------------------------------------------ collegamenti esterni */}
+      {/* Tutto quello che collega la squadra a qualcosa di fuori, in un posto
+          solo: il portale federale, i gestionali delle altre squadre,
+          WhatsApp. Prima stavano in tre pagine diverse. */}
+      <div id="collegamenti" className="card mt-6 scroll-mt-24">
+        <p className="titolo-sezione">Collegamenti esterni</p>
+        <p className="mb-4 mt-1 text-xs text-muted">
+          Quello che collega la squadra a servizi e gestionali di fuori.
+        </p>
+        <ul className="divide-y divide-line">
+          <li className="flex flex-wrap items-center gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Portale federale FIGT (ASNWG)</p>
+              <p className="text-xs text-muted">
+                {figt
+                  ? `Collegato come ${figt.login}${figt.idAffiliazione ? ` · affiliazione ${figt.idAffiliazione}` : ' · manca l’id affiliazione (serve alle polizze prova)'}`
+                  : 'Non collegato: servono utenza, password, id anagrafica e affiliazione. Senza, niente tessere importate né polizze prova.'}
+              </p>
+            </div>
+            <a href={URL_ASNWG} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">
+              <Icona nome="apri" size={15} /> Portale
+            </a>
+            <PortaleFigt collegamento={figt} />
+          </li>
+          <li className="flex flex-wrap items-center gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Gestionali di altre squadre</p>
+              <p className="text-xs text-muted">
+                {collegate === 1 ? '1 squadra collegata' : `${collegate} squadre collegate`}
+                {richieste > 0 && (
+                  <span className="text-warn">
+                    {' '}
+                    · {richieste} {richieste === 1 ? 'richiesta' : 'richieste'} da accettare
+                  </span>
+                )}
+              </p>
+            </div>
+            <Link href="/admin/collegamenti" className="btn-ghost btn-sm">
+              <Icona nome="collegamento" size={15} /> Squadre collegate
+            </Link>
+          </li>
+          <li className="flex flex-wrap items-center gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">WhatsApp</p>
+              <p className="text-xs text-muted">
+                {whatsapp?.numero
+                  ? `Collegato al numero ${whatsapp.numero}${whatsapp.gruppoNome ? ` · gruppo ${whatsapp.gruppoNome}` : ''}`
+                  : 'Non collegato: i messaggi automatici non partono.'}
+              </p>
+            </div>
+            <Link href="/admin/messaggi" className="btn-ghost btn-sm">
+              <Icona nome="whatsapp" size={15} /> Messaggi WhatsApp
+            </Link>
+          </li>
+        </ul>
       </div>
 
       <div className="card mt-6">
