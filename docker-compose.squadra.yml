@@ -73,7 +73,8 @@ services:
       NOME_GESTIONALE: ${NOME_GESTIONALE:-}
     volumes:
       - uploads:/data/uploads
-    # default per il suo database, bordo per farsi raggiungere dal proxy
+    # default per il suo database, bordo per farsi raggiungere dal proxy: una
+    # rete sua, zd-bordo-sq-<squadra>, dove c'è solo il proxy
     networks:
       - default
       - bordo
@@ -104,7 +105,7 @@ services:
 networks:
   bordo:
     external: true
-    name: zd-bordo
+    name: zd-bordo-sq-${SQUADRA}
 
 volumes:
   db-data:

@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.8.2 — 30 settembre 2026
+
+### Corretto
+
+- **Ops, test e test2 non condividono più niente sul server.** Il proxy
+  parlava con test e test2 su una rete sola, comune a tutti e due, e cercava
+  la produzione col nome generico «app», che su quella rete era anche il nome
+  delle app di test: il traffico vero poteva finire nell'istanza sbagliata.
+  Ora ogni istanza ha la sua rete, dove ci sono soltanto il proxy e lei, e il
+  proxy chiama la produzione col nome del suo container. Le squadre ospitate
+  seguono la stessa regola.
+
 ## 3.8.1 — 30 settembre 2026
 
 ### Cambiato

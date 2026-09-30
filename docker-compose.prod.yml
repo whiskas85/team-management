@@ -131,20 +131,12 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
-    # Due reti: quella del gestionale, dove sta l'app vera, e `zd-bordo`, dove
-    # arriva l'app dell'ambiente di test (docker-compose.test.yml). Su bordo ci
-    # sono solo il proxy e l'app di test: i due database restano ciascuno nella
-    # rete del suo gestionale, e il test non vede quello vero.
-    networks:
-      - default
-      - bordo
-
-networks:
-  # Esterna perché la usano due compose: la crea chi rilascia, prima dell'up
-  # (`docker network create zd-bordo`), e nessuno dei due la cancella con down.
-  bordo:
-    external: true
-    name: zd-bordo
+    # Qui solo la rete del gestionale. Ogni altra istanza sulla macchina (test,
+    # test2, squadre ospitate) ha una sua rete di bordo, zd-bordo-<istanza>,
+    # dove stanno soltanto il proxy e la sua app: il proxy ci entra con
+    # `docker network connect`, dagli script che le creano e dal rilascio,
+    # che lo ricollega dopo averlo ricreato. Nessuna istanza vede le altre,
+    # né i loro database, né i servizi di questa.
 
 volumes:
   db-data:

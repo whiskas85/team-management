@@ -32,7 +32,6 @@ set -euo pipefail
 
 PROD=/opt/gestionale
 DOMINIO_PROD=ops.zerodarkteam.it
-RETE=zd-bordo
 IMMAGINE=gestionale-app:latest
 IMMAGINE_WHATSAPP=gestionale-whatsapp:latest
 
@@ -52,6 +51,8 @@ prepara() {
   CARTELLA=/opt/squadra-$SQUADRA
   ENV=$CARTELLA/.env.squadra
   SITO_CADDY=$PROD/siti/sq-$SQUADRA.caddy
+  # la rete fra il proxy e questa sola squadra: le altre non ci sono
+  RETE=zd-bordo-sq-$SQUADRA
 }
 
 leggi() { grep "^$1=" "$ENV" | cut -d= -f2-; }
@@ -63,6 +64,9 @@ zds() {
 
 rete() {
   docker network inspect "$RETE" > /dev/null 2>&1 || docker network create "$RETE" > /dev/null
+  # il proxy entra in ogni rete di bordo; le app stanno ciascuna nella sua
+  docker network inspect "$RETE" --format '{{range .Containers}}{{.Name}} {{end}}' \
+    | grep -qw zd-proxy || docker network connect "$RETE" zd-proxy
 }
 
 # Le chiavi delle notifiche push, generate con la libreria che il gestionale

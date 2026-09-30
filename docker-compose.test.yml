@@ -91,7 +91,9 @@ services:
     volumes:
       - uploads:/data/uploads
     # default per parlare col suo database, bordo per farsi raggiungere dal
-    # proxy della produzione (vedi docker-compose.prod.yml)
+    # proxy della produzione: una rete sua, zd-bordo-test o zd-bordo-test2,
+    # dove c'è solo il proxy (vedi docker-compose.prod.yml). Un test non vede
+    # l'altro.
     networks:
       - default
       - bordo
@@ -103,7 +105,7 @@ services:
 networks:
   bordo:
     external: true
-    name: zd-bordo
+    name: zd-bordo-${ISTANZA:-test}
 
 volumes:
   db-data:

@@ -251,8 +251,10 @@ docker cp zd-db:/tmp/prima.dump /root/backup/prod-$(date +%F-%H%M).dump
 
 # 2. il codice nuovo e la ricostruzione
 git pull --ff-only
-docker network inspect zd-bordo >/dev/null 2>&1 || docker network create zd-bordo
 zd up -d --build
+for r in $(docker network ls --format '{{.Name}}' | grep '^zd-bordo-'); do
+  docker network connect "$r" zd-proxy 2>/dev/null || true
+done
 
 # 3. il proxy, che da solo non se ne accorge
 zd restart proxy
@@ -290,9 +292,13 @@ Le quattro righe, una per una:
   gigabyte non si sfonda comunque si rilasci. Il nome dell'opzione è cambiato
   fra le versioni di Docker (`--max-used-space`, prima `--keep-storage`), per
   questo la riga ne prova due.
-- **La rete `zd-bordo`** è quella che il proxy divide con l'ambiente di test
-  (capitolo qui sotto). È esterna ai due compose, quindi va creata prima
-  dell'`up`: la riga non fa niente se c'è già.
+- **Le reti `zd-bordo-*`** sono quelle fra il proxy e le altre istanze della
+  macchina, una per istanza (`zd-bordo-test`, `zd-bordo-test2`,
+  `zd-bordo-sq-<squadra>`): in ognuna ci sono solo il proxy e quell'app, così
+  ops, test, test2 e le squadre ospitate non si vedono fra loro. Le creano gli
+  script dell'istanza; il ciclo le ricollega al proxy, che le perde se l'`up`
+  lo ricrea. Il proxy raggiunge la produzione come `zd-app`, mai come `app`:
+  in ognuna di quelle reti `app` è un'altra istanza.
   **L'`until` sulle immagini non è una decorazione.** Senza, la
   pulizia si porta via anche la build appena sostituita, che è il paracadute
   del punto qui sotto: con `until=24h` il ritorno indietro resta possibile per
@@ -347,8 +353,10 @@ cat /opt/gestionale-test/ACCESSO.txt
 **Perché il test non tocca la produzione.**
 
 - Ha il suo database e i suoi allegati. Il proxy vede l'app di test sulla rete
-  `zd-bordo`, dove ci sono soltanto loro due: il database vero sta nella rete
-  del gestionale, e dal test non si raggiunge.
+  `zd-bordo-test` (o `zd-bordo-test2`), dove ci sono soltanto loro due: il
+  database vero sta nella rete del gestionale, e dal test non si raggiunge;
+  test e test2 non si vedono nemmeno fra loro, e si parlano solo come due
+  squadre qualsiasi, dal loro indirizzo pubblico.
 - Ha un'altra `SESSION_SECRET`. Le sessioni di un ambiente non valgono
   nell'altro, e le credenziali del portale federale copiate dalla produzione
   restano cifrate con la chiave vera: illeggibili, ed è voluto.

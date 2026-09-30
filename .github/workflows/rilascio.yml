@@ -166,9 +166,13 @@ jobs:
 
           echo "== 2. Codice nuovo e ricostruzione"
           git pull --ff-only
-          # la rete che il proxy divide con l'ambiente di test
-          docker network inspect zd-bordo > /dev/null 2>&1 || docker network create zd-bordo
           zd up -d --build
+          # il proxy nelle reti di bordo di test e squadre ospitate, una per
+          # istanza: se l'up l'ha ricreato, le ha perse
+          for r in $(docker network ls --format '{{.Name}}' | grep '^zd-bordo-' || true); do
+            docker network inspect "$r" --format '{{range .Containers}}{{.Name}} {{end}}' \
+              | grep -qw zd-proxy || docker network connect "$r" zd-proxy
+          done
 
           echo "== 3. Proxy"
           zd restart proxy

@@ -26,10 +26,13 @@
 	header Strict-Transport-Security "max-age=31536000"
 
 	# Host, X-Forwarded-Proto e X-Forwarded-Host li passa già Caddy: è da
-	# quelli che il gestionale compone i link verso sé stesso. Il nome "app"
-	# viene risolto a ogni connessione, quindi dopo una ricostruzione non c'è
-	# il 502 che in casa costringeva al resolver esplicito.
-	reverse_proxy app:3000 {
+	# quelli che il gestionale compone i link verso sé stesso. Il nome viene
+	# risolto a ogni connessione, quindi dopo una ricostruzione non c'è il 502
+	# che in casa costringeva al resolver esplicito.
+	# Il nome del container e non "app": il proxy sta anche nelle reti dei
+	# test e delle squadre ospitate, dove "app" è la loro. Con "app" il
+	# traffico vero poteva finire in un'altra istanza.
+	reverse_proxy zd-app:3000 {
 		header_up X-Real-IP {remote_host}
 
 		# le server action sono richieste lunghe: caricare un certificato o

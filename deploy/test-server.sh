@@ -40,7 +40,8 @@ TEST=/opt/gestionale-$ISTANZA
 DOMINIO_TEST=$ISTANZA.zerodarkteam.it
 DOMINIO_PROD=ops.zerodarkteam.it
 SITO_CADDY=$PROD/siti/$ISTANZA.caddy
-RETE=zd-bordo
+# la rete fra il proxy e questa sola istanza: le altre non ci sono
+RETE=zd-bordo-$ISTANZA
 
 zdt() {
   docker compose -p "gestionale-$ISTANZA" -f "$TEST/docker-compose.test.yml" \
@@ -51,6 +52,9 @@ casuale() { openssl rand -hex "$1"; }
 
 rete() {
   docker network inspect "$RETE" > /dev/null 2>&1 || docker network create "$RETE" > /dev/null
+  # il proxy entra in ogni rete di bordo; le app stanno ciascuna nella sua
+  docker network inspect "$RETE" --format '{{range .Containers}}{{.Name}} {{end}}' \
+    | grep -qw zd-proxy || docker network connect "$RETE" zd-proxy
 }
 
 # ------------------------------------------------------------------ codice
@@ -216,11 +220,13 @@ rilascia() {
   configurazione
   echo "== Ricostruzione"
   zdt up -d --build
+  # la vecchia rete condivisa da tutti i test: vuota, se ne va
+  docker network rm zd-bordo > /dev/null 2>&1 || true
   proxy
   docker image prune -f --filter until=24h > /dev/null
   # l'app appena ricreata impiega qualche secondo a rispondere: controllarla
   # subito darebbe un 502 che non vuol dire niente. Si bussa dal proxy, che
-  # la vede sulla rete zd-bordo, per al massimo un minuto
+  # la vede sulla rete di bordo del test, per al massimo un minuto
   local _
   for _ in $(seq 1 30); do
     docker exec zd-proxy wget -q -O /dev/null "http://zd-$ISTANZA-app:3000/login" 2>/dev/null && break
