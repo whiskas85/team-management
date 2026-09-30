@@ -14,6 +14,8 @@ import {
   saldoCredito,
 } from '@/lib/credito';
 import { fmtEuro } from '@/lib/format';
+import { eliminaAllegato } from '@/lib/storage';
+import { avvisaPersona } from '@/lib/avvisi';
 
 const TIPI = [
   'ISCRIZIONE',
@@ -624,4 +626,56 @@ export async function trasformaInCredito(_prev: StatoForm, fd: FormData): Promis
   return credito > 0
     ? { ok: `${fmtEuro(credito)} tenuti come credito: si spendono alla prossima quota.` }
     : { errore: 'Non c’era niente da trasformare in credito.' };
+}
+
+/**
+ * Un pagamento segnalato che non è arrivato: la segnalazione si toglie.
+ *
+ * La quota torna com'era prima — da pagare, con «Paga» davanti alla persona —
+ * e la ricevuta allegata se ne va con la segnalazione: raccontava un
+ * pagamento che non c'è. Nelle note resta che la segnalazione c'era e chi
+ * l'ha tolta, e la persona viene avvisata, perché altrimenti crederebbe di
+ * aver pagato.
+ */
+export async function rifiutaSegnalazione(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const pagamento = await prisma.payment.findUnique({ where: { id: str(fd, 'id') } });
+  if (!pagamento) return { errore: 'Movimento non trovato.' };
+  if (!(await puoGestireCassa(me, pagamento.cassaId))) {
+    return { errore: 'Questo pagamento lo gestisce chi ne tiene la cassa.' };
+  }
+  if (!pagamento.dichiaratoIl || pagamento.status === 'PAGATO') {
+    return { errore: 'Non c’è una segnalazione da togliere.' };
+  }
+
+  const segnalato = pagamento.dichiaratoIl.toLocaleDateString('it-IT');
+  const traccia = `Segnalazione del ${segnalato} non arrivata (${me.nome} ${me.cognome}, ${new Date().toLocaleDateString('it-IT')})`;
+  await prisma.payment.update({
+    where: { id: pagamento.id },
+    data: {
+      dichiaratoIl: null,
+      allegatoPath: null,
+      allegatoNome: null,
+      allegatoTipo: null,
+      allegatoTitolo: null,
+      note: [pagamento.note, traccia].filter(Boolean).join(' · '),
+    },
+  });
+  if (pagamento.allegatoPath) await eliminaAllegato(pagamento.allegatoPath).catch(() => null);
+
+  await avvisaPersona(pagamento.userId, {
+    titolo: 'Pagamento non arrivato',
+    testo: `Il pagamento che avevi segnalato per «${pagamento.descrizione}» non risulta arrivato: la quota è di nuovo da pagare.`,
+    url: '/pagamenti',
+    tag: `pagamento-${pagamento.id}`,
+    whatsapp: `Zero Dark Ops — pagamento non arrivato
+
+Il pagamento che avevi segnalato il ${segnalato} per «${pagamento.descrizione}» (${fmtEuro(Number(pagamento.importo) - Number(pagamento.pagato))}) non risulta arrivato.
+
+La quota è di nuovo da pagare: la trovi in Miei pagamenti. Se hai pagato davvero, scrivi a chi tiene la cassa.`,
+  }).catch(() => null);
+
+  aggiorna();
+  if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
+  return { ok: 'Segnalazione tolta: la quota è di nuovo da pagare, e la persona è stata avvisata.' };
 }

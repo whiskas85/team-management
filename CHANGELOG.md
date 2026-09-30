@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.10.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Pagamento segnalato ma non arrivato.** Accanto a un pagamento «da
+  confermare», in Pagamenti e nelle casse, c'è «Non arrivato»: la
+  segnalazione si toglie (con la ricevuta allegata), la quota torna da pagare
+  e la persona riceve un avviso — notifica o WhatsApp — che la trova di nuovo
+  in Miei pagamenti. Nelle note resta chi l'ha tolta e quando.
+
 ## 3.9.0 — 30 settembre 2026
 
 ### Aggiunto

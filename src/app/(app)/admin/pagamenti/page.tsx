@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NonArrivato } from '@/components/NonArrivato';
 import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { PagamentiAdAltreSquadre } from '@/components/PagamentiAdAltreSquadre';
@@ -363,7 +364,10 @@ export default async function AdminPagamentiPage({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {p.status !== 'PAGATO' && p.dichiaratoIl ? (
-                  <Badge tono="info">Da confermare</Badge>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Badge tono="info">Da confermare</Badge>
+                    <NonArrivato id={p.id} descrizione={p.descrizione} />
+                  </span>
                 ) : (
                   <Badge tono={tonoPagamento[p.status] ?? 'neutro'}>{umanizza(p.status)}</Badge>
                 )}
@@ -433,6 +437,9 @@ export default async function AdminPagamentiPage({
                     <td className="whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
+                        {p.status !== 'PAGATO' && p.dichiaratoIl && (
+                          <NonArrivato id={p.id} descrizione={p.descrizione} />
+                        )}
                         <EliminaPagamento pagamento={p} />
                       </div>
                     </td>

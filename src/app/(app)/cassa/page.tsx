@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NonArrivato } from '@/components/NonArrivato';
 import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { notFound } from 'next/navigation';
@@ -287,6 +288,9 @@ export default async function CassaPage({
                 <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
+                  {p.status !== 'PAGATO' && p.dichiaratoIl && (
+                    <NonArrivato id={p.id} descrizione={p.descrizione} />
+                  )}
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
               </div>
@@ -327,6 +331,9 @@ export default async function CassaPage({
                       <span className="flex items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
+                  {p.status !== 'PAGATO' && p.dichiaratoIl && (
+                    <NonArrivato id={p.id} descrizione={p.descrizione} />
+                  )}
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
                     </td>
