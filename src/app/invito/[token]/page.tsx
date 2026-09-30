@@ -6,6 +6,8 @@ import { fmtTime } from '@/lib/format';
 import { Logo } from '@/components/Logo';
 import { Mappa } from '@/components/Mappa';
 import { MappaPunti } from '@/components/MappaPunti';
+import { SelettoreChiaroScuro } from '@/components/SelettoreChiaroScuro';
+import { temaPagina } from '@/lib/tema-server';
 import { Naviga } from '@/components/Naviga';
 import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -167,10 +169,12 @@ export default async function PaginaInvito({
     <main className="mx-auto w-full max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center gap-3 border-b border-line pb-5">
         <Logo size={44} src={m.logoUrl} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="num text-sm font-semibold uppercase tracking-wide">{m.nomeGestionale}</p>
           <p className="text-[11px] uppercase tracking-[0.2em] text-nvg">{m.motto}</p>
         </div>
+        {/* chiaro o scuro anche per chi viene da fuori: resta su quel telefono */}
+        <SelettoreChiaroScuro notte={(await temaPagina()).t.scuro} className="shrink-0" />
       </header>
 
       <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">

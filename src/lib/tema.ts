@@ -67,6 +67,9 @@ export const ACCENTI_PRONTI = [
 
 export const TEMA_PARTENZA: TemaSquadra = { accento: '#4cff00', modo: 'scuro' };
 
+/** Dove resta notte/giorno di chi guarda una pagina pubblica senza profilo. */
+export const COOKIE_MODO = 'zd-modo';
+
 // ----------------------------------------------------------------- colore
 
 type Rgb = [number, number, number];

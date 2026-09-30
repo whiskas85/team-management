@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.0.0 — 30 settembre 2026
+
+Con questa versione il gestionale si collega con quelli delle altre squadre
+(attività condivise, inviti, numeri, pagamenti fra squadre, gestione condivisa
+e re-inviti) e cambia aspetto: il tema lo sceglie la squadra, chiaro o scuro lo
+sceglie ognuno, e ci sono i temi di accessibilità. Da qui la nuova major.
+
+### Aggiunto
+
+- **Chiaro / Scuro anche nell'invito delle squadre ospiti.** In cima alla pagina
+  d'invito c'è lo stesso selettore del chip col nome. Chi viene da fuori non ha
+  un profilo, e la scelta resta su quel telefono.
+
 ## 2.129.1 — 30 settembre 2026
 
 ### Cambiato

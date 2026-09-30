@@ -1,7 +1,9 @@
 import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { getCurrentUser } from './auth';
 import { leggiMiaSquadra } from './mia-squadra';
 import {
+  COOKIE_MODO,
   cssTema,
   daHex,
   eTemaPersonale,
@@ -29,7 +31,9 @@ export const temaPagina = cache(async () => {
   const [squadra, utente] = await Promise.all([temaSquadra(), getCurrentUser().catch(() => null)]);
   const personale = (eTemaPersonale(utente?.tema) ? utente!.tema : 'squadra') as TemaPersonale;
   // la squadra dà solo notte o giorno di partenza: con la levetta decide ognuno
-  const modo = utente?.modo === 'chiaro' || utente?.modo === 'scuro' ? utente.modo : squadra.modo;
+  // senza profilo (l'invito pubblico) la scelta sta in un biscotto
+  const scelto = utente ? utente.modo : (await cookies()).get(COOKIE_MODO)?.value;
+  const modo = scelto === 'chiaro' || scelto === 'scuro' ? scelto : squadra.modo;
   const t = tavolozza({ ...squadra, modo }, personale);
   return {
     t,

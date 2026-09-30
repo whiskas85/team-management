@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Prisma, Role } from '@prisma/client';
 import { prisma } from '@/lib/db';
-import { hashPassword, requireUser, verifyPassword } from '@/lib/auth';
+import { getCurrentUser, hashPassword, requireUser, verifyPassword } from '@/lib/auth';
+import { cookies } from 'next/headers';
+import { COOKIE_MODO } from '@/lib/tema';
 import { isAdmin, isContatto, puoVedereNuovi, puoVedereOperatori } from '@/lib/domain';
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
 import { perWhatsapp } from '@/lib/telefono';
@@ -680,7 +682,18 @@ export async function salvaAspetto(_prev: StatoForm, fd: FormData): Promise<Stat
  * levetta passa fra il suo scuro e il suo chiaro.
  */
 export async function impostaNotte(notte: boolean): Promise<void> {
-  const me = await requireUser();
+  // chi apre una pagina pubblica (l'invito di una squadra ospite) non ha un
+  // profilo: la scelta resta sul suo telefono, in un biscotto
+  const me = await getCurrentUser();
+  if (!me) {
+    (await cookies()).set(COOKIE_MODO, notte ? 'scuro' : 'chiaro', {
+      maxAge: 365 * 86_400,
+      sameSite: 'lax',
+      path: '/',
+    });
+    revalidatePath('/', 'layout');
+    return;
+  }
   const u = await prisma.user.findUnique({ where: { id: me.id }, select: { tema: true } });
   await prisma.user.update({
     where: { id: me.id },

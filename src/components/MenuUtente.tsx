@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { impostaNotte } from '@/actions/operatori';
+import { useEffect, useRef, useState } from 'react';
+import { SelettoreChiaroScuro } from './SelettoreChiaroScuro';
 import type { Role } from '@prisma/client';
 import { Avatar, Badge } from './ui';
 import { Icona } from './Icona';
@@ -60,19 +59,6 @@ export function MenuUtente({
   levetta?: boolean;
 }) {
   const [aperto, setAperto] = useState(false);
-  const router = useRouter();
-  const [cambiando, avvia] = useTransition();
-  // si sposta subito, senza aspettare il server: il tema arriva un attimo dopo
-  const [buio, setBuio] = useState(notte);
-  useEffect(() => setBuio(notte), [notte]);
-  const commuta = () => {
-    const nuovo = !buio;
-    setBuio(nuovo);
-    avvia(async () => {
-      await impostaNotte(nuovo);
-      router.refresh();
-    });
-  };
   const contenitore = useRef<HTMLDivElement>(null);
   const segnaposto = useRef<HTMLDivElement>(null);
 
@@ -217,40 +203,7 @@ export function MenuUtente({
                 // legge da solo quale dei due è acceso, senza dover capire da
                 // che parte sta una levetta.
                 <div className="px-4 py-2.5">
-                  <div
-                    role="radiogroup"
-                    aria-label="Tema"
-                    className="relative grid grid-cols-2 rounded-full border border-line bg-surface2 p-0.5"
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-2px)] rounded-full bg-nvg shadow transition-transform duration-200 ease-out motion-reduce:transition-none"
-                      style={{ transform: buio ? 'translateX(100%)' : 'translateX(0)' }}
-                    />
-                    {([
-                      { scuro: false, segno: '☀', nome: 'Chiaro' },
-                      { scuro: true, segno: '☾', nome: 'Scuro' },
-                    ] as const).map((o) => {
-                      const scelto = buio === o.scuro;
-                      return (
-                        <button
-                          key={o.nome}
-                          type="button"
-                          role="radio"
-                          aria-checked={scelto}
-                          disabled={cambiando}
-                          tabIndex={aperto ? undefined : -1}
-                          onClick={() => !scelto && commuta()}
-                          className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full py-1.5 text-xs font-semibold transition-colors ${
-                            scelto ? 'text-nvgink' : 'text-muted hover:text-ink'
-                          }`}
-                        >
-                          <span aria-hidden>{o.segno}</span>
-                          {o.nome}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <SelettoreChiaroScuro notte={notte} tabIndex={aperto ? undefined : -1} />
                 </div>
               )}
 
