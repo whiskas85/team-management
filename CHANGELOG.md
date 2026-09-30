@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.127.1 — 30 settembre 2026
+
+### Corretto
+
+- **Quanto chiede l'invito, sulla card.** Fra gli Inviti (li vede solo l'admin)
+  il badge torna a dire la cifra: «A pagamento · 30,00 € a operatore». Sulle
+  attività già accettate resta solo «A pagamento», sempre solo per l'admin.
+- **Le voci del listino nelle quote.** In uno spazio stretto nome, prezzo e
+  «polizza» si spezzavano in tre colonne. Ora vanno a capo come una frase.
+  Nella finestra **Accetta l'invito** le card squadra ed esterni stanno una
+  sotto l'altra.
+
 ## 2.127.0 — 30 settembre 2026
 
 ### Aggiunto

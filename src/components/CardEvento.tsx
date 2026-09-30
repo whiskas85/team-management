@@ -52,6 +52,8 @@ export type EventoLista = {
   /** Quanto chiede chi organizza, se chiede qualcosa: «5,00 € a operatore». */
   /** Di un'altra squadra e a pagamento: lo vede solo l'admin, senza la cifra. */
   pagaOrganizzatore?: boolean;
+  /** Su un invito ancora da decidere, quanto chiedono (solo per l'admin). */
+  costoInvito?: string | null;
   costoChiesto?: { importo: number; per: 'OPERATORE' | 'SQUADRA' } | null;
   /** Il sondaggio da cui è nata, o aperto su di lei. */
   sondaggioId?: string | null;
@@ -183,7 +185,9 @@ export function CardEvento({
             )}
             {e.pagaOrganizzatore && (
               <p className="mt-1">
-                <Badge tono="warn">A pagamento</Badge>
+                <Badge tono="warn">
+                  A pagamento{e.costoInvito ? ` · ${e.costoInvito}` : ''}
+                </Badge>
               </p>
             )}
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>

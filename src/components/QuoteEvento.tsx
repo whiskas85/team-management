@@ -63,6 +63,7 @@ export function QuoteEvento({
   preselezionaEsterni = false,
   mostraEsterni = true,
   giorni = 1,
+  unaColonna = false,
 }: {
   listino: VoceListino[];
   /** Stagione dell'attività: filtra le voci valide. */
@@ -85,6 +86,8 @@ export function QuoteEvento({
   mostraEsterni?: boolean;
   /** Quanti giorni occupa l'attività: le voci «al giorno» contano per ognuno. */
   giorni?: number;
+  /** Le due card una sotto l'altra, per una finestra stretta. */
+  unaColonna?: boolean;
 }) {
   const applicabili = useMemo(() => vociAttivita(listino, stagioneId), [listino, stagioneId]);
   const giocate = useMemo(
@@ -94,7 +97,7 @@ export function QuoteEvento({
 
   return (
     <div
-      className={`grid grid-cols-1 gap-4 sm:col-span-2 ${mostraEsterni ? 'sm:grid-cols-2' : ''}`}
+      className={`grid grid-cols-1 gap-4 sm:col-span-2 ${mostraEsterni && !unaColonna ? 'sm:grid-cols-2' : ''}`}
     >
       <CardQuota
         titolo="Quota squadra"
@@ -254,8 +257,10 @@ function CardQuota({
       .map(([, g]) => g);
   })();
 
+  // testo che va a capo come testo, non una fila di colonne: in una card
+  // stretta nome, prezzo e «polizza» restano una frase sola
   const chip = (attiva: boolean) =>
-    `inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+    `inline-block max-w-full rounded-md border px-2.5 py-1 text-left text-[11px] leading-snug transition-colors ${
       attiva ? 'border-nvg/50 bg-nvg/10 text-nvg' : 'border-line text-muted hover:border-nvgdim'
     }`;
 

@@ -109,6 +109,7 @@ export function ModuloAccettaInvito({
           // la giocata dei nuovi parte spuntata, come su un'attività nuova
           preselezionaEsterni
           mostraEsterni={conNuovi}
+          unaColonna
           giorni={giorni}
         />
         <p className="mt-2 text-xs text-muted">

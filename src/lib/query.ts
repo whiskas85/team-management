@@ -4,7 +4,7 @@ import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
 import { faseAttivita } from './giorni';
 import type { EventoLista } from '@/components/CardEvento';
-import { datiOrigine, organizzatoreDi } from './eventi-condivisi';
+import { datiOrigine, descriviCosto, organizzatoreDi } from './eventi-condivisi';
 
 /**
  * Chi vede quali attività.
@@ -117,6 +117,12 @@ export async function eventiPerLista({
     // di un'altra squadra e a pagamento: lo sa solo l'admin, e senza cifra
     // sulla card (vedi `admin` qui sopra)
     pagaOrganizzatore: admin && !!e.origineCollegamento && !!datiOrigine(e.origineDati).costo,
+    // sull'invito ancora da decidere la cifra serve: è lì che l'admin sceglie
+    // se accettare. Gli inviti li vede solo lui
+    costoInvito: (() => {
+      const c = admin && e.status === 'INVITATA' ? datiOrigine(e.origineDati).costo : null;
+      return c ? descriviCosto(c) : null;
+    })(),
     // la cifra serve solo all'admin che accetta l'invito
     costoChiesto: admin && e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
     sondaggioId: e.sondaggio?.id ?? null,
