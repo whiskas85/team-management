@@ -12,7 +12,7 @@ export default async function AiutoPage() {
     <>
       <Intestazione
         titolo="Aiuto"
-        sottotitolo="Cosa si fa in ogni pagina, e come. Il «?» accanto al titolo di ogni pagina apre la sua spiegazione."
+        sottotitolo="Cosa si fa in ogni pagina, e come. Il «?» accanto al titolo di ogni pagina apre la sua spiegazione; questa pagina è nel riquadro del tuo nome, in alto a destra."
       />
       <AiutoGenerale />
     </>

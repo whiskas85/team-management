@@ -5,6 +5,13 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.1.1 — 30 settembre 2026
+
+### Cambiato
+
+- **L'aiuto generale sta nel riquadro del nome.** Non è più in fondo al menu:
+  si apre cliccando sul proprio nome in alto a destra, sotto «Il mio profilo».
+
 ## 3.1.0 — 30 settembre 2026
 
 ### Aggiunto

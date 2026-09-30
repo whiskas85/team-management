@@ -194,6 +194,19 @@ export function MenuUtente({
                 Il mio profilo
               </Link>
 
+              {/* l'aiuto di tutto il gestionale; quello della singola pagina
+                  è il «?» accanto al suo titolo */}
+              <Link
+                href="/aiuto"
+                onClick={() => setAperto(false)}
+                role="menuitem"
+                tabIndex={aperto ? undefined : -1}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/90 transition-colors hover:bg-surface2 hover:text-ink"
+              >
+                <Icona nome="aiuto" size={16} />
+                Aiuto
+              </Link>
+
               {/* Notte o giorno: lo decide ognuno per sé. La squadra sceglie
                   solo da dove si parte, e al sole un fondo chiaro si legge
                   meglio. */}
