@@ -6,6 +6,7 @@ import { Icona } from './Icona';
 import { VoceAiutoVista } from './VoceAiutoVista';
 
 const AREE: VoceAiuto['area'][] = [
+  'Primi passi',
   'Operativo',
   'Squadra',
   'Soldi',
