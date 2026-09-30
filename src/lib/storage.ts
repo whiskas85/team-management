@@ -111,6 +111,8 @@ export async function eliminaAllegato(relativo: string) {
   } catch {
     /* file già assente: non è un errore bloccante */
   }
+  // e la sua miniatura, se ne ha una (foto e loghi)
+  await unlink(percorsoAssoluto(`${relativo}.mini.webp`)).catch(() => null);
 }
 
 /**

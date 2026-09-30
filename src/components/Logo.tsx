@@ -1,3 +1,4 @@
+import { conMiniatura } from '@/lib/miniature-url';
 /* eslint-disable @next/next/no-img-element */
 
 /**
@@ -18,7 +19,8 @@ export function Logo({
 }) {
   return (
     <img
-      src={src}
+      // piccolo: la miniatura, che arriva subito; grande (l'accesso): l'originale
+      src={size <= 96 ? conMiniatura(src) : src}
       alt={alt}
       width={size}
       height={size}

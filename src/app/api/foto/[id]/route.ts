@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { percorsoAssoluto } from '@/lib/storage';
+import { leggiMiniatura, rispostaMiniatura } from '@/lib/miniature';
 
 /**
  * Foto profilo. Sta fuori da `public/` come gli altri allegati: la vede solo
  * chi ha fatto l'accesso, non il primo che indovina l'indirizzo.
  */
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser();
   if (!me) return new NextResponse('Non autenticato', { status: 401 });
 
@@ -18,6 +19,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     select: { fotoPath: true },
   });
   if (!utente?.fotoPath) return new NextResponse('Nessuna foto', { status: 404 });
+
+  // ?mini=1: la copia piccola, per avatar ed elenchi
+  if (new URL(req.url).searchParams.has('mini')) {
+    const mini = await leggiMiniatura(utente.fotoPath);
+    if (mini) return rispostaMiniatura(mini);
+  }
 
   try {
     const buffer = await readFile(percorsoAssoluto(utente.fotoPath));

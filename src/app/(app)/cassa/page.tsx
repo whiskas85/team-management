@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { notFound } from 'next/navigation';
 import type { Prisma } from '@prisma/client';
@@ -346,7 +347,15 @@ export default async function CassaPage({
 function Stato({
   pagamento,
 }: {
-  pagamento: { status: string; tipo: string; dichiaratoIl: Date | null; pagatoIl: Date | null };
+  pagamento: {
+    id: string;
+    status: string;
+    tipo: string;
+    dichiaratoIl: Date | null;
+    pagatoIl: Date | null;
+    allegatoPath?: string | null;
+    allegatoTitolo?: string | null;
+  };
 }) {
   if (pagamento.status !== 'PAGATO' && pagamento.dichiaratoIl) {
     return (
@@ -355,6 +364,7 @@ function Stato({
         <span className="num mt-0.5 block text-[11px] text-muted">
           segnalato {fmtDate(pagamento.dichiaratoIl)}
         </span>
+        <LinkAllegatoPagamento pagamento={pagamento} />
       </span>
     );
   }
@@ -393,6 +403,8 @@ function Incassa({
     pagato: unknown;
     descrizione: string;
     dichiaratoIl: Date | null;
+    allegatoPath?: string | null;
+    allegatoTitolo?: string | null;
     metodoId: string | null;
   };
   metodi: { id: string; nome: string }[];
@@ -445,7 +457,7 @@ function Incassa({
         {pagamento.dichiaratoIl && (
           <p className="rounded-md border border-info/40 bg-info/10 px-3 py-2 text-xs text-info">
             Ha segnalato il pagamento il {fmtDate(pagamento.dichiaratoIl)}. Controlla che sia
-            arrivato e conferma.
+            arrivato e conferma. <LinkAllegatoPagamento pagamento={pagamento} />
           </p>
         )}
 

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { CollegamentoSquadra, Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { UPLOAD_DIR, eliminaAllegato } from './storage';
+import { creaMiniatura } from './miniature';
 import { manda, profiloNostro, profiloRicevuto, type Profilo } from './federazione';
 
 /**
@@ -226,4 +227,5 @@ export async function scaricaLogo(c: CollegamentoSquadra, profilo?: Profilo) {
       data: { logoVersione: (profilo ?? profiloRicevuto(c.profilo))?.logo ?? null },
     }),
   ]);
+  await creaMiniatura(path.posix.join('squadre', nome));
 }

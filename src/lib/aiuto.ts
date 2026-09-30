@@ -387,6 +387,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Con cosa si pagano le quote del club: nome, descrizione e istruzioni (IBAN, link PayPal o Satispay…).',
     perChi: 'Admin',
     passi: [
+      { titolo: 'Allegato obbligatorio', testo: 'Chi segnala di aver pagato con questo metodo deve allegare un file, col titolo che scegli (es. «Ricevuta» per il bonifico). Chi conferma lo apre accanto al pagamento.' },
       { titolo: 'Aggiungere', testo: '[[p:aggiungi|Aggiungi metodo]]; per cambiarne uno [[g:modifica|Modifica]].' },
       { titolo: 'Le spunte', testo: '**L’operatore può dichiararlo da sé**: chi paga lo segnala da solo (la segreteria conferma comunque). **Lo usano anche le squadre esterne**: lo vedono le collegate per versare la loro parte. Un link nelle istruzioni diventa il pulsante «Paga con …».' },
     ],

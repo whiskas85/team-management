@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { PagamentiAdAltreSquadre } from '@/components/PagamentiAdAltreSquadre';
 import type { Prisma } from '@prisma/client';
@@ -114,6 +115,8 @@ export default async function AdminPagamentiPage({
         status: true,
         tipo: true,
         dichiaratoIl: true,
+        allegatoPath: true,
+        allegatoTitolo: true,
       },
     }),
     elencoOperatori(false),
@@ -412,6 +415,7 @@ export default async function AdminPagamentiPage({
                           <span className="num mt-0.5 block text-[11px] text-muted">
                             segnalato {fmtDate(p.dichiaratoIl)}
                           </span>
+                          <LinkAllegatoPagamento pagamento={p} />
                         </>
                       ) : (
                         <>
@@ -454,6 +458,8 @@ type Riga = {
   pagato: unknown;
   descrizione: string;
   dichiaratoIl: Date | null;
+  allegatoPath?: string | null;
+  allegatoTitolo?: string | null;
   metodoId: string | null;
   userId: string;
 };
@@ -493,7 +499,8 @@ function AzioniPagamento({
             {pagamento.dichiaratoIl && (
               <p className="rounded-md border border-info/40 bg-info/10 px-3 py-2 text-xs text-info">
                 L’operatore ha segnalato il pagamento il {fmtDate(pagamento.dichiaratoIl)}.
-                Controlla che sia arrivato e conferma.
+                Controlla che sia arrivato e conferma.{' '}
+                <LinkAllegatoPagamento pagamento={pagamento} />
               </p>
             )}
 

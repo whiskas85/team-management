@@ -198,7 +198,7 @@ export function Avatar({
   if (fotoDi) {
     return (
       <img
-        src={`/api/foto/${fotoDi}`}
+        src={`/api/foto/${fotoDi}?mini=1`}
         alt=""
         className={`${dim} shrink-0 rounded-full border border-nvg/30 object-cover`}
       />

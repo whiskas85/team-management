@@ -1,4 +1,5 @@
 import { Badge, Campo } from '@/components/ui';
+import { AllegatoObbligatorioCampi } from '@/components/AllegatoObbligatorioCampi';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
@@ -14,6 +15,8 @@ export type MetodoCassa = {
   istruzioni: string | null;
   selfService: boolean;
   esterni: boolean;
+  allegatoObbligatorio: boolean;
+  titoloAllegato: string | null;
   ordine: number;
   attivo: boolean;
 };
@@ -105,9 +108,12 @@ export function MetodiCassa({
                 </BottoneModale>
               }
             >
-              {(m.selfService || m.esterni || !m.attivo) && (
+              {(m.selfService || m.esterni || m.allegatoObbligatorio || !m.attivo) && (
                 <span className="flex flex-wrap gap-2">
                   {m.selfService && <Badge tono="ok">dichiarabile</Badge>}
+                  {m.allegatoObbligatorio && (
+                    <Badge tono="warn">allegato: {m.titoloAllegato ?? 'Ricevuta'}</Badge>
+                  )}
                   {m.esterni && <Badge tono="info">squadre esterne</Badge>}
                   {!m.attivo && <Badge tono="neutro">spento</Badge>}
                 </span>
@@ -245,6 +251,11 @@ function CampiMetodo({ metodo }: { metodo?: MetodoCassa }) {
           </span>
         </span>
       </label>
+
+      <AllegatoObbligatorioCampi
+        obbligatorio={metodo?.allegatoObbligatorio ?? false}
+        titolo={metodo?.titoloAllegato ?? ''}
+      />
 
       <label className="flex min-w-0 items-center gap-2 text-sm sm:col-span-2">
         <input

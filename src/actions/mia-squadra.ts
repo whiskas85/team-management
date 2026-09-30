@@ -11,6 +11,7 @@ import { UPLOAD_DIR, eliminaAllegato } from '@/lib/storage';
 import { strOpt, type StatoForm } from '@/lib/form';
 import { diffondiProfilo } from '@/lib/federazione-coda';
 import { daHex } from '@/lib/tema';
+import { creaMiniatura } from '@/lib/miniature';
 
 const MAX_BYTE = 1_500_000;
 
@@ -85,6 +86,8 @@ export async function salvaLogoSquadra(dati: string | null): Promise<{ errore?: 
     create: { logoPath },
     update: { logoPath },
   });
+  // la copia piccola per l'intestazione e i badge, subito
+  await creaMiniatura(logoPath);
   await aggiorna();
   return {};
 }

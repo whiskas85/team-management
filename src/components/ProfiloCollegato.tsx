@@ -1,3 +1,4 @@
+import { conMiniatura } from '@/lib/miniature-url';
 /* eslint-disable @next/next/no-img-element */
 import type { Profilo } from '@/lib/federazione';
 import { Icona } from './Icona';
@@ -15,7 +16,7 @@ export function StemmaSquadra({
   if (logo) {
     return (
       <img
-        src={logo}
+        src={size <= 96 ? conMiniatura(logo) : logo}
         alt={nome}
         width={size}
         height={size}

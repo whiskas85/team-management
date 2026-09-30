@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.4.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Allegato obbligatorio sui metodi di pagamento.** Nel modulo di un metodo,
+  in Dati di base o nella cassa, si spunta **Allegato obbligatorio** e se ne
+  scrive il titolo: per il bonifico, «Ricevuta». Chi segnala di aver pagato con
+  quel metodo trova la casella del file, col suo titolo, e senza file non può
+  segnalare. Chi conferma (segreteria o gestore della cassa) apre l'allegato
+  accanto al pagamento. Lo vedono solo chi ha pagato e chi conferma.
+
+### Cambiato
+
+- **Logo e foto profilo si caricano subito.** Accanto a ogni immagine c'è una
+  copia piccola (WebP, 192 pixel), ed è quella che si vede in avatar, elenchi,
+  intestazione e badge delle squadre: da centinaia di kilobyte a pochi. Per
+  le immagini nuove si crea al caricamento; per quelle già caricate, la prima
+  volta che qualcuno le guarda, e poi resta.
+
 ## 3.3.0 — 30 settembre 2026
 
 ### Aggiunto

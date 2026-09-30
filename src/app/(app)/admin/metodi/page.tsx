@@ -2,6 +2,7 @@ import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin } from '@/lib/domain';
 import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
+import { AllegatoObbligatorioCampi } from '@/components/AllegatoObbligatorioCampi';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
@@ -16,6 +17,8 @@ type Metodo = {
   istruzioni: string | null;
   selfService: boolean;
   esterni: boolean;
+  allegatoObbligatorio: boolean;
+  titoloAllegato: string | null;
   ordine: number;
   attivo: boolean;
 };
@@ -73,9 +76,12 @@ export default async function MetodiPage() {
                 elimina={<EliminaMetodo metodo={m} />}
                 azioni={<Azioni metodo={m} />}
               >
-                {(m.selfService || m.esterni || !m.attivo) && (
+                {(m.selfService || m.esterni || m.allegatoObbligatorio || !m.attivo) && (
                   <span className="flex flex-wrap gap-2">
                     {m.selfService && <Badge tono="ok">Dichiarabile</Badge>}
+                    {m.allegatoObbligatorio && (
+                      <Badge tono="warn">Allegato: {m.titoloAllegato ?? 'Ricevuta'}</Badge>
+                    )}
                     {m.esterni && <Badge tono="info">Squadre esterne</Badge>}
                     {!m.attivo && <Badge tono="neutro">Disattivato</Badge>}
                   </span>
@@ -183,6 +189,11 @@ function CampiMetodo({ metodo }: { metodo?: Metodo }) {
           </span>
         </span>
       </label>
+
+      <AllegatoObbligatorioCampi
+        obbligatorio={metodo?.allegatoObbligatorio ?? false}
+        titolo={metodo?.titoloAllegato ?? ''}
+      />
 
       <label className="flex min-w-0 items-center gap-2 text-sm sm:col-span-2">
         <input

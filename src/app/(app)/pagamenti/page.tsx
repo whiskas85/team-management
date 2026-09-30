@@ -13,6 +13,7 @@ import { SceltaPagamento } from '@/components/SceltaPagamento';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { daSaldare } from '@/lib/da-saldare';
 import { MetodiPagamento, type MetodoDaMostrare } from '@/components/MetodiPagamento';
+import { AllegatoMetodo } from '@/components/AllegatoMetodo';
 import { primoIban, primoLink } from '@/lib/link';
 
 export default async function MieiPagamentiPage() {
@@ -43,7 +44,15 @@ export default async function MieiPagamentiPage() {
       // di tutte le casse: a ogni quota si mostrano solo quelli della sua
       where: { attivo: true, selfService: true },
       orderBy: [{ ordine: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, descrizione: true, istruzioni: true, cassaId: true },
+      select: {
+        id: true,
+        nome: true,
+        descrizione: true,
+        istruzioni: true,
+        cassaId: true,
+        allegatoObbligatorio: true,
+        titoloAllegato: true,
+      },
     }),
     prisma.movimentoCredito.findMany({
       where: { userId: me.id },
@@ -333,11 +342,20 @@ function Dichiara({
     descrizione: string;
     dichiaratoIl: Date | null;
     metodoId: string | null;
+    allegatoPath?: string | null;
+    allegatoTitolo?: string | null;
     rimborso: { id: string; status: string } | null;
     /** I movimenti del credito legati a questa quota: dicono quanto ne ha pagato. */
     crediti?: { importo: unknown }[];
   };
-  metodi: { id: string; nome: string; descrizione: string | null; istruzioni: string | null }[];
+  metodi: {
+    id: string;
+    nome: string;
+    descrizione: string | null;
+    istruzioni: string | null;
+    allegatoObbligatorio: boolean;
+    titoloAllegato: string | null;
+  }[];
   /** A chi va pagata, se non al club: il nome della sua cassa. */
   cassa?: string | null;
   /** Il credito disponibile nella cassa di questa quota. */
@@ -463,6 +481,24 @@ function Dichiara({
             />
           </Campo>
         </div>
+
+        {/* la ricevuta, quando il metodo scelto la chiede */}
+        <AllegatoMetodo
+          campoMetodo={`metodo-${pagamento.id}`}
+          metodi={metodi.map((m) => ({
+            id: m.id,
+            obbligatorio: m.allegatoObbligatorio,
+            titolo: m.titoloAllegato,
+          }))}
+          esistente={
+            pagamento.allegatoPath
+              ? {
+                  titolo: pagamento.allegatoTitolo ?? 'Allegato',
+                  url: `/api/pagamenti/${pagamento.id}/allegato`,
+                }
+              : null
+          }
+        />
 
         <Invia icona="incassa">Segnala il pagamento</Invia>
         <p className="text-xs text-muted">

@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
 import { puoGestireCassa } from '@/lib/casse';
 import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
+import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 import { rimandaMetodiDellaCassa } from '@/lib/eventi-condivisi';
 
 /**
@@ -66,6 +67,11 @@ export async function salvaMetodo(_prev: StatoForm, fd: FormData): Promise<Stato
     istruzioni: strOpt(fd, 'istruzioni'),
     selfService: bool(fd, 'selfService'),
     esterni: bool(fd, 'esterni'),
+    // chi segnala di aver pagato così allega un file; «Ricevuta» se non si dice altro
+    allegatoObbligatorio: bool(fd, 'allegatoObbligatorio'),
+    titoloAllegato: bool(fd, 'allegatoObbligatorio')
+      ? (strOpt(fd, 'titoloAllegato') ?? 'Ricevuta').slice(0, 60)
+      : null,
     attivo: bool(fd, 'attivo'),
   };
 
@@ -172,12 +178,36 @@ export async function dichiaraPagamento(_prev: StatoForm, fd: FormData): Promise
   const quando = data(fd, 'quando') ?? new Date();
   if (quando > new Date()) return { errore: 'La data del pagamento non può essere nel futuro.' };
 
+  // l'allegato: obbligatorio se il metodo lo chiede (la ricevuta del bonifico)
+  const file = fd.get('allegato');
+  const conFile = file instanceof File && file.size > 0;
+  const titolo = metodo.titoloAllegato ?? 'Ricevuta';
+  if (metodo.allegatoObbligatorio && !conFile && !pagamento.allegatoPath) {
+    return { errore: `Con ${metodo.nome} va allegata la ${titolo.toLowerCase()}.` };
+  }
+  let allegato = {};
+  if (conFile) {
+    try {
+      const salvato = await salvaAllegato(file, 'pagamenti');
+      if (pagamento.allegatoPath) await eliminaAllegato(pagamento.allegatoPath);
+      allegato = {
+        allegatoPath: salvato.filePath,
+        allegatoNome: salvato.fileName,
+        allegatoTipo: salvato.mimeType,
+        allegatoTitolo: titolo,
+      };
+    } catch (e) {
+      return { errore: (e as Error).message };
+    }
+  }
+
   await prisma.payment.update({
     where: { id },
     data: {
       metodoId,
       dichiaratoIl: quando,
       note: strOpt(fd, 'note') ?? pagamento.note,
+      ...allegato,
     },
   });
 

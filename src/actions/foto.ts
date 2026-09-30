@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
+import { creaMiniatura } from '@/lib/miniature';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
@@ -51,6 +52,8 @@ export async function salvaFotoProfilo(dati: string | null): Promise<{ errore?: 
     where: { id: me.id },
     data: { fotoPath: path.posix.join('foto', nome) },
   });
+  // la copia piccola per avatar ed elenchi, subito
+  await creaMiniatura(path.posix.join('foto', nome));
 
   revalidatePath('/profilo');
   revalidatePath('/admin/operatori');

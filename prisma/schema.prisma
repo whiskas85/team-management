@@ -941,6 +941,10 @@ model MetodoPagamento {
   /// Se vero lo vedono anche le squadre collegate che vengono da noi come
   /// ospiti, per pagare la loro parte. Spento, resta un metodo per i nostri.
   esterni     Boolean  @default(false)
+  /// Chi segnala di aver pagato così deve allegare un file (un bonifico: la
+  /// ricevuta), e come si chiama quel file.
+  allegatoObbligatorio Boolean @default(false)
+  titoloAllegato       String?
   ordine      Int      @default(0)
   attivo      Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -1216,6 +1220,12 @@ model Payment {
   pagatoIl     DateTime?
   /// Quando l'operatore ha dichiarato di aver pagato: resta da confermare.
   dichiaratoIl DateTime?
+  /// Il file allegato alla segnalazione (la ricevuta del bonifico), col suo
+  /// titolo come lo chiede il metodo: chi conferma lo guarda prima di farlo.
+  allegatoPath   String?
+  allegatoNome   String?
+  allegatoTipo   String?
+  allegatoTitolo String?
   note         String?
   eventId      String?
   event        Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)

@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises';
 import { NextResponse } from 'next/server';
 import { leggiMiaSquadra, PARTENZA } from '@/lib/mia-squadra';
 import { percorsoAssoluto } from '@/lib/storage';
+import { leggiMiniatura, miniaturaPubblica, rispostaMiniatura } from '@/lib/miniature';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,15 @@ export const dynamic = 'force-dynamic';
  *
  * Senza un logo caricato si torna a quello di partenza, in public/.
  */
-export async function GET() {
+export async function GET(req: Request) {
   const s = await leggiMiaSquadra();
+  // ?mini=1: la copia piccola, per l'intestazione e i badge
+  if (new URL(req.url).searchParams.has('mini')) {
+    const mini = s?.logoPath
+      ? await leggiMiniatura(s.logoPath)
+      : await miniaturaPubblica(PARTENZA.logo);
+    if (mini) return rispostaMiniatura(mini, true);
+  }
   if (s?.logoPath) {
     try {
       const buffer = await readFile(percorsoAssoluto(s.logoPath));
