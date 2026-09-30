@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 2.127.2 — 30 settembre 2026
+
+### Cambiato
+
+- **Una quota aggiunta alla squadra vale anche per gli esterni.** Nelle quote di
+  un'attività (modifica, scheda Pagamenti, e finestra Accetta l'invito), una
+  quota aggiunta con «+ aggiungi una quota» nella card squadra compare anche
+  nella card esterni. Toglierla dalla squadra la toglie anche dagli esterni. Da
+  lì la si può comunque cambiare o togliere a parte.
+
 ## 2.127.1 — 30 settembre 2026
 
 ### Corretto

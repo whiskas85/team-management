@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Campo } from './ui';
 import { Icona, type NomeIcona } from './Icona';
 import type { VoceListino } from './CampiRichiesta';
@@ -24,6 +24,9 @@ export function vociAttivita(listino: VoceListino[], stagioneId: string | null) 
     (v) => v.stagioneId === stagioneId || !valide.some((a) => a.nome === v.nome && a.stagioneId),
   );
 }
+
+/** Una quota aggiunta o tolta nella card squadra, da ripetere in quella esterni. */
+type Eco = { n: number; tipo: 'aggiungi' | 'togli'; voce: VoceAttivitaModulo };
 
 /** Una quota aggiunta con il + su questa attività: vale solo qui. */
 export type VoceAttivitaModulo = {
@@ -90,6 +93,10 @@ export function QuoteEvento({
   unaColonna?: boolean;
 }) {
   const applicabili = useMemo(() => vociAttivita(listino, stagioneId), [listino, stagioneId]);
+  // Una quota aggiunta o tolta nella card squadra si aggiunge o si toglie
+  // anche in quella esterni: quasi sempre vale per tutti, e ripeterla a mano
+  // era il modo più facile per dimenticarla. Da lì si cambia o si toglie.
+  const [eco, setEco] = useState<Eco | null>(null);
   const giocate = useMemo(
     () => applicabili.filter((v) => v.usi.includes('GIOCATA_NUOVO')).map((v) => v.id),
     [applicabili],
@@ -109,6 +116,7 @@ export function QuoteEvento({
         aggiunte={vociAttivitaSquadra}
         casse={casse}
         giorni={giorni}
+        onCambio={(e) => setEco((p) => ({ ...e, n: (p?.n ?? 0) + 1 }))}
       />
       {mostraEsterni ? (
         <CardQuota
@@ -121,6 +129,7 @@ export function QuoteEvento({
           aggiunte={vociAttivitaEsterni}
           casse={casse}
           giorni={giorni}
+          eco={eco}
         />
       ) : (
         <p className="text-[11px] text-muted sm:col-span-2">
@@ -154,6 +163,8 @@ function CardQuota({
   aggiunte,
   casse,
   giorni,
+  onCambio,
+  eco,
 }: {
   titolo: string;
   icona: NomeIcona;
@@ -164,6 +175,10 @@ function CardQuota({
   aggiunte: VoceAttivitaModulo[];
   casse: { id: string; nome: string }[];
   giorni: number;
+  /** Squadra: dice all'altra card cosa si è aggiunto o tolto. */
+  onCambio?: (e: Omit<Eco, 'n'>) => void;
+  /** Esterni: quello che è successo nella card squadra, da ripetere qui. */
+  eco?: Eco | null;
 }) {
   // si parte dalle voci già spuntate che esistono ancora nel listino
   const [scelte, setScelte] = useState<Set<string>>(
@@ -186,7 +201,30 @@ function CardQuota({
     });
   const commutaExtra = (chiave: string) =>
     setExtra((es) => es.map((e) => (e.chiave === chiave ? { ...e, scelta: !e.scelta } : e)));
-  const togliExtra = (chiave: string) => setExtra((es) => es.filter((e) => e.chiave !== chiave));
+  const togliExtra = (chiave: string) => {
+    const tolta = extra.find((e) => e.chiave === chiave);
+    setExtra((es) => es.filter((e) => e.chiave !== chiave));
+    if (tolta) onCambio?.({ tipo: 'togli', voce: tolta });
+  };
+
+  // la card esterni ripete quello che succede in quella squadra
+  const ultimaEco = useRef(0);
+  useEffect(() => {
+    if (!eco || eco.n === ultimaEco.current) return;
+    ultimaEco.current = eco.n;
+    const v = eco.voce;
+    if (eco.tipo === 'aggiungi') {
+      setExtra((es) => [...es, { ...v, id: undefined, chiave: `${v.chiave}-esterni` }]);
+    } else {
+      // la copia fatta qui, o una quota uguale (stesso nome e cassa) già salvata
+      setExtra((es) => {
+        const copia = es.find((e) => e.chiave === `${v.chiave}-esterni`);
+        const uguale = es.find((e) => e.nome === v.nome && e.cassaId === v.cassaId);
+        const via = copia ?? uguale;
+        return via ? es.filter((e) => e !== via) : es;
+      });
+    }
+  }, [eco]);
 
   const importoNuova = nuova ? Number(nuova.importo.replace(',', '.')) : NaN;
   const nuovaValida =
@@ -194,18 +232,17 @@ function CardQuota({
   const aggiungi = () => {
     if (!nuova || !nuovaValida) return;
     const cassa = casse.find((c) => c.id === nuova.cassaId) ?? null;
-    setExtra((es) => [
-      ...es,
-      {
-        chiave: nuovaChiave(),
-        nome: nuova.nome.trim(),
-        importo: importoNuova,
-        cassaId: cassa?.id ?? null,
-        cassa: cassa?.nome ?? null,
-        scelta: true,
-        perPolizza: nuova.perPolizza,
-      },
-    ]);
+    const voce: VoceAttivitaModulo = {
+      chiave: nuovaChiave(),
+      nome: nuova.nome.trim(),
+      importo: importoNuova,
+      cassaId: cassa?.id ?? null,
+      cassa: cassa?.nome ?? null,
+      scelta: true,
+      perPolizza: nuova.perPolizza,
+    };
+    setExtra((es) => [...es, voce]);
+    onCambio?.({ tipo: 'aggiungi', voce });
     setNuova(null);
   };
   // Invio in queste caselle aggiunge la quota, non salva tutta l'attività
