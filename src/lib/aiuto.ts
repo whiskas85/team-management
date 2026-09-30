@@ -567,6 +567,32 @@ export const AIUTO: VoceAiuto[] = [
     parole: 'assicurazione polizza giornaliera ospiti',
   },
   {
+    percorso: '/admin/assicurazioni',
+    chiave: 'assicurazioni-emesse',
+    area: 'Amministrazione',
+    titolo: 'Assicurazioni emesse',
+    cosa: 'Tutte le polizze giornaliere fatte: chi è coperto, per quale attività e giorno, i numeri di polizza, chi le ha stipulate e quando.',
+    perChi: 'Amministrazione',
+    passi: [
+      { titolo: 'Valida o scaduta', testo: 'Una polizza vale fino all’ora scritta dal portale; se non c’è, fino a mezzanotte del giorno coperto.' },
+      { titolo: 'Stipulata da', testo: 'Chi ha premuto Assicura, oppure «in automatico» se è partita da sola poco prima dell’attività.' },
+    ],
+    parole: 'assicurazioni polizze elenco storico stipulate',
+  },
+  {
+    percorso: '/assicurazioni',
+    chiave: 'mie-assicurazioni',
+    area: 'Operativo',
+    titolo: 'Mie assicurazioni',
+    cosa: 'La polizza giornaliera che ti copre quando giochi senza tessera annuale: i numeri da dare se succede qualcosa in campo.',
+    passi: [
+      { titolo: 'Valide', testo: 'In cima quella di oggi (o di un giorno che deve venire). Il pallino nel menu la conta finché vale, poi si spegne da solo.' },
+      { titolo: 'Quanto vale', testo: 'Fino all’ora scritta sulla polizza; se non c’è, fino a mezzanotte del giorno coperto. Poi passa nello storico.' },
+      { titolo: 'Cosa c’è', testo: 'Il numero della polizza prova, quello della polizza infortuni AIG, il giorno coperto e i tuoi dati di assicurato.' },
+    ],
+    parole: 'assicurazione polizza giornaliera prova infortuni aig copertura nuovi',
+  },
+  {
     percorso: '/admin/segnalazioni',
     chiave: 'messaggi-segnalati',
     area: 'Amministrazione',

@@ -1,3 +1,4 @@
+import { assicurazioniValide } from '@/lib/mie-assicurazioni';
 import { temaPagina } from '@/lib/tema-server';
 import { marchio } from '@/lib/mia-squadra';
 import { redirect } from 'next/navigation';
@@ -531,6 +532,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
   }
 
+  // Le mie assicurazioni: per chi ne ha avuta almeno una (di solito i nuovi,
+  // che giocano con la polizza giornaliera). Il pallino conta quelle che
+  // valgono adesso: si accende quando una viene emessa e si spegne da solo
+  // quando scade — niente notifica, basta questo.
+  const assicurazioni = await prisma.tesseraGiornaliera.count({
+    where: { userId: utente.id, stato: 'ASSICURATO' },
+  });
+  if (assicurazioni > 0) {
+    voci.splice(voci.findIndex((v) => v.href === '/profilo'), 0, {
+      href: '/assicurazioni',
+      label: 'Mie assicurazioni',
+      icona: 'scudo',
+      gruppo: 'principale',
+      badge: await assicurazioniValide(utente.id),
+    });
+  }
+
   // le note se le scrive chi ha un incarico, e le rilegge solo lui: la voce sta
   // fra le cose operative perché è lì che si usa, non in un'area riservata
   if (haIncarichi(utente.roles)) {
@@ -598,6 +616,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         gruppo: 'amministrazione',
         badge: polizzeDaFare,
       },
+      // quelle fatte: chi è coperto, chi le ha stipulate e quando
+      { href: '/admin/assicurazioni', label: 'Assicurazioni', icona: 'scudo', gruppo: 'amministrazione' },
     );
   }
 

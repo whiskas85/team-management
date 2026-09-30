@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.3.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Mie assicurazioni.** Chi gioca con la polizza giornaliera (di solito i
+  nuovi) ha nel menu **Mie assicurazioni**. Ogni assicurazione è una card con i
+  dati della polizza: polizza prova, polizza infortuni, giorno coperto, fino a
+  quando vale, attività. Sotto ci sono i dati dell'assicurato: nome, nascita,
+  codice fiscale. In cima quelle valide, sotto lo storico. Il pallino del menu
+  conta le assicurazioni valide: si accende quando una viene emessa e si spegne
+  da solo quando scade, senza notifiche. Senza un'ora scritta sulla polizza, vale
+  fino a mezzanotte del giorno coperto.
+- **Assicurazioni emesse** (Amministrazione): l'elenco di tutte le polizze fatte,
+  con assicurato, attività e giorno, numeri di polizza, **chi le ha stipulate**
+  (o «in automatico») e **quando**, e se sono ancora valide.
+
 ## 3.2.0 — 30 settembre 2026
 
 ### Cambiato
