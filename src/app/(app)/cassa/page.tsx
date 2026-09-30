@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { NonArrivato } from '@/components/NonArrivato';
+import { AnnullaSegnalazione } from '@/components/AnnullaSegnalazione';
 import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { notFound } from 'next/navigation';
@@ -281,15 +281,17 @@ export default async function CassaPage({
                 </div>
                 <Stato pagamento={p} />
               </div>
-              <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+              {/* sul telefono i pulsanti vanno a capo sotto l'importo invece di
+                  uscire dalla card */}
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
                 <span className="num text-sm">
                   {fmtEuro(Number(p.pagato))} / {fmtEuro(Number(p.importo))}
                 </span>
-                <span className="flex items-center justify-end gap-2">
+                <span className="flex flex-wrap items-center justify-end gap-2">
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
                   {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
-                    <NonArrivato id={p.id} descrizione={p.descrizione} />
+                    <AnnullaSegnalazione id={p.id} descrizione={p.descrizione} />
                   )}
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
@@ -332,7 +334,7 @@ export default async function CassaPage({
                   <Sollecita invito={sollecito(p)} />
                   <FuoriGestionale pagamento={p} />
                   {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
-                    <NonArrivato id={p.id} descrizione={p.descrizione} />
+                    <AnnullaSegnalazione id={p.id} descrizione={p.descrizione} />
                   )}
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>

@@ -629,7 +629,8 @@ export async function trasformaInCredito(_prev: StatoForm, fd: FormData): Promis
 }
 
 /**
- * Un pagamento segnalato che non è arrivato: la segnalazione si toglie.
+ * Un pagamento segnalato che non è arrivato: la segnalazione si annulla, con
+ * il perché scritto.
  *
  * La quota torna com'era prima — da pagare, con «Paga» davanti alla persona —
  * e la ricevuta allegata se ne va con la segnalazione: raccontava un
@@ -648,8 +649,12 @@ export async function rifiutaSegnalazione(_prev: StatoForm, fd: FormData): Promi
     return { errore: 'Non c’è una segnalazione da togliere.' };
   }
 
+  // il perché è obbligatorio: resta nelle note e arriva alla persona
+  const motivo = strOpt(fd, 'motivo');
+  if (!motivo) return { errore: 'Scrivi perché annulli il pagamento: lo legge anche chi l’aveva segnalato.' };
+
   const segnalato = pagamento.dichiaratoIl.toLocaleDateString('it-IT');
-  const traccia = `Segnalazione del ${segnalato} non arrivata (${me.nome} ${me.cognome}, ${new Date().toLocaleDateString('it-IT')})`;
+  const traccia = `Pagamento segnalato il ${segnalato} annullato: ${motivo} (${me.nome} ${me.cognome}, ${new Date().toLocaleDateString('it-IT')})`;
   await prisma.payment.update({
     where: { id: pagamento.id },
     data: {
@@ -664,18 +669,19 @@ export async function rifiutaSegnalazione(_prev: StatoForm, fd: FormData): Promi
   if (pagamento.allegatoPath) await eliminaAllegato(pagamento.allegatoPath).catch(() => null);
 
   await avvisaPersona(pagamento.userId, {
-    titolo: 'Pagamento non arrivato',
-    testo: `Il pagamento che avevi segnalato per «${pagamento.descrizione}» non risulta arrivato: la quota è di nuovo da pagare.`,
+    titolo: 'Pagamento annullato',
+    testo: `Il pagamento che avevi segnalato per «${pagamento.descrizione}» è stato annullato: ${motivo}. La quota è di nuovo da pagare.`,
     url: '/pagamenti',
     tag: `pagamento-${pagamento.id}`,
-    whatsapp: `Zero Dark Ops — pagamento non arrivato
+    whatsapp: `Zero Dark Ops — pagamento annullato
 
-Il pagamento che avevi segnalato il ${segnalato} per «${pagamento.descrizione}» (${fmtEuro(Number(pagamento.importo) - Number(pagamento.pagato))}) non risulta arrivato.
+Il pagamento che avevi segnalato il ${segnalato} per «${pagamento.descrizione}» (${fmtEuro(Number(pagamento.importo) - Number(pagamento.pagato))}) è stato annullato.
+Motivo: ${motivo}
 
 La quota è di nuovo da pagare: la trovi in Miei pagamenti. Se hai pagato davvero, scrivi a chi tiene la cassa.`,
   }).catch(() => null);
 
   aggiorna();
   if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
-  return { ok: 'Segnalazione tolta: la quota è di nuovo da pagare, e la persona è stata avvisata.' };
+  return { ok: 'Pagamento annullato: la quota è di nuovo da pagare, e la persona è stata avvisata con il motivo.' };
 }

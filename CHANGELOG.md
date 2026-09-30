@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.10.2 — 30 settembre 2026
+
+### Cambiato
+
+- **«Non arrivato» diventa «Annulla», con il motivo.** Annullare un pagamento
+  segnalato apre una finestra dove si scrive perché: il motivo è
+  obbligatorio, resta nelle note della quota e arriva alla persona insieme
+  all'avviso. Sul telefono il pulsante sta con gli altri in fondo alla card,
+  non più schiacciato accanto al badge.
+
 ## 3.10.1 — 30 settembre 2026
 
 ### Corretto

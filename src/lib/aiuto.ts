@@ -329,7 +329,7 @@ export const AIUTO: VoceAiuto[] = [
     titolo: 'Miei pagamenti',
     cosa: 'Le tue quote — associative, tessere, attività — con quanto devi, quanto hai versato e come pagare.',
     passi: [
-      { titolo: 'Leggere lo stato', testo: 'Ogni voce ha il suo badge: [[b:danger|Da pagare]], [[b:warn|Parziale]], [[b:ok|Pagato]]. Quella che hai segnalato e aspetta la conferma è **In verifica**. Se chi tiene la cassa non trova i soldi, toglie la segnalazione: ti arriva un avviso e la quota torna [[b:danger|Da pagare]].' },
+      { titolo: 'Leggere lo stato', testo: 'Ogni voce ha il suo badge: [[b:danger|Da pagare]], [[b:warn|Parziale]], [[b:ok|Pagato]]. Quella che hai segnalato e aspetta la conferma è **In verifica**. Se chi tiene la cassa non trova i soldi, annulla la segnalazione: ti arriva un avviso con il motivo e la quota torna [[b:danger|Da pagare]].' },
       { titolo: 'Pagare', testo: 'Premi [[p:incassa|Paga]] sulla quota. Nella finestra tocca un metodo: il link (PayPal, Satispay…) apre il pagamento, l’IBAN si copia. Poi scegli il metodo usato e premi [[p:incassa|Segnala il pagamento]]: la segreteria lo conferma quando vede arrivare i soldi.' },
       { titolo: 'Correggere', testo: 'Sbagliato qualcosa? Sulla quota segnalata c’è [[g:incassa|Correggi la segnalazione]]: cambi metodo o importo finché la segreteria non conferma.' },
       { titolo: 'Credito', testo: 'Se hai soldi versati e non usati, **Il tuo credito** li mostra; pagando una quota della stessa cassa ti viene proposto [[p:incassa|Paga col credito]].' },
@@ -346,7 +346,7 @@ export const AIUTO: VoceAiuto[] = [
     perChi: 'Segreteria',
     passi: [
       { titolo: 'I filtri', testo: 'Da gestire (con il numero di cose in sospeso), Da incassare, Scaduti, Rimborsi, Incassati, Gestiti fuori, Tutti.' },
-      { titolo: 'Confermare un pagamento', testo: 'Chi ha segnalato di aver pagato sta in **Da gestire**: controlla e premi [[g:incassa|Incassa]], poi [[p:incassa|Registra l’incasso]]. Un importo più basso del dovuto resta come acconto. Se i soldi non sono arrivati, [[g:annulla|Non arrivato]] toglie la segnalazione: la quota torna da pagare e la persona viene avvisata.' },
+      { titolo: 'Confermare un pagamento', testo: 'Chi ha segnalato di aver pagato sta in **Da gestire**: controlla e premi [[g:incassa|Incassa]], poi [[p:incassa|Registra l’incasso]]. Un importo più basso del dovuto resta come acconto. Se i soldi non sono arrivati, [[g:annulla|Annulla]] toglie la segnalazione, con il motivo scritto: la quota torna da pagare e la persona viene avvisata con quel motivo.' },
       { titolo: 'Rimborsi e credito', testo: 'Per un rimborso richiesto: [[g:incassa|Eroga]] e [[p:incassa|Registra l’erogazione]]. Oppure [[g|Credito]] lascia i soldi alla persona per un’altra quota. [[g|Non gestito]] segna una quota pagata fuori dal gestionale.' },
       { titolo: 'A mano', testo: 'Il riquadro **Registra pagamento** crea una quota (iscrizione, tessera, torneo…), anche già incassata.' },
       { titolo: 'Squadre ospiti e altre squadre', testo: 'Per ogni squadra ospite: dovuto, pagati, da confermare e scoperti; [[p:incassa|Conferma incasso]] mette in cassa quello che hanno segnalato. Solo per l’admin, **Da pagare ad altre squadre**: le attività di altri a pagamento, col resto da versare.' },
@@ -374,7 +374,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Per chi gestisce una cassa diversa da quella del club (es. un corso): solo i pagamenti che finiscono lì.',
     perChi: 'Chi gestisce una cassa',
     passi: [
-      { titolo: 'Confermare', testo: 'Chi ha segnalato di aver pagato aspetta te: [[g:incassa|Incassa]] e poi [[p:incassa|Registra l’incasso]]. A chi è in ritardo [[g:whatsapp|Sollecita]] manda un promemoria su WhatsApp. Se i soldi non sono arrivati, [[g:annulla|Non arrivato]] toglie la segnalazione: la quota torna da pagare e la persona viene avvisata.' },
+      { titolo: 'Confermare', testo: 'Chi ha segnalato di aver pagato aspetta te: [[g:incassa|Incassa]] e poi [[p:incassa|Registra l’incasso]]. A chi è in ritardo [[g:whatsapp|Sollecita]] manda un promemoria su WhatsApp. Se i soldi non sono arrivati, [[g:annulla|Annulla]] toglie la segnalazione, con il motivo scritto: la quota torna da pagare e la persona viene avvisata con quel motivo.' },
       { titolo: 'Credito', testo: '[[p:incassa|Registra versamento]] tiene dei soldi come credito della persona; [[g:pagamenti|Restituisci]] glieli rende.' },
       { titolo: 'Come si paga', testo: 'I metodi della tua cassa: [[g:aggiungi|Aggiungi metodo]] o [[g:modifica|Modifica]], con IBAN, link, e se li usano anche le squadre esterne.' },
     ],

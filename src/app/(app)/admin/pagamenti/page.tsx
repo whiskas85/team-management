@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { NonArrivato } from '@/components/NonArrivato';
+import { AnnullaSegnalazione } from '@/components/AnnullaSegnalazione';
 import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { PagamentiAdAltreSquadre } from '@/components/PagamentiAdAltreSquadre';
@@ -360,14 +360,18 @@ export default async function AdminPagamentiPage({
                 </>
               }
               elimina={<EliminaPagamento pagamento={p} />}
-              azioni={<AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />}
+              azioni={
+                <>
+                  {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
+                    <AnnullaSegnalazione id={p.id} descrizione={p.descrizione} />
+                  )}
+                  <AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
+                </>
+              }
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl ? (
-                  <span className="flex flex-wrap items-center gap-2">
-                    <Badge tono="info">Da confermare</Badge>
-                    <NonArrivato id={p.id} descrizione={p.descrizione} />
-                  </span>
+                  <Badge tono="info">Da confermare</Badge>
                 ) : (
                   <Badge tono={tonoPagamento[p.status] ?? 'neutro'}>{umanizza(p.status)}</Badge>
                 )}
@@ -438,7 +442,7 @@ export default async function AdminPagamentiPage({
                       <div className="flex items-center gap-2">
                         <AzioniPagamento pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                         {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
-                          <NonArrivato id={p.id} descrizione={p.descrizione} />
+                          <AnnullaSegnalazione id={p.id} descrizione={p.descrizione} />
                         )}
                         <EliminaPagamento pagamento={p} />
                       </div>
