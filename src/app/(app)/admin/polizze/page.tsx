@@ -14,7 +14,6 @@ import { Avatar, Badge, Intestazione, Statistica, Vuoto } from '@/components/ui'
 import { BottoneModale } from '@/components/Modale';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
-import { TimelinePolizze } from '@/components/TimelinePolizze';
 import { PolizzeAutomatiche } from '@/components/PolizzeAutomatiche';
 import { prisma } from '@/lib/db';
 
@@ -48,7 +47,7 @@ export default async function PolizzePage() {
       0,
     );
 
-  // la giacenza serve alla previsione: e' il punto di partenza della discesa
+  // la giacenza: da qui parte il conto di quante polizze restano, attività per attività
   const giacenza = await prisma.credenzialeFigt.findUnique({
     where: { id: 'figt' },
     select: { polizzeResidue: true, polizzeLetteIl: true },
@@ -108,7 +107,11 @@ export default async function PolizzePage() {
         <GiacenzaPolizze />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* sotto i numeri, per tutta la larghezza: chi ci pensa quando nessuno
+          apre il gestionale */}
+      <PolizzeAutomatiche />
+
+      <div>
         <div className="min-w-0">
       {conOspiti.length === 0 ? (
         <Vuoto testo="Nelle attività in programma non si è segnato nessuno da fuori: non c’è niente da assicurare." />
@@ -273,28 +276,6 @@ export default async function PolizzePage() {
       </p>
         </div>
 
-        {/* La previsione sta a destra, accanto alle attivita' che la
-            determinano: e' lo stesso elenco letto in un altro modo -- non
-            "chi c'e' da coprire" ma "fino a quando mi bastano le polizze".
-            Su telefono scende sotto, che e' l'ordine giusto: prima il lavoro
-            da fare, poi il conto. */}
-        <div className="lg:sticky lg:top-20 lg:self-start">
-          <TimelinePolizze
-            giacenza={giacenza?.polizzeLetteIl ? giacenza.polizzeResidue : null}
-            tappe={conOspiti
-              .map((a) => ({
-                id: a.id,
-                titolo: a.titolo,
-                quando: a.quando,
-                serve: daCoprire(a),
-              }))
-              .filter((t) => t.serve > 0)}
-          />
-
-          {/* Sotto la previsione, perche' e' la risposta alla stessa domanda
-              letta al contrario: non "quando finiscono" ma "chi ci pensa". */}
-          <PolizzeAutomatiche />
-        </div>
       </div>
     </>
   );

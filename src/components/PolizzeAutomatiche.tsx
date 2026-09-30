@@ -34,38 +34,44 @@ export async function PolizzeAutomatiche() {
       })
     : null;
 
+  // In orizzontale, sotto i numeri della pagina: a sinistra cosa fa e com'è
+  // messa, a destra l'interruttore. Sul telefono una sotto l'altra.
   return (
-    <div className="card mt-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="titolo-sezione">Polizze automatiche</p>
-        <Badge tono={acceso ? 'ok' : 'neutro'}>{acceso ? 'accese' : 'spente'}</Badge>
+    <div className="card mb-6 md:flex md:items-center md:gap-6">
+      <div className="min-w-0 md:flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="titolo-sezione">Polizze automatiche</p>
+          <Badge tono={acceso ? 'ok' : 'neutro'}>{acceso ? 'accese' : 'spente'}</Badge>
+        </div>
+        <p className="mt-1.5 text-xs text-muted">
+          {acceso ? (
+            <>
+              Chi è pronto viene coperto da solo{' '}
+              <span className="num text-ink">{anticipo}</span> minuti prima dell’attività
+              {firma ? <>, a nome di {nomeCompleto(firma)}</> : ''}.
+            </>
+          ) : (
+            'Si assicura solo a mano. Accendendole, chi ha detto «ci sono» e ha la quota a posto viene coperto poco prima dell’attività, senza che nessuno debba ricordarsene.'
+          )}{' '}
+          Vale solo dove il portale federale è collegato davvero: nell’ambiente di test nessuna
+          polizza parte.
+        </p>
       </div>
 
-      <p className="mt-2 text-xs text-muted">
-        {acceso ? (
-          <>
-            Chi è pronto viene coperto da solo{' '}
-            <span className="num text-ink">{anticipo}</span> minuti prima dell’attività
-            {firma ? <>, a nome di {nomeCompleto(firma)}</> : ''}.
-          </>
-        ) : (
-          'Si assicura solo a mano. Accendendole, chi ha detto «ci sono» e ha la quota a posto viene coperto poco prima dell’attività, senza che nessuno debba ricordarsene.'
-        )}
-      </p>
-
-      <FormAzione azione={impostaPolizzeAutomatiche} className="mt-3 space-y-3">
-        <label className="flex items-start gap-2 text-sm">
+      <FormAzione
+        azione={impostaPolizzeAutomatiche}
+        className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 md:mt-0 md:shrink-0"
+      >
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             name="acceso"
             defaultChecked={acceso}
-            className="mt-0.5 h-4 w-4 shrink-0"
+            className="h-4 w-4 shrink-0"
           />
-          <span>Attiva le polizze da sola</span>
+          <span>Attiva da sola</span>
         </label>
-
         <label className="flex items-center gap-2 text-sm">
-          <span className="text-muted">Quanto prima</span>
           <input
             type="number"
             name="anticipo"
@@ -73,20 +79,15 @@ export async function PolizzeAutomatiche() {
             max={1440}
             step={5}
             defaultValue={anticipo}
-            className="input num w-24"
+            className="input num w-20"
+            aria-label="Quanti minuti prima"
           />
-          <span className="text-muted">minuti</span>
+          <span className="text-muted">minuti prima</span>
         </label>
-
-        <Invia className="btn-ghost btn-sm w-full justify-center" icona="salva">
+        <Invia className="btn-ghost btn-sm" icona="salva">
           Salva
         </Invia>
       </FormAzione>
-
-      <p className="mt-2 text-[11px] text-muted">
-        Vale solo dove il portale federale è collegato davvero: nell’ambiente di test nessuna
-        polizza parte, perché ne consumerebbe una vera.
-      </p>
     </div>
   );
 }

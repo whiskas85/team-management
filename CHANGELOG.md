@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.5.1 — 30 settembre 2026
+
+### Cambiato
+
+- **Polizze giornaliere più pulite.** Tolto il riquadro «Quando finiscono»: le
+  stesse informazioni stanno già nell'elenco, attività per attività. **Polizze
+  automatiche** ora sta sotto i numeri in cima, per tutta la larghezza: a
+  sinistra cosa fa, a destra l'interruttore e i minuti.
+
 ## 3.5.0 — 30 settembre 2026
 
 ### Cambiato
