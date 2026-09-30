@@ -15,6 +15,7 @@ import { BottoneModale } from '@/components/Modale';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
 import { PolizzeAutomatiche } from '@/components/PolizzeAutomatiche';
+import { PolizzeEvento } from '@/components/PolizzeEvento';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -134,14 +135,32 @@ export default async function PolizzePage() {
                   {a.titolo}
                 </Link>
                 <span className="flex flex-wrap items-center gap-2">
-                  {/* Si dice solo quando c'e' una decisione da sapere: il caso
-                      normale — segue l'interruttore, che e' spento — non
-                      merita un'etichetta su ogni card. */}
-                  {daSola(a) ? (
-                    <Badge tono="ok">polizze da sola</Badge>
-                  ) : (
-                    a.assicuraAuto === false && <Badge tono="neutro">solo a mano</Badge>
-                  )}
+                  {/* Sempre detto: la domanda è «ci penso io o no?», e la
+                      risposta serve anche quando viene dall'impostazione
+                      generale — lì lo si scrive, per sapere da dove viene. */}
+                  <span
+                    title={
+                      a.assicuraAuto === null
+                        ? 'Segue l’impostazione generale delle polizze automatiche'
+                        : 'Scelto per questa attività'
+                    }
+                  >
+                    {daSola(a) ? (
+                      <Badge tono="ok">
+                        automatiche{a.assicuraAuto === null ? ' · generale' : ''}
+                      </Badge>
+                    ) : (
+                      <Badge tono="warn">
+                        a mano{a.assicuraAuto === null ? ' · generale' : ''}
+                      </Badge>
+                    )}
+                  </span>
+                  <PolizzeEvento
+                    id={a.id}
+                    titolo={a.titolo}
+                    valore={a.assicuraAuto}
+                    generale={conf?.assicuraAuto ?? false}
+                  />
                   <span className="num text-xs text-muted">
                     {fmtDateTime(a.quando)}
                     {a.dove ? ` · ${a.dove}` : ''}

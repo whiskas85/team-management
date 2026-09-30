@@ -589,3 +589,48 @@ export async function impostaPolizzeAutomatiche(
       : 'Polizze automatiche spente: si assicura solo a mano.',
   };
 }
+
+/**
+ * Le polizze automatiche di una sola attività, dalla sua card nelle polizze:
+ * segue l'interruttore generale, si assicura da sola, o solo a mano. È lo
+ * stesso campo della modifica dell'attività, a portata di chi guarda le
+ * polizze. Se la si accende qui con l'interruttore generale mai acceso, le
+ * polizze partono a firma di chi l'ha accesa.
+ */
+export async function impostaPolizzeEvento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoAmministrare(me.roles)) {
+    return { errore: 'Solo chi amministra può cambiare le polizze automatiche.' };
+  }
+  const id = str(fd, 'id');
+  const scelta = str(fd, 'scelta');
+  const valore = scelta === 'si' ? true : scelta === 'no' ? false : null;
+  const evento = await prisma.event.findUnique({ where: { id }, select: { titolo: true } });
+  if (!evento) return { errore: 'Attività non trovata.' };
+
+  await prisma.event.update({ where: { id }, data: { assicuraAuto: valore } });
+  if (valore) {
+    const conf = await prisma.impostazioni.findUnique({
+      where: { id: 'app' },
+      select: { assicuraAutoDaId: true },
+    });
+    if (!conf?.assicuraAutoDaId) {
+      await prisma.impostazioni.upsert({
+        where: { id: 'app' },
+        create: { id: 'app', assicuraAutoDaId: me.id },
+        update: { assicuraAutoDaId: me.id },
+      });
+    }
+  }
+
+  revalidatePath('/admin/polizze');
+  revalidatePath(`/calendario/${id}`);
+  return {
+    ok:
+      valore === null
+        ? `«${evento.titolo}» segue l’impostazione generale.`
+        : valore
+          ? `«${evento.titolo}»: le polizze partono da sole, poco prima.`
+          : `«${evento.titolo}»: polizze solo a mano.`,
+  };
+}

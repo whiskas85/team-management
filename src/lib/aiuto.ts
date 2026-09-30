@@ -564,7 +564,7 @@ export const AIUTO: VoceAiuto[] = [
     perChi: 'Amministrazione',
     passi: [
       { titolo: 'Assicurare', testo: 'Per ogni ospite vedi se la quota è saldata e se i dati sono completi. Quando è pronto, [[g:tessera|Assicura]] attiva la polizza sul portale. I soci non compaiono: hanno la tessera annuale.' },
-      { titolo: 'Automatiche', testo: 'Si possono attivare da sole poco prima dell’attività; ogni attività può fare eccezione («solo a mano»).' },
+      { titolo: 'Automatiche', testo: 'Si possono attivare da sole poco prima dell’attività. Ogni card dice se per quella attività partono **automatiche** o vanno fatte **a mano** («· generale» se lo decide l’impostazione generale); il pulsante [[g:impostazioni|Automatiche]] sulla card la cambia solo per quella attività.' },
     ],
     parole: 'assicurazione polizza giornaliera ospiti',
   },

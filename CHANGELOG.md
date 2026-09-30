@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.9.0 — 30 settembre 2026
+
+### Aggiunto
+
+- **Polizze automatiche attività per attività, dalla pagina delle polizze.**
+  Ogni card ha il pulsante «Automatiche»: come l'impostazione generale, da
+  sola poco prima, o solo a mano. E un badge sempre in vista dice se per
+  quell'attività le polizze partono **automatiche** o vanno fatte **a mano**;
+  «· generale» vuol dire che lo decide l'impostazione generale.
+
 ## 3.8.3 — 30 settembre 2026
 
 ### Corretto
