@@ -210,6 +210,13 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
     // già detto a questa tappa, o a una più stretta: si tace
     if (cert.avvisoScadenzaA !== null && tappa >= cert.avvisoScadenzaA) continue;
 
+    // le attività a cui è segnato e che il certificato non copre: senza
+    // rinnovo, quel giorno non partecipa — lo si dice con i nomi
+    const scoperte = await attivitaNonCoperte(cert.userId, cert.scadeIl!);
+    const elenco = scoperte.length
+      ? ` Sei segnato a ${scoperte.map((e) => `«${e.titolo}» (${fmtDate(e.inizio)})`).join(', ')}: senza il nuovo certificato non partecipi.`
+      : '';
+
     await avvisaPersona(cert.userId, {
       titolo:
         tappa === TAPPA_SCADUTO
@@ -218,9 +225,10 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
             ? 'Il certificato medico scade oggi'
             : `Il certificato medico scade fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`,
       testo:
-        tappa === TAPPA_SCADUTO
+        (tappa === TAPPA_SCADUTO
           ? 'Senza non si scende in campo: prenota la visita e carica il nuovo appena ce l’hai.'
-          : 'Prenota la visita adesso: fra il medico e l’approvazione ci vuole qualche giorno.',
+          : 'Prenota la visita adesso: fra il medico e l’approvazione ci vuole qualche giorno.') +
+        elenco,
       url: '/certificati',
       // uno solo per persona: due avvisi di scadenza non fanno due righe
       tag: 'certificato-scadenza',
@@ -230,12 +238,12 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
         tappa === TAPPA_SCADUTO
           ? `Zero Dark Ops — il tuo certificato medico è scaduto il ${fmtDate(cert.scadeIl)}.
 
-Senza non si scende in campo: prenota la visita e carica il nuovo nel gestionale appena ce l'hai.`
+Senza non si scende in campo: prenota la visita e carica il nuovo nel gestionale appena ce l'hai.${elenco ? `\n\n${elenco.trim()}` : ''}`
           : `Zero Dark Ops — il tuo certificato medico scade ${
               giorni === 0 ? 'oggi' : `fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`
             }, il ${fmtDate(cert.scadeIl)}.
 
-Prenota la visita adesso: fra il medico e l'approvazione ci vuole qualche giorno. Il nuovo si carica dal gestionale, in «Miei certificati».`,
+Prenota la visita adesso: fra il medico e l'approvazione ci vuole qualche giorno. Il nuovo si carica dal gestionale, in «Miei certificati».${elenco ? `\n\n${elenco.trim()}` : ''}`,
     });
 
     await prisma.medicalCertificate.update({
@@ -246,4 +254,22 @@ Prenota la visita adesso: fra il medico e l'approvazione ci vuole qualche giorno
   }
 
   return { avvisati };
+}
+
+/**
+ * Le attività in programma a cui una persona ha detto «ci sono» o «forse», che
+ * chiedono il certificato e finiscono dopo la sua scadenza.
+ */
+async function attivitaNonCoperte(userId: string, scadeIl: Date) {
+  const eventi = await prisma.event.findMany({
+    where: {
+      status: 'RILASCIATA',
+      inizio: { gte: new Date() },
+      rsvps: { some: { userId, status: { in: ['PRESENTE', 'FORSE'] } } },
+      OR: [{ tipoId: null }, { tipo: { certMedico: true } }],
+    },
+    select: { titolo: true, inizio: true, fine: true },
+    orderBy: { inizio: 'asc' },
+  });
+  return eventi.filter((e) => (e.fine ?? e.inizio).getTime() > scadeIl.getTime());
 }

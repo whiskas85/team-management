@@ -196,6 +196,42 @@ export function idoneoPer(
   return richiedeAgonistico ? validi.some((c) => c.tipo === 'AGONISTICO') : true;
 }
 
+/**
+ * Idoneità **per tutta l'attività**, non solo per oggi.
+ *
+ * Ci si segna con il certificato valido oggi; ma in campo si va il giorno
+ * dell'attività, e lì il certificato deve valere fino alla fine. Chi si segna
+ * con un certificato che scade prima viene avvisato; il giorno dell'attività,
+ * se non l'ha rinnovato, non partecipa — per nessun motivo.
+ */
+export function idoneoAl(
+  certs: { status: CertStatus; scadeIl: Date | string | null; tipo?: string }[],
+  richiedeAgonistico: boolean,
+  quando: Date,
+) {
+  return certs.some(
+    (c) =>
+      c.status === 'VALIDO' &&
+      (!c.scadeIl || new Date(c.scadeIl).getTime() >= quando.getTime()) &&
+      (!richiedeAgonistico || c.tipo === 'AGONISTICO'),
+  );
+}
+
+/** Fino a quando deve valere il certificato: la fine dell'attività, o il suo inizio. */
+export const finoA = (e: { inizio: Date; fine: Date | null }) => e.fine ?? e.inizio;
+
+/** Quando scade il certificato che vale oggi (il più lungo), o null se non ne vale nessuno. */
+export function scadeCertificatoValido(
+  certs: { status: CertStatus; scadeIl: Date | string | null; tipo?: string }[],
+  richiedeAgonistico = false,
+): Date | null {
+  const date = certs
+    .filter((c) => statoEffettivo(c) === 'VALIDO' && (!richiedeAgonistico || c.tipo === 'AGONISTICO'))
+    .map((c) => (c.scadeIl ? new Date(c.scadeIl) : null));
+  if (date.length === 0 || date.some((d) => d === null)) return null;
+  return new Date(Math.max(...date.map((d) => d!.getTime())));
+}
+
 export const MOTIVO_NON_IDONEO = (richiedeAgonistico: boolean) =>
   richiedeAgonistico
     ? 'Serve il certificato agonistico: quello non agonistico non basta.'

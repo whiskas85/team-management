@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.11.0 — 30 settembre 2026
+
+### Cambiato
+
+- **Il certificato deve coprire il giorno dell'attività.** Ci si segna con il
+  certificato valido oggi, come prima; ma se scade prima della fine
+  dell'attività lo si dice subito — nel riquadro della propria adesione e nel
+  messaggio dopo «ci sono» — e sulla riga del partecipante chi organizza vede
+  «certificato scade il …». Il giorno dell'attività, **senza certificato
+  valido non si partecipa, per nessun motivo**: all'appello chi non è coperto
+  sta in un riquadro rosso senza spunta, e il gestionale non lo registra
+  presente nemmeno forzando il modulo; da «Aggiungi» dell'appello non si
+  entra. Gli avvisi di scadenza del certificato elencano anche le attività a
+  cui si è segnati dopo quella data.
+
 ## 3.10.2 — 30 settembre 2026
 
 ### Cambiato

@@ -13,6 +13,10 @@ import {
   eAtleta,
   etichettaVisibilita,
   inRegola,
+  idoneoAl,
+  idoneoPer,
+  finoA,
+  scadeCertificatoValido,
   inSquadra,
   isAdmin,
   puoGestireEventi,
@@ -175,6 +179,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               frase: true,
               // servono a capire chi è già coperto dalla tessera annuale
               figtCards: { select: { status: true, scadeIl: true } },
+              // il certificato deve valere per tutta l'attività
+              certificates: { select: { status: true, scadeIl: true, tipo: true } },
               // ICE: quello che serve se qualcuno si fa male in campo. Lo
               // leggono solo admin e team leader, e solo di chi c'è quel
               // giorno — l'elenco di tutta la squadra è un'altra cosa e sta
@@ -589,10 +595,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const mieiCertificati = certificatoDovuto
     ? await prisma.medicalCertificate.findMany({
         where: { userId: me.id },
-        select: { status: true, scadeIl: true },
+        select: { status: true, scadeIl: true, tipo: true },
       })
     : [];
   const certificatoOk = !certificatoDovuto || inRegola(mieiCertificati);
+  // vale oggi ma non fino alla fine dell'attività: ci si segna, avvisati
+  const mioCertScade =
+    certificatoDovuto &&
+    certificatoOk &&
+    !idoneoAl(mieiCertificati, evento.tipo?.certAgonistico ?? false, finoA(evento))
+      ? (scadeCertificatoValido(mieiCertificati, evento.tipo?.certAgonistico ?? false) ?? true)
+      : null;
 
   /*
    * Se non sei nel libro atleti, i pulsanti della disponibilità non ci sono.
@@ -784,6 +797,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   type Riga = (typeof evento.rsvps)[number];
   const diSquadra = (r: Riga) => inSquadra(r.user.stato) || r.user.stato === 'DA_RICONFERMARE';
+
+  /*
+   * Il certificato per tutta l'attività: «ok», «scade» (vale oggi ma non fino
+   * alla fine: si è segnato, deve rinnovarlo) o «manca» (non vale già adesso).
+   * Il giorno dell'attività chi non è «ok» non partecipa: l'appello non lo
+   * lascia spuntare.
+   */
+  const agonistico = evento.tipo?.certAgonistico ?? false;
+  const certificatoPer = (r: Riga): 'ok' | 'scade' | 'manca' => {
+    if (!serveCertificato(evento.tipo) || !inSquadra(r.user.stato)) return 'ok';
+    if (idoneoAl(r.user.certificates, agonistico, finoA(evento))) return 'ok';
+    return idoneoPer(r.user.certificates, agonistico) ? 'scade' : 'manca';
+  };
+  const scadenzaDi = (r: Riga) => scadeCertificatoValido(r.user.certificates, agonistico);
 
   /** Questa riga l'ha aperta lo staff segnando qualcuno, non la persona. */
   const aggiuntoDalloStaff = (r: Riga) => r.note === NOTA_AGGIUNTO_STAFF;
@@ -1802,6 +1829,23 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   fila di etichette da decifrare. Se non c'è niente
                                   da dire, la riga non occupa spazio. */}
                               <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+                                {/* il certificato: chi organizza lo vede su tutti,
+                                    ognuno sul suo. Solo per chi ha detto «ci sono» o
+                                    «forse»: chi non viene non deve niente */}
+                                {(tl || admin || r.userId === me.id) &&
+                                  r.status !== 'ASSENTE' &&
+                                  (() => {
+                                    const c = certificatoPer(r);
+                                    if (c === 'ok') return null;
+                                    const scade = scadenzaDi(r);
+                                    return c === 'scade' ? (
+                                      <Badge tono="warn">
+                                        certificato scade {scade ? `il ${fmtDate(scade)}` : 'prima'}
+                                      </Badge>
+                                    ) : (
+                                      <Badge tono="danger">senza certificato · non partecipa</Badge>
+                                    );
+                                  })()}
                                 {/* la quota può esserci anche su un'attività gratis:
                                     i nuovi pagano la loro tariffa fissa */}
                                 {/* Il badge guarda la quota **di quella persona**, non
@@ -2283,6 +2327,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </p>
             ) : (
               <>
+                {mioCertScade && (
+                  <div className="mb-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2.5 text-sm text-warn">
+                    Il tuo certificato medico scade
+                    {mioCertScade instanceof Date ? ` il ${fmtDate(mioCertScade)}` : ''}, prima
+                    di questa attività. Puoi segnarti, ma senza rinnovarlo quel giorno non
+                    potrai partecipare.{' '}
+                    <Link href="/certificati" className="underline">
+                      Carica il nuovo
+                    </Link>
+                  </div>
+                )}
                 <AdesioneEvento
                   eventId={evento.id}
                   scelta={mio?.status ?? null}
@@ -2426,6 +2481,37 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                         </div>
                       )}
 
+                      {/* Senza certificato valido per l'attività: nessuna
+                          spunta, per nessun motivo. Il nome resta, in rosso,
+                          perché chi fa l'appello sappia perché manca. */}
+                      {daAppello.some((r) => certificatoPer(r) !== 'ok') && (
+                        <div className="rounded-lg border-2 border-danger/70 bg-danger/10 p-3">
+                          <p className="flex items-center gap-2 text-sm font-semibold text-danger">
+                            <Icona nome="certificato" size={16} />
+                            Senza certificato · non possono partecipare
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {daAppello
+                              .filter((r) => certificatoPer(r) !== 'ok')
+                              .map((r) => {
+                                const scade = scadenzaDi(r);
+                                return (
+                                  <div key={r.id} className="text-sm">
+                                    <span className="block break-words font-medium">
+                                      {nomeDi(r.user)}
+                                    </span>
+                                    <span className="block text-xs text-danger">
+                                      {certificatoPer(r) === 'scade' && scade
+                                        ? `Il certificato scade il ${fmtDate(scade)}: non copre l’attività.`
+                                        : 'Certificato medico mancante o scaduto.'}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* squadra e nuovi separati anche qui: hanno adempimenti
                           diversi — i nuovi vanno assicurati con la giornaliera —
                           e in una lista sola non si vede più chi è chi */}
@@ -2434,7 +2520,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           {
                             titolo: 'Operatori',
                             righe: daAppello.filter(
-                              (r) => r.assegnazione !== 'TOC' && diSquadra(r),
+                              (r) =>
+                                r.assegnazione !== 'TOC' &&
+                                diSquadra(r) &&
+                                certificatoPer(r) === 'ok',
                             ),
                           },
                           {
@@ -2449,7 +2538,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                             // spunta l'elenco
                             titolo: 'TOC · sala controllo',
                             righe: daAppello.filter(
-                              (r) => r.assegnazione === 'TOC' && !scoperto(r),
+                              (r) =>
+                                r.assegnazione === 'TOC' &&
+                                !scoperto(r) &&
+                                certificatoPer(r) === 'ok',
                             ),
                           },
                         ]

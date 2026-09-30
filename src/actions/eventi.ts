@@ -28,7 +28,10 @@ import {
   NOTA_AGGIUNTO_STAFF,
   conFormazione,
   eAtleta,
+  idoneoAl,
   idoneoPer,
+  finoA,
+  scadeCertificatoValido,
   inSquadra,
   isAdmin,
   occupaPosto,
@@ -617,6 +620,10 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   // squadra, sulle tipologie che lo richiedono. I nuovi che vengono alle open
   // non hanno l'obbligo, e a una riunione non lo chiede nessuno
   const togli = str(fd, 'status') === 'NESSUNA';
+  // Ci si segna col certificato valido oggi. Se scade prima della fine
+  // dell'attività lo si dice subito: il giorno dell'attività, senza rinnovo,
+  // non si partecipa (l'appello non lo lascia spuntare).
+  let avvisoCertificato = '';
   if (
     !togli &&
     status !== 'ASSENTE' &&
@@ -630,6 +637,12 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
     const serveAgonistico = evento.tipo?.certAgonistico ?? false;
     if (!idoneoPer(certificati, serveAgonistico)) {
       return { errore: `Non puoi segnarti. ${MOTIVO_NON_IDONEO(serveAgonistico)}` };
+    }
+    if (!idoneoAl(certificati, serveAgonistico, finoA(evento))) {
+      const scade = scadeCertificatoValido(certificati, serveAgonistico);
+      avvisoCertificato = ` Attenzione: il tuo certificato medico scade${
+        scade ? ` il ${scade.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' })}` : ''
+      }, prima dell’attività. Rinnovalo in tempo: senza, quel giorno non puoi partecipare.`;
     }
   }
 
@@ -684,9 +697,10 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
     status === 'PRESENTE' &&
     !!evento.maxPartecipanti &&
     evento._count.rsvps + (esistente?.status === 'PRESENTE' ? 0 : 1) > evento.maxPartecipanti;
-  const avviso = oltre
-    ? ` I posti sono ${evento.maxPartecipanti}: i disponibili sono già di più, chi resta fuori va in riserva.`
-    : '';
+  const avviso =
+    (oltre
+      ? ` I posti sono ${evento.maxPartecipanti}: i disponibili sono già di più, chi resta fuori va in riserva.`
+      : '') + avvisoCertificato;
 
   if (evento.tipo?.riserve) {
     return {
@@ -1104,7 +1118,7 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
 
   const evento = await prisma.event.findUnique({
     where: { id: eventId },
-    include: { tipo: { select: { riserve: true } } },
+    include: { tipo: { select: { riserve: true, certMedico: true, certAgonistico: true } } },
   });
   if (!evento) return { errore: 'Attività non trovata.' };
 
@@ -1115,14 +1129,44 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
   // presenze, per una colpa che non hanno.
   const rsvps = await prisma.eventRsvp.findMany({
     where: { eventId },
-    select: { id: true, assegnazione: true },
+    select: {
+      id: true,
+      assegnazione: true,
+      user: {
+        select: {
+          nome: true,
+          cognome: true,
+          stato: true,
+          certificates: { select: { status: true, scadeIl: true, tipo: true } },
+        },
+      },
+    },
   });
   const daSpuntare = conFormazione(evento) ? rsvps.filter(schierato) : rsvps;
+
+  // Senza certificato valido per tutta l'attività non si partecipa, per nessun
+  // motivo: chi fa l'appello non può segnarlo presente, nemmeno spuntandolo.
+  const serveCert = serveCertificato(evento.tipo);
+  const agonistico = evento.tipo?.certAgonistico ?? false;
+  const senzaCert = new Set(
+    daSpuntare
+      .filter(
+        (r) =>
+          serveCert &&
+          inSquadra(r.user.stato) &&
+          !idoneoAl(r.user.certificates, agonistico, finoA(evento)),
+      )
+      .map((r) => r.id),
+  );
   await prisma.$transaction(
     daSpuntare.map((r) =>
-      prisma.eventRsvp.update({ where: { id: r.id }, data: { presente: presenti.has(r.id) } }),
+      prisma.eventRsvp.update({
+        where: { id: r.id },
+        data: { presente: presenti.has(r.id) && !senzaCert.has(r.id) },
+      }),
     ),
   );
+  const respinti = daSpuntare.filter((r) => presenti.has(r.id) && senzaCert.has(r.id));
 
   /*
    * L'appello registra chi c'è. **Chiudere è un'altra cosa, e la fa una persona.**
@@ -1139,6 +1183,13 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
    */
 
   aggiorna(eventId);
+  if (respinti.length > 0) {
+    return {
+      errore: `Presenze registrate, tranne ${respinti
+        .map((r) => `${r.user.nome} ${r.user.cognome}`)
+        .join(', ')}: senza certificato medico valido non può partecipare.`,
+    };
+  }
   return {
     ok: 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiudi tu quando è il momento.',
   };
@@ -1196,8 +1247,17 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
 
   const serveAgonistico = evento.tipo?.certAgonistico ?? false;
   const serveCert = serveCertificato(evento.tipo);
+  // Dall'appello si entra già presenti: lì il certificato deve valere per
+  // tutta l'attività, come per chi è spuntato. Altrove basta che valga oggi
+  // (chi scade prima ha l'avviso sulla sua riga, e all'appello non passa).
+  const perAppello = str(fd, 'dallAppello') === '1';
   const ammessi = utenti.filter(
-    (u) => !serveCert || !inSquadra(u.stato) || idoneoPer(u.certificates, serveAgonistico),
+    (u) =>
+      !serveCert ||
+      !inSquadra(u.stato) ||
+      (perAppello
+        ? idoneoAl(u.certificates, serveAgonistico, finoA(evento))
+        : idoneoPer(u.certificates, serveAgonistico)),
   );
   const scartati = utenti.filter((u) => !ammessi.includes(u));
 
