@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.15.1 — 1 ottobre 2026
+
+### Cambiato
+
+- **«Metodi di pagamento» solo se ci sono.** Un'uscita verso un operatore che
+  non ha indicato metodi non mostra la fascia.
+- **Da computer, attaccata alla sua uscita.** Nella tabella i metodi sono un
+  riquadro appeso sotto la riga dell'uscita, con lo spazio prima della riga
+  dopo: prima sembrava l'inizio di quella successiva.
+
 ## 3.15.0 — 1 ottobre 2026
 
 ### Aggiunto

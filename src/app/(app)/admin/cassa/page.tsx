@@ -426,7 +426,7 @@ export default async function CassaPage({
               }
               elimina={admin && v.movimento && <EliminaMovimento movimento={v.movimento} />}
               fascia={
-                v.movimento?.beneficiario && (
+                !!v.movimento?.beneficiario?.metodiPersonali.length && (
                   <TendinaMetodi
                     nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
                     metodi={v.movimento.beneficiario.metodiPersonali}
@@ -475,7 +475,13 @@ export default async function CassaPage({
               <tbody>
                 {voci.map((v) => (
                   <Fragment key={v.chiave}>
-                  <tr className={v.movimento?.beneficiario ? '[&>td]:border-b-0' : undefined}>
+                  <tr
+                    className={
+                      v.movimento?.beneficiario?.metodiPersonali.length
+                        ? '[&>td]:border-b-0'
+                        : undefined
+                    }
+                  >
                     <td className="num whitespace-nowrap text-muted">{fmtDate(v.data)}</td>
                     <td>
                       {v.link ? (
@@ -533,12 +539,15 @@ export default async function CassaPage({
                       </td>
                     )}
                   </tr>
-                  {v.movimento?.beneficiario && (
+                  {!!v.movimento?.beneficiario?.metodiPersonali.length && (
+                    // appesa sotto la sua uscita: nessuna riga fra le due, e
+                    // spazio prima della riga dopo
                     <tr>
-                      <td colSpan={admin ? 8 : 7} className="!p-0">
+                      <td colSpan={admin ? 8 : 7} className="!pt-0 !pb-3">
                         <TendinaMetodi
                           nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
                           metodi={v.movimento.beneficiario.metodiPersonali}
+                          riquadro
                         />
                       </td>
                     </tr>

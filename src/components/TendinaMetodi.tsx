@@ -15,15 +15,22 @@ export function TendinaMetodi({
   nome,
   metodi,
   aperta = false,
+  riquadro = false,
 }: {
   nome: string;
   metodi: MetodoPersona[];
   aperta?: boolean;
+  /** Un riquadro chiuso sui quattro lati (nella tabella) invece della fascia. */
+  riquadro?: boolean;
 }) {
+  // chi non ha metodi non ha niente da mostrare: niente fascia
+  if (metodi.length === 0) return null;
   return (
     <details
       open={aperta}
-      className="group border-t border-nvg/30 bg-nvg/[0.06] text-nvg"
+      className={`group bg-nvg/[0.06] text-nvg ${
+        riquadro ? 'rounded-md border border-nvg/30' : 'border-t border-nvg/30'
+      }`}
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium">
         <span className="flex min-w-0 items-center gap-2">
@@ -32,27 +39,20 @@ export function TendinaMetodi({
           <span className="truncate text-xs font-normal opacity-80">· {nome}</span>
         </span>
         <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
-          {metodi.length === 0 ? 'nessuno' : metodi.length}
+          {metodi.length}
           <span className="transition-transform group-open:rotate-180">▾</span>
         </span>
       </summary>
       <div className="px-3 pb-3 text-ink">
-        {metodi.length === 0 ? (
-          <p className="px-1 text-xs text-muted">
-            {nome} non ha ancora indicato come essere pagato: li aggiunge dal suo profilo, in
-            «Come essere pagato».
-          </p>
-        ) : (
-          <MetodiPagamento
-            metodi={metodi.map((m) => ({
-              id: m.id,
-              nome: m.nome,
-              istruzioni: m.istruzioni,
-              link: primoLink(m.istruzioni),
-              iban: primoIban(m.istruzioni),
-            }))}
-          />
-        )}
+        <MetodiPagamento
+          metodi={metodi.map((m) => ({
+            id: m.id,
+            nome: m.nome,
+            istruzioni: m.istruzioni,
+            link: primoLink(m.istruzioni),
+            iban: primoIban(m.istruzioni),
+          }))}
+        />
       </div>
     </details>
   );
@@ -87,10 +87,13 @@ export function SceltaBeneficiario({
           </option>
         ))}
       </select>
-      {chi && (
-        <div className="overflow-hidden rounded-md border border-nvg/30 [&>details]:border-t-0">
-          <TendinaMetodi nome={chi.nome} metodi={chi.metodi} />
-        </div>
+      {chi && chi.metodi.length > 0 && (
+        <TendinaMetodi nome={chi.nome} metodi={chi.metodi} riquadro />
+      )}
+      {chi && chi.metodi.length === 0 && (
+        <p className="text-[11px] text-muted">
+          {chi.nome} non ha ancora indicato come essere pagato: li aggiunge dal suo profilo.
+        </p>
       )}
     </div>
   );
