@@ -37,6 +37,15 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       // con margine attorno: Android ritaglia l'icona nella forma che preferisce
       { src: '/icona-mascherabile-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
+    // Nel menu «Condividi» del telefono: dall'app PayPal, Satispay o della
+    // banca si condivide il proprio link (o l'IBAN) e si arriva già nel
+    // modulo del metodo per essere pagati, compilato. Android sì, iPhone no:
+    // Safari non lo supporta.
+    share_target: {
+      action: '/condividi',
+      method: 'GET',
+      params: { title: 'titolo', text: 'testo', url: 'link' },
+    },
     shortcuts: [
       { name: 'Calendario', url: '/calendario' },
       { name: 'Miei pagamenti', url: '/pagamenti' },

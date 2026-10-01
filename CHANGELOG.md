@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.15.0 — 1 ottobre 2026
+
+### Aggiunto
+
+- **Condividere un metodo di pagamento all'app.** Con l'app installata sul
+  telefono (Android), il gestionale compare nel menu «Condividi»: dall'app di
+  PayPal, Satispay o della banca si condivide il proprio link o l'IBAN e si
+  arriva al modulo «Nuovo metodo per essere pagato» già compilato — il nome
+  (PayPal, Satispay, Bonifico…) indovinato dal link. Si controlla e si salva.
+  Su iPhone Safari non lo permette: lì il metodo si aggiunge dal profilo.
+
 ## 3.14.2 — 1 ottobre 2026
 
 ### Cambiato

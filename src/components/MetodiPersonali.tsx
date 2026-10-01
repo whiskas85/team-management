@@ -51,6 +51,11 @@ export function MetodiPersonali({ metodi, userId }: { metodi: Metodo[]; userId?:
         Come vuoi essere pagato quando la squadra ti deve dei soldi: un rimborso, una spesa che hai
         anticipato. Chi registra l’uscita in cassa li vede, con i link per pagarti.
       </p>
+      <p className="text-xs text-muted">
+        Dal telefono Android, con l’app installata: nell’app di PayPal, Satispay o della banca
+        premi «Condividi» sul tuo link o IBAN e scegli questa app — arrivi qui con il modulo già
+        compilato.
+      </p>
       {metodi.length === 0 ? (
         <p className="text-sm text-muted">Non hai ancora indicato nessun metodo.</p>
       ) : (

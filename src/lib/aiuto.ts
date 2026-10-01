@@ -172,7 +172,7 @@ export const AIUTO: VoceAiuto[] = [
     titolo: 'Il mio profilo',
     cosa: 'La tua pagina: i tuoi dati, la situazione (presenze, certificato, tessera, quote, credito) e le impostazioni personali.',
     passi: [
-      { titolo: 'Come essere pagato', testo: 'Nella sezione **Come essere pagato** scrivi i tuoi metodi — IBAN, PayPal, Satispay — con [[g:aggiungi|Aggiungi metodo]]. Quando la squadra ti deve dei soldi, chi registra l’uscita in cassa li trova già pronti: un link diventa «Paga», un IBAN si copia.' },
+      { titolo: 'Come essere pagato', testo: 'Nella sezione **Come essere pagato** scrivi i tuoi metodi — IBAN, PayPal, Satispay — con [[g:aggiungi|Aggiungi metodo]]. Quando la squadra ti deve dei soldi, chi registra l’uscita in cassa li trova già pronti: un link diventa «Paga», un IBAN si copia. Da Android, con l’app installata, puoi anche **condividere** il tuo link PayPal/Satispay o l’IBAN dall’app che lo mostra: scegli questa app e arrivi al modulo già compilato.' },
       { titolo: 'In cima', testo: 'Foto, nome e i riquadri della tua situazione: presenze dell’anno, certificato, tessera FIGT, da saldare, credito, da quando sei nel club. Tocca la foto per cambiarla o ritagliarla.' },
       { titolo: 'I dati', testo: 'Ogni sezione si apre toccandone il titolo e ha il suo pulsante: [[p:salva|Salva anagrafica]], [[p:salva|Salva recapiti]], [[p:salva|Salva dati di emergenza]]. Quelle ancora incomplete si aprono da sole.' },
       { titolo: 'Emergenze e dati sanitari', testo: 'Chi avvisare, il suo telefono, gruppo sanguigno, allergie e terapie: li legge solo chi deve soccorrerti.' },
