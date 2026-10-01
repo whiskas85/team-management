@@ -10,7 +10,7 @@ import { Invia } from '@/components/Bottone';
 import { eliminaMovimento, salvaMovimento } from '@/actions/cassa';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
-import { ComePagarlo } from '@/components/ComePagarlo';
+import { SceltaBeneficiario, TendinaMetodi } from '@/components/TendinaMetodi';
 
 type Movimento = {
   id: string;
@@ -40,7 +40,11 @@ const urlAllegato = (m: Movimento | null) =>
   m?.allegatoPath ? `/api/cassa/movimenti/${m.id}/allegato` : null;
 
 type Metodo = { id: string; nome: string };
-type Operatore = { id: string; nome: string };
+type Operatore = {
+  id: string;
+  nome: string;
+  metodi: { id: string; nome: string; istruzioni: string | null }[];
+};
 
 /** Un articolo di magazzino, come si sceglie: categoria e nome. */
 type Merce = { id: string; nome: string; categoria: string | null };
@@ -157,13 +161,24 @@ export default async function CassaPage({
   const operatori: Operatore[] = (
     await prisma.user.findMany({
       orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, cognome: true, callsign: true, stato: true },
+      select: {
+        id: true,
+        nome: true,
+        cognome: true,
+        callsign: true,
+        stato: true,
+        metodiPersonali: {
+          orderBy: [{ ordine: 'asc' }, { createdAt: 'asc' }],
+          select: { id: true, nome: true, istruzioni: true },
+        },
+      },
     })
   )
     .filter((u) => vedeAttivitaSquadra(u.stato))
     .map((u) => ({
       id: u.id,
       nome: `${u.cognome} ${u.nome}${u.callsign ? ` · ${u.callsign}` : ''}`,
+      metodi: u.metodiPersonali,
     }));
 
   // quello che entra dalle attività, al netto di ciò che è stato restituito
@@ -392,10 +407,9 @@ export default async function CassaPage({
                 <>
                   {v.dettaglio && <span className="block">{v.dettaglio}</span>}
                   {v.movimento?.beneficiario && (
-                    <span className="mt-1 block">
-                      <ComePagarlo
+                    <span className="mt-1.5 block">
+                      <TendinaMetodi
                         nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
-                        importo={fmtEuro(v.importo)}
                         metodi={v.movimento.beneficiario.metodiPersonali}
                       />
                     </span>
@@ -473,10 +487,9 @@ export default async function CassaPage({
                         <span className="block text-[11px] text-muted">{v.dettaglio}</span>
                       )}
                       {v.movimento?.beneficiario && (
-                        <span className="mt-1 block">
-                          <ComePagarlo
+                        <span className="mt-1.5 block w-[24rem] max-w-[60vw]">
+                          <TendinaMetodi
                             nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
-                            importo={fmtEuro(v.importo)}
                             metodi={v.movimento.beneficiario.metodiPersonali}
                           />
                         </span>
@@ -651,20 +664,10 @@ function CampiMovimento({
 
       {operatori && (
         <Campo label="A chi (operatore)" span>
-          <select
-            name="beneficiarioId"
-            defaultValue={movimento?.beneficiarioId ?? ''}
-            className="input"
-          >
-            <option value="">— a nessuno in particolare —</option>
-            {operatori.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.nome}
-              </option>
-            ))}
-          </select>
+          <SceltaBeneficiario operatori={operatori} iniziale={movimento?.beneficiarioId ?? null} />
           <span className="mt-1 block text-[11px] text-muted">
-            Un rimborso, una spesa anticipata: nel registro trovi «Come pagarlo» con i suoi metodi.
+            Un rimborso, una spesa anticipata: scelta la persona, la tendina mostra i suoi metodi
+            per pagarla. La ritrovi anche nel registro.
           </span>
         </Campo>
       )}

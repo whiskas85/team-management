@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.14.1 — 1 ottobre 2026
+
+### Cambiato
+
+- **I metodi dell'operatore in una tendina.** Nel modulo dell'uscita, appena
+  si sceglie l'operatore compare la tendina «Come pagare …» con i suoi metodi
+  (Paga, Copia IBAN); cambia persona, cambia tendina. Nel registro la stessa
+  tendina sta sull'uscita, chiusa, e si apre con un tocco: prende il posto
+  della finestra «Come pagarlo».
+
 ## 3.14.0 — 1 ottobre 2026
 
 ### Aggiunto

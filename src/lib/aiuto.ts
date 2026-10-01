@@ -363,7 +363,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Il registro unico dei movimenti: le quote incassate dalle attività e le entrate e uscite scritte a mano.',
     perChi: 'Segreteria',
     passi: [
-      { titolo: 'Movimento a mano', testo: '[[p:incassa|Registra entrata]] o [[g:pagamenti|Registra uscita]], con categoria e metodo, e se vuoi lo scontrino, la fattura o la ricevuta (foto o PDF): nel registro compare con 📎 e si apre con un tocco. Un’uscita può andare **a un operatore** (un rimborso, una spesa anticipata): nel registro trovi [[g:pagamenti|Come pagarlo]] con i suoi metodi, «Paga» per i link e «Copia IBAN». Un acquisto può caricare direttamente il magazzino.' },
+      { titolo: 'Movimento a mano', testo: '[[p:incassa|Registra entrata]] o [[g:pagamenti|Registra uscita]], con categoria e metodo, e se vuoi lo scontrino, la fattura o la ricevuta (foto o PDF): nel registro compare con 📎 e si apre con un tocco. Un’uscita può andare **a un operatore** (un rimborso, una spesa anticipata): scelta la persona compare la tendina **Come pagare…** con i suoi metodi — «Paga» per i link, «Copia IBAN» — e la ritrovi sull’uscita nel registro, da aprire e chiudere. Un acquisto può caricare direttamente il magazzino.' },
       { titolo: 'Correggere', testo: '[[g:modifica|Modifica]] su un movimento scritto a mano; il cestino [[x]] lo elimina. Quelli nati da una quota si correggono dalla quota.' },
     ],
     parole: 'registro entrate uscite saldo contabilità cassa',
