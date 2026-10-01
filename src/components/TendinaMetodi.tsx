@@ -21,20 +21,26 @@ export function TendinaMetodi({
   aperta?: boolean;
 }) {
   return (
-    <details open={aperta} className="group rounded-md border border-line bg-surface2">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs">
-        <span className="flex items-center gap-1.5">
-          <Icona nome="pagamenti" size={14} />
-          {metodi.length === 0
-            ? `${nome} non ha indicato come essere pagato`
-            : `Come pagare ${nome} · ${metodi.length} ${metodi.length === 1 ? 'metodo' : 'metodi'}`}
+    <details
+      open={aperta}
+      className="group border-t border-nvg/30 bg-nvg/[0.06] text-nvg"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium">
+        <span className="flex min-w-0 items-center gap-2">
+          <Icona nome="pagamenti" size={16} />
+          Metodi di pagamento
+          <span className="truncate text-xs font-normal opacity-80">· {nome}</span>
         </span>
-        <span className="text-muted transition-transform group-open:rotate-180">▾</span>
+        <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
+          {metodi.length === 0 ? 'nessuno' : metodi.length}
+          <span className="transition-transform group-open:rotate-180">▾</span>
+        </span>
       </summary>
-      <div className="border-t border-line p-2">
+      <div className="px-3 pb-3 text-ink">
         {metodi.length === 0 ? (
-          <p className="px-1 py-1 text-xs text-muted">
-            Li aggiunge dal suo profilo, in «Come essere pagato».
+          <p className="px-1 text-xs text-muted">
+            {nome} non ha ancora indicato come essere pagato: li aggiunge dal suo profilo, in
+            «Come essere pagato».
           </p>
         ) : (
           <MetodiPagamento
@@ -81,7 +87,11 @@ export function SceltaBeneficiario({
           </option>
         ))}
       </select>
-      {chi && <TendinaMetodi nome={chi.nome} metodi={chi.metodi} />}
+      {chi && (
+        <div className="overflow-hidden rounded-md border border-nvg/30 [&>details]:border-t-0">
+          <TendinaMetodi nome={chi.nome} metodi={chi.metodi} />
+        </div>
+      )}
     </div>
   );
 }

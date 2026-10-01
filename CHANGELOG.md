@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.14.2 — 1 ottobre 2026
+
+### Cambiato
+
+- **«Metodi di pagamento», una fascia in fondo.** La tendina con i metodi
+  dell'operatore si chiama «Metodi di pagamento» ed è una fascia a tutta
+  larghezza in fondo alla card dell'uscita, nel colore della squadra invece
+  che grigia; da computer, una riga intera sotto l'uscita nella tabella.
+
 ## 3.14.1 — 1 ottobre 2026
 
 ### Cambiato

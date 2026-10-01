@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -406,14 +407,6 @@ export default async function CassaPage({
               sottotitolo={
                 <>
                   {v.dettaglio && <span className="block">{v.dettaglio}</span>}
-                  {v.movimento?.beneficiario && (
-                    <span className="mt-1.5 block">
-                      <TendinaMetodi
-                        nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
-                        metodi={v.movimento.beneficiario.metodiPersonali}
-                      />
-                    </span>
-                  )}
                   {urlAllegato(v.movimento) && (
                     <a
                       href={urlAllegato(v.movimento)!}
@@ -432,6 +425,14 @@ export default async function CassaPage({
                 </>
               }
               elimina={admin && v.movimento && <EliminaMovimento movimento={v.movimento} />}
+              fascia={
+                v.movimento?.beneficiario && (
+                  <TendinaMetodi
+                    nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
+                    metodi={v.movimento.beneficiario.metodiPersonali}
+                  />
+                )
+              }
               azioni={
                 admin &&
                 v.movimento && (
@@ -473,7 +474,8 @@ export default async function CassaPage({
               </thead>
               <tbody>
                 {voci.map((v) => (
-                  <tr key={v.chiave}>
+                  <Fragment key={v.chiave}>
+                  <tr className={v.movimento?.beneficiario ? '[&>td]:border-b-0' : undefined}>
                     <td className="num whitespace-nowrap text-muted">{fmtDate(v.data)}</td>
                     <td>
                       {v.link ? (
@@ -485,14 +487,6 @@ export default async function CassaPage({
                       )}
                       {v.dettaglio && (
                         <span className="block text-[11px] text-muted">{v.dettaglio}</span>
-                      )}
-                      {v.movimento?.beneficiario && (
-                        <span className="mt-1.5 block w-[24rem] max-w-[60vw]">
-                          <TendinaMetodi
-                            nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
-                            metodi={v.movimento.beneficiario.metodiPersonali}
-                          />
-                        </span>
                       )}
                       {urlAllegato(v.movimento) && (
                         <a
@@ -539,6 +533,17 @@ export default async function CassaPage({
                       </td>
                     )}
                   </tr>
+                  {v.movimento?.beneficiario && (
+                    <tr>
+                      <td colSpan={admin ? 8 : 7} className="!p-0">
+                        <TendinaMetodi
+                          nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
+                          metodi={v.movimento.beneficiario.metodiPersonali}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

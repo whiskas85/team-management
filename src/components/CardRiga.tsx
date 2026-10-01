@@ -29,6 +29,7 @@ export function CardRiga({
   elimina,
   children,
   azioni,
+  fascia,
   card = false,
   className = '',
 }: {
@@ -40,6 +41,11 @@ export function CardRiga({
   children?: ReactNode;
   /** I pulsanti, sotto e a destra. */
   azioni?: ReactNode;
+  /**
+   * Una fascia in fondo, a tutta larghezza, sotto i pulsanti: per una cosa da
+   * aprire (i metodi per pagare qualcuno) che non è né contenuto né azione.
+   */
+  fascia?: ReactNode;
   /**
    * Card a sé, al primo livello della pagina, invece di una riga dentro un
    * elenco. Lo schema è lo stesso: cambia solo la cornice.
@@ -63,7 +69,23 @@ export function CardRiga({
       {children && <div className="mt-2 min-w-0 break-words">{children}</div>}
 
       {azioni && (
-        <div className="piede">{azioni}</div>
+        // con una fascia sotto, il piede non chiude più la card: la chiude lei
+        <div className="piede" style={fascia ? { marginBottom: 0, borderRadius: 0 } : undefined}>
+          {azioni}
+        </div>
+      )}
+
+      {fascia && (
+        <div
+          className="overflow-hidden"
+          style={{
+            margin: `${azioni ? '0' : '0.75rem'} calc(var(--pad, 1rem) * -1) calc(var(--pad, 1rem) * -1)`,
+            borderBottomLeftRadius: 'calc(0.5rem - 1px)',
+            borderBottomRightRadius: 'calc(0.5rem - 1px)',
+          }}
+        >
+          {fascia}
+        </div>
       )}
     </div>
   );
