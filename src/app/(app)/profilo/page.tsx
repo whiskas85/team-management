@@ -10,6 +10,7 @@ import {
   tonoRuolo,
   tonoStato,
   vedeAreaTesseramento,
+  vedeAttivitaSquadra,
 } from '@/lib/domain';
 import { fmtDate, fmtEuro, giorniA, iniziali, inputDate, umanizza } from '@/lib/format';
 import { Partecipazioni } from '@/components/Partecipazioni';
@@ -25,6 +26,7 @@ import { GRUPPI_SANGUIGNI } from '@/lib/medico';
 import { aggiornaConsensi, aggiornaProfilo, cambiaPassword } from '@/actions/operatori';
 import { CampoTelefono } from '@/components/CampoTelefono';
 import { SceltaAspetto } from '@/components/SceltaAspetto';
+import { MetodiPersonali } from '@/components/MetodiPersonali';
 import { temaSquadra } from '@/lib/tema-server';
 import { eTemaPersonale } from '@/lib/tema';
 
@@ -489,6 +491,19 @@ export default async function ProfiloPage() {
           <Invia icona="salva">Salva dati di emergenza</Invia>
         </FormAzione>
       </Fisarmonica>
+
+      {/* ------------------------------------------- come essere pagato */}
+      {vedeAttivitaSquadra(utente.stato) && (
+        <Fisarmonica titolo="Come essere pagato">
+          <MetodiPersonali
+            metodi={await prisma.metodoPersonale.findMany({
+              where: { userId: utente.id },
+              orderBy: [{ ordine: 'asc' }, { createdAt: 'asc' }],
+              select: { id: true, nome: true, istruzioni: true },
+            })}
+          />
+        </Fisarmonica>
+      )}
 
       {/* -------------------------------------------------- aspetto */}
       <Fisarmonica titolo="Aspetto e accessibilità">

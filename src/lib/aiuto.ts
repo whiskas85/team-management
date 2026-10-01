@@ -172,6 +172,7 @@ export const AIUTO: VoceAiuto[] = [
     titolo: 'Il mio profilo',
     cosa: 'La tua pagina: i tuoi dati, la situazione (presenze, certificato, tessera, quote, credito) e le impostazioni personali.',
     passi: [
+      { titolo: 'Come essere pagato', testo: 'Nella sezione **Come essere pagato** scrivi i tuoi metodi — IBAN, PayPal, Satispay — con [[g:aggiungi|Aggiungi metodo]]. Quando la squadra ti deve dei soldi, chi registra l’uscita in cassa li trova già pronti: un link diventa «Paga», un IBAN si copia.' },
       { titolo: 'In cima', testo: 'Foto, nome e i riquadri della tua situazione: presenze dell’anno, certificato, tessera FIGT, da saldare, credito, da quando sei nel club. Tocca la foto per cambiarla o ritagliarla.' },
       { titolo: 'I dati', testo: 'Ogni sezione si apre toccandone il titolo e ha il suo pulsante: [[p:salva|Salva anagrafica]], [[p:salva|Salva recapiti]], [[p:salva|Salva dati di emergenza]]. Quelle ancora incomplete si aprono da sole.' },
       { titolo: 'Emergenze e dati sanitari', testo: 'Chi avvisare, il suo telefono, gruppo sanguigno, allergie e terapie: li legge solo chi deve soccorrerti.' },
@@ -362,7 +363,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Il registro unico dei movimenti: le quote incassate dalle attività e le entrate e uscite scritte a mano.',
     perChi: 'Segreteria',
     passi: [
-      { titolo: 'Movimento a mano', testo: '[[p:incassa|Registra entrata]] o [[g:pagamenti|Registra uscita]], con categoria e metodo, e se vuoi lo scontrino, la fattura o la ricevuta (foto o PDF): nel registro compare con 📎 e si apre con un tocco. Un acquisto può caricare direttamente il magazzino.' },
+      { titolo: 'Movimento a mano', testo: '[[p:incassa|Registra entrata]] o [[g:pagamenti|Registra uscita]], con categoria e metodo, e se vuoi lo scontrino, la fattura o la ricevuta (foto o PDF): nel registro compare con 📎 e si apre con un tocco. Un’uscita può andare **a un operatore** (un rimborso, una spesa anticipata): nel registro trovi [[g:pagamenti|Come pagarlo]] con i suoi metodi, «Paga» per i link e «Copia IBAN». Un acquisto può caricare direttamente il magazzino.' },
       { titolo: 'Correggere', testo: '[[g:modifica|Modifica]] su un movimento scritto a mano; il cestino [[x]] lo elimina. Quelli nati da una quota si correggono dalla quota.' },
     ],
     parole: 'registro entrate uscite saldo contabilità cassa',

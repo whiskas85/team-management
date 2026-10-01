@@ -178,6 +178,9 @@ model User {
   /// Notte o giorno, scelto con la levetta: «scuro» o «chiaro». Nullo = come
   /// dice il tema della squadra, che è solo quello di partenza.
   modo                 String?
+  /// Come essere pagati: IBAN, PayPal, Satispay… Senza cassa: sono della persona.
+  metodiPersonali      MetodoPersonale[]
+  movimentiRicevuti    MovimentoCassa[]  @relation("BeneficiarioMovimento")
   roles                Role[]         @default([])
   stato                StatoOperatore @default(NUOVO)
   createdAt            DateTime       @default(now())
@@ -1276,6 +1279,22 @@ model Payment {
   @@index([cassaId, status])
 }
 
+/// Un modo per pagare una persona: il suo IBAN, il suo PayPal, il suo
+/// Satispay. Non è di una cassa — la persona non incassa quote — e serve
+/// quando la si paga: un rimborso, una spesa anticipata, un lavoro fatto. Se
+/// nelle istruzioni c'è un link o un IBAN, diventano «Paga» e «Copia IBAN».
+model MetodoPersonale {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome       String
+  istruzioni String?
+  ordine     Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
 // ---------------------------------------------------------------- cassa
 
 /// Una cassa che non è quella del club.
@@ -1453,6 +1472,10 @@ model MovimentoCassa {
   registratoById String?
   registratoBy   User?            @relation("CassaRegistrante", fields: [registratoById], references: [id])
   createdAt      DateTime         @default(now())
+  /// A chi vanno i soldi di un'uscita, se è un operatore: chi ha anticipato
+  /// una spesa, chi va rimborsato. Aprendo l'uscita si vedono i suoi metodi.
+  beneficiarioId String?
+  beneficiario   User?            @relation("BeneficiarioMovimento", fields: [beneficiarioId], references: [id], onDelete: SetNull)
   /// Lo scontrino, la fattura o la ricevuta: foto o PDF, dentro UPLOAD_DIR.
   allegatoPath   String?
   allegatoNome   String?

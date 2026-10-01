@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.14.0 — 1 ottobre 2026
+
+### Aggiunto
+
+- **Metodi di pagamento personali.** Nel profilo, «Come essere pagato»: ogni
+  operatore scrive i suoi metodi (IBAN, PayPal, Satispay…), senza bisogno di
+  una cassa. Un link diventa «Paga», un IBAN «Copia IBAN».
+- **Uscite di cassa verso un operatore.** In «Registra uscita» si sceglie a
+  chi vanno i soldi, fra gli operatori (non i nuovi). Nel registro l'uscita
+  dice «a Mario Rossi» e ha «Come pagarlo»: i suoi metodi, con i pulsanti per
+  pagarlo.
+
 ## 3.13.0 — 1 ottobre 2026
 
 ### Aggiunto

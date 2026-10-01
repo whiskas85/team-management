@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
+import { isAdmin, puoGestirePagamenti, vedeAttivitaSquadra } from '@/lib/domain';
 import { fmtDate, fmtEuro, inputDate, umanizza } from '@/lib/format';
 import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
@@ -10,6 +10,7 @@ import { Invia } from '@/components/Bottone';
 import { eliminaMovimento, salvaMovimento } from '@/actions/cassa';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
+import { ComePagarlo } from '@/components/ComePagarlo';
 
 type Movimento = {
   id: string;
@@ -22,6 +23,13 @@ type Movimento = {
   metodoId: string | null;
   /** Se la spesa era un acquisto: la merce entrata e quanti pezzi. */
   carico?: { articoloId: string; quantita: number } | null;
+  /** A chi va un'uscita, se è un operatore: con i suoi metodi per pagarlo. */
+  beneficiarioId?: string | null;
+  beneficiario?: {
+    nome: string;
+    cognome: string;
+    metodiPersonali: { id: string; nome: string; istruzioni: string | null }[];
+  } | null;
   /** Scontrino, fattura o ricevuta: foto o PDF. */
   allegatoPath?: string | null;
   allegatoNome?: string | null;
@@ -32,6 +40,7 @@ const urlAllegato = (m: Movimento | null) =>
   m?.allegatoPath ? `/api/cassa/movimenti/${m.id}/allegato` : null;
 
 type Metodo = { id: string; nome: string };
+type Operatore = { id: string; nome: string };
 
 /** Un articolo di magazzino, come si sceglie: categoria e nome. */
 type Merce = { id: string; nome: string; categoria: string | null };
@@ -79,6 +88,16 @@ export default async function CassaPage({
         // serve al modulo di modifica: senza, riaprirlo e salvare toglierebbe
         // in silenzio la merce entrata con quella spesa
         carico: { select: { articoloId: true, quantita: true } },
+        beneficiario: {
+          select: {
+            nome: true,
+            cognome: true,
+            metodiPersonali: {
+              orderBy: [{ ordine: 'asc' }, { createdAt: 'asc' }],
+              select: { id: true, nome: true, istruzioni: true },
+            },
+          },
+        },
       },
     }),
     // solo i soldi del club: quelli delle altre casse non ci passano, nemmeno
@@ -134,6 +153,19 @@ export default async function CassaPage({
 
   const merci: Merce[] = scorte;
 
+  // a chi può andare un'uscita: gli operatori, non i nuovi
+  const operatori: Operatore[] = (
+    await prisma.user.findMany({
+      orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, cognome: true, callsign: true, stato: true },
+    })
+  )
+    .filter((u) => vedeAttivitaSquadra(u.stato))
+    .map((u) => ({
+      id: u.id,
+      nome: `${u.cognome} ${u.nome}${u.callsign ? ` · ${u.callsign}` : ''}`,
+    }));
+
   // quello che entra dalle attività, al netto di ciò che è stato restituito
   const incassiQuote = pagamenti
     .filter((p) => p.tipo !== 'RIMBORSO')
@@ -175,7 +207,10 @@ export default async function CassaPage({
     entrata: m.tipo === 'ENTRATA',
     importo: Number(m.importo),
     descrizione: m.descrizione,
-    dettaglio: m.note,
+    dettaglio:
+      [m.beneficiario ? `a ${m.beneficiario.nome} ${m.beneficiario.cognome}` : null, m.note]
+        .filter(Boolean)
+        .join(' · ') || null,
     categoria: m.categoria,
     metodo: m.metodo?.nome ?? null,
     registratoDa: m.registratoBy ? `${m.registratoBy.nome} ${m.registratoBy.cognome}` : null,
@@ -250,7 +285,7 @@ export default async function CassaPage({
             >
               <FormAzione azione={salvaMovimento}>
                 <input type="hidden" name="tipo" value="USCITA" />
-                <CampiMovimento metodi={metodi} merci={merci} />
+                <CampiMovimento metodi={metodi} merci={merci} operatori={operatori} />
                 <Invia icona="salva">Registra uscita</Invia>
               </FormAzione>
             </BottoneModale>
@@ -356,6 +391,15 @@ export default async function CassaPage({
               sottotitolo={
                 <>
                   {v.dettaglio && <span className="block">{v.dettaglio}</span>}
+                  {v.movimento?.beneficiario && (
+                    <span className="mt-1 block">
+                      <ComePagarlo
+                        nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
+                        importo={fmtEuro(v.importo)}
+                        metodi={v.movimento.beneficiario.metodiPersonali}
+                      />
+                    </span>
+                  )}
                   {urlAllegato(v.movimento) && (
                     <a
                       href={urlAllegato(v.movimento)!}
@@ -377,7 +421,12 @@ export default async function CassaPage({
               azioni={
                 admin &&
                 v.movimento && (
-                  <ModificaMovimento movimento={v.movimento} metodi={metodi} merci={merci} />
+                  <ModificaMovimento
+                    movimento={v.movimento}
+                    metodi={metodi}
+                    merci={merci}
+                    operatori={operatori}
+                  />
                 )
               }
             >
@@ -423,6 +472,15 @@ export default async function CassaPage({
                       {v.dettaglio && (
                         <span className="block text-[11px] text-muted">{v.dettaglio}</span>
                       )}
+                      {v.movimento?.beneficiario && (
+                        <span className="mt-1 block">
+                          <ComePagarlo
+                            nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
+                            importo={fmtEuro(v.importo)}
+                            metodi={v.movimento.beneficiario.metodiPersonali}
+                          />
+                        </span>
+                      )}
                       {urlAllegato(v.movimento) && (
                         <a
                           href={urlAllegato(v.movimento)!}
@@ -458,6 +516,7 @@ export default async function CassaPage({
                               movimento={v.movimento}
                               metodi={metodi}
                               merci={merci}
+                              operatori={operatori}
                             />
                             <EliminaMovimento movimento={v.movimento} />
                           </div>
@@ -481,10 +540,12 @@ function ModificaMovimento({
   movimento,
   metodi,
   merci,
+  operatori,
 }: {
   movimento: Movimento;
   metodi: Metodo[];
   merci: Merce[];
+  operatori: Operatore[];
 }) {
   return (
     <>
@@ -501,6 +562,7 @@ function ModificaMovimento({
             metodi={metodi}
             movimento={movimento}
             merci={movimento.tipo === 'USCITA' ? merci : undefined}
+            operatori={movimento.tipo === 'USCITA' ? operatori : undefined}
           />
           <Invia icona="salva">Salva</Invia>
         </FormAzione>
@@ -525,11 +587,14 @@ function CampiMovimento({
   metodi,
   movimento,
   merci,
+  operatori,
 }: {
   metodi: Metodo[];
   movimento?: Movimento;
   /** Solo sulle uscite: se la spesa è un acquisto, entra in magazzino. */
   merci?: Merce[];
+  /** Solo sulle uscite: a quale operatore vanno i soldi, se a qualcuno. */
+  operatori?: Operatore[];
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -583,6 +648,26 @@ function CampiMovimento({
           ))}
         </select>
       </Campo>
+
+      {operatori && (
+        <Campo label="A chi (operatore)" span>
+          <select
+            name="beneficiarioId"
+            defaultValue={movimento?.beneficiarioId ?? ''}
+            className="input"
+          >
+            <option value="">— a nessuno in particolare —</option>
+            {operatori.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.nome}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-[11px] text-muted">
+            Un rimborso, una spesa anticipata: nel registro trovi «Come pagarlo» con i suoi metodi.
+          </span>
+        </Campo>
+      )}
 
       <Campo label="Note" span>
         <textarea name="note" rows={2} defaultValue={movimento?.note ?? ''} className="input" />

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
+import { isAdmin, puoGestirePagamenti, vedeAttivitaSquadra } from '@/lib/domain';
 import { bool, data, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 
@@ -82,7 +82,20 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
     categoria: strOpt(fd, 'categoria'),
     metodoId: strOpt(fd, 'metodoId'),
     note: strOpt(fd, 'note'),
+    // a quale operatore vanno i soldi di un'uscita: solo chi è in squadra
+    beneficiarioId: null as string | null,
   };
+  const beneficiarioId = strOpt(fd, 'beneficiarioId');
+  if (valori.tipo === 'USCITA' && beneficiarioId) {
+    const chi = await prisma.user.findUnique({
+      where: { id: beneficiarioId },
+      select: { id: true, stato: true },
+    });
+    if (!chi || !vedeAttivitaSquadra(chi.stato)) {
+      return { errore: 'Un’uscita può andare a un operatore della squadra, non a un nuovo.' };
+    }
+    valori.beneficiarioId = chi.id;
+  }
 
   // Lo scontrino o la fattura: foto o PDF. Uno nuovo sostituisce il vecchio;
   // «togli» lo leva senza metterne un altro.
