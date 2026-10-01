@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
-import { data, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { bool, data, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 
 const TIPI = ['ENTRATA', 'USCITA'] as const;
 
@@ -83,15 +84,39 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
     note: strOpt(fd, 'note'),
   };
 
+  // Lo scontrino o la fattura: foto o PDF. Uno nuovo sostituisce il vecchio;
+  // «togli» lo leva senza metterne un altro.
+  const prima = id
+    ? await prisma.movimentoCassa.findUnique({ where: { id }, select: { allegatoPath: true } })
+    : null;
+  const file = fd.get('allegato');
+  let allegato: { allegatoPath: string | null; allegatoNome: string | null; allegatoTipo: string | null } | null =
+    null;
+  if (file instanceof File && file.size > 0) {
+    try {
+      const salvato = await salvaAllegato(file, 'cassa');
+      allegato = {
+        allegatoPath: salvato.filePath,
+        allegatoNome: salvato.fileName,
+        allegatoTipo: salvato.mimeType,
+      };
+    } catch (e) {
+      return { errore: (e as Error).message };
+    }
+  } else if (id && bool(fd, 'togliAllegato')) {
+    allegato = { allegatoPath: null, allegatoNome: null, allegatoTipo: null };
+  }
+  if (allegato && prima?.allegatoPath) await eliminaAllegato(prima.allegatoPath).catch(() => null);
+
   if (id) {
-    await prisma.movimentoCassa.update({ where: { id }, data: valori });
+    await prisma.movimentoCassa.update({ where: { id }, data: { ...valori, ...(allegato ?? {}) } });
     await allineaMagazzino(id, valori.tipo, importo, fd);
     aggiorna();
     return { ok: 'Movimento aggiornato.' };
   }
 
   const movimento = await prisma.movimentoCassa.create({
-    data: { ...valori, registratoById: me.id },
+    data: { ...valori, ...(allegato ?? {}), registratoById: me.id },
   });
   await allineaMagazzino(movimento.id, valori.tipo, importo, fd);
 
@@ -114,7 +139,8 @@ export async function eliminaMovimento(_prev: StatoForm, fd: FormData): Promise<
     return { errore: 'Solo l’admin può eliminare un movimento di cassa.' };
   }
 
-  await prisma.movimentoCassa.delete({ where: { id: str(fd, 'id') } });
+  const movimento = await prisma.movimentoCassa.delete({ where: { id: str(fd, 'id') } });
+  if (movimento.allegatoPath) await eliminaAllegato(movimento.allegatoPath).catch(() => null);
   aggiorna();
   return { ok: 'Movimento eliminato.' };
 }

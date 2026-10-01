@@ -22,7 +22,14 @@ type Movimento = {
   metodoId: string | null;
   /** Se la spesa era un acquisto: la merce entrata e quanti pezzi. */
   carico?: { articoloId: string; quantita: number } | null;
+  /** Scontrino, fattura o ricevuta: foto o PDF. */
+  allegatoPath?: string | null;
+  allegatoNome?: string | null;
 };
+
+/** Il link allo scontrino di un movimento, se c'è. */
+const urlAllegato = (m: Movimento | null) =>
+  m?.allegatoPath ? `/api/cassa/movimenti/${m.id}/allegato` : null;
 
 type Metodo = { id: string; nome: string };
 
@@ -349,6 +356,16 @@ export default async function CassaPage({
               sottotitolo={
                 <>
                   {v.dettaglio && <span className="block">{v.dettaglio}</span>}
+                  {urlAllegato(v.movimento) && (
+                    <a
+                      href={urlAllegato(v.movimento)!}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-nvg hover:underline"
+                    >
+                      📎 {v.movimento?.allegatoNome ?? 'Allegato'}
+                    </a>
+                  )}
                   <span className="num">
                     {fmtDate(v.data)}
                     {v.categoria && ` · ${v.categoria}`}
@@ -405,6 +422,16 @@ export default async function CassaPage({
                       )}
                       {v.dettaglio && (
                         <span className="block text-[11px] text-muted">{v.dettaglio}</span>
+                      )}
+                      {urlAllegato(v.movimento) && (
+                        <a
+                          href={urlAllegato(v.movimento)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-[11px] text-nvg hover:underline"
+                        >
+                          📎 {v.movimento?.allegatoNome ?? 'Allegato'}
+                        </a>
                       )}
                     </td>
                     <td>
@@ -559,6 +586,35 @@ function CampiMovimento({
 
       <Campo label="Note" span>
         <textarea name="note" rows={2} defaultValue={movimento?.note ?? ''} className="input" />
+      </Campo>
+
+      <Campo label="Scontrino, fattura o ricevuta" span>
+        <input
+          type="file"
+          name="allegato"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          className="input file:mr-3 file:rounded file:border-0 file:bg-surface file:px-2 file:py-1 file:text-xs file:text-ink"
+        />
+        <span className="mt-1 block text-[11px] text-muted">
+          Foto o PDF, fino a 10 MB. Dal telefono si può scattare direttamente.
+        </span>
+        {movimento?.allegatoPath && (
+          <span className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+            <a
+              href={urlAllegato(movimento)!}
+              target="_blank"
+              rel="noreferrer"
+              className="text-nvg hover:underline"
+            >
+              📎 {movimento.allegatoNome ?? 'Allegato'}
+            </a>
+            <label className="flex items-center gap-1.5 text-muted">
+              <input type="checkbox" name="togliAllegato" className="h-3.5 w-3.5" />
+              toglilo
+            </label>
+            <span className="text-muted">· sceglierne un altro lo sostituisce</span>
+          </span>
+        )}
       </Campo>
 
       {/* Se la spesa è un acquisto di magazzino, i pezzi entrano da soli e il

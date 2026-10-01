@@ -1453,6 +1453,10 @@ model MovimentoCassa {
   registratoById String?
   registratoBy   User?            @relation("CassaRegistrante", fields: [registratoById], references: [id])
   createdAt      DateTime         @default(now())
+  /// Lo scontrino, la fattura o la ricevuta: foto o PDF, dentro UPLOAD_DIR.
+  allegatoPath   String?
+  allegatoNome   String?
+  allegatoTipo   String?
 
   /// Il riordino che ha generato questa uscita, se ne viene.
   riordino Riordino?

@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.13.0 — 1 ottobre 2026
+
+### Aggiunto
+
+- **Scontrino, fattura o ricevuta sui movimenti di cassa.** «Registra uscita»
+  (e «Registra entrata») hanno il campo per allegare una foto o un PDF, fino a
+  10 MB; dal telefono si scatta direttamente. Nel registro il movimento mostra
+  📎 con il nome del file, che si apre con un tocco. Dalla modifica si
+  sostituisce o si toglie; eliminando il movimento se ne va anche il file. Lo
+  vede solo chi tiene la cassa.
+
 ## 3.12.0 — 1 ottobre 2026
 
 ### Aggiunto
