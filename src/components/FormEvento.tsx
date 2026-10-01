@@ -51,6 +51,8 @@ type Evento = {
   chiusuraIscrizioni: Date | null;
   /** Le polizze automatiche su questa attività: null segue l'impostazione generale. */
   assicuraAuto: boolean | null;
+  /** Quanti kit a noleggio per i nuovi: null, il noleggio non c'è. */
+  kitNoleggio?: number | null;
   /** L'attività di cui questa fa parte, se qualcuno l'ha detto. */
   collegatoAId: string | null;
   note: string | null;
@@ -452,6 +454,23 @@ export function FormEvento({
                   </p>
                 </Campo>
               )}
+
+              <Campo label="Kit a noleggio per i nuovi">
+                <input
+                  name="kitNoleggio"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  className="input"
+                  defaultValue={evento?.kitNoleggio ?? ''}
+                  placeholder="Vuoto: niente noleggio"
+                />
+                <p className="mt-1 text-xs text-muted">
+                  Quanti kit hai da noleggiare. I nuovi lo chiedono segnandosi, tu lo confermi o lo
+                  rifiuti; il prezzo è la voce «Noleggio attrezzatura» del Tariffario.
+                </p>
+              </Campo>
 
               {/* Le polizze automatiche, per questa sola giocata. Sta qui, fra
                   le cose che dicono come si comporta l'attivita', e non fra i

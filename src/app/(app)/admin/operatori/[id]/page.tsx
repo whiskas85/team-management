@@ -117,6 +117,8 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
   const presenzeConfermate = svolti.filter((r) => r.presente === true);
   const tassoPresenza = svolti.length ? (presenzeConfermate.length / svolti.length) * 100 : 0;
   const adesioni = utente.rsvps.filter((r) => r.status === 'PRESENTE');
+  // i kit a noleggio avuti: dicono anche quando è ora di comprarsi l'attrezzatura
+  const noleggi = utente.rsvps.filter((r) => r.noleggio === 'CONFERMATO').length;
   const daSaldare = utente.payments
     .filter((p) => p.status === 'DA_PAGARE' || p.status === 'PARZIALE')
     .reduce((t, p) => t + Number(p.importo) - Number(p.pagato), 0);
@@ -221,6 +223,9 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
       {/* -------------------------------------------------- numeri e grafici */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Statistica etichetta="Adesioni" valore={adesioni.length} />
+        {noleggi > 0 && (
+          <Statistica etichetta="Kit a noleggio" valore={noleggi} dettaglio="noleggi confermati" />
+        )}
         <Statistica
           etichetta="Presenze confermate"
           valore={presenzeConfermate.length}

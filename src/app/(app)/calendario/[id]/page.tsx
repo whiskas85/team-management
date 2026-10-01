@@ -72,6 +72,8 @@ import { Quando } from '@/components/Quando';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { BadgeIscrizioniChiuse } from '@/components/CardEvento';
 import { AdesioneEvento } from '@/components/AdesioneEvento';
+import { PannelloNoleggi } from '@/components/Noleggi';
+import { prezzoNoleggio } from '@/lib/quote';
 import { ContoAllaRovescia } from '@/components/ContoAllaRovescia';
 import {
   creaRiunione,
@@ -367,6 +369,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const nomeDi = (u: Chiunque) => chiamato(u).nome;
 
   const mio = evento.rsvps.find((r) => r.userId === me.id);
+
+  // Il kit a noleggio per i nuovi: c'è se l'attività dice quanti e il
+  // Tariffario dice quanto costa
+  const prezzoKit =
+    evento.kitNoleggio !== null ? ((await prezzoNoleggio(evento))?.importo ?? null) : null;
+  const kitConfermati = evento.rsvps.filter((r) => r.noleggio === 'CONFERMATO').length;
+  const kitMio =
+    evento.kitNoleggio !== null && prezzoKit !== null && !vedeAttivitaSquadra(me.stato)
+      ? {
+          prezzo: prezzoKit,
+          stato: mio?.noleggio ?? null,
+          esauriti: kitConfermati >= evento.kitNoleggio,
+        }
+      : undefined;
   const presenti = evento.rsvps.filter((r) => r.status === 'PRESENTE');
   const forse = evento.rsvps.filter((r) => r.status === 'FORSE');
   const assenti = evento.rsvps.filter((r) => r.status === 'ASSENTE');
@@ -1846,6 +1862,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       <Badge tono="danger">senza certificato · non partecipa</Badge>
                                     );
                                   })()}
+                                {(tl || admin || r.userId === me.id) &&
+                                  r.noleggio &&
+                                  (r.noleggio === 'CONFERMATO' ? (
+                                    <Badge tono="info">kit a noleggio</Badge>
+                                  ) : (
+                                    <Badge tono="warn">kit richiesto</Badge>
+                                  ))}
                                 {/* la quota può esserci anche su un'attività gratis:
                                     i nuovi pagano la loro tariffa fissa */}
                                 {/* Il badge guarda la quota **di quella persona**, non
@@ -2278,6 +2301,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             </details>
           )}
 
+          {(tl || admin) && evento.kitNoleggio !== null && (
+            <PannelloNoleggi
+              kit={evento.kitNoleggio}
+              prezzo={prezzoKit}
+              righe={evento.rsvps
+                .filter((r) => r.noleggio)
+                .map((r) => ({
+                  id: r.id,
+                  nome: nomeDi(r.user),
+                  stato: r.noleggio as 'RICHIESTO' | 'CONFERMATO',
+                }))}
+            />
+          )}
+
           {/* A giornata conclusa la propria adesione non c'è più: non si risponde
               a un invito per una domenica passata. Quello che ne resta — c'eri
               o non c'eri — è scritto sulla riga dei partecipanti, ed è un fatto,
@@ -2343,6 +2380,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   scelta={mio?.status ?? null}
                   nota={mio?.note ?? null}
                   pieno={pieno}
+                  kit={kitMio}
                 />
                 {schieraQuesta && (
                   <p className="mt-3 text-xs text-muted">

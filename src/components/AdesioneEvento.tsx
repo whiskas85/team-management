@@ -38,19 +38,26 @@ export function AdesioneEvento({
   nota,
   pieno,
   compatta = false,
+  kit,
 }: {
   eventId: string;
   scelta: string | null;
   nota: string | null;
   pieno: boolean;
+  /**
+   * Il kit a noleggio, solo per i nuovi e dove l'attività lo offre: il
+   * prezzo (dal Tariffario) e com'è messa la sua richiesta.
+   */
+  kit?: { prezzo: number; stato: 'RICHIESTO' | 'CONFERMATO' | null; esauriti: boolean };
   /** Nella card serve solo la fila di pulsanti, senza campo nota. */
   compatta?: boolean;
 }) {
   const [stato, azione] = useActionState(rispondiEvento, {} as StatoForm);
   const campoScelta = useRef<HTMLInputElement>(null);
+  const modulo = useRef<HTMLFormElement>(null);
 
   return (
-    <form action={azione} className={compatta ? 'flex items-center gap-2' : 'space-y-3'}>
+    <form ref={modulo} action={azione} className={compatta ? 'flex items-center gap-2' : 'space-y-3'}>
       <input type="hidden" name="eventId" value={eventId} />
       {/* scritto a mano al click: lo stato di React arriverebbe dopo l'invio */}
       <input type="hidden" name="status" defaultValue={scelta ?? ''} ref={campoScelta} />
@@ -91,6 +98,43 @@ export function AdesioneEvento({
         <p className="text-[11px] text-muted">
           Tocca di nuovo la tua risposta per toglierla.
         </p>
+      )}
+
+      {!compatta && kit && (
+        <div className="rounded-md border border-line bg-surface2 px-3 py-2.5">
+          <input type="hidden" name="noleggioCampo" value="1" />
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="noleggio"
+              value="1"
+              defaultChecked={!!kit.stato}
+              // chi ha già risposto chiede (o ritira) il kit con la sola
+              // spunta: ripremere la risposta la toglierebbe
+              onChange={() => {
+                if (!scelta || scelta === 'ASSENTE' || !campoScelta.current) return;
+                campoScelta.current.value = scelta;
+                modulo.current?.requestSubmit();
+              }}
+              className="mt-0.5 h-4 w-4 shrink-0"
+            />
+            <span>
+              Mi serve il kit a noleggio{' '}
+              <span className="num text-muted">
+                (+{kit.prezzo.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })})
+              </span>
+              <span className="block text-xs text-muted">
+                {kit.stato === 'CONFERMATO'
+                  ? 'Confermato: è già nella tua quota.'
+                  : kit.stato === 'RICHIESTO'
+                    ? 'Richiesto: aspetta la conferma di chi organizza.'
+                    : kit.esauriti
+                      ? 'I kit sono già tutti assegnati: puoi chiederlo, ma potrebbe non esserci.'
+                      : 'Lo conferma chi organizza; solo allora si aggiunge alla quota. Vale con «Ci sono» o «Forse».'}
+              </span>
+            </span>
+          </label>
+        </div>
       )}
 
       {!compatta && (

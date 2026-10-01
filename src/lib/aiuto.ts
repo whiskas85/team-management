@@ -127,6 +127,7 @@ export const AIUTO: VoceAiuto[] = [
       { titolo: 'La tua adesione', testo: 'Nel riquadro **La tua adesione** scegli [[adesione]] e, se vuoi, scrivi una nota (es. «arrivo tardi»). Tocca di nuovo la risposta scelta per toglierla. Senza certificato valido non ti puoi segnare: c’è [[p|Carica il certificato]]. Se è valido oggi ma scade prima dell’attività ti segni lo stesso, con un avviso: rinnovalo in tempo, perché quel giorno senza certificato non partecipi — l’appello non ti lascia spuntare. Se i posti sono già coperti puoi segnarti lo stesso, ma rischi di finire in riserva.' },
       { titolo: 'Gare con formazione', testo: 'Dove ci sono titolari e riserve il riquadro diventa **La tua disponibilità**: tu dici se ci sei, poi il Team Leader ti schiera e sotto leggi come (titolare, TOC o riserva). In gara va chi è schierato titolare.' },
       { titolo: 'La quota', testo: 'Se l’attività si paga, sotto la risposta vedi quanto: il posto è confermato quando la quota è saldata, dalla pagina **Miei pagamenti**. Se avevi già pagato e poi non vieni, c’è [[g:incassa|Chiedi il rimborso]].' },
+      { titolo: 'Il kit a noleggio', testo: 'Per i nuovi, dove l’attività lo offre: spunta **Mi serve il kit a noleggio** insieme a «Ci sono» o «Forse». Chi organizza lo conferma — allora il prezzo si aggiunge alla quota — oppure lo rifiuta con un motivo: senza kit non si gioca, e l’adesione viene tolta. Chi organizza vede il riquadro **Kit a noleggio**, con quanti ne restano, [[g:approva|Conferma]] e [[g:annulla|Rifiuta]].' },
       { titolo: 'Dove e come arrivare', testo: 'Campo, ritrovo con la sua ora e una mappa sola con i due punti, P · Parcheggio e R · Ritrovo. Accanto a ogni posto [[p:naviga|Naviga]] apre il navigatore; se i posti sono due c’è anche il percorso intero, prima il ritrovo e poi il campo.' },
       { titolo: 'Chi viene', testo: 'Il riquadro **Risposte, quote e assicurazioni** elenca chi ha risposto, diviso in Ci sono, Forse e Non ci sono, e quanti della squadra non hanno ancora risposto. Il pulsante [[g:condividi]] in fondo alla scheda copia il link dell’attività, da mandare a chi vuoi.' },
       { titolo: 'Allegati, commenti, debriefing', testo: 'In **Allegati** trovi il book di missione e gli altri documenti: si leggono aprendoli, senza scaricarli. In fondo [[g:miPiace|Mi piace]] e [[g:commento|Commenta]]; a giornata finita, il **Debriefing** scritto dal Team Leader.' },
@@ -403,7 +404,7 @@ export const AIUTO: VoceAiuto[] = [
     perChi: 'Admin',
     passi: [
       { titolo: 'Aggiungere e cambiare', testo: '[[p:aggiungi|Aggiungi tariffa]] e [[g:modifica|Modifica]]. Il tariffario vale per una stagione.' },
-      { titolo: 'Usi', testo: 'Ogni voce dice dove si usa: nelle quote di un’attività compaiono solo quelle giuste. Una voce **al giorno** conta per ogni giorno dell’attività; una voce **polizza** paga la polizza giornaliera.' },
+      { titolo: 'Usi', testo: 'Ogni voce dice dove si usa: nelle quote di un’attività compaiono solo quelle giuste. Una voce **al giorno** conta per ogni giorno dell’attività; una voce **polizza** paga la polizza giornaliera. Il prezzo del kit a noleggio dei nuovi è la voce con l’uso **Noleggio attrezzatura**; quanti kit ci sono si scrive nell’attività.' },
     ],
     parole: 'listino prezzi voci quote tariffe',
   },

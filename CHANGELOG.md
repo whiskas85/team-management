@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.12.0 — 1 ottobre 2026
+
+### Aggiunto
+
+- **Kit a noleggio per i nuovi.** Nell'attività si scrive quanti kit ci sono
+  («Kit a noleggio per i nuovi»; vuoto, niente noleggio); il prezzo è la voce
+  del Tariffario con l'uso «Noleggio attrezzatura». Il nuovo lo chiede
+  segnandosi, con una spunta; chi organizza, nel riquadro «Kit a noleggio»,
+  vede quanti ne restano e chi aspetta: **Conferma** somma il kit alla quota
+  (10 € + 15 € = 25 €; se la giocata era già pagata, resta da saldare la
+  differenza), **Rifiuta** chiede il motivo e toglie l'adesione, perché senza
+  kit non si gioca. In tutti e due i casi la persona riceve un avviso. Finiti
+  i kit, non se ne conferma un altro. I noleggi si contano sull'attività,
+  nella scheda della persona e nelle statistiche.
+
 ## 3.11.0 — 30 settembre 2026
 
 ### Cambiato

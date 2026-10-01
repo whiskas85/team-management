@@ -67,6 +67,13 @@ enum RsvpStatus {
   FORSE
 }
 
+/// Il kit a noleggio chiesto da un nuovo: lo chiede segnandosi, lo conferma
+/// chi organizza. Un rifiuto non resta qui: toglie la persona dall'attività.
+enum NoleggioStato {
+  RICHIESTO
+  CONFERMATO
+}
+
 /// Schieramento deciso dal TL a partire dalle adesioni.
 enum Assegnazione {
   NON_ASSEGNATO
@@ -974,6 +981,8 @@ model Event {
   id                    String           @id @default(cuid())
   titolo                String
   descrizione           String?
+  /// Quanti kit a noleggio ci sono per i nuovi: vuoto, il noleggio non c'è.
+  kitNoleggio           Int?
   tipoId                String?
   tipo                  TipoAttivita?    @relation(fields: [tipoId], references: [id])
   stagioneId            String?
@@ -1141,6 +1150,12 @@ model EventRsvp {
   presente     Boolean? // presenza effettiva, registrata a evento concluso
   note         String?
   respondedAt  DateTime     @default(now())
+  /// Il kit a noleggio: solo i nuovi, solo dove l'attività lo offre.
+  noleggio        NoleggioStato?
+  /// Il prezzo del kit fissato alla conferma, e la cassa in cui entra: se il
+  /// listino cambia dopo, chi l'ha già avuto confermato paga quello di allora.
+  noleggioImporto Decimal?       @db.Decimal(10, 2)
+  noleggioCassaId String?
 
   @@unique([eventId, userId])
   @@index([userId])

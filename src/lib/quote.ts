@@ -3,6 +3,7 @@ import { prisma } from './db';
 import { vedeAttivitaSquadra } from './domain';
 import { num } from './form';
 import { quoteTutteSaldate } from './casse';
+import { giorniDi } from './giorni';
 
 /**
  * Quanto costa un'attività a una certa persona.
@@ -383,4 +384,29 @@ export async function togliQuotaCassa(quota: { id: string; eventId: string; cass
       await prisma.eventRsvp.update({ where: { id: c.id }, data: { assegnazione: 'TITOLARE' } });
     }
   }
+}
+
+/**
+ * Quanto costa il kit a noleggio su un'attività, e in che cassa entra.
+ *
+ * Lo dice il Tariffario: le voci attive con l'uso «Noleggio attrezzatura»,
+ * quelle della stagione dell'attività se ce ne sono, altrimenti quelle senza
+ * stagione. Una voce «per giorno» conta una volta per ogni giorno di gioco.
+ * Null se nel listino il noleggio non c'è: senza prezzo non si offre.
+ */
+export async function prezzoNoleggio(evento: {
+  stagioneId: string | null;
+  inizio: Date;
+  fine: Date | null;
+}): Promise<{ importo: number; cassaId: string | null } | null> {
+  const voci = await prisma.tariffa.findMany({
+    where: { attiva: true, usi: { has: 'AFFITTO' } },
+    select: { importo: true, perGiorno: true, stagioneId: true, cassaId: true },
+  });
+  const diStagione = voci.filter((v) => evento.stagioneId && v.stagioneId === evento.stagioneId);
+  const valide = diStagione.length ? diStagione : voci.filter((v) => !v.stagioneId);
+  if (valide.length === 0) return null;
+  const giorni = giorniDi(evento.inizio, evento.fine).length || 1;
+  const importo = valide.reduce((t, v) => t + Number(v.importo) * (v.perGiorno ? giorni : 1), 0);
+  return { importo: Math.round(importo * 100) / 100, cassaId: valide[0].cassaId };
 }

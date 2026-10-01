@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { diffondiEvento, ritiraEvento, segnalaNumeri } from '@/lib/eventi-condivisi';
 import { prisma } from '@/lib/db';
+import { fmtEuro } from '@/lib/format';
+import { avvisaPersona } from '@/lib/avvisi';
+import { prezzoNoleggio } from '@/lib/quote';
 import { accoda } from '@/lib/federazione-coda';
 import { stagioneAttiva } from '@/lib/stagioni';
 import {
@@ -242,6 +245,11 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     ...composizione,
     maxPartecipanti: intOpt(fd, 'maxPartecipanti'),
     chiusuraIscrizioni: data(fd, 'chiusuraIscrizioni'),
+    // i kit a noleggio per i nuovi: vuoto, il noleggio non c'è
+    kitNoleggio: (() => {
+      const n = intOpt(fd, 'kitNoleggio');
+      return n === null || n < 0 ? null : n;
+    })(),
     // le polizze automatiche su questa attività: vuoto resta vuoto, cioè
     // «come dice l'impostazione generale»
     assicuraAuto: { si: true, no: false }[str(fd, 'assicuraAuto')] ?? null,
@@ -677,10 +685,29 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   // al momento di alzare la mano, che è solo dire "ci sarei".
 
   const note = strOpt(fd, 'note');
+
+  /*
+   * Il kit a noleggio: solo i nuovi, solo dove l'attività lo offre. La
+   * casella c'è solo nel riquadro grande — dalla card si risponde senza, e
+   * lì la richiesta resta com'era. Chi dice «non ci sono» la ritira; chi ce
+   * l'ha confermato e toglie la spunta libera il kit.
+   */
+  const puoNoleggiare = evento.kitNoleggio !== null && !vedeAttivitaSquadra(me.stato);
+  let noleggio: { noleggio: 'RICHIESTO' | null; noleggioImporto?: null; noleggioCassaId?: null } | null =
+    null;
+  if (status === 'ASSENTE') {
+    if (esistente?.noleggio) noleggio = { noleggio: null, noleggioImporto: null, noleggioCassaId: null };
+  } else if (puoNoleggiare && str(fd, 'noleggioCampo') === '1') {
+    const vuole = str(fd, 'noleggio') === '1';
+    if (vuole && !esistente?.noleggio) noleggio = { noleggio: 'RICHIESTO' };
+    if (!vuole && esistente?.noleggio)
+      noleggio = { noleggio: null, noleggioImporto: null, noleggioCassaId: null };
+  }
+
   await prisma.eventRsvp.upsert({
     where: { eventId_userId: { eventId, userId: me.id } },
-    create: { eventId, userId: me.id, status, note },
-    update: { status, note, respondedAt: new Date() },
+    create: { eventId, userId: me.id, status, note, ...(noleggio ?? {}) },
+    update: { status, note, respondedAt: new Date(), ...(noleggio ?? {}) },
   });
 
   const quota = await allineaQuota(evento.id, me.id);
@@ -690,6 +717,9 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
   revalidatePath('/admin/pagamenti');
 
   if (status === 'ASSENTE') return { ok: 'Risposta registrata.' };
+  if (noleggio?.noleggio === 'RICHIESTO') {
+    avvisoCertificato += ' Il kit a noleggio è richiesto: lo conferma chi organizza, e solo allora si aggiunge alla quota.';
+  }
 
   // se i disponibili hanno superato i posti conviene dirlo subito, invece di
   // farlo scoprire il giorno dell'attività guardando la formazione
@@ -780,6 +810,8 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
       note: club.dettaglio,
       descrizione: evento.titolo,
       apribile: true,
+      // dentro c'è il kit a noleggio confermato (più sotto)
+      kit: false,
     },
     ...evento.quoteCasse.map((q) => ({
       cassaId: q.cassaId as string | null,
@@ -788,8 +820,32 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
       descrizione: `${evento.titolo} · ${q.descrizione}`,
       // una cassa spenta non riceve quote nuove: quelle che ci sono restano
       apribile: q.cassa.attiva,
+      kit: false,
     })),
   ];
+
+  // Il kit a noleggio confermato: il suo prezzo, fissato alla conferma, si
+  // somma alla quota della cassa in cui entra — di solito quella del club.
+  if (rsvp?.noleggio === 'CONFERMATO' && rsvp.noleggioImporto) {
+    const prezzo = Number(rsvp.noleggioImporto);
+    const kit = `kit a noleggio ${fmtEuro(prezzo)}`;
+    const cassaKit = rsvp.noleggioCassaId ?? null;
+    const voce = voci.find((v) => v.cassaId === cassaKit);
+    if (voce) {
+      voce.importo += prezzo;
+      voce.note = voce.note ? `${voce.note} · ${kit}` : `Giocata + ${kit}`;
+      voce.kit = true;
+    } else {
+      voci.push({
+        cassaId: cassaKit,
+        importo: prezzo,
+        note: null,
+        descrizione: `${evento.titolo} · Kit a noleggio`,
+        apribile: true,
+        kit: true,
+      });
+    }
+  }
 
   let totale = 0;
   for (const v of voci) {
@@ -834,6 +890,23 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
         await prisma.payment.update({
           where: { id: esistente.id },
           data: { importo: v.importo, note: v.note, descrizione: v.descrizione },
+        });
+      } else if (
+        v.kit &&
+        esistente.status !== 'NON_GESTITO' &&
+        Number(esistente.pagato) > 0 &&
+        v.importo > Number(esistente.importo)
+      ) {
+        // il kit confermato dopo che la giocata era già pagata (o in parte):
+        // la quota cresce del noleggio e resta da saldare la differenza
+        await prisma.payment.update({
+          where: { id: esistente.id },
+          data: {
+            importo: v.importo,
+            note: v.note,
+            status: 'PARZIALE',
+            pagatoIl: null,
+          },
         });
       }
       totale += v.importo;
@@ -1476,4 +1549,99 @@ export async function rimuoviPartecipante(_prev: StatoForm, fd: FormData): Promi
   aggiorna(rsvp.eventId);
   revalidatePath('/pagamenti');
   return { ok: 'Partecipante rimosso.' };
+}
+
+/** Chi decide sui kit a noleggio: chi schiera e chi amministra. */
+const decideNoleggi = (roles: Parameters<typeof puoSchierare>[0]) => puoSchierare(roles) || isAdmin(roles);
+
+/**
+ * Conferma il kit a noleggio chiesto da un nuovo: il prezzo del Tariffario si
+ * fissa adesso e si somma alla sua quota. Finiti i kit, non se ne conferma
+ * un altro.
+ */
+export async function confermaNoleggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!decideNoleggi(me.roles)) return { errore: 'I noleggi li gestisce chi organizza.' };
+  const rsvp = await prisma.eventRsvp.findUnique({
+    where: { id: str(fd, 'id') },
+    include: {
+      event: { select: { id: true, titolo: true, kitNoleggio: true, stagioneId: true, inizio: true, fine: true } },
+      user: { select: { nome: true, cognome: true } },
+    },
+  });
+  if (!rsvp || rsvp.noleggio !== 'RICHIESTO') return { errore: 'Non c’è una richiesta da confermare.' };
+  const evento = rsvp.event;
+  const confermati = await prisma.eventRsvp.count({
+    where: { eventId: evento.id, noleggio: 'CONFERMATO' },
+  });
+  if (evento.kitNoleggio !== null && confermati >= evento.kitNoleggio) {
+    return { errore: `I kit sono finiti: ${confermati} su ${evento.kitNoleggio} già confermati.` };
+  }
+  const prezzo = await prezzoNoleggio(evento);
+  if (!prezzo) {
+    return { errore: 'Nel Tariffario non c’è una voce con l’uso «Noleggio attrezzatura»: aggiungila, poi conferma.' };
+  }
+
+  await prisma.eventRsvp.update({
+    where: { id: rsvp.id },
+    data: { noleggio: 'CONFERMATO', noleggioImporto: prezzo.importo, noleggioCassaId: prezzo.cassaId },
+  });
+  await allineaQuota(evento.id, rsvp.userId);
+  await avvisaPersona(rsvp.userId, {
+    titolo: 'Kit a noleggio confermato',
+    testo: `Per «${evento.titolo}» il kit c’è: ${fmtEuro(prezzo.importo)} in più nella quota.`,
+    url: `/calendario/${evento.id}`,
+    tag: `noleggio-${rsvp.id}`,
+    whatsapp: `Zero Dark Ops — kit a noleggio confermato
+
+Per «${evento.titolo}» il kit c'è. Alla quota si aggiungono ${fmtEuro(prezzo.importo)}: la trovi in Miei pagamenti.`,
+  }).catch(() => null);
+
+  aggiorna(evento.id);
+  revalidatePath('/pagamenti');
+  revalidatePath('/admin/pagamenti');
+  return { ok: `Kit confermato a ${rsvp.user.nome} ${rsvp.user.cognome}: ${fmtEuro(prezzo.importo)} in più nella quota.` };
+}
+
+/**
+ * Rifiuta il kit a noleggio: e con il kit, la partecipazione. Senza
+ * attrezzatura un nuovo non gioca, quindi la sua adesione si toglie — con il
+ * motivo scritto, che gli arriva con l'avviso. Quello che avesse già pagato
+ * resta, e si gestisce come per un'attività a cui non va più (credito o
+ * rimborso).
+ */
+export async function rifiutaNoleggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!decideNoleggi(me.roles)) return { errore: 'I noleggi li gestisce chi organizza.' };
+  const motivo = strOpt(fd, 'motivo');
+  if (!motivo) return { errore: 'Scrivi perché rifiuti: lo legge chi l’aveva chiesto.' };
+  const rsvp = await prisma.eventRsvp.findUnique({
+    where: { id: str(fd, 'id') },
+    include: {
+      event: { select: { id: true, titolo: true } },
+      user: { select: { nome: true, cognome: true } },
+    },
+  });
+  if (!rsvp || !rsvp.noleggio) return { errore: 'Non c’è un noleggio da rifiutare.' };
+  if (rsvp.presente !== null) return { errore: 'L’appello è già stato fatto: non si toglie più nessuno.' };
+
+  await prisma.eventRsvp.delete({ where: { id: rsvp.id } });
+  await allineaQuota(rsvp.event.id, rsvp.userId);
+  await avvisaPersona(rsvp.userId, {
+    titolo: 'Kit a noleggio non disponibile',
+    testo: `Per «${rsvp.event.titolo}» il kit non c’è: ${motivo}. La tua adesione è stata tolta.`,
+    url: `/calendario/${rsvp.event.id}`,
+    tag: `noleggio-${rsvp.id}`,
+    whatsapp: `Zero Dark Ops — kit a noleggio non disponibile
+
+Per «${rsvp.event.titolo}» il kit che avevi chiesto non c'è.
+Motivo: ${motivo}
+
+La tua adesione è stata tolta. Se hai la tua attrezzatura puoi segnarti di nuovo senza kit.`,
+  }).catch(() => null);
+
+  aggiorna(rsvp.event.id);
+  revalidatePath('/pagamenti');
+  revalidatePath('/admin/pagamenti');
+  return { ok: `Richiesta rifiutata: ${rsvp.user.nome} ${rsvp.user.cognome} non è più segnato, ed è stato avvisato.` };
 }

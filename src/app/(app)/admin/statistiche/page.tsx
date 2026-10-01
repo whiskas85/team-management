@@ -28,7 +28,14 @@ export default async function StatistichePage() {
       },
     }),
     prisma.eventRsvp.findMany({
-      select: { userId: true, status: true, presente: true, eventId: true },
+      select: {
+        userId: true,
+        status: true,
+        presente: true,
+        eventId: true,
+        noleggio: true,
+        noleggioImporto: true,
+      },
     }),
     prisma.payment.findMany({
       where: { cassaId: null },
@@ -57,6 +64,10 @@ export default async function StatistichePage() {
    */
   const squadra = utenti.filter((u) => u.stato === 'SQUADRA' && eAtleta(u.roles));
   const svolti = eventi.filter((e) => new Date(e.inizio) < new Date());
+  // i kit a noleggio dati, sulle attività che contano (non annullate)
+  const idEventi = new Set(eventi.map((e) => e.id));
+  const kitDati = rsvps.filter((r) => r.noleggio === 'CONFERMATO' && idEventi.has(r.eventId));
+  const kitIncasso = kitDati.reduce((t, r) => t + Number(r.noleggioImporto ?? 0), 0);
 
   /*
    * Le attività che vanno insieme contano per una.
@@ -177,6 +188,13 @@ export default async function StatistichePage() {
           dettaglio={`${fmtEuro(daIncassare)} da incassare`}
           tono={daIncassare > 0 ? 'warn' : 'ok'}
         />
+        {kitDati.length > 0 && (
+          <Statistica
+            etichetta="Kit a noleggio"
+            valore={kitDati.length}
+            dettaglio={`${fmtEuro(kitIncasso)} di noleggi`}
+          />
+        )}
       </div>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
