@@ -231,13 +231,13 @@ export function Foglio({
               (la ricerca) ci passano sopra */}
           <div className="relative z-10 shrink-0">
             {testata(chiudi)}
-            {/* Niente riga sotto il titolo: la testata finisce sfumando, e il
-                contenuto le scorre sotto riemergendo — come nel menu. Solo
-                colore che sfuma, niente sfocatura vera: il bordo di una
-                sfocatura resta netto e si vedeva come una riga. */}
+            {/* Niente riga sotto il titolo: la testata finisce a vetro, come
+                la barra in alto delle pagine. Uno strato sfocato scende sotto
+                la testata e si spegne con una maschera: il contenuto ci passa
+                sotto sfocato e riemerge a fuoco, senza un taglio netto. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-full h-5 bg-[linear-gradient(to_bottom,rgb(var(--c-surface))_0%,rgb(var(--c-surface)/0.85)_45%,rgb(var(--c-surface)/0)_100%)]"
+              className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-surface via-surface/92 to-transparent backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
             />
           </div>
           <div
