@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.20.3 — 2 ottobre 2026
+
+### Corretto
+
+- **Le notifiche si attivano anche su test e test2.** Gli ambienti di test non
+  avevano le chiavi delle notifiche: «Attiva» rispondeva con un errore. Ora
+  ogni test ha le sue, generate al rilascio; un telefono iscritto lì riceve
+  solo gli avvisi di quel test, e le iscrizioni copiate dalla produzione
+  vengono tolte.
+
 ## 3.20.2 — 2 ottobre 2026
 
 ### Corretto

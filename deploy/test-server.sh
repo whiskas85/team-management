@@ -125,6 +125,35 @@ EOF
 
 leggi() { grep "^$1=" "$TEST/.env.test" | cut -d= -f2-; }
 
+# Le chiavi delle notifiche push, sue: una coppia per istanza, come per le
+# squadre ospitate. Senza, il gestionale propone «Attiva le notifiche» e poi
+# risponde «non configurate». Un telefono iscritto qui riceve solo gli avvisi
+# di questo test: le iscrizioni della produzione, copiate con i dati, non
+# valgono con queste chiavi (e «copia-dati» le toglie comunque).
+# Si generano con la libreria del gestionale, dall'immagine della produzione.
+notifiche() {
+  [ -n "$(leggi VAPID_PUBLIC_KEY)" ] && return
+  local k
+  k=$(docker run --rm --entrypoint node -w /app gestionale-app:latest -e \
+    "const k=require('web-push').generateVAPIDKeys();console.log(k.publicKey+' '+k.privateKey)" 2>/dev/null) || k=''
+  if [ -z "$k" ]; then
+    echo "!! Chiavi delle notifiche non generate (manca l'immagine della produzione?): niente notifiche nel test"
+    return
+  fi
+  umask 077
+  cat >> "$TEST/.env.test" <<EOF
+VAPID_PUBLIC_KEY=${k%% *}
+VAPID_PRIVATE_KEY=${k##* }
+VAPID_SUBJECT=mailto:admin@$DOMINIO_TEST
+EOF
+  umask 022
+  # le iscrizioni già nel database (copiate dalla produzione) non sono di
+  # queste chiavi: via, si riattivano dal test
+  docker exec "zd-$ISTANZA-db" sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+    DELETE FROM \"IscrizionePush\";"' > /dev/null 2>&1 || true
+  echo "== Chiavi delle notifiche generate"
+}
+
 # --------------------------------------------------------------- il proxy
 
 # L'indirizzo di un nome come lo vede internet, non come se lo ricorda questa
@@ -222,6 +251,7 @@ rilascia() {
   rete
   codice "$ramo"
   configurazione
+  notifiche
   echo "== Ricostruzione"
   zdt up -d --build
   # la vecchia rete condivisa da tutti i test: vuota, se ne va
@@ -269,6 +299,9 @@ copia_dati() {
   docker exec zd-test-db sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
     DELETE FROM \"MessaggioFederazione\"; DELETE FROM \"CollegamentoSquadra\";
     DELETE FROM \"LinkCollegamento\"; DELETE FROM \"IdentitaGestionale\";"' || true
+  # i telefoni iscritti alla produzione: dal test non si scrive a loro
+  docker exec zd-test-db sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+    DELETE FROM \"IscrizionePush\";"' || true
 
   zdt start app
   echo "Fatto. Nel test ora si entra con le credenziali della produzione."

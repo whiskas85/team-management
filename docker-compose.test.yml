@@ -78,10 +78,11 @@ services:
       SEGRETO_WHATSAPP: ""
       # senza questa chiave /api/lavori non esiste: niente polizze automatiche
       SEGRETO_LAVORI: ""
-      # senza chiavi il gestionale non propone nemmeno le notifiche
-      VAPID_PUBLIC_KEY: ""
-      VAPID_PRIVATE_KEY: ""
-      VAPID_SUBJECT: ""
+      # le chiavi delle notifiche, sue (deploy/test-server.sh le genera): un
+      # telefono iscritto qui riceve solo gli avvisi di questo test
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       # Chi è la squadra, se non l'ha ancora scritto in «La mia squadra»:
       # vuoti nel test (Zero Dark), una squadra inventata in test2.
       NOME_SQUADRA: ${NOME_SQUADRA:-}
