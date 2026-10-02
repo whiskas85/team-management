@@ -7,8 +7,10 @@
 # Uso:
 #   .\portali.ps1                 tutti: squadre ospitate e ambienti di test
 #   .\portali.ps1 demo            solo la squadra ospitata "demo"
-#   .\portali.ps1 -Chiave C:\Users\nome\.ssh\id_ed25519
+#   .\portali.ps1 -Chiave C:\Users\nome\.ssh\id_ed25519   (il FILE della chiave ssh)
 #   .\portali.ps1 -Server altro.server.it -Utente root
+#
+# La password di root NON va scritta qui: la chiede ssh quando entra.
 #
 # Se Windows blocca gli script:
 #   powershell -ExecutionPolicy Bypass -File .\portali.ps1
@@ -36,6 +38,13 @@ while ($i -lt $args.Count) {
   $i++
 }
 
+# -Chiave e' il percorso di un file: se non esiste, si ignora (e si avvisa),
+# e ssh chiede la password come sempre
+if ($Chiave -and -not (Test-Path -LiteralPath $Chiave -PathType Leaf)) {
+  Write-Host "-Chiave deve essere il percorso del file della chiave ssh, non la password: la ignoro." -ForegroundColor Yellow
+  $Chiave = ''
+}
+
 # il nome finisce in un comando sul server: solo minuscole, cifre e trattini
 if ($Squadra -and $Squadra -notmatch '^[a-z][a-z0-9-]{1,29}$') {
   Write-Host "Nome della squadra non valido: '$Squadra' (minuscole, cifre e trattini)." -ForegroundColor Red
@@ -43,8 +52,8 @@ if ($Squadra -and $Squadra -notmatch '^[a-z][a-z0-9-]{1,29}$') {
 }
 
 # ------------------------------------------------- quello che gira sul server
-# Va al server come script (bash -s) e non sulla riga di ssh: li' PowerShell
-# toglierebbe le virgolette e romperebbe i comandi.
+# Va al server come script codificato (vedi sotto), non come comandi sulla
+# riga di ssh: li' PowerShell toglierebbe le virgolette e li romperebbe.
 $script = @'
 set -u
 mostra() {
@@ -89,12 +98,17 @@ exit 0
 # prenderebbe il carattere in piu' come parte dei comandi
 $tutto = ("SQUADRA='" + $Squadra + "'`n" + $script) -replace "`r", ''
 
+# Lo script viaggia in base64 dentro il comando: solo lettere, cifre, + / =.
+# Niente virgolette che PowerShell possa togliere, e niente dipendenza dal
+# passare dati a ssh con la pipe, che su PowerShell 5 a volte arriva vuota.
+$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($tutto))
+
 $argomenti = @()
 if ($Chiave) { $argomenti += @('-i', $Chiave) }
-$argomenti += @(($Utente + '@' + $Server), 'bash -s')
+$argomenti += @(($Utente + '@' + $Server), ('echo ' + $b64 + ' | base64 -d | bash'))
 
-Write-Host ('Entro su ' + $Utente + '@' + $Server + ' ...') -ForegroundColor Cyan
-$tutto | & ssh @argomenti
+Write-Host ('Entro su ' + $Utente + '@' + $Server + ' (la password la chiede ssh) ...') -ForegroundColor Cyan
+& ssh @argomenti
 if ($LASTEXITCODE -ne 0) {
   Write-Host ('ssh ha risposto ' + $LASTEXITCODE + ': password sbagliata, o il server non si raggiunge da questa rete.') -ForegroundColor Yellow
 }
