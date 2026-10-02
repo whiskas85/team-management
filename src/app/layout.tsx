@@ -1,3 +1,4 @@
+import { versioneIcona } from '@/lib/icona-app';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { RegistraApp } from '@/components/RegistraApp';
@@ -10,6 +11,7 @@ import { temaPagina } from '@/lib/tema-server';
  */
 export async function generateMetadata(): Promise<Metadata> {
   const m = await marchio();
+  const v = await versioneIcona();
   return {
     title: m.nomeGestionale,
     description: `Gestionale operativo della squadra ${m.nome}`,
@@ -20,12 +22,14 @@ export async function generateMetadata(): Promise<Metadata> {
       title: m.nomeGestionale,
       statusBarStyle: 'black-translucent',
     },
+    // dal logo della squadra: la scheda del browser e la schermata di iPhone
     icons: {
       icon: [
-        { url: '/icona-192.png', sizes: '192x192', type: 'image/png' },
-        { url: '/icona-512.png', sizes: '512x512', type: 'image/png' },
+        { url: `/api/icona/32?v=${v}`, sizes: '32x32', type: 'image/png' },
+        { url: `/api/icona/192?v=${v}`, sizes: '192x192', type: 'image/png' },
+        { url: `/api/icona/512?v=${v}`, sizes: '512x512', type: 'image/png' },
       ],
-      apple: '/apple-touch-icon.png',
+      apple: `/api/icona/apple?v=${v}`,
     },
   };
 }

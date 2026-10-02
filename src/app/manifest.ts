@@ -2,6 +2,7 @@ import { tavolozza } from '@/lib/tema';
 import { temaSquadra } from '@/lib/tema-server';
 import type { MetadataRoute } from 'next';
 import { marchio } from '@/lib/mia-squadra';
+import { versioneIcona } from '@/lib/icona-app';
 
 // il nome si legge da «La mia squadra» a ogni richiesta
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   // il fondo del tema della squadra: è il colore con cui l'app si apre
   const fondo = tavolozza(await temaSquadra()).colori.bg;
   const m = await marchio();
+  const v = await versioneIcona();
   return {
     name: m.nomeGestionale,
     short_name: m.nomeGestionale,
@@ -31,11 +33,12 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     theme_color: fondo,
     lang: 'it',
     categories: ['sports', 'productivity'],
+    // dal logo della squadra (src/lib/icona-app.ts); ?v= cambia col logo
     icons: [
-      { src: '/icona-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icona-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `/api/icona/192?v=${v}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `/api/icona/512?v=${v}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
       // con margine attorno: Android ritaglia l'icona nella forma che preferisce
-      { src: '/icona-mascherabile-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: `/api/icona/maskable-512?v=${v}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     // Nel menu «Condividi» del telefono: dall'app PayPal, Satispay o della
     // banca si condivide il proprio link (o l'IBAN) e si arriva già nel

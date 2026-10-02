@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.17.0 — 2 ottobre 2026
+
+### Aggiunto
+
+- **L'icona dell'app è il logo della squadra.** L'app installata sul telefono
+  (e la scheda del browser) usa il logo caricato in «La mia squadra», sullo
+  sfondo del tema; senza logo resta l'icona di sempre. Quando il logo cambia,
+  cambia anche l'icona: sui telefoni dove l'app è già installata può servire
+  toglierla e reinstallarla per vederla.
+
 ## 3.16.0 — 2 ottobre 2026
 
 ### Aggiunto
