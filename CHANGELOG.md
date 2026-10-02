@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.19.0 — 2 ottobre 2026
+
+### Aggiunto
+
+- **Versare a credito da soli.** In «I miei pagamenti», nel riquadro «Il tuo
+  credito», c'è «Versa a credito»: si sceglie la cassa, si vedono i suoi
+  metodi (con «Paga con …» e «Copia IBAN»), si paga e lo si segnala, con la
+  ricevuta se il metodo la chiede. Come una quota, diventa credito solo
+  quando chi tiene la cassa conferma che i soldi sono arrivati; finché non è
+  confermato chi l'ha segnalato lo può ritirare.
+- **Conferma dei versamenti a credito.** Chi tiene la cassa (la segreteria
+  per il club) li trova in cima al riquadro «Crediti», con «Conferma» e
+  «Annulla» (con il motivo, che arriva alla persona); contano nel pallino del
+  menu e nella dashboard.
+
+### Cambiato
+
+- **L'indicatore del credito c'è sempre** nella mia pagina, anche a zero, con
+  quanto è in verifica; toccandolo si va al riquadro del credito.
+
 ## 3.18.1 — 2 ottobre 2026
 
 ### Corretto

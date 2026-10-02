@@ -235,6 +235,7 @@ model User {
   recordedPays          Payment[]               @relation("PaymentRecorder")
   crediti               MovimentoCredito[]      @relation("CreditiDi")
   creditiRegistrati     MovimentoCredito[]      @relation("CreditiRegistrati")
+  versamentiCredito     VersamentoCredito[]
   memberships           Membership[]            @relation("MembershipUser")
   invitiInviati         Membership[]            @relation("MembershipInviter")
   decisiMships          Membership[]            @relation("MembershipDecider")
@@ -971,6 +972,7 @@ model MetodoPagamento {
   payments  Payment[]
   movimenti MovimentoCassa[]
   crediti   MovimentoCredito[]
+  versamentiCredito VersamentoCredito[]
 
   /// lo stesso nome in due casse sì — «Contanti» del club e quelli del
   /// corso — due volte nella stessa no
@@ -1355,6 +1357,7 @@ model Cassa {
   payments      Payment[]
   quoteAttivita QuotaCassa[]
   crediti       MovimentoCredito[]
+  versamentiCredito VersamentoCredito[]
   tariffe       Tariffa[]
   vociAttivita  VoceAttivita[]
   /// Le attività i cui ospiti pagano in questa cassa.
@@ -1457,6 +1460,37 @@ model MovimentoCredito {
   @@index([userId, cassaId])
   @@index([cassaId])
   @@index([paymentId])
+}
+
+/// Un versamento a credito segnalato da chi ha pagato: come una quota
+/// segnalata, resta da confermare da chi tiene la cassa. Confermato, diventa
+/// un MovimentoCredito (VERSAMENTO) e resta qui come traccia, con la ricevuta;
+/// annullato, si cancella e la persona riceve il motivo.
+model VersamentoCredito {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Nullo: la cassa del club.
+  cassaId        String?
+  cassa          Cassa?           @relation(fields: [cassaId], references: [id], onDelete: Restrict)
+  importo        Decimal          @db.Decimal(10, 2)
+  metodoId       String
+  metodo         MetodoPagamento  @relation(fields: [metodoId], references: [id])
+  /// Quando dice di aver pagato.
+  quando         DateTime
+  note           String?
+  allegatoPath   String?
+  allegatoNome   String?
+  allegatoTipo   String?
+  allegatoTitolo String?
+  confermatoIl   DateTime?
+  confermatoDaId String?
+  /// Il movimento di credito nato dalla conferma.
+  movimentoId    String?          @unique
+  createdAt      DateTime         @default(now())
+
+  @@index([cassaId, confermatoIl])
+  @@index([userId])
 }
 
 model MovimentoCassa {

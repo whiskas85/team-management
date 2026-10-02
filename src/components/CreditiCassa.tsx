@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { creditiDellaCassa } from '@/lib/credito';
-import { fmtEuro, inputDate, nomeCompleto } from '@/lib/format';
+import { fmtDate, fmtEuro, inputDate, nomeCompleto } from '@/lib/format';
 import { registraCredito, restituisciCredito } from '@/actions/pagamenti';
+import { annullaVersamentoCredito, confermaVersamentoCredito } from '@/actions/versamenti-credito';
+import { prisma } from '@/lib/db';
+import { AzioneBottone } from './AzioneBottone';
+import { Icona } from './Icona';
 import { Campo } from './ui';
 import { FormAzione } from './Form';
 import { BottoneModale } from './Modale';
@@ -26,7 +30,18 @@ export async function CreditiCassa({
   persone: Persona[];
   metodi: Metodo[];
 }) {
-  const crediti = await creditiDellaCassa(cassaId);
+  const [crediti, daConfermare] = await Promise.all([
+    creditiDellaCassa(cassaId),
+    // i versamenti segnalati da chi ha pagato: diventano credito con la conferma
+    prisma.versamentoCredito.findMany({
+      where: { cassaId, confermatoIl: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: { select: { nome: true, cognome: true, callsign: true } },
+        metodo: { select: { nome: true } },
+      },
+    }),
+  ]);
   const totale = crediti.reduce((t, c) => t + c.credito, 0);
 
   return (
@@ -100,6 +115,78 @@ export async function CreditiCassa({
           </FormAzione>
         </BottoneModale>
       </div>
+
+      {daConfermare.length > 0 && (
+        <div className="mb-4 rounded-md border border-info/40 bg-info/10 p-3">
+          <p className="mb-2 text-xs font-medium text-info">
+            Versamenti a credito da confermare: diventano credito quando confermi che i soldi sono
+            arrivati.
+          </p>
+          <ul className="space-y-2">
+            {daConfermare.map((v) => (
+              <li key={v.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                <span className="min-w-0 flex-1">
+                  <span className="break-words">{nomeCompleto(v.user)}</span>{' '}
+                  <span className="num font-semibold text-ink">{fmtEuro(Number(v.importo))}</span>
+                  <span className="block text-[11px] text-muted">
+                    con {v.metodo.nome} il {fmtDate(v.quando)}
+                    {v.note ? ` · ${v.note}` : ''}
+                  </span>
+                  {v.allegatoPath && (
+                    <a
+                      href={`/api/credito/versamenti/${v.id}/allegato`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-nvg hover:underline"
+                    >
+                      <Icona nome="allegato" size={12} />
+                      {v.allegatoTitolo ?? 'Allegato'}
+                    </a>
+                  )}
+                </span>
+                <span className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
+                  <BottoneModale
+                    etichetta="Annulla"
+                    icona="annulla"
+                    titolo="Annulla il versamento"
+                    className="btn-ghost btn-sm whitespace-nowrap"
+                  >
+                    <FormAzione azione={annullaVersamentoCredito} className="space-y-4">
+                      <input type="hidden" name="id" value={v.id} />
+                      <p className="text-sm font-medium">
+                        {nomeCompleto(v.user)} · {fmtEuro(Number(v.importo))}
+                      </p>
+                      <p className="text-sm text-muted">
+                        La segnalazione si toglie, con la ricevuta: non diventa credito e la persona
+                        riceve un avviso con il motivo.
+                      </p>
+                      <Campo label="Perché lo annulli *" span>
+                        <textarea
+                          name="motivo"
+                          rows={3}
+                          required
+                          maxLength={300}
+                          className="input"
+                          placeholder="Il bonifico non è arrivato, l’importo non torna…"
+                        />
+                      </Campo>
+                      <Invia icona="annulla">Annulla il versamento</Invia>
+                    </FormAzione>
+                  </BottoneModale>
+                  <AzioneBottone
+                    azione={confermaVersamentoCredito}
+                    valori={{ id: v.id }}
+                    icona="approva"
+                    className="btn-primary btn-sm"
+                  >
+                    Conferma
+                  </AzioneBottone>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {crediti.length > 0 && (
         <ul className="divide-y divide-line border-t border-line">

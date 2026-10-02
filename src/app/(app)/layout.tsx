@@ -125,7 +125,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           .count({
             where: { status: { in: ['DA_PAGARE', 'PARZIALE'] }, dichiaratoIl: { not: null }, cassaId: null },
           })
-          .then(async (n) => n + (await ospitiDaConfermare(null))),
+          .then(async (n) => n + (await ospitiDaConfermare(null)))
+          // e i versamenti a credito segnalati
+          .then(async (n) => n + (await prisma.versamentoCredito.count({ where: { cassaId: null, confermatoIl: null } }))),
         prisma.payment.count({
           where: { tipo: 'RIMBORSO', status: { notIn: ['PAGATO', 'ANNULLATO'] }, cassaId: null },
         }),
@@ -469,7 +471,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: mieCasse.length === 1 ? mieCasse[0].nome : 'Le mie casse',
       icona: 'incassa',
       gruppo: 'principale',
-      badge: inAttesa + (await ospitiDaConfermare(mieCasse.map((c) => c.id))),
+      badge:
+        inAttesa +
+        (await ospitiDaConfermare(mieCasse.map((c) => c.id))) +
+        (await prisma.versamentoCredito.count({
+          where: { cassaId: { in: mieCasse.map((c) => c.id) }, confermatoIl: null },
+        })),
     });
   }
 

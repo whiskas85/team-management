@@ -153,6 +153,15 @@ export default async function ProfiloPage() {
       })
     )._sum.importo ?? 0,
   );
+  // i versamenti a credito segnalati, che aspettano la conferma della cassa
+  const inVerificaCredito = Number(
+    (
+      await prisma.versamentoCredito.aggregate({
+        where: { userId: utente.id, confermatoIl: null },
+        _sum: { importo: true },
+      })
+    )._sum.importo ?? 0,
+  );
 
   return (
     <>
@@ -287,7 +296,6 @@ export default async function ProfiloPage() {
           dettaglio={
             [
               conto.inVerifica > 0 ? `${fmtEuro(conto.inVerifica)} in verifica` : null,
-              credito > 0.001 ? `${fmtEuro(credito)} di credito` : null,
             ]
               .filter(Boolean)
               .join(' · ') || undefined
@@ -295,16 +303,21 @@ export default async function ProfiloPage() {
           tono={conto.importo > 0 ? 'warn' : conto.inVerifica > 0 ? 'info' : 'ok'}
           href="/pagamenti"
         />
-        {/* il credito: soldi già in cassa, da spendere quando si paga */}
-        {credito > 0.001 && (
-          <Statistica
-            etichetta="Credito"
-            valore={fmtEuro(credito)}
-            dettaglio="lo usi quando paghi una quota"
-            tono="ok"
-            href="/pagamenti"
-          />
-        )}
+        {/* il credito: soldi già in cassa, da spendere quando si paga. C'è
+            sempre, anche a zero: è da qui che si va a versarne */}
+        <Statistica
+          etichetta="Credito"
+          valore={fmtEuro(credito)}
+          dettaglio={
+            inVerificaCredito > 0.001
+              ? `${fmtEuro(inVerificaCredito)} in verifica`
+              : credito > 0.001
+                ? 'lo usi quando paghi una quota'
+                : 'versa in anticipo'
+          }
+          tono={credito > 0.001 ? 'ok' : inVerificaCredito > 0.001 ? 'info' : 'neutro'}
+          href="/pagamenti#credito"
+        />
         {tesserato && (
           <Statistica
             etichetta="Nel club da"

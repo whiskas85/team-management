@@ -15,11 +15,13 @@ import { daSaldare } from '@/lib/da-saldare';
 import { MetodiPagamento, type MetodoDaMostrare } from '@/components/MetodiPagamento';
 import { AllegatoMetodo } from '@/components/AllegatoMetodo';
 import { primoIban, primoLink } from '@/lib/link';
+import { SceltaCassa } from '@/components/SceltaCassa';
+import { annullaVersamentoCredito, segnalaVersamentoCredito } from '@/actions/versamenti-credito';
 
 export default async function MieiPagamentiPage() {
   const me = await requireUser();
 
-  const [pagamenti, metodi, movimentiCredito] = await Promise.all([
+  const [pagamenti, metodi, movimentiCredito, versamentiInAttesa, casse] = await Promise.all([
     prisma.payment.findMany({
       where: { userId: me.id },
       orderBy: [{ status: 'asc' }, { scadenza: 'asc' }],
@@ -59,7 +61,22 @@ export default async function MieiPagamentiPage() {
       orderBy: { data: 'desc' },
       include: { cassa: { select: { nome: true } } },
     }),
+    // i versamenti a credito segnalati e non ancora confermati
+    prisma.versamentoCredito.findMany({
+      where: { userId: me.id, confermatoIl: null },
+      orderBy: { createdAt: 'desc' },
+      include: { cassa: { select: { nome: true } }, metodo: { select: { nome: true } } },
+    }),
+    prisma.cassa.findMany({ select: { id: true, nome: true } }),
   ]);
+
+  // Dove si può versare a credito: le casse con almeno un metodo usabile da
+  // soli, il club per primo. Ognuna col suo modulo e i suoi metodi.
+  const nomeCassa = (id: string | null) => (id ? (casse.find((c) => c.id === id)?.nome ?? 'Cassa') : 'Il club');
+  const casseVersamento = [...new Set(metodi.map((m) => m.cassaId))]
+    .filter((id) => id === null || casse.some((c) => c.id === id))
+    .sort((a, b) => (a === null ? -1 : b === null ? 1 : nomeCassa(a).localeCompare(nomeCassa(b), 'it')))
+    .map((cassaId) => ({ cassaId, nome: nomeCassa(cassaId), metodi: metodi.filter((m) => m.cassaId === cassaId) }));
 
   // il credito, cassa per cassa: soldi versati e non ancora usati
   const perCassa = new Map<string, { nome: string; credito: number }>();
@@ -109,18 +126,125 @@ export default async function MieiPagamentiPage() {
           etichetta="Credito"
           valore={fmtEuro(credito)}
           dettaglio={
-            credito > 0 ? 'lo usi quando paghi una quota' : 'niente da spendere'
+            versamentiInAttesa.length > 0
+              ? `${fmtEuro(versamentiInAttesa.reduce((t, v) => t + Number(v.importo), 0))} in verifica`
+              : credito > 0
+                ? 'lo usi quando paghi una quota'
+                : 'niente da spendere'
           }
-          tono={credito > 0 ? 'ok' : 'neutro'}
+          tono={credito > 0 ? 'ok' : versamentiInAttesa.length > 0 ? 'info' : 'neutro'}
+          href="#credito"
         />
       </div>
 
       {/* Il credito detto in chiaro: di chi è, dove sta, e cosa ci è successo.
           Chi ha dato 30 € alla segreteria vuole ritrovarli qui, e vedere quali
           quote hanno pagato. */}
-      {movimentiCredito.length > 0 && (
-        <div className="card mb-6">
-          <p className="titolo-sezione mb-2">Il tuo credito</p>
+      {/* Il credito detto in chiaro: di chi è, dove sta, e cosa ci è successo.
+          Chi ha dato 30 € alla segreteria vuole ritrovarli qui, e vedere quali
+          quote hanno pagato. E da qui si versa: come una quota, con i metodi
+          della cassa scelta, e diventa credito quando chi la tiene conferma. */}
+      <div id="credito" className="card mb-6 scroll-mt-24">
+        <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+          <p className="titolo-sezione">Il tuo credito</p>
+          {casseVersamento.length > 0 && (
+            <BottoneModale
+              etichetta="Versa a credito"
+              icona="incassa"
+              titolo="Versa a credito"
+              className="btn-primary btn-sm"
+            >
+              <div className="space-y-4 text-left">
+                <p className="text-sm text-muted">
+                  Paghi in anticipo in una cassa: i soldi restano tuoi come credito e li usi quando
+                  paghi le prossime quote di quella cassa. Diventano credito quando chi la tiene
+                  ha verificato che sono arrivati.
+                </p>
+                <SceltaCassa
+                  casse={casseVersamento.map((c) => {
+                    const campo = `credito-metodo-${c.cassaId ?? 'club'}`;
+                    return {
+                      id: c.cassaId ?? '',
+                      nome: c.nome,
+                      contenuto: (
+                        <div className="space-y-5">
+                          <div>
+                            <p className="titolo-sezione">Come pagare</p>
+                            <p className="mb-2 mt-0.5 text-[11px] text-muted">
+                              Tocca il metodo con cui paghi: lo trovi già scelto qui sotto.
+                            </p>
+                            <MetodiPagamento
+                              metodi={c.metodi.map((m) => ({
+                                id: m.id,
+                                nome: m.nome,
+                                descrizione: m.descrizione,
+                                istruzioni: m.istruzioni,
+                                link: primoLink(m.istruzioni),
+                                iban: primoIban(m.istruzioni),
+                              }))}
+                              campoMetodo={campo}
+                            />
+                          </div>
+                          <FormAzione
+                            azione={segnalaVersamentoCredito}
+                            className="space-y-4 border-t border-line pt-4"
+                          >
+                            <input type="hidden" name="cassaId" value={c.cassaId ?? ''} />
+                            <p className="titolo-sezione">Hai versato? Segnalalo</p>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              <Campo label="Quanto *">
+                                <input
+                                  type="number"
+                                  name="importo"
+                                  min="1"
+                                  step="0.01"
+                                  required
+                                  inputMode="decimal"
+                                  className="input"
+                                  placeholder="€"
+                                />
+                              </Campo>
+                              <Campo label="Con quale metodo *">
+                                <select id={campo} name="metodoId" required className="input" defaultValue="">
+                                  <option value="">— seleziona —</option>
+                                  {c.metodi.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.nome}
+                                    </option>
+                                  ))}
+                                </select>
+                              </Campo>
+                              <Campo label="Quando">
+                                <input
+                                  type="date"
+                                  name="quando"
+                                  defaultValue={inputDate(new Date())}
+                                  className="input"
+                                />
+                              </Campo>
+                              <Campo label="Note">
+                                <input name="note" maxLength={200} className="input" />
+                              </Campo>
+                            </div>
+                            <AllegatoMetodo
+                              campoMetodo={campo}
+                              metodi={c.metodi.map((m) => ({
+                                id: m.id,
+                                obbligatorio: m.allegatoObbligatorio,
+                                titolo: m.titoloAllegato,
+                              }))}
+                            />
+                            <Invia icona="incassa">Segnala il versamento</Invia>
+                          </FormAzione>
+                        </div>
+                      ),
+                    };
+                  })}
+                />
+              </div>
+            </BottoneModale>
+          )}
+        </div>
           {crediti.length > 0 ? (
             <p className="text-sm">
               {crediti.map((c, i) => (
@@ -135,8 +259,51 @@ export default async function MieiPagamentiPage() {
               </span>
             </p>
           ) : (
-            <p className="text-sm text-muted">Il credito che avevi versato è stato tutto usato.</p>
+            <p className="text-sm text-muted">
+              {movimentiCredito.length > 0
+                ? 'Il credito che avevi versato è stato tutto usato.'
+                : 'Non hai credito. Puoi versare in anticipo in una cassa: i soldi restano tuoi e pagano le prossime quote.'}
+            </p>
           )}
+          {versamentiInAttesa.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {versamentiInAttesa.map((v) => (
+                <li
+                  key={v.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-info/40 bg-info/10 px-3 py-2 text-sm"
+                >
+                  <span className="num font-semibold text-ink">{fmtEuro(Number(v.importo))}</span>
+                  <span className="min-w-0 flex-1 text-xs text-muted">
+                    con {v.metodo.nome} il {fmtDate(v.quando)} · {v.cassa?.nome ?? 'il club'} ·{' '}
+                    <span className="text-info">in attesa di conferma</span>
+                    {v.allegatoPath && (
+                      <>
+                        {' · '}
+                        <a
+                          href={`/api/credito/versamenti/${v.id}/allegato`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-nvg hover:underline"
+                        >
+                          {v.allegatoTitolo ?? 'allegato'}
+                        </a>
+                      </>
+                    )}
+                  </span>
+                  <AzioneBottone
+                    azione={annullaVersamentoCredito}
+                    valori={{ id: v.id }}
+                    icona="annulla"
+                    className="btn-ghost btn-sm"
+                    conferma="Ritirare la segnalazione di questo versamento?"
+                  >
+                    Ritira
+                  </AzioneBottone>
+                </li>
+              ))}
+            </ul>
+          )}
+          {movimentiCredito.length > 0 && (
           <ul className="mt-3 divide-y divide-line border-t border-line text-sm">
             {movimentiCredito.slice(0, 12).map((m) => (
               <li key={m.id} className="flex items-baseline gap-3 py-1.5">
@@ -162,8 +329,8 @@ export default async function MieiPagamentiPage() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
+          )}
+      </div>
 
       {aperti.some((p) => p.eventId) && (
         <div className="mb-6 rounded-md border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">

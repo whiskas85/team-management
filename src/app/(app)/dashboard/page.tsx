@@ -141,7 +141,9 @@ export default async function DashboardPage({
                 squadraOspite: { collegamentoId: { not: null }, event: { cassaOspitiId: null } },
               },
             }),
-          ]).then(([a, b]) => a + b)
+            // i versamenti a credito segnalati da chi ha pagato
+            prisma.versamentoCredito.count({ where: { cassaId: null, confermatoIl: null } }),
+          ]).then(([a, b, c]) => a + b + c)
         : 0,
       cassa
         ? prisma.payment.findMany({
