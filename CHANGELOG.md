@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.17.1 — 2 ottobre 2026
+
+### Corretto
+
+- **Sugli ambienti di test l'app si installa di nuovo.** Il manifesto e le
+  icone restavano dietro la password del proxy, che Chrome non manda quando
+  li scarica: l'app «non poteva essere installata» e l'icona era una lettera.
+  Ora sono fuori dalla password (dentro ci sono solo nome e logo).
+
 ## 3.17.0 — 2 ottobre 2026
 
 ### Aggiunto

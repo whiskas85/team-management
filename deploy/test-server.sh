@@ -189,7 +189,11 @@ $DOMINIO_TEST {
 	# … tranne le rotte con cui i gestionali si parlano fra loro
 	# (docs/COLLEGAMENTO-SQUADRE.md): un altro gestionale la password non la
 	# sa, e non gli serve — quelle rotte accettano solo messaggi firmati
-	@protetto not path /api/federazione/*
+	# … e il manifesto con le icone: per installare l'app Chrome li scarica
+	# senza password (e su Android li riscarica anche il server di Google che
+	# costruisce l'app), e con la password l'app «non può essere installata».
+	# Dentro c'è solo il nome della squadra e il suo logo.
+	@protetto not path /api/federazione/* /manifest.webmanifest /api/icona/* /icona-*.png /apple-touch-icon.png /favicon.ico
 	basic_auth @protetto {
 		$(leggi PROXY_UTENTE) $hash
 	}
