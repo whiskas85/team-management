@@ -578,17 +578,26 @@ export function Nav({
                 className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 -z-10 bg-[linear-gradient(to_bottom,rgb(var(--c-surface))_0%,rgb(var(--c-surface))_55%,rgb(var(--c-surface)/0.85)_72%,rgb(var(--c-surface)/0)_100%)]"
               />
               {/* la maniglia: dice che il foglio si tira giù */}
-              <span className="mb-0.5 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
-              {/* la ricerca, piccola accanto al titolo: scrivendo si allarga
-                  e il titolo le lascia il posto */}
-              <div className="flex w-full items-center justify-between gap-2">
-                {!cercaLarga && <p className="titolo-sezione shrink-0 text-ink">Menu</p>}
-                <div className="flex min-w-0 flex-1 justify-end">
+              <span className="mb-2.5 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
+              {/* La ricerca al centro, piccola, sotto la maniglia: scrivendo si
+                  allarga e il titolo le lascia il posto. Tre colonne, le due
+                  di lato uguali, così il campo sta davvero nel mezzo. */}
+              <div
+                className={`grid w-full items-center gap-x-2 ${
+                  cercaLarga ? 'grid-cols-[1fr_auto]' : 'grid-cols-[1fr_auto_1fr]'
+                }`}
+              >
+                <p
+                  className={`titolo-sezione overflow-hidden whitespace-nowrap text-ink ${cercaLarga ? 'hidden' : ''}`}
+                >
+                  Menu
+                </p>
+                <div className="flex min-w-0 justify-center">
                   <Omnisearch voci={voci} nelMenu={cercaNelMenu} />
                 </div>
                 <button
                   onClick={chiudiMenu}
-                  className="-mr-2 rounded-md p-1.5 text-muted hover:text-ink"
+                  className="-mr-2 justify-self-end rounded-md p-1.5 text-muted hover:text-ink"
                   aria-label="Chiudi menu"
                 >
                   <Icona nome="chiudi" />
@@ -599,7 +608,7 @@ export function Nav({
             <div
               ref={contenutoMenu}
               // mentre si tira il foglio, la lista sta ferma: si muove il foglio
-              className={`min-h-0 flex-1 overscroll-contain px-4 pb-8 pt-[4.25rem] ${
+              className={`min-h-0 flex-1 overscroll-contain px-4 pb-8 pt-[4.75rem] ${
                 tirato > 0 ? 'overflow-hidden' : 'overflow-y-auto'
               }`}
             >

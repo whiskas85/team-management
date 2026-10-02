@@ -5,6 +5,13 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.18.1 — 2 ottobre 2026
+
+### Corretto
+
+- **La ricerca nel menu sta al centro**, un po' più in basso, così la
+  maniglia per tirare giù il foglio ha il suo spazio.
+
 ## 3.18.0 — 2 ottobre 2026
 
 ### Aggiunto
