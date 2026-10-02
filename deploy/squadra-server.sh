@@ -45,6 +45,28 @@ valida_squadra() {
   fi
 }
 
+# Un nome buono per una squadra: scritto bene, non già nostro, non già usato.
+valida_dominio() {
+  local dominio=$1
+  if ! printf '%s' "$dominio" | grep -Eq '^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'; then
+    echo "Dominio non valido: «$dominio» (es. gestionale.pippo.it)"
+    exit 1
+  fi
+  # Un nostro sottodominio va bene (una demo: demo.zerodarkteam.it), ma non
+  # quelli già presi: la produzione, gli ambienti di test, il sito.
+  case "$dominio" in
+    ops.zerodarkteam.it | zerodarkteam.it | www.zerodarkteam.it | test*.zerodarkteam.it)
+      echo "$dominio e' gia' in uso (produzione, test o sito): scegline un altro."
+      exit 1
+      ;;
+  esac
+  # né come nome attuale né come vecchio nome ancora rediretto di un'altra squadra
+  if grep -qsE "^(DOMINIO|DOMINIO_PRECEDENTE)=$dominio\$" /opt/squadra-*/.env.squadra; then
+    echo "$dominio e' gia' usato da una squadra ospitata."
+    exit 1
+  fi
+}
+
 prepara() {
   SQUADRA=$1
   valida_squadra "$SQUADRA"
@@ -112,6 +134,20 @@ proxy() {
     return
   fi
   mkdir -p "$PROD/siti"
+  # Il vecchio nome, dopo un cambio di dominio: per qualche mese manda al nuovo
+  # con un 308 (stesso percorso, stesso metodo), così i link già girati vanno.
+  # Solo se porta ancora qui, o il certificato non arriverebbe.
+  local vecchio fino redirect=""
+  vecchio=$(leggi DOMINIO_PRECEDENTE || true)
+  fino=$(leggi PRECEDENTE_FINO || true)
+  if [ -n "$vecchio" ] && [ -n "$fino" ] && [[ "$(date +%F)" < "$fino" ]] \
+    && [ "$(indirizzo "$vecchio")" = "$qui" ]; then
+    redirect="
+# Il nome di prima, fino al $fino: manda al nuovo.
+$vecchio {
+	redir https://$dominio{uri} 308
+}"
+  fi
   cat > "$SITO_CADDY.nuovo" <<EOF
 # Scritto da deploy/squadra-server.sh: si rigenera a ogni rilascio.
 # Il gestionale di «$(leggi NOME_SQUADRA)», ospitato qui.
@@ -131,6 +167,7 @@ $dominio {
 		}
 	}
 }
+$redirect
 EOF
   if ! cmp -s "$SITO_CADDY.nuovo" "$SITO_CADDY" 2>/dev/null; then
     mv "$SITO_CADDY.nuovo" "$SITO_CADDY"
@@ -146,22 +183,7 @@ EOF
 nuova() {
   prepara "${SQUADRA:-}"
   local dominio=${DOMINIO:-} nome=${NOME:-} email=${EMAIL:-}
-  if ! printf '%s' "$dominio" | grep -Eq '^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'; then
-    echo "Dominio non valido: «$dominio» (es. gestionale.pippo.it)"
-    exit 1
-  fi
-  # Un nostro sottodominio va bene (una demo: demo.zerodarkteam.it), ma non
-  # quelli già presi: la produzione, gli ambienti di test, il sito.
-  case "$dominio" in
-    ops.zerodarkteam.it | zerodarkteam.it | www.zerodarkteam.it | test*.zerodarkteam.it)
-      echo "$dominio e' gia' in uso (produzione, test o sito): scegline un altro."
-      exit 1
-      ;;
-  esac
-  if grep -qs "^DOMINIO=$dominio\$" /opt/squadra-*/.env.squadra; then
-    echo "$dominio e' gia' usato da un'altra squadra ospitata."
-    exit 1
-  fi
+  valida_dominio "$dominio"
   [ -n "$nome" ] || nome=$SQUADRA
   [ -n "$email" ] || email=admin@$dominio
   if [ -f "$ENV" ]; then
@@ -301,10 +323,43 @@ stato() {
   [ "$trovate" = 1 ] || echo "== Nessuna squadra ospitata"
 }
 
+# Cambia il nome a dominio di una squadra ospitata. Il nuovo deve già puntare
+# qui. Il vecchio resta per sei mesi come redirect 308 verso il nuovo, e il
+# gestionale, ripartendo col nuovo indirizzo, avvisa da solo le squadre
+# collegate (messaggio firmato «trasloco»): i collegamenti restano in piedi.
+cambia_dominio() {
+  prepara "${SQUADRA:-}"
+  [ -f "$ENV" ] || { echo "La squadra $SQUADRA non c'e'."; exit 1; }
+  local nuovo=${DOMINIO:-} vecchio qui la fino
+  vecchio=$(leggi DOMINIO)
+  if [ "$nuovo" = "$vecchio" ]; then
+    echo "$SQUADRA sta gia' su $nuovo."
+    exit 1
+  fi
+  valida_dominio "$nuovo"
+  qui=$(indirizzo "$DOMINIO_PROD")
+  la=$(indirizzo "$nuovo")
+  if [ -z "$la" ] || [ "$la" != "$qui" ]; then
+    echo "$nuovo non punta ancora a questa macchina (${la:-nessun indirizzo}; qui e' $qui)."
+    echo "Prima il record nel DNS (CNAME verso $DOMINIO_PROD, o A verso $qui), poi si rilancia."
+    exit 1
+  fi
+  fino=$(date -d '+6 months' +%F)
+  echo "== $SQUADRA: da $vecchio a $nuovo (il vecchio nome rimanda al nuovo fino al $fino)"
+  # le righe di un redirect precedente, se c'era, lasciano il posto a queste
+  sed -i -e '/^DOMINIO_PRECEDENTE=/d' -e '/^PRECEDENTE_FINO=/d' \
+    -e "s#^DOMINIO=.*#DOMINIO=$nuovo#" "$ENV"
+  printf 'DOMINIO_PRECEDENTE=%s\nPRECEDENTE_FINO=%s\n' "$vecchio" "$fino" >> "$ENV"
+  sed -i "s#https://$vecchio#https://$nuovo#g" "$CARTELLA/ACCESSO.txt" 2>/dev/null || true
+  # il nuovo INDIRIZZO_PUBBLICO ricrea l'app: ripartendo annuncia il trasloco
+  rilascia "$SQUADRA"
+}
+
 case "${1:-stato}" in
   nuova) nuova ;;
+  dominio) cambia_dominio ;;
   rilascia) rilascia "${2:?quale squadra?}" ;;
   rilascia-tutte) rilascia_tutte ;;
   stato) stato "${2:-}" ;;
-  *) echo "uso: $0 nuova | rilascia <squadra> | rilascia-tutte | stato [squadra]"; exit 1 ;;
+  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra]"; exit 1 ;;
 esac

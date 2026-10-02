@@ -6,7 +6,7 @@ import type { CollegamentoSquadra, Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { UPLOAD_DIR, eliminaAllegato } from './storage';
 import { creaMiniatura } from './miniature';
-import { manda, profiloNostro, profiloRicevuto, type Profilo } from './federazione';
+import { identita, manda, profiloNostro, profiloRicevuto, type Profilo } from './federazione';
 
 /**
  * La coda di quello che si manda ai gestionali collegati.
@@ -125,6 +125,17 @@ let avviata = false;
 export function avviaCodaFederazione() {
   if (avviata || !process.env.DATABASE_URL) return;
   avviata = true;
+  // all'avvio: se il dominio è cambiato (INDIRIZZO_PUBBLICO nuovo), leggere
+  // la nostra identità la aggiorna e mette in coda il «trasloco» per chi è
+  // collegato. Solo se un'identità c'è già: chi non si è mai collegato non ha
+  // niente da annunciare, e le chiavi nascono quando servono
+  setTimeout(() => {
+    prisma.identitaGestionale
+      .findUnique({ where: { id: 'io' }, select: { id: true } })
+      .then((c) => (c ? identita() : null))
+      .then(() => svuotaCoda())
+      .catch((e) => console.error('[federazione] avvio:', e));
+  }, 15_000).unref();
   setInterval(() => {
     svuotaCoda().catch((e) => console.error('[federazione] coda:', e));
   }, 60_000).unref();

@@ -63,6 +63,35 @@ async function indirizzoNostro(): Promise<string | null> {
 export type Identita = { indirizzo: string; chiavePubblica: string; privata: KeyObject };
 
 /**
+ * Abbiamo cambiato indirizzo (un dominio nuovo): lo diciamo a chi è collegato.
+ *
+ * Le chiavi non cambiano col dominio, quindi il messaggio «trasloco» è firmato
+ * con la stessa chiave che loro conoscono già: «sono io, prima stavo a A, ora
+ * sto a B». Loro aggiornano l'indirizzo e il collegamento resta in piedi.
+ *
+ * Solo quando l'indirizzo è quello scritto nell'ambiente (INDIRIZZO_PUBBLICO):
+ * senza, l'indirizzo si legge da chi sta guardando, e aprire il gestionale da
+ * un altro nome non è un trasloco. Il messaggio va in coda e parte al giro
+ * della coda: la coda importa questo file, e chiamarla da qui farebbe un giro.
+ */
+async function annunciaTrasloco(vecchio: string, nuovo: string) {
+  if (normalizzaIndirizzo(process.env.INDIRIZZO_PUBBLICO) !== nuovo) return;
+  const collegati = await prisma.collegamentoSquadra.findMany({
+    where: { stato: { in: ['ATTIVO', 'RICHIESTO', 'DA_ACCETTARE'] } },
+    select: { id: true },
+  });
+  if (collegati.length === 0) return;
+  await prisma.messaggioFederazione.createMany({
+    data: collegati.map((c) => ({
+      collegamentoId: c.id,
+      tipo: 'trasloco',
+      corpo: { vecchio, nuovo },
+    })),
+  });
+  console.log(`[federazione] trasloco da ${vecchio} a ${nuovo}: avvisati ${collegati.length} collegamenti`);
+}
+
+/**
  * Chi siamo. La prima volta nascono le chiavi; se quella salvata non si legge
  * (dati copiati da un altro ambiente, con un altro segreto) ne nasce una nuova.
  */
@@ -74,8 +103,10 @@ export async function identita(): Promise<Identita> {
       const privata = createPrivateKey(decifra(salvata.chiavePrivataCifrata));
       let indirizzo = salvata.indirizzo;
       if (qui && qui !== indirizzo) {
+        const vecchio = indirizzo;
         indirizzo = qui;
         await prisma.identitaGestionale.update({ where: { id: 'io' }, data: { indirizzo } });
+        await annunciaTrasloco(vecchio, qui);
       }
       return { indirizzo, chiavePubblica: salvata.chiavePubblica, privata };
     } catch {

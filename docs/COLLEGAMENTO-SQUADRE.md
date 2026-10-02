@@ -39,6 +39,16 @@ mezzo.
    condivisi già accettati **restano, congelati**, con l'avviso che non sono più
    aggiornati; adesioni e quote locali non si perdono. I nuovi non arrivano più.
 
+### Il trasloco
+
+Un gestionale può cambiare dominio senza perdere i collegamenti. Le chiavi non
+cambiano col dominio: ripartito con il nuovo `INDIRIZZO_PUBBLICO`, manda a ogni
+squadra collegata `trasloco` con `{ vecchio, nuovo }`, firmato come sempre. Chi
+lo riceve trova il collegamento dal vecchio indirizzo, verifica la firma con la
+chiave che conosce, bussa al nuovo indirizzo e controlla che risponda con la
+stessa chiave; poi aggiorna l'indirizzo. Un trasloco verso un posto che
+risponde con un'altra chiave non si accetta.
+
 ## Gli eventi condivisi
 
 - L'evento vero vive **nel gestionale di chi organizza**. Le squadre invitate ne

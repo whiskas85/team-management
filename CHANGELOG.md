@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.16.0 — 2 ottobre 2026
+
+### Aggiunto
+
+- **Cambio di dominio di una squadra ospitata.** Nel Rilascio il modo
+  «squadra-dominio» controlla il nuovo nome e il DNS, aggiorna il dominio e
+  tiene il vecchio per sei mesi come redirect 308 verso il nuovo: i link già
+  girati continuano a funzionare.
+- **Il trasloco fra gestionali collegati.** Un gestionale che cambia
+  indirizzo lo annuncia da solo alle squadre collegate, con un messaggio
+  firmato dalla stessa chiave di sempre; loro verificano firma e nuovo
+  indirizzo e aggiornano il collegamento, che resta in piedi. Il nome non va
+  più scelto per forza prima di collegarsi.
+
 ## 3.15.3 — 2 ottobre 2026
 
 ### Cambiato

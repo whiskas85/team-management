@@ -413,9 +413,16 @@ porta il suo nome qui:
 | CNAME | `gestionale`  | `ops.zerodarkteam.it.`  |
 
 (o un record **A** con l'indirizzo di questa macchina). Meglio un sottodominio
-che `www`, che di solito è già il loro sito. **Il nome si sceglie una volta
-per tutte, prima di collegarsi con altre squadre**: i gestionali collegati si
-riconoscono per indirizzo, e cambiarlo dopo li scollega.
+che `www`, che di solito è già il loro sito.
+
+**Cambiare nome dopo** si può: modo **squadra-dominio** (campi `squadra` e
+`dominio`, il nuovo, già puntato qui). Lo script controlla il nuovo nome e il
+DNS, aggiorna `DOMINIO` e tiene il vecchio come redirect 308 verso il nuovo
+per sei mesi (`DOMINIO_PRECEDENTE`, `PRECEDENTE_FINO` in `.env.squadra`), così
+i link già girati funzionano. Il gestionale, ripartito col nuovo indirizzo,
+manda alle squadre collegate un messaggio firmato «trasloco» con la stessa
+chiave di sempre: loro aggiornano l'indirizzo e il collegamento resta in
+piedi.
 
 **2. Noi, da GitHub.** Actions → Rilascio → Run workflow, modo
 **squadra-nuova**, con:
