@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icona } from './Icona';
 import { Credenziali } from './Credenziali';
+import { Foglio } from './Foglio';
 import type { StatoForm } from '@/lib/form';
 
 /**
@@ -27,7 +28,7 @@ export function mostraBenvenuto(dati: Dati) {
   ascoltatori.forEach((f) => f(attuale));
 }
 
-function chiudi() {
+function chiudiBenvenuto() {
   attuale = null;
   ascoltatori.forEach((f) => f(null));
 }
@@ -47,17 +48,20 @@ export function ContenitoreBenvenuto() {
   if (!dati?.benvenuto) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Benvenuto a ${dati.benvenuto.nome}`}
-        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-surface shadow-2xl sm:max-w-2xl sm:rounded-2xl"
-      >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4">
+    // Si chiude solo da «Fatto» o dalla X: la password non si rivede, e un
+    // tocco sul velo non deve farla sparire.
+    <Foglio
+      key={dati.userId}
+      soloDaDentro
+      z="z-[70]"
+      onChiuso={chiudiBenvenuto}
+      etichetta={`Benvenuto a ${dati.benvenuto.nome}`}
+      foglio="sm:max-w-2xl"
+      contenuto="space-y-3 p-5"
+      testata={(chiudi) => (
+        <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
           <h2 className="min-w-0 truncate text-base font-semibold">
-            {dati.benvenuto.nome} è dentro: mandagli il benvenuto
+            {dati.benvenuto!.nome} è dentro: mandagli il benvenuto
           </h2>
           <button
             type="button"
@@ -68,7 +72,10 @@ export function ContenitoreBenvenuto() {
             <Icona nome="chiudi" size={16} />
           </button>
         </div>
-        <div className="space-y-3 p-5">
+      )}
+    >
+      {(chiudi) => (
+        <>
           <p className="text-sm text-muted">
             Qui sotto c’è il messaggio da mandargli: come entrare, la password provvisoria e cosa
             fare per cominciare. Copialo prima di chiudere: la password non si rivede.
@@ -80,14 +87,16 @@ export function ContenitoreBenvenuto() {
             telefono={dati.telefono}
             userId={dati.userId}
             benvenuto={dati.benvenuto}
-            indirizzo={dati.indirizzo ?? (typeof window !== 'undefined' ? window.location.origin : undefined)}
+            indirizzo={
+              dati.indirizzo ?? (typeof window !== 'undefined' ? window.location.origin : undefined)
+            }
           />
           <button type="button" onClick={chiudi} className="btn-ghost btn-sm">
             <Icona nome="approva" size={15} /> Fatto, l’ho mandato
           </button>
-        </div>
-      </div>
-    </div>,
+        </>
+      )}
+    </Foglio>,
     document.body,
   );
 }

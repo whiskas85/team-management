@@ -465,3 +465,20 @@ body {
     font-size: 1.9rem;
   }
 }
+
+/* Il foglio del menu e delle finestre (components/Foglio.tsx): sul telefono
+   sale dal fondo e ci riscende; dal tablet in su compare al centro sfumando. */
+.foglio {
+  transition:
+    transform 260ms ease-out,
+    opacity 260ms ease-out;
+}
+.foglio[data-giu] {
+  transform: translateY(100%);
+}
+@media (min-width: 640px) {
+  .foglio[data-giu] {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
+}

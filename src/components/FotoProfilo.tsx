@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Avatar } from './ui';
 import { Icona } from './Icona';
 import { RitagliaFoto } from './RitagliaFoto';
+import { Foglio } from './Foglio';
 
 /**
  * L'avatar con la matita nell'angolo. La foto si cambia da dove la si vede,
@@ -37,32 +38,27 @@ export function FotoProfilo({
       </button>
 
       {aperto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <div
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
-            onClick={() => setAperto(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative max-h-[92vh] w-full overflow-y-auto overflow-x-hidden whitespace-normal rounded-t-2xl border border-line bg-surface shadow-2xl sm:max-w-xl sm:rounded-2xl"
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4">
+        <Foglio
+          onChiuso={() => setAperto(false)}
+          etichetta="Foto del profilo"
+          foglio="sm:max-w-xl"
+          contenuto="p-5"
+          testata={(chiudi) => (
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 pb-4 pt-3 sm:pt-4">
               <h2 className="text-base font-semibold">Foto del profilo</h2>
               <button
                 type="button"
-                onClick={() => setAperto(false)}
+                onClick={chiudi}
                 className="rounded-md border border-line p-1.5 text-muted hover:text-ink"
                 aria-label="Chiudi"
               >
                 <Icona nome="chiudi" size={16} />
               </button>
             </div>
-            <div className="p-5">
-              <RitagliaFoto fotoAttuale={haFoto ? `/api/foto/${utenteId}` : null} />
-            </div>
-          </div>
-        </div>
+          )}
+        >
+          {() => <RitagliaFoto fotoAttuale={haFoto ? `/api/foto/${utenteId}` : null} />}
+        </Foglio>
       )}
     </>
   );

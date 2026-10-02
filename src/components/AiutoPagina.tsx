@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { aiutoPer, cercaAiuto } from '@/lib/aiuto';
 import { Icona } from './Icona';
+import { Foglio } from './Foglio';
 import { VoceAiutoVista } from './VoceAiutoVista';
 
 /**
@@ -19,14 +20,7 @@ export function AiutoPagina() {
   const [cerca, setCerca] = useState('');
   const trovate = useMemo(() => cercaAiuto(cerca), [cerca]);
 
-  useEffect(() => {
-    if (!aperto) return;
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setAperto(false);
-    document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
-  }, [aperto]);
-
-  const chiudi = () => {
+  const chiuso = () => {
     setAperto(false);
     setCerca('');
   };
@@ -42,43 +36,47 @@ export function AiutoPagina() {
         <Icona nome="aiuto" size={18} />
         <span className="sr-only">Aiuto su questa pagina</span>
       </button>
+      {/* lo stesso foglio del menu e delle finestre: sale, scende, si tira giù */}
       {aperto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={chiudi} />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Aiuto"
-            className="relative flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-2xl border border-line bg-surface shadow-2xl sm:rounded-2xl"
-          >
-            <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-              <Icona nome="aiuto" size={18} />
-              <p className="flex-1 font-semibold">Aiuto</p>
-              <button
-                type="button"
-                onClick={chiudi}
-                className="btn-ghost btn-sm"
-                aria-label="Chiudi l’aiuto"
-              >
-                <Icona nome="chiudi" size={15} />
-              </button>
-            </div>
-            <div className="border-b border-line px-5 py-3">
-              <label className="relative block">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
-                  <Icona nome="cerca" size={15} />
-                </span>
-                <input
-                  value={cerca}
-                  onChange={(e) => setCerca(e.target.value)}
-                  className="input pl-9"
-                  placeholder="Cerca nell’aiuto: pagare, certificato, invito…"
-                  aria-label="Cerca nell’aiuto"
-                  autoFocus
-                />
-              </label>
-            </div>
-            <div className="overflow-y-auto px-5 py-4">
+        <Foglio
+          onChiuso={chiuso}
+          etichetta="Aiuto"
+          foglio="sm:max-w-xl"
+          contenuto="px-5 py-4"
+          testata={(chiudi) => (
+            <>
+              <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+                <Icona nome="aiuto" size={18} />
+                <p className="flex-1 font-semibold">Aiuto</p>
+                <button
+                  type="button"
+                  onClick={chiudi}
+                  className="btn-ghost btn-sm"
+                  aria-label="Chiudi l’aiuto"
+                >
+                  <Icona nome="chiudi" size={15} />
+                </button>
+              </div>
+              <div className="border-b border-line px-5 py-3">
+                <label className="relative block">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+                    <Icona nome="cerca" size={15} />
+                  </span>
+                  <input
+                    value={cerca}
+                    onChange={(e) => setCerca(e.target.value)}
+                    className="input pl-9"
+                    placeholder="Cerca nell’aiuto: pagare, certificato, invito…"
+                    aria-label="Cerca nell’aiuto"
+                    autoFocus
+                  />
+                </label>
+              </div>
+            </>
+          )}
+        >
+          {(chiudi) => (
+            <>
               {cerca.trim() ? (
                 trovate.length > 0 ? (
                   <div className="space-y-6">
@@ -104,9 +102,9 @@ export function AiutoPagina() {
                   Tutto l’aiuto →
                 </Link>
               </p>
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </Foglio>
       )}
     </>
   );

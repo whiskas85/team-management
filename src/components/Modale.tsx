@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { Icona, type NomeIcona } from './Icona';
+import { Foglio } from './Foglio';
 
 /**
  * Permette a un form annidato di chiudere la finestra che lo contiene: senza,
@@ -47,19 +48,6 @@ export function BottoneModale({
   soloIcona?: boolean;
 }) {
   const [aperto, setAperto] = useState(false);
-  const chiudi = () => setAperto(false);
-
-  useEffect(() => {
-    if (!aperto) return;
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setAperto(false);
-    document.addEventListener('keydown', esc);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', esc);
-      document.body.style.overflow = '';
-    };
-  }, [aperto]);
-
   return (
     <>
       <button
@@ -76,20 +64,16 @@ export function BottoneModale({
         )}
       </button>
 
+      {/* Sale dal fondo e ci riscende, si tira giù col dito, e scorre solo
+          sotto il titolo: lo stesso foglio del menu (components/Foglio). */}
       {aperto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={chiudi} />
-          <div
-            role="dialog"
-            aria-modal="true"
-            /* whitespace-normal: la finestra spesso si apre da una cella con
-               white-space: nowrap, che verrebbe ereditato impedendo al testo di
-               andare a capo */
-            className={`relative max-h-[92vh] w-full overflow-y-auto overflow-x-hidden whitespace-normal rounded-t-2xl border border-line bg-surface shadow-2xl sm:rounded-2xl ${
-              larga ? 'sm:max-w-3xl' : 'sm:max-w-xl'
-            }`}
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4">
+        <Foglio
+          onChiuso={() => setAperto(false)}
+          etichetta={titolo ?? etichetta}
+          foglio={larga ? 'sm:max-w-3xl' : 'sm:max-w-xl'}
+          contenuto="p-5"
+          testata={(chiudi) => (
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 pb-4 pt-3 sm:pt-4">
               <h2 className="min-w-0 truncate text-base font-semibold">{titolo ?? etichetta}</h2>
               <button
                 type="button"
@@ -100,14 +84,16 @@ export function BottoneModale({
                 <Icona nome="chiudi" size={16} />
               </button>
             </div>
-
+          )}
+        >
+          {(chiudi) => (
             <ContestoModale.Provider value={{ chiudi }}>
-              <div className="min-w-0 max-w-full p-5">
+              <div className="min-w-0 max-w-full">
                 {typeof children === 'function' ? children(chiudi) : children}
               </div>
             </ContestoModale.Provider>
-          </div>
-        </div>
+          )}
+        </Foglio>
       )}
     </>
   );

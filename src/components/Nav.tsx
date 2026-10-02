@@ -9,6 +9,7 @@ import { Icona, type NomeIcona } from './Icona';
 import { ElencoPreferiti } from './Preferiti';
 import { MenuUtente } from './MenuUtente';
 import { Omnisearch } from './Omnisearch';
+import { Foglio } from './Foglio';
 import { VERSIONE } from '@/lib/versione';
 
 export type VoceMenu = {
@@ -114,100 +115,16 @@ export function Nav({
   const pathname = usePathname();
   const acceso = voceAttiva(pathname, voci);
   const [apertoMenu, setApertoMenu] = useState(false);
-  // il foglio del menu tirato giù col dito, in pixel: oltre una certa misura si chiude
-  const [tirato, setTirato] = useState(0);
-  const contenutoMenu = useRef<HTMLDivElement>(null);
-  const foglioMenu = useRef<HTMLDivElement>(null);
-  const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
-  // Il foglio sale dal fondo quando si apre e scende quando si chiude, in
-  // qualunque modo: col gesto, con la X, toccando il velo o scegliendo una voce.
-  // «salito» parte falso a ogni apertura: il foglio nasce giù, fuori dallo
-  // schermo, e al fotogramma dopo sale.
-  const [salito, setSalito] = useState(false);
+  // Il menu è un foglio che sale dal fondo (components/Foglio): sale, scende
+  // a ogni chiusura, si tira giù col dito. Da dentro si chiude col suo
+  // «chiudi», che lo fa scendere prima di smontarlo.
   const [cercaLarga, setCercaLarga] = useState(false);
-  const [scendendo, setScendendo] = useState(false);
-  useEffect(() => {
-    if (!apertoMenu) return;
-    let f2 = 0;
-    const f1 = requestAnimationFrame(() => {
-      f2 = requestAnimationFrame(() => setSalito(true));
-    });
-    return () => {
-      cancelAnimationFrame(f1);
-      cancelAnimationFrame(f2);
-    };
-  }, [apertoMenu]);
   const chiudiMenuRef = useRef<() => void>(() => {});
   const cercaNelMenu = useMemo(
     () => ({ onVai: () => chiudiMenuRef.current(), onLarga: setCercaLarga }),
     [],
   );
-  const chiudiMenu = () => {
-    if (scendendo) return;
-    setScendendo(true);
-    setTimeout(() => {
-      setApertoMenu(false);
-      setSalito(false);
-      setCercaLarga(false);
-      setScendendo(false);
-      setTirato(0);
-    }, 260);
-  };
-  chiudiMenuRef.current = chiudiMenu;
 
-  // Menu aperto: la pagina sotto è ferma. Scorre solo il menu — anche quando
-  // il dito, tirando giù il foglio, cambia idea e torna su: prima in quel
-  // momento scorreva la pagina dietro. Su iPhone «overflow: hidden» sul body
-  // non basta: si inchioda la pagina dov'era e la si rimette lì alla chiusura.
-  useEffect(() => {
-    if (!apertoMenu) return;
-    const y = window.scrollY;
-    const b = document.body.style;
-    const prima = { position: b.position, top: b.top, width: b.width, overflow: b.overflow };
-    b.position = 'fixed';
-    b.top = `-${y}px`;
-    b.width = '100%';
-    b.overflow = 'hidden';
-    return () => {
-      Object.assign(b, prima);
-      window.scrollTo(0, y);
-    };
-  }, [apertoMenu]);
-
-  const tiratoRef = useRef(0);
-  useEffect(() => {
-    tiratoRef.current = tirato;
-  }, [tirato]);
-  // Mentre il foglio segue il dito, nessun altro scorrimento: l'ascolto è
-  // «non passivo» perché React non lascia fermare il tocco dai suoi eventi.
-  useEffect(() => {
-    const el = foglioMenu.current;
-    if (!el || !apertoMenu) return;
-    const ferma = (e: TouchEvent) => {
-      const scorre = contenutoMenu.current;
-      const dentroLista =
-        scorre?.contains(e.target as Node) || !!(e.target as Element).closest?.('[data-scorre]');
-      // la lista scorre da sé; tutto il resto (testata, foglio tirato) no
-      if (tiratoRef.current > 0 || !dentroLista) e.preventDefault();
-    };
-    el.addEventListener('touchmove', ferma, { passive: false });
-    return () => el.removeEventListener('touchmove', ferma);
-  }, [apertoMenu]);
-
-  // Menu aperto: su Android tirare giù la pagina la ricarica, e il gesto per
-  // chiudere il menu finiva per farlo. Finché il menu è aperto la pagina
-  // sotto non rimbalza e non si ricarica; chiuso, tutto torna com'era.
-  useEffect(() => {
-    if (!apertoMenu) return;
-    const radice = document.documentElement;
-    const prima = [radice.style.overscrollBehaviorY, document.body.style.overscrollBehaviorY];
-    radice.style.overscrollBehaviorY = 'none';
-    document.body.style.overscrollBehaviorY = 'none';
-    return () => {
-      radice.style.overscrollBehaviorY = prima[0];
-      document.body.style.overscrollBehaviorY = prima[1];
-    };
-  }, [apertoMenu]);
   // Sul telefono le due barre — quella in alto con il nome e quella in basso
   // con le voci — si tolgono di mezzo mentre si scende: si sta leggendo, e due
   // strisce fisse su uno schermo alto quattordici centimetri sono due
@@ -509,81 +426,25 @@ export function Nav({
 
       {/* ---------------------------------------------------- drawer mobile */}
       {apertoMenu && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/70"
-            // il velo dietro si schiarisce con il foglio che se ne va
-            style={{
-              opacity: scendendo || !salito ? 0 : 1 - Math.min(tirato / 400, 0.7),
-              transition: 'opacity 0.26s ease-out',
-            }}
-            onClick={chiudiMenu}
-            onTouchMove={(e) => e.preventDefault()}
-          />
-          {/* Il pannello è una colonna: la testata — nome e chiusura — resta
-              ferma, scorre solo il contenuto sotto. Tirato giù quando il
-              contenuto è già in cima, il pannello segue il dito e si chiude:
-              lo stesso gesto dei fogli che salgono dal fondo sul telefono. */}
-          <div
-            ref={foglioMenu}
-            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface"
-            style={{
-              // segue il dito; lasciato oltre la soglia scivola giù fino in fondo
-              transform: scendendo || !salito
-                ? 'translateY(100%)'
-                : tirato
-                  ? `translateY(${tirato}px)`
-                  : undefined,
-              transition: tirato && !scendendo ? 'none' : 'transform 0.26s ease-out',
-            }}
-            onTouchStart={(e) => {
-              const scorre = contenutoMenu.current;
-              presa.current = {
-                y: e.touches[0].clientY,
-                t: Date.now(),
-                // si tira solo partendo dalla testata o col contenuto in cima
-                valida:
-                  !(e.target as Element).closest?.('[data-scorre]') &&
-                  (!scorre || scorre.scrollTop <= 0 || !scorre.contains(e.target as Node)),
-              };
-            }}
-            onTouchMove={(e) => {
-              const p = presa.current;
-              if (!p?.valida) return;
-              // una pressione lunga è il riordino dei preferiti, non una chiusura
-              if (Date.now() - p.t > 400 && !tirato) {
-                p.valida = false;
-                return;
-              }
-              const dy = e.touches[0].clientY - p.y;
-              const scorre = contenutoMenu.current;
-              if (dy > 0 && (!scorre || scorre.scrollTop <= 0)) setTirato(dy);
-              else if (tirato) setTirato(0);
-            }}
-            onTouchEnd={() => {
-              presa.current = null;
-              if (tirato > 90) chiudiMenu();
-              else setTirato(0);
-            }}
-          >
-            {/* La testata galleggia sopra il contenuto, col vetro delle altre
-                barre: niente riga di separazione, il contenuto le passa sotto
-                sfocato e riemerge a fuoco con una sfumatura. */}
-            <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center px-4 pt-1.5">
+        <Foglio
+          esterno="md:hidden"
+          foglio="max-h-[85dvh] sm:max-w-none sm:rounded-b-none"
+          contenuto="px-4 pb-8 pt-3"
+          etichetta="Menu"
+          onChiuso={() => {
+            setApertoMenu(false);
+            setCercaLarga(false);
+          }}
+          testata={(chiudi) => {
+            chiudiMenuRef.current = chiudi;
+            return (
+              /* La ricerca al centro, piccola, sotto la maniglia: scrivendo si
+                 allarga e il titolo le lascia il posto. Tre colonne, le due di
+                 lato uguali, così il campo sta davvero nel mezzo. Il contenuto
+                 scorre sotto la testata, non accanto: la barra di scorrimento
+                 comincia sotto. */
               <div
-                aria-hidden
-                // solo colore che sfuma, niente sfocatura: il bordo di una
-                // sfocatura resta netto anche sotto una maschera, e si vedeva
-                // come una riga nel punto in cui la testata finiva
-                className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 -z-10 bg-[linear-gradient(to_bottom,rgb(var(--c-surface))_0%,rgb(var(--c-surface))_55%,rgb(var(--c-surface)/0.85)_72%,rgb(var(--c-surface)/0)_100%)]"
-              />
-              {/* la maniglia: dice che il foglio si tira giù */}
-              <span className="mb-2.5 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
-              {/* La ricerca al centro, piccola, sotto la maniglia: scrivendo si
-                  allarga e il titolo le lascia il posto. Tre colonne, le due
-                  di lato uguali, così il campo sta davvero nel mezzo. */}
-              <div
-                className={`grid w-full items-center gap-x-2 ${
+                className={`mt-2 grid w-full items-center gap-x-2 border-b border-line px-4 pb-2.5 ${
                   cercaLarga ? 'grid-cols-[1fr_auto]' : 'grid-cols-[1fr_auto_1fr]'
                 }`}
               >
@@ -596,22 +457,18 @@ export function Nav({
                   <Omnisearch voci={voci} nelMenu={cercaNelMenu} />
                 </div>
                 <button
-                  onClick={chiudiMenu}
+                  onClick={chiudi}
                   className="-mr-2 justify-self-end rounded-md p-1.5 text-muted hover:text-ink"
                   aria-label="Chiudi menu"
                 >
                   <Icona nome="chiudi" />
                 </button>
               </div>
-            </div>
-
-            <div
-              ref={contenutoMenu}
-              // mentre si tira il foglio, la lista sta ferma: si muove il foglio
-              className={`min-h-0 flex-1 overscroll-contain px-4 pb-8 pt-[4.75rem] ${
-                tirato > 0 ? 'overflow-hidden' : 'overflow-y-auto'
-              }`}
-            >
+            );
+          }}
+        >
+          {(chiudi) => (
+            <>
               {/* Qui i preferiti sono le voci della barra in basso: riordinarli
                   vuol dire decidere cosa si ha sotto il pollice. Per questo si
                   riordinano da dentro il menu, dove si vedono tutti, e non dalla
@@ -625,7 +482,7 @@ export function Nav({
                   <ElencoPreferiti
                     voci={vociPreferite}
                     acceso={acceso}
-                    onVai={chiudiMenu}
+                    onVai={chiudi}
                     riga={(v, { attivo, presa }) => (
                       <span
                         className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
@@ -662,7 +519,7 @@ export function Nav({
                         <Link
                           key={v.href}
                           href={v.href}
-                          onClick={chiudiMenu}
+                          onClick={chiudi}
                           className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
                             acceso === v.href
                               ? 'border-nvg/40 bg-nvg/10 text-nvg'
@@ -694,9 +551,9 @@ export function Nav({
                   <Icona nome="esci" size={16} /> Esci
                 </button>
               </form>
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </Foglio>
       )}
     </>
   );

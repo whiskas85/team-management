@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.20.0 — 2 ottobre 2026
+
+### Cambiato
+
+- **Tutte le finestre funzionano come il menu.** Sul telefono salgono dal
+  fondo quando si aprono e scendono quando si chiudono, in qualunque modo (X,
+  sfondo, salvataggio), e si chiudono tirandole giù col dito dalla testata.
+  Sul computer compaiono al centro sfumando. Il benvenuto con la password si
+  chiude solo dai suoi pulsanti, perché la password non si rivede.
+- **Lo scorrimento comincia sotto il titolo**, nelle finestre e nel menu: la
+  testata resta ferma e la barra di scorrimento non le passa più accanto.
+
 ## 3.19.0 — 2 ottobre 2026
 
 ### Aggiunto
