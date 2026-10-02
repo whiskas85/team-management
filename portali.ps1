@@ -20,6 +20,18 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Lanciato col doppio clic (o "Esegui con PowerShell") la finestra si chiude
+# appena lo script finisce: alla fine, e anche dopo un errore, si aspetta Invio.
+function Aspetta {
+  Write-Host ''
+  Read-Host 'Premi Invio per chiudere' | Out-Null
+}
+trap {
+  Write-Host ('Errore: ' + $_) -ForegroundColor Red
+  Aspetta
+  exit 1
+}
+
 # ------------------------------------------------------------ gli argomenti
 $Squadra = ''
 $Server = 'ops.zerodarkteam.it'
@@ -48,6 +60,7 @@ if ($Chiave -and -not (Test-Path -LiteralPath $Chiave -PathType Leaf)) {
 # il nome finisce in un comando sul server: solo minuscole, cifre e trattini
 if ($Squadra -and $Squadra -notmatch '^[a-z][a-z0-9-]{1,29}$') {
   Write-Host "Nome della squadra non valido: '$Squadra' (minuscole, cifre e trattini)." -ForegroundColor Red
+  Aspetta
   exit 1
 }
 
@@ -108,7 +121,10 @@ if ($Chiave) { $argomenti += @('-i', $Chiave) }
 $argomenti += @(($Utente + '@' + $Server), ('echo ' + $b64 + ' | base64 -d | bash'))
 
 Write-Host ('Entro su ' + $Utente + '@' + $Server + ' (la password la chiede ssh) ...') -ForegroundColor Cyan
+# i messaggi di ssh su stderr (avvisi, "password:") non sono errori dello script
+$ErrorActionPreference = 'Continue'
 & ssh @argomenti
 if ($LASTEXITCODE -ne 0) {
   Write-Host ('ssh ha risposto ' + $LASTEXITCODE + ': password sbagliata, o il server non si raggiunge da questa rete.') -ForegroundColor Yellow
 }
+Aspetta
