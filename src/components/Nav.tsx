@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Role } from '@prisma/client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from './Logo';
 import { Icona, type NomeIcona } from './Icona';
 import { ElencoPreferiti } from './Preferiti';
@@ -124,6 +124,7 @@ export function Nav({
   // «salito» parte falso a ogni apertura: il foglio nasce giù, fuori dallo
   // schermo, e al fotogramma dopo sale.
   const [salito, setSalito] = useState(false);
+  const [cercaLarga, setCercaLarga] = useState(false);
   const [scendendo, setScendendo] = useState(false);
   useEffect(() => {
     if (!apertoMenu) return;
@@ -136,16 +137,23 @@ export function Nav({
       cancelAnimationFrame(f2);
     };
   }, [apertoMenu]);
+  const chiudiMenuRef = useRef<() => void>(() => {});
+  const cercaNelMenu = useMemo(
+    () => ({ onVai: () => chiudiMenuRef.current(), onLarga: setCercaLarga }),
+    [],
+  );
   const chiudiMenu = () => {
     if (scendendo) return;
     setScendendo(true);
     setTimeout(() => {
       setApertoMenu(false);
       setSalito(false);
+      setCercaLarga(false);
       setScendendo(false);
       setTirato(0);
     }, 260);
   };
+  chiudiMenuRef.current = chiudiMenu;
 
   // Menu aperto: la pagina sotto è ferma. Scorre solo il menu — anche quando
   // il dito, tirando giù il foglio, cambia idea e torna su: prima in quel
@@ -177,7 +185,8 @@ export function Nav({
     if (!el || !apertoMenu) return;
     const ferma = (e: TouchEvent) => {
       const scorre = contenutoMenu.current;
-      const dentroLista = scorre?.contains(e.target as Node);
+      const dentroLista =
+        scorre?.contains(e.target as Node) || !!(e.target as Element).closest?.('[data-scorre]');
       // la lista scorre da sé; tutto il resto (testata, foglio tirato) no
       if (tiratoRef.current > 0 || !dentroLista) e.preventDefault();
     };
@@ -533,7 +542,9 @@ export function Nav({
                 y: e.touches[0].clientY,
                 t: Date.now(),
                 // si tira solo partendo dalla testata o col contenuto in cima
-                valida: !scorre || scorre.scrollTop <= 0 || !scorre.contains(e.target as Node),
+                valida:
+                  !(e.target as Element).closest?.('[data-scorre]') &&
+                  (!scorre || scorre.scrollTop <= 0 || !scorre.contains(e.target as Node)),
               };
             }}
             onTouchMove={(e) => {
@@ -568,8 +579,13 @@ export function Nav({
               />
               {/* la maniglia: dice che il foglio si tira giù */}
               <span className="mb-0.5 h-1 w-20 rounded-full bg-muted/50" aria-hidden />
-              <div className="flex w-full items-center justify-between">
-                <p className="titolo-sezione text-ink">Menu</p>
+              {/* la ricerca, piccola accanto al titolo: scrivendo si allarga
+                  e il titolo le lascia il posto */}
+              <div className="flex w-full items-center justify-between gap-2">
+                {!cercaLarga && <p className="titolo-sezione shrink-0 text-ink">Menu</p>}
+                <div className="flex min-w-0 flex-1 justify-end">
+                  <Omnisearch voci={voci} nelMenu={cercaNelMenu} />
+                </div>
                 <button
                   onClick={chiudiMenu}
                   className="-mr-2 rounded-md p-1.5 text-muted hover:text-ink"

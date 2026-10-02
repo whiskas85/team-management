@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.18.0 — 2 ottobre 2026
+
+### Aggiunto
+
+- **La ricerca nel menu del telefono.** Nella testata del menu, accanto a
+  «Menu», c'è un campo di ricerca piccolo: toccandolo si allarga a tutta la
+  riga e cerca pagine, attività e persone come la barra del computer. Scelto
+  un risultato il menu si chiude e porta lì.
+
 ## 3.17.2 — 2 ottobre 2026
 
 ### Corretto

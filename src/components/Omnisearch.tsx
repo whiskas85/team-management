@@ -9,10 +9,8 @@ import { cercaOvunque, type RisultatoRicerca } from '@/actions/ricerca';
 /**
  * La riga per andare dove si vuole, senza cercarla nel menu.
  *
- * **Solo sul computer**, ed è una scelta: sul telefono la tastiera si mangia
- * metà schermo e le voci sono già a portata di pollice nella barra in basso.
- * Qui invece la colonna di sinistra è lunga — comando, amministrazione,
- * segreteria — e chi ci lavora tutto il giorno sa già dove vuole andare:
+ * **Sul computer** sta in cima a ogni pagina, sempre aperta: lì la colonna
+ * di sinistra è lunga — comando, amministrazione, segreteria — e chi ci lavora tutto il giorno sa già dove vuole andare:
  * scrivere «tar» e premere invio è più corto che cercare *Tariffario* con
  * l'occhio.
  *
@@ -27,8 +25,19 @@ import { cercaOvunque, type RisultatoRicerca } from '@/actions/ricerca';
  * permessi veri, quelli del calendario e delle schede, e non da una copia
  * scritta qui — una ricerca che trovasse un pezzo in più di quello che le
  * pagine mostrano sarebbe il modo più silenzioso di far uscire i dati.
+ *
+ * **Nel menu del telefono** c'è anche lì, in versione piccola: `nelMenu`. Sta
+ * nella testata accanto a «Menu», stretta, e quando ci si scrive si allarga a
+ * tutta la riga; vuota e lasciata, torna piccola. Scelto un risultato il menu
+ * si chiude da sé (`onVai`).
  */
-export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
+export function Omnisearch({
+  voci,
+  nelMenu,
+}: {
+  voci: VoceMenu[];
+  nelMenu?: { onVai: () => void; onLarga: (larga: boolean) => void };
+}) {
   const [testo, setTesto] = useState('');
   const [scelto, setScelto] = useState(0);
   const [aperto, setAperto] = useState(false);
@@ -105,9 +114,19 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
     [dalMenu, trovate],
   );
 
-  // Ctrl+K (o cmd+K sul Mac): la scorciatoia che chi usa altri programmi
-  // prova per istinto. Anche "/" da sola, come nei gestori di posta.
+  // Larga mentre si cerca: col dito dentro o con qualcosa di scritto.
+  const [dentro, setDentro] = useState(false);
+  const larga = dentro || testo !== '';
+  const onLarga = nelMenu?.onLarga;
   useEffect(() => {
+    onLarga?.(larga);
+  }, [larga, onLarga]);
+
+  // Ctrl+K (o cmd+K sul Mac): la scorciatoia che chi usa altri programmi
+  // prova per istinto. Anche "/" da sola, come nei gestori di posta. Non per
+  // quella del menu: la tastiera del telefono non ha scorciatoie.
+  useEffect(() => {
+    if (nelMenu) return;
     const tasti = (e: KeyboardEvent) => {
       const scrivendo =
         e.target instanceof HTMLElement &&
@@ -121,7 +140,7 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
     };
     window.addEventListener('keydown', tasti);
     return () => window.removeEventListener('keydown', tasti);
-  }, []);
+  }, [nelMenu]);
 
   // un clic fuori chiude l'elenco: restare aperto sopra la pagina che si sta
   // già guardando è solo un ostacolo
@@ -140,15 +159,25 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
     setAperto(false);
     setTesto('');
     campo.current?.blur();
+    nelMenu?.onVai();
     router.push(dove);
   };
 
   return (
     /* Larga quanto la colonna sotto: il contenitore intorno le dà la stessa
        misura del contenuto, e lei la riempie tutta. */
-    <div ref={contenitore} className="relative hidden w-full md:block">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
-        <Icona nome="cerca" size={15} />
+    <div
+      ref={contenitore}
+      className={
+        nelMenu
+          ? `relative transition-[width] duration-200 ease-out ${larga ? 'w-full' : 'w-32'}`
+          : 'relative hidden w-full md:block'
+      }
+    >
+      <span
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted ${nelMenu ? 'left-2.5' : 'left-3'}`}
+      >
+        <Icona nome="cerca" size={nelMenu ? 14 : 15} />
       </span>
 
       <input
@@ -159,7 +188,11 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
           setScelto(0);
           setAperto(true);
         }}
-        onFocus={() => setAperto(true)}
+        onFocus={() => {
+          setAperto(true);
+          setDentro(true);
+        }}
+        onBlur={() => setDentro(false)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -172,23 +205,53 @@ export function Omnisearch({ voci }: { voci: VoceMenu[] }) {
             vai();
           } else if (e.key === 'Escape') {
             setAperto(false);
+            if (nelMenu) setTesto('');
             campo.current?.blur();
           }
         }}
         placeholder="Cerca…"
         aria-label="Cerca pagine, attività, persone"
-        className="input h-10 w-full pl-9 pr-16 text-sm"
+        enterKeyHint="go"
+        className={
+          nelMenu
+            ? // 16px: sotto, l'iPhone ingrandisce la pagina appena si tocca il campo
+              'input h-8 w-full rounded-full py-0 pl-8 pr-8 text-base'
+            : 'input h-10 w-full pl-9 pr-16 text-sm'
+        }
       />
 
+      {nelMenu && testo && (
+        <button
+          type="button"
+          // mousedown: il campo non perde il fuoco, e la tastiera resta su
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setTesto('');
+            campo.current?.focus();
+          }}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted"
+          aria-label="Cancella la ricerca"
+        >
+          <Icona nome="chiudi" size={14} />
+        </button>
+      )}
+
       {/* la scorciatoia si impara vedendola scritta, non leggendo un manuale */}
-      {!testo && (
+      {!testo && !nelMenu && (
         <span className="num pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 py-px text-[10px] text-muted">
           ctrl K
         </span>
       )}
 
       {aperto && testo.trim() !== '' && (
-        <div className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-md border border-line bg-surface shadow-2xl">
+        <div
+          // nel menu l'elenco scorre col dito: data-scorre dice al foglio di
+          // non prendersi quel gesto per tirarsi giù
+          data-scorre={nelMenu ? '' : undefined}
+          className={`absolute left-0 right-0 top-full z-40 mt-1 rounded-md border border-line bg-surface shadow-2xl ${
+            nelMenu ? 'max-h-[60vh] overflow-y-auto overscroll-contain' : 'overflow-hidden'
+          }`}
+        >
           {risultati.length === 0 ? (
             <p className="px-3 py-2.5 text-sm text-muted">
               {cercando ? 'Sto cercando…' : 'Niente con questo nome.'}
