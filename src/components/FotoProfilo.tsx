@@ -44,12 +44,12 @@ export function FotoProfilo({
           foglio="sm:max-w-xl"
           contenuto="p-5"
           testata={(chiudi) => (
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 pb-4 pt-3 sm:pt-4">
+            <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3 sm:pt-4">
               <h2 className="text-base font-semibold">Foto del profilo</h2>
               <button
                 type="button"
                 onClick={chiudi}
-                className="rounded-md border border-line p-1.5 text-muted hover:text-ink"
+                className="-mr-1.5 rounded-md p-1.5 text-muted hover:text-ink"
                 aria-label="Chiudi"
               >
                 <Icona nome="chiudi" size={16} />

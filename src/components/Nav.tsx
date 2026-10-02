@@ -429,7 +429,7 @@ export function Nav({
         <Foglio
           esterno="md:hidden"
           foglio="max-h-[85dvh] sm:max-w-none sm:rounded-b-none"
-          contenuto="px-4 pb-8 pt-3"
+          contenuto="px-4 pb-8 pt-4"
           etichetta="Menu"
           onChiuso={() => {
             setApertoMenu(false);
@@ -444,7 +444,7 @@ export function Nav({
                  scorre sotto la testata, non accanto: la barra di scorrimento
                  comincia sotto. */
               <div
-                className={`mt-2 grid w-full items-center gap-x-2 border-b border-line px-4 pb-2.5 ${
+                className={`mt-2 grid w-full items-center gap-x-2 px-4 pb-1.5 ${
                   cercaLarga ? 'grid-cols-[1fr_auto]' : 'grid-cols-[1fr_auto_1fr]'
                 }`}
               >

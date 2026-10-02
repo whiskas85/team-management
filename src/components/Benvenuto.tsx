@@ -59,14 +59,14 @@ export function ContenitoreBenvenuto() {
       foglio="sm:max-w-2xl"
       contenuto="space-y-3 p-5"
       testata={(chiudi) => (
-        <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
           <h2 className="min-w-0 truncate text-base font-semibold">
             {dati.benvenuto!.nome} è dentro: mandagli il benvenuto
           </h2>
           <button
             type="button"
             onClick={chiudi}
-            className="shrink-0 rounded-md border border-line p-1.5 text-muted hover:text-ink"
+            className="shrink-0 -mr-1.5 rounded-md p-1.5 text-muted hover:text-ink"
             aria-label="Chiudi"
           >
             <Icona nome="chiudi" size={16} />

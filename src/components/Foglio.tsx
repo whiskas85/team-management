@@ -229,7 +229,17 @@ export function Foglio({
         <ContestoFoglio.Provider value={{ chiudi }}>
           {/* sopra il contenuto: gli elenchi che si aprono dalla testata
               (la ricerca) ci passano sopra */}
-          <div className="relative z-10 shrink-0">{testata(chiudi)}</div>
+          <div className="relative z-10 shrink-0">
+            {testata(chiudi)}
+            {/* Niente riga sotto il titolo: la testata finisce sfumando, e il
+                contenuto le scorre sotto riemergendo — come nel menu. Solo
+                colore che sfuma, niente sfocatura vera: il bordo di una
+                sfocatura resta netto e si vedeva come una riga. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-full h-5 bg-[linear-gradient(to_bottom,rgb(var(--c-surface))_0%,rgb(var(--c-surface)/0.85)_45%,rgb(var(--c-surface)/0)_100%)]"
+            />
+          </div>
           <div
             ref={scorreRef}
             className={`min-h-0 min-w-0 flex-1 overflow-x-hidden overscroll-contain ${

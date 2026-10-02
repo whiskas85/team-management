@@ -45,19 +45,19 @@ export function AiutoPagina() {
           contenuto="px-5 py-4"
           testata={(chiudi) => (
             <>
-              <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+              <div className="flex items-center gap-3 px-5 pb-2 pt-3 sm:pt-4">
                 <Icona nome="aiuto" size={18} />
                 <p className="flex-1 font-semibold">Aiuto</p>
                 <button
                   type="button"
                   onClick={chiudi}
-                  className="btn-ghost btn-sm"
+                  className="-mr-1.5 rounded-md p-1.5 text-muted hover:text-ink"
                   aria-label="Chiudi l’aiuto"
                 >
                   <Icona nome="chiudi" size={15} />
                 </button>
               </div>
-              <div className="border-b border-line px-5 py-3">
+              <div className="px-5 pb-2 pt-1">
                 <label className="relative block">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
                     <Icona nome="cerca" size={15} />

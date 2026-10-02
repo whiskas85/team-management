@@ -1,6 +1,6 @@
 {
   "name": "zero-dark-gestionale",
-  "version": "3.20.0",
+  "version": "3.20.1",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",

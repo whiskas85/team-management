@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.20.1 — 2 ottobre 2026
+
+### Corretto
+
+- **Il titolo delle finestre finisce sfumando**, come nel menu: niente riga
+  sotto, il contenuto scorre sotto la testata e riemerge. La X per chiudere
+  non ha più il bordo.
+
 ## 3.20.0 — 2 ottobre 2026
 
 ### Cambiato
