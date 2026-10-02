@@ -423,23 +423,27 @@ export default async function CassaPage({
                   </span>
                 </>
               }
-              elimina={admin && v.movimento && <EliminaMovimento movimento={v.movimento} />}
+              elimina={
+                admin &&
+                v.movimento && (
+                  // sul telefono la matita sta accanto al cestino, solo icona
+                  <span className="flex items-center gap-1.5">
+                    <ModificaMovimento
+                      movimento={v.movimento}
+                      metodi={metodi}
+                      merci={merci}
+                      operatori={operatori}
+                      soloIcona
+                    />
+                    <EliminaMovimento movimento={v.movimento} />
+                  </span>
+                )
+              }
               fascia={
                 !!v.movimento?.beneficiario?.metodiPersonali.length && (
                   <TendinaMetodi
                     nome={`${v.movimento.beneficiario.nome} ${v.movimento.beneficiario.cognome}`}
                     metodi={v.movimento.beneficiario.metodiPersonali}
-                  />
-                )
-              }
-              azioni={
-                admin &&
-                v.movimento && (
-                  <ModificaMovimento
-                    movimento={v.movimento}
-                    metodi={metodi}
-                    merci={merci}
-                    operatori={operatori}
                   />
                 )
               }
@@ -569,11 +573,14 @@ function ModificaMovimento({
   metodi,
   merci,
   operatori,
+  soloIcona = false,
 }: {
   movimento: Movimento;
   metodi: Metodo[];
   merci: Merce[];
   operatori: Operatore[];
+  /** Nella card del telefono: la matita accanto al cestino. */
+  soloIcona?: boolean;
 }) {
   return (
     <>
@@ -582,6 +589,7 @@ function ModificaMovimento({
         icona="modifica"
         titolo={`Modifica "${movimento.descrizione}"`}
         className="btn-ghost btn-sm"
+        soloIcona={soloIcona}
       >
         <FormAzione azione={salvaMovimento}>
           <input type="hidden" name="id" value={movimento.id} />

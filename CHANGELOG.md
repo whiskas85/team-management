@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.15.3 — 2 ottobre 2026
+
+### Cambiato
+
+- **Cassa sul telefono: la matita accanto al cestino.** Nella card di un
+  movimento «Modifica» è solo l'icona, in alto a destra a sinistra del
+  cestino; la card resta più corta.
+
 ## 3.15.2 — 2 ottobre 2026
 
 ### Corretto
