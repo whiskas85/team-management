@@ -401,6 +401,10 @@ gli effetti: database, allegati, chiavi, identità e admin suoi. Con noi si
 parla solo se ci si collega come due squadre qualsiasi
 (`docs/COLLEGAMENTO-SQUADRE.md`).
 
+**Una demo** può stare su un nostro sottodominio (es. `demo.zerodarkteam.it`):
+basta il record DNS su Aruba e lo stesso modo **squadra-nuova**. Restano
+esclusi i nomi già in uso: `ops`, `test…`, `www` e il dominio nudo.
+
 **1. La squadra, sul pannello dove ha comprato il dominio.** Un record che
 porta il suo nome qui:
 

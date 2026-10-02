@@ -150,8 +150,13 @@ nuova() {
     echo "Dominio non valido: «$dominio» (es. gestionale.pippo.it)"
     exit 1
   fi
+  # Un nostro sottodominio va bene (una demo: demo.zerodarkteam.it), ma non
+  # quelli già presi: la produzione, gli ambienti di test, il sito.
   case "$dominio" in
-    *zerodarkteam.it) echo "$dominio e' un nome nostro: alla squadra serve il suo."; exit 1 ;;
+    ops.zerodarkteam.it | zerodarkteam.it | www.zerodarkteam.it | test*.zerodarkteam.it)
+      echo "$dominio e' gia' in uso (produzione, test o sito): scegline un altro."
+      exit 1
+      ;;
   esac
   if grep -qs "^DOMINIO=$dominio\$" /opt/squadra-*/.env.squadra; then
     echo "$dominio e' gia' usato da un'altra squadra ospitata."
