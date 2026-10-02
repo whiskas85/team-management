@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import Link from 'next/link';
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -472,13 +471,16 @@ export default async function CassaPage({
                   {admin && <th>Azioni</th>}
                 </tr>
               </thead>
-              <tbody>
                 {voci.map((v) => (
-                  <Fragment key={v.chiave}>
+                  <tbody
+                    key={v.chiave}
+                    // l'uscita e i suoi metodi sono una cosa sola: si accendono insieme
+                    className="[&:hover>tr]:bg-surface2/70"
+                  >
                   <tr
                     className={
                       v.movimento?.beneficiario?.metodiPersonali.length
-                        ? '[&>td]:border-b-0'
+                        ? '[&>td]:!border-b-0'
                         : undefined
                     }
                   >
@@ -552,9 +554,8 @@ export default async function CassaPage({
                       </td>
                     </tr>
                   )}
-                  </Fragment>
+                  </tbody>
                 ))}
-              </tbody>
             </table>
           }
         />

@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.15.2 — 2 ottobre 2026
+
+### Corretto
+
+- **Uscita e metodi di pagamento, un blocco solo.** Da computer, passando
+  col mouse sull'uscita o sui suoi metodi si accendono tutti e due insieme, e
+  fra la riga dell'uscita e i metodi non c'è più la linea divisoria.
+
 ## 3.15.1 — 1 ottobre 2026
 
 ### Cambiato
