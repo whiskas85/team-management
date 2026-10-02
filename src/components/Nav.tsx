@@ -119,12 +119,29 @@ export function Nav({
   const contenutoMenu = useRef<HTMLDivElement>(null);
   const foglioMenu = useRef<HTMLDivElement>(null);
   const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
-  // chiuso col gesto: il foglio finisce di scendere prima di sparire
+  // Il foglio sale dal fondo quando si apre e scende quando si chiude, in
+  // qualunque modo: col gesto, con la X, toccando il velo o scegliendo una voce.
+  // «salito» parte falso a ogni apertura: il foglio nasce giù, fuori dallo
+  // schermo, e al fotogramma dopo sale.
+  const [salito, setSalito] = useState(false);
   const [scendendo, setScendendo] = useState(false);
-  const chiudiScendendo = () => {
+  useEffect(() => {
+    if (!apertoMenu) return;
+    let f2 = 0;
+    const f1 = requestAnimationFrame(() => {
+      f2 = requestAnimationFrame(() => setSalito(true));
+    });
+    return () => {
+      cancelAnimationFrame(f1);
+      cancelAnimationFrame(f2);
+    };
+  }, [apertoMenu]);
+  const chiudiMenu = () => {
+    if (scendendo) return;
     setScendendo(true);
     setTimeout(() => {
       setApertoMenu(false);
+      setSalito(false);
       setScendendo(false);
       setTirato(0);
     }, 260);
@@ -485,10 +502,13 @@ export function Nav({
       {apertoMenu && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 bg-black/70 transition-opacity"
+            className="absolute inset-0 bg-black/70"
             // il velo dietro si schiarisce con il foglio che se ne va
-            style={{ opacity: scendendo ? 0 : 1 - Math.min(tirato / 400, 0.7) }}
-            onClick={() => setApertoMenu(false)}
+            style={{
+              opacity: scendendo || !salito ? 0 : 1 - Math.min(tirato / 400, 0.7),
+              transition: 'opacity 0.26s ease-out',
+            }}
+            onClick={chiudiMenu}
             onTouchMove={(e) => e.preventDefault()}
           />
           {/* Il pannello è una colonna: la testata — nome e chiusura — resta
@@ -500,7 +520,7 @@ export function Nav({
             className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface"
             style={{
               // segue il dito; lasciato oltre la soglia scivola giù fino in fondo
-              transform: scendendo
+              transform: scendendo || !salito
                 ? 'translateY(100%)'
                 : tirato
                   ? `translateY(${tirato}px)`
@@ -531,7 +551,7 @@ export function Nav({
             }}
             onTouchEnd={() => {
               presa.current = null;
-              if (tirato > 90) chiudiScendendo();
+              if (tirato > 90) chiudiMenu();
               else setTirato(0);
             }}
           >
@@ -551,7 +571,7 @@ export function Nav({
               <div className="flex w-full items-center justify-between">
                 <p className="titolo-sezione text-ink">Menu</p>
                 <button
-                  onClick={() => setApertoMenu(false)}
+                  onClick={chiudiMenu}
                   className="-mr-2 rounded-md p-1.5 text-muted hover:text-ink"
                   aria-label="Chiudi menu"
                 >
@@ -580,7 +600,7 @@ export function Nav({
                   <ElencoPreferiti
                     voci={vociPreferite}
                     acceso={acceso}
-                    onVai={() => setApertoMenu(false)}
+                    onVai={chiudiMenu}
                     riga={(v, { attivo, presa }) => (
                       <span
                         className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
@@ -617,7 +637,7 @@ export function Nav({
                         <Link
                           key={v.href}
                           href={v.href}
-                          onClick={() => setApertoMenu(false)}
+                          onClick={chiudiMenu}
                           className={`flex items-center gap-2 rounded-md border px-3 py-3 text-sm ${
                             acceso === v.href
                               ? 'border-nvg/40 bg-nvg/10 text-nvg'

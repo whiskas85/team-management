@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.17.2 — 2 ottobre 2026
+
+### Corretto
+
+- **Il menu sul telefono sale e scende sempre.** Si apre salendo dal fondo, e
+  scende quando si chiude in qualunque modo: col gesto, con la X, toccando lo
+  sfondo o scegliendo una voce. Prima scendeva solo tirandolo giù col dito.
+
 ## 3.17.1 — 2 ottobre 2026
 
 ### Corretto
