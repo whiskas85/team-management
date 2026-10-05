@@ -5,6 +5,28 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.22.0 — 5 ottobre 2026
+
+### Aggiunto
+
+- **La polizza di ripiego senza certificato.** In «Tipologie di attività» si
+  imposta il costo della polizza giornaliera di ripiego, e su ogni tipologia
+  si accende «Senza certificato si partecipa con la polizza di ripiego». Lì
+  chi è in squadra senza il certificato richiesto (scaduto, mancante, o che
+  scade prima dell'attività) si segna lo stesso: la polizza si aggiunge alla
+  sua quota del club, e pagata o segnalata lo si assicura come chi viene da
+  fuori — anche con le polizze automatiche. All'appello si spunta; finché non
+  è assicurato sta fra i «non assicurati». Rinnovato il certificato, la
+  polizza esce da sola dalle quote non ancora pagate. Dove l'interruttore è
+  spento, o il costo non è impostato, resta la regola di sempre: senza
+  certificato non ci si segna.
+
+### Corretto
+
+- Nel riquadro della propria adesione l'importo da saldare è quello delle
+  quote vere, compresi kit a noleggio e polizza, non il solo prezzo
+  dell'attività.
+
 ## 3.21.0 — 5 ottobre 2026
 
 ### Corretto

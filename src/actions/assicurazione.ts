@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { puoAmministrare, puoGestirePagamenti } from '@/lib/domain';
+import { inRipiego, puoAmministrare, puoGestirePagamenti } from '@/lib/domain';
 import { bool, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, contaPolizzeProva, eta } from '@/lib/figt';
@@ -16,6 +16,7 @@ import {
   cassePerPolizza,
   quotePerPolizza,
   tariffePolizza,
+  costoRipiego,
   SCORTA_POLIZZE,
 } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
@@ -53,6 +54,9 @@ async function quotaDaSaldare(userId: string, eventId: string) {
   const evento = await prisma.event.findUnique({
     where: { id: eventId },
     select: {
+      inizio: true,
+      fine: true,
+      tipo: { select: { certMedico: true, certAgonistico: true, ripiegoPolizza: true } },
       costoEsterni: true,
       vociSquadra: true,
       vociEsterni: true,
@@ -67,6 +71,15 @@ async function quotaDaSaldare(userId: string, eventId: string) {
     evento,
     await tariffePolizza([...evento.vociSquadra, ...evento.vociEsterni]),
   );
+  // in ripiego (della squadra, senza certificato) la polizza è nella quota
+  // del club: è quella che va pagata prima di assicurarlo
+  const chi = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stato: true, certificates: { select: { status: true, scadeIl: true, tipo: true } } },
+  });
+  if (chi && inRipiego(evento.tipo, chi.stato, chi.certificates, evento, await costoRipiego())) {
+    casse.add('');
+  }
   const quote = await prisma.payment.findMany({
     where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
     select: { status: true, dichiaratoIl: true, cassaId: true },

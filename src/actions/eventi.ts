@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { fmtEuro } from '@/lib/format';
 import { avvisaPersona } from '@/lib/avvisi';
 import { prezzoNoleggio } from '@/lib/quote';
+import { costoRipiego } from '@/lib/assicurazione';
 import { accoda } from '@/lib/federazione-coda';
 import { stagioneAttiva } from '@/lib/stagioni';
 import {
@@ -33,6 +34,8 @@ import {
   eAtleta,
   idoneoAl,
   idoneoPer,
+  inRipiego,
+  puoAmministrare,
   finoA,
   scadeCertificatoValido,
   inSquadra,
@@ -643,10 +646,17 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
       select: { status: true, scadeIl: true, tipo: true },
     });
     const serveAgonistico = evento.tipo?.certAgonistico ?? false;
-    if (!idoneoPer(certificati, serveAgonistico)) {
+    // Senza il certificato che serve, dove la tipologia lo ammette, si
+    // partecipa con la polizza di ripiego: si paga con la quota e ci si
+    // assicura come chi viene da fuori (vedi inRipiego)
+    const ripiego = await costoRipiego();
+    if (inRipiego(evento.tipo, me.stato, certificati, evento, ripiego)) {
+      avvisoCertificato = ` Il tuo certificato medico non copre questa attività: partecipi con la polizza giornaliera${
+        ripiego ? ` (${fmtEuro(ripiego)})` : ''
+      }, che si aggiunge alla quota. Ti assicuriamo quando l’hai pagata o hai segnalato il pagamento. Se rinnovi il certificato prima, la polizza si toglie da sola.`;
+    } else if (!idoneoPer(certificati, serveAgonistico)) {
       return { errore: `Non puoi segnarti. ${MOTIVO_NON_IDONEO(serveAgonistico)}` };
-    }
-    if (!idoneoAl(certificati, serveAgonistico, finoA(evento))) {
+    } else if (!idoneoAl(certificati, serveAgonistico, finoA(evento))) {
       const scade = scadeCertificatoValido(certificati, serveAgonistico);
       avvisoCertificato = ` Attenzione: il tuo certificato medico scade${
         scade ? ` il ${scade.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' })}` : ''
@@ -780,17 +790,32 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
   const evento = await prisma.event.findUnique({
     where: { id: eventId },
     include: {
-      tipo: { select: { riserve: true, tipoQuota: true } },
+      tipo: {
+        select: {
+          riserve: true,
+          tipoQuota: true,
+          certMedico: true,
+          certAgonistico: true,
+          ripiegoPolizza: true,
+        },
+      },
       quoteCasse: { include: { cassa: { select: { attiva: true } } } },
     },
   });
   if (!evento) return null;
 
-  const [rsvp, chi, esistenti] = await Promise.all([
+  const [rsvp, chi, esistenti, ripiego] = await Promise.all([
     prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId } } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { stato: true } }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        stato: true,
+        certificates: { select: { status: true, scadeIl: true, tipo: true } },
+      },
+    }),
     // i rimborsi sono movimenti a sé e non si toccano
     prisma.payment.findMany({ where: { eventId, userId, tipo: { not: 'RIMBORSO' } } }),
+    costoRipiego(),
   ]);
 
   // un'attività annullata non la deve nessuno (vedi chiudiQuoteAnnullata)
@@ -810,8 +835,9 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
       note: club.dettaglio,
       descrizione: evento.titolo,
       apribile: true,
-      // dentro c'è il kit a noleggio confermato (più sotto)
-      kit: false,
+      // la quota cresce dopo il pagamento: il kit a noleggio confermato, la
+      // polizza di ripiego (più sotto)
+      cresce: false,
     },
     ...evento.quoteCasse.map((q) => ({
       cassaId: q.cassaId as string | null,
@@ -820,7 +846,7 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
       descrizione: `${evento.titolo} · ${q.descrizione}`,
       // una cassa spenta non riceve quote nuove: quelle che ci sono restano
       apribile: q.cassa.attiva,
-      kit: false,
+      cresce: false,
     })),
   ];
 
@@ -834,7 +860,7 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
     if (voce) {
       voce.importo += prezzo;
       voce.note = voce.note ? `${voce.note} · ${kit}` : `Giocata + ${kit}`;
-      voce.kit = true;
+      voce.cresce = true;
     } else {
       voci.push({
         cassaId: cassaKit,
@@ -842,9 +868,26 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
         note: null,
         descrizione: `${evento.titolo} · Kit a noleggio`,
         apribile: true,
-        kit: true,
+        cresce: true,
       });
     }
+  }
+
+  // Senza il certificato che l'attività chiede, dove la tipologia ammette il
+  // ripiego: la polizza giornaliera si somma alla quota del club, che è quella
+  // che la paga. Rinnovato il certificato, sparisce da sola alla prossima
+  // rilettura (finché la quota non è pagata).
+  if (
+    ripiego !== null &&
+    ripiego > 0 &&
+    chi &&
+    inRipiego(evento.tipo, chi.stato, chi.certificates, evento, ripiego)
+  ) {
+    const voce = voci[0];
+    const polizza = `polizza giornaliera senza certificato ${fmtEuro(ripiego)}`;
+    voce.importo += ripiego;
+    voce.note = voce.note ? `${voce.note} · ${polizza}` : polizza;
+    voce.cresce = true;
   }
 
   let totale = 0;
@@ -917,13 +960,14 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
           data: { importo: v.importo, note: v.note, descrizione: v.descrizione },
         });
       } else if (
-        v.kit &&
+        v.cresce &&
         esistente.status !== 'NON_GESTITO' &&
         Number(esistente.pagato) > 0 &&
         v.importo > Number(esistente.importo)
       ) {
-        // il kit confermato dopo che la giocata era già pagata (o in parte):
-        // la quota cresce del noleggio e resta da saldare la differenza
+        // il kit confermato, o la polizza di ripiego, dopo che la giocata era
+        // già pagata (o in parte): la quota cresce e resta da saldare la
+        // differenza
         await prisma.payment.update({
           where: { id: esistente.id },
           data: {
@@ -948,6 +992,59 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
   // può averli registrati a mano la segreteria. Quando una quota viene tolta
   // dall'attività li ripulisce chi la toglie.
   return totale > 0 ? totale : null;
+}
+
+/**
+ * Rilegge le quote delle attività in programma di una persona.
+ *
+ * Serve quando cambia il suo certificato: approvato il nuovo, la polizza di
+ * ripiego esce dalle quote non ancora pagate; tolto quello valido, ci entra.
+ * Lo chiama chi tocca i certificati — la persona stessa o chi li amministra.
+ */
+export async function riallineaQuoteDi(userId: string): Promise<void> {
+  const me = await requireUser();
+  if (me.id !== userId && !puoAmministrare(me.roles)) return;
+  const rsvps = await prisma.eventRsvp.findMany({
+    where: {
+      userId,
+      status: { in: ['PRESENTE', 'FORSE'] },
+      event: {
+        status: 'RILASCIATA',
+        OR: [{ inizio: { gte: new Date() } }, { fine: { gte: new Date() } }],
+      },
+    },
+    select: { eventId: true },
+  });
+  for (const r of rsvps) await allineaQuota(r.eventId, userId);
+  if (rsvps.length > 0) {
+    revalidatePath('/pagamenti');
+    revalidatePath('/admin/pagamenti');
+    revalidatePath('/admin/polizze');
+  }
+}
+
+/**
+ * Rilegge le quote delle attività in programma di alcune tipologie (tutte, se
+ * non se ne dice nessuna): serve quando cambia la polizza di ripiego — il suo
+ * costo, o l'interruttore su una tipologia.
+ */
+export async function riallineaQuoteTipologie(tipoIds?: string[]): Promise<void> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return;
+  const eventi = await prisma.event.findMany({
+    where: {
+      status: 'RILASCIATA',
+      OR: [{ inizio: { gte: new Date() } }, { fine: { gte: new Date() } }],
+      ...(tipoIds ? { tipoId: { in: tipoIds } } : { tipo: { ripiegoPolizza: true } }),
+    },
+    select: { id: true },
+  });
+  for (const e of eventi) await allineaQuoteEvento(e.id);
+  if (eventi.length > 0) {
+    revalidatePath('/pagamenti');
+    revalidatePath('/admin/pagamenti');
+    revalidatePath('/admin/polizze');
+  }
 }
 
 /** Ricalcola le quote di tutti: serve quando cambia il costo dell'attività. */
@@ -1216,7 +1313,11 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
 
   const evento = await prisma.event.findUnique({
     where: { id: eventId },
-    include: { tipo: { select: { riserve: true, certMedico: true, certAgonistico: true } } },
+    include: {
+      tipo: {
+        select: { riserve: true, certMedico: true, certAgonistico: true, ripiegoPolizza: true },
+      },
+    },
   });
   if (!evento) return { errore: 'Attività non trovata.' };
 
@@ -1246,13 +1347,16 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
   // motivo: chi fa l'appello non può segnarlo presente, nemmeno spuntandolo.
   const serveCert = serveCertificato(evento.tipo);
   const agonistico = evento.tipo?.certAgonistico ?? false;
+  // chi è in ripiego (tipologia che ammette la polizza) partecipa lo stesso
+  const ripiego = await costoRipiego();
   const senzaCert = new Set(
     daSpuntare
       .filter(
         (r) =>
           serveCert &&
           inSquadra(r.user.stato) &&
-          !idoneoAl(r.user.certificates, agonistico, finoA(evento)),
+          !idoneoAl(r.user.certificates, agonistico, finoA(evento)) &&
+          !inRipiego(evento.tipo, r.user.stato, r.user.certificates, evento, ripiego),
       )
       .map((r) => r.id),
   );
@@ -1349,10 +1453,13 @@ export async function iscriviOperatori(_prev: StatoForm, fd: FormData): Promise<
   // tutta l'attività, come per chi è spuntato. Altrove basta che valga oggi
   // (chi scade prima ha l'avviso sulla sua riga, e all'appello non passa).
   const perAppello = str(fd, 'dallAppello') === '1';
+  const ripiego = await costoRipiego();
   const ammessi = utenti.filter(
     (u) =>
       !serveCert ||
       !inSquadra(u.stato) ||
+      // senza certificato, con la polizza di ripiego
+      inRipiego(evento.tipo, u.stato, u.certificates, evento, ripiego) ||
       (perAppello
         ? idoneoAl(u.certificates, serveAgonistico, finoA(evento))
         : idoneoPer(u.certificates, serveAgonistico)),

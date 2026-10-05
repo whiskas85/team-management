@@ -1,6 +1,6 @@
 import type { StatoAssicurazione, StatoOperatore } from '@prisma/client';
 import { prisma } from './db';
-import { vedeAttivitaSquadra, type Tono } from './domain';
+import { inRipiego, vedeAttivitaSquadra, type Tono } from './domain';
 import { iniziali, nomeCompleto } from './format';
 import { chiaveDaColonna, chiaveGiorno, dataLocale, giorniDi } from './giorni';
 import { quotaPer } from './quote';
@@ -37,6 +37,18 @@ export function serveGiornaliera(
  * divergessero, il numero rosso e l'avviso racconterebbero due storie.
  */
 export const SCORTA_POLIZZE = 5;
+
+/**
+ * Il costo della polizza giornaliera di ripiego, o null se non è impostato —
+ * e allora il ripiego è spento su tutte le tipologie (vedi inRipiego).
+ */
+export async function costoRipiego(): Promise<number | null> {
+  const conf = await prisma.impostazioni.findUnique({
+    where: { id: 'app' },
+    select: { polizzaRipiego: true },
+  });
+  return conf?.polizzaRipiego == null ? null : Number(conf.polizzaRipiego);
+}
 
 export const ETICHETTA_ASSICURAZIONE: Record<StatoAssicurazione, string> = {
   NON_ASSICURATO: 'non assicurato',
@@ -220,6 +232,11 @@ export type NuovoDaCoprire = {
   haQuota: boolean;
   /** Senza data e luogo di nascita il portale non emette niente. */
   datiCompleti: boolean;
+  /**
+   * È della squadra, ma senza il certificato che l'attività chiede: gioca con
+   * la polizza di ripiego, e va assicurato come chi viene da fuori.
+   */
+  senzaCertificato: boolean;
 };
 
 export type AttivitaDaCoprire = {
@@ -268,7 +285,9 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     },
     orderBy: { inizio: 'asc' },
     include: {
-      tipo: { select: { nome: true } },
+      tipo: {
+        select: { nome: true, certMedico: true, certAgonistico: true, ripiegoPolizza: true },
+      },
       field: { select: { nome: true } },
       giornaliere: { select: { userId: true, giorno: true, stato: true, codice: true } },
       // i rimborsi sono movimenti a sé: non dicono niente su cosa è dovuto
@@ -304,6 +323,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
               luogoNascita: true,
               fotoPath: true,
               figtCards: { select: { status: true, scadeIl: true } },
+              certificates: { select: { status: true, scadeIl: true, tipo: true } },
             },
           },
         },
@@ -311,6 +331,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     },
   });
 
+  const ripiego = await costoRipiego();
   // le voci del tariffario usate da queste attività, lette una volta sola
   const tariffe = await tariffePolizza([
     ...new Set(eventi.flatMap((e) => [...e.vociSquadra, ...e.vociEsterni])),
@@ -328,15 +349,24 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     for (const p of e.payments) quote.set(p.userId, [...(quote.get(p.userId) ?? []), p]);
     const casse = cassePerPolizza(e, tariffe);
 
+    // della squadra ma senza certificato, dove la tipologia ammette il
+    // ripiego: si assicura anche lui, e la sua polizza la paga la quota del club
+    const senzaCert = (r: (typeof e.rsvps)[number]) =>
+      inRipiego(e.tipo, r.user.stato, r.user.certificates, e, ripiego);
+
     const nuovi = e.rsvps
-      .filter((r) => !vedeAttivitaSquadra(r.user.stato))
-      // invitato con la quota a zero: la polizza non si propone
-      .filter((r) => !nienteDaPagare(e, r.user.stato))
+      .filter((r) =>
+        senzaCert(r)
+          ? true
+          : // invitato con la quota a zero: la polizza non si propone
+            !vedeAttivitaSquadra(r.user.stato) && !nienteDaPagare(e, r.user.stato),
+      )
       .map((r) => {
+        const ripiegato = senzaCert(r);
         // tutte le sue quote dicono se ha pagato; quelle con le voci che
         // pagano la polizza dicono se lo si può assicurare
         const sue = quote.get(r.userId) ?? [];
-        const perPolizza = quotePerPolizza(sue, casse);
+        const perPolizza = quotePerPolizza(sue, ripiegato ? new Set([...casse, '']) : casse);
         return {
           id: r.userId,
           nome: nomeCompleto(r.user),
@@ -347,7 +377,11 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
             const g = coperture.get(`${r.userId}|${giorno}`);
             return {
               giorno,
-              serve: serveGiornaliera(false, r.user.stato, r.user.figtCards, dataLocale(giorno)),
+              // in ripiego la tessera annuale non basta: senza certificato
+              // non lo copre, e la giornaliera serve comunque
+              serve:
+                ripiegato ||
+                serveGiornaliera(false, r.user.stato, r.user.figtCards, dataLocale(giorno)),
               copertura: g?.stato ?? 'NON_ASSICURATO',
               codice: g?.codice ?? null,
             };
@@ -360,6 +394,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
           copribile: quoteOnorate(perPolizza),
           haQuota: sue.length > 0,
           datiCompleti: r.user.dataNascita !== null && r.user.luogoNascita !== null,
+          senzaCertificato: ripiegato,
         } satisfies NuovoDaCoprire;
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, 'it'));

@@ -1,6 +1,6 @@
 import { prisma } from './db';
 import { conIdentita } from './identita';
-import { attivitaDaCoprire, dataLocale } from './assicurazione';
+import { attivitaDaCoprire, costoRipiego, dataLocale } from './assicurazione';
 import { attivaGiornaliera } from '@/actions/assicurazione';
 import type { SessionUser } from './auth';
 import { avvisaPersona } from './avvisi';
@@ -212,10 +212,21 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
 
     // le attività a cui è segnato e che il certificato non copre: senza
     // rinnovo, quel giorno non partecipa — lo si dice con i nomi
-    const scoperte = await attivitaNonCoperte(cert.userId, cert.scadeIl!);
-    const elenco = scoperte.length
-      ? ` Sei segnato a ${scoperte.map((e) => `«${e.titolo}» (${fmtDate(e.inizio)})`).join(', ')}: senza il nuovo certificato non partecipi.`
-      : '';
+    // dove la tipologia ammette la polizza di ripiego si partecipa lo stesso,
+    // pagandola: lo si dice a parte
+    const tutte = await attivitaNonCoperte(cert.userId, cert.scadeIl!);
+    const conRipiego = (await costoRipiego()) !== null;
+    const scoperte = tutte.filter((e) => !(conRipiego && e.ripiego));
+    const ripiegate = tutte.filter((e) => conRipiego && e.ripiego);
+    const nomi = (l: typeof tutte) =>
+      l.map((e) => `«${e.titolo}» (${fmtDate(e.inizio)})`).join(', ');
+    const elenco =
+      (scoperte.length
+        ? ` Sei segnato a ${nomi(scoperte)}: senza il nuovo certificato non partecipi.`
+        : '') +
+      (ripiegate.length
+        ? ` A ${nomi(ripiegate)} partecipi solo con la polizza giornaliera, che si aggiunge alla quota.`
+        : '');
 
     await avvisaPersona(cert.userId, {
       titolo:
@@ -268,8 +279,10 @@ async function attivitaNonCoperte(userId: string, scadeIl: Date) {
       rsvps: { some: { userId, status: { in: ['PRESENTE', 'FORSE'] } } },
       OR: [{ tipoId: null }, { tipo: { certMedico: true } }],
     },
-    select: { titolo: true, inizio: true, fine: true },
+    select: { titolo: true, inizio: true, fine: true, tipo: { select: { ripiegoPolizza: true } } },
     orderBy: { inizio: 'asc' },
   });
-  return eventi.filter((e) => (e.fine ?? e.inizio).getTime() > scadeIl.getTime());
+  return eventi
+    .filter((e) => (e.fine ?? e.inizio).getTime() > scadeIl.getTime())
+    .map((e) => ({ ...e, ripiego: e.tipo?.ripiegoPolizza ?? false }));
 }

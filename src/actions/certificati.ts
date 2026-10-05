@@ -7,6 +7,7 @@ import { puoAmministrare, scadenzaCertificato } from '@/lib/domain';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 import { REGOLE_CERTIFICATO } from '@/lib/certificato';
 import { data, str, strOpt, enumVal, type StatoForm } from '@/lib/form';
+import { riallineaQuoteDi } from './eventi';
 
 const TIPI = ['NON_AGONISTICO', 'AGONISTICO'] as const;
 
@@ -87,6 +88,8 @@ export async function approvaCertificato(_prev: StatoForm, fd: FormData): Promis
       reviewedAt: new Date(),
     },
   });
+  // la polizza di ripiego, se c'era, esce dalle quote ancora da pagare
+  if (attuale) await riallineaQuoteDi(attuale.userId).catch(() => null);
 
   aggiorna();
   return { ok: 'Certificato approvato.' };
@@ -147,6 +150,9 @@ export async function eliminaCertificato(_prev: StatoForm, fd: FormData): Promis
 
   await prisma.medicalCertificate.delete({ where: { id } });
   await eliminaAllegato(cert.filePath);
+  // tolto un certificato valido, le quote possono aver bisogno della polizza
+  // di ripiego
+  if (cert.status === 'VALIDO') await riallineaQuoteDi(cert.userId).catch(() => null);
 
   aggiorna();
   return { ok: 'Certificato eliminato.' };

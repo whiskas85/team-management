@@ -929,6 +929,10 @@ model TipoAttivita {
   certMedico     Boolean     @default(true)
   /// Richiede il certificato AGONISTICO: con il solo non agonistico non si entra.
   certAgonistico Boolean     @default(false)
+  /// Senza il certificato richiesto si partecipa lo stesso, con la polizza
+  /// giornaliera di ripiego: il suo costo (Impostazioni.polizzaRipiego) si
+  /// aggiunge alla quota, e la persona si assicura come chi viene da fuori.
+  ripiegoPolizza Boolean     @default(false)
   /// È una riunione: si fa in una sala o in videochiamata, non in campo. Le
   /// tipologie con questo segno sono quelle che si possono creare al volo da
   /// un'attività, e su di esse spariscono ritrovo, posti e quote — cose che a
@@ -2453,6 +2457,10 @@ model Impostazioni {
   /// Chi l'ha accesa. Le polizze automatiche partono a nome suo: una spesa ha
   /// sempre una firma, anche quando parte da sola.
   assicuraAutoDaId    String?
+  /// Quanto costa la polizza giornaliera di ripiego: la paga chi è in squadra
+  /// ma non ha il certificato, sulle tipologie che la ammettono. Vuota: il
+  /// ripiego è spento ovunque, e senza certificato non ci si segna.
+  polizzaRipiego      Decimal? @db.Decimal(10, 2)
   aggiornatoIl        DateTime @updatedAt
 }
 

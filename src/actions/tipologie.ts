@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { COLORI_TIPOLOGIA, isAdmin } from '@/lib/domain';
-import { bool, enumVal, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
+import { bool, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
+import { fmtEuro } from '@/lib/format';
+import { riallineaQuoteTipologie } from './eventi';
 
 // i colori ammessi sono quelli della palette, e basta aggiungerli lì
 const COLORI = Object.keys(COLORI_TIPOLOGIA);
@@ -48,11 +50,23 @@ export async function salvaTipologia(_prev: StatoForm, fd: FormData): Promise<St
     soloInterno: bool(fd, 'soloInterno'),
     certMedico: bool(fd, 'certMedico'),
     certAgonistico: bool(fd, 'certAgonistico'),
+    ripiegoPolizza: bool(fd, 'ripiegoPolizza'),
     attivo: bool(fd, 'attivo'),
   };
 
   if (id) {
+    const prima = await prisma.tipoAttivita.findUnique({ where: { id } });
     await prisma.tipoAttivita.update({ where: { id }, data: valori });
+    // la polizza di ripiego entra o esce dalle quote delle attività in
+    // programma di questa tipologia
+    if (
+      prima &&
+      (prima.ripiegoPolizza !== valori.ripiegoPolizza ||
+        prima.certMedico !== valori.certMedico ||
+        prima.certAgonistico !== valori.certAgonistico)
+    ) {
+      await riallineaQuoteTipologie([id]);
+    }
     aggiorna();
     return { ok: 'Tipologia aggiornata.' };
   }
@@ -106,4 +120,35 @@ export async function eliminaTipologia(_prev: StatoForm, fd: FormData): Promise<
   await prisma.tipoAttivita.delete({ where: { id } });
   aggiorna();
   return { ok: 'Tipologia eliminata.' };
+}
+
+/**
+ * Il costo della polizza giornaliera di ripiego, per chi è in squadra senza
+ * certificato (sulle tipologie che la ammettono). Vuoto: ripiego spento.
+ */
+export async function impostaPolizzaRipiego(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i dati di base.' };
+
+  const testo = str(fd, 'costo');
+  const costo = testo ? num(fd, 'costo') : null;
+  if (testo && (costo === null || costo < 0 || costo > 500)) {
+    return { errore: 'Scrivi il costo in euro, per esempio 5 o 7,50.' };
+  }
+
+  await prisma.impostazioni.upsert({
+    where: { id: 'app' },
+    create: { id: 'app', polizzaRipiego: costo },
+    update: { polizzaRipiego: costo },
+  });
+  // le quote di chi è già segnato si adeguano al costo nuovo
+  await riallineaQuoteTipologie();
+  aggiorna();
+  revalidatePath('/admin/polizze');
+  return {
+    ok:
+      costo === null
+        ? 'Polizza di ripiego spenta: senza certificato non ci si segna, su nessuna tipologia.'
+        : `Polizza di ripiego a ${fmtEuro(costo)}: vale sulle tipologie dove è accesa.`,
+  };
 }

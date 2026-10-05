@@ -1,14 +1,20 @@
 import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { classePiena, isAdmin } from '@/lib/domain';
-import { umanizza } from '@/lib/format';
+import { fmtEuro, umanizza } from '@/lib/format';
 import { Badge, Campo, Intestazione, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { SelettoreColore } from '@/components/SelettoreColore';
 import { OrdinaTipologie } from '@/components/OrdinaTipologie';
-import { eliminaTipologia, riordinaTipologie, salvaTipologia } from '@/actions/tipologie';
+import {
+  eliminaTipologia,
+  impostaPolizzaRipiego,
+  riordinaTipologie,
+  salvaTipologia,
+} from '@/actions/tipologie';
+import { costoRipiego } from '@/lib/assicurazione';
 import { BottoneElimina } from '@/components/CardRiga';
 
 const QUOTE = [
@@ -32,6 +38,7 @@ type Tipologia = {
   soloInterno: boolean;
   certMedico: boolean;
   certAgonistico: boolean;
+  ripiegoPolizza: boolean;
   ordine: number;
   attivo: boolean;
 };
@@ -43,6 +50,7 @@ export default async function TipologiePage() {
     orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }],
     include: { _count: { select: { events: true } } },
   });
+  const ripiego = await costoRipiego();
 
   return (
     <>
@@ -58,6 +66,47 @@ export default async function TipologiePage() {
           </BottoneModale>
         }
       />
+
+      {/* La polizza di ripiego: chi è in squadra senza il certificato che
+          un'attività chiede partecipa lo stesso, pagando la giornaliera, sulle
+          tipologie dove è accesa. Il costo è uno solo, per tutte. */}
+      <div className="card mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="titolo-sezione">Polizza di ripiego senza certificato</p>
+            <p className="mt-1 text-xs text-muted">
+              {ripiego === null
+                ? 'Spenta: senza certificato non ci si segna alle attività che lo chiedono.'
+                : `${fmtEuro(ripiego)}: chi è in squadra senza certificato partecipa pagando la polizza giornaliera, che si aggiunge alla sua quota, e si assicura come chi viene da fuori. Vale sulle tipologie con «Ripiego».`}
+            </p>
+          </div>
+          <BottoneModale
+            etichetta={ripiego === null ? 'Imposta' : 'Modifica'}
+            icona="modifica"
+            titolo="Polizza di ripiego"
+            className="btn-ghost btn-sm"
+          >
+            <FormAzione azione={impostaPolizzaRipiego} className="space-y-4">
+              <p className="text-sm text-muted">
+                Il costo della polizza giornaliera per chi è in squadra ma non ha il certificato
+                medico (scaduto, mancante, o che scade prima dell’attività). Si aggiunge alla sua
+                quota; pagata o segnalata, la persona si assicura come gli esterni — anche con le
+                polizze automatiche. Lascia vuoto per spegnerla.
+              </p>
+              <Campo label="Costo (€)">
+                <input
+                  name="costo"
+                  inputMode="decimal"
+                  defaultValue={ripiego === null ? '' : String(ripiego).replace('.', ',')}
+                  className="input"
+                  placeholder="vuoto: spenta"
+                />
+              </Campo>
+              <Invia icona="salva">Salva</Invia>
+            </FormAzione>
+          </BottoneModale>
+        </div>
+      </div>
 
       {tipologie.length === 0 ? (
         <Vuoto testo="Nessuna tipologia definita: aggiungine una per poter creare attività." />
@@ -98,6 +147,7 @@ export default async function TipologiePage() {
                   {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
                   {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
                   {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
+                  {t.certMedico && t.ripiegoPolizza && <Badge tono="info">Ripiego</Badge>}
                 </span>
                 <div className="piede">
                   <Azioni tipologia={t} />
@@ -123,7 +173,12 @@ export default async function TipologiePage() {
                     {t.soloInterno && <Badge tono="info">Solo squadra</Badge>}
                     {t.certAgonistico && <Badge tono="danger">Cert. agonistico</Badge>}
                     {!t.certMedico && <Badge tono="neutro">Senza certificato</Badge>}
-                    {!t.riserve && !t.soloInterno && !t.certAgonistico && t.certMedico && (
+                    {t.certMedico && t.ripiegoPolizza && <Badge tono="info">Ripiego</Badge>}
+                    {!t.riserve &&
+                      !t.soloInterno &&
+                      !t.certAgonistico &&
+                      t.certMedico &&
+                      !t.ripiegoPolizza && (
                       <span className="text-xs text-muted">—</span>
                     )}
                   </span>
@@ -238,6 +293,23 @@ function CampiTipologia({ tipologia }: { tipologia?: Tipologia }) {
           <span className="block text-[11px] text-muted">
             Con questo attivo il certificato non agonistico non basta: chi ha solo quello viene
             trattato come chi non ne ha, e non può segnarsi.
+          </span>
+        </span>
+      </label>
+
+      <label className="flex min-w-0 items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="ripiegoPolizza"
+          defaultChecked={tipologia?.ripiegoPolizza ?? false}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+        />
+        <span className="min-w-0">
+          Senza certificato si partecipa con la polizza di ripiego
+          <span className="block text-[11px] text-muted">
+            Chi è in squadra e non ha il certificato richiesto si segna lo stesso: paga la polizza
+            giornaliera (il costo è in cima a questa pagina) e si assicura come chi viene da fuori.
+            Spento, senza certificato non ci si segna.
           </span>
         </span>
       </label>

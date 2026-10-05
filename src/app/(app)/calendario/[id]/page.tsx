@@ -15,6 +15,7 @@ import {
   inRegola,
   idoneoAl,
   idoneoPer,
+  inRipiego,
   finoA,
   scadeCertificatoValido,
   inSquadra,
@@ -98,6 +99,7 @@ import {
   quotePerPolizza,
   tariffePolizza,
   serveGiornaliera,
+  costoRipiego,
 } from '@/lib/assicurazione';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { ScegliPartecipanti, type Candidato } from '@/components/ScegliPartecipanti';
@@ -530,12 +532,18 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
    * di chi il club ce l'ha già. Un nuovo lo si porta in campo apposta — è
    * esattamente come lo si conosce.
    */
+  // il costo della polizza di ripiego: senza, il ripiego è spento
+  const ripiego = await costoRipiego();
   const candidati: Candidato[] = operatoriGrezzi
     .filter((o) => !gia.has(o.id))
     .filter((o) => !vedeAttivitaSquadra(o.stato) || eAtleta(o.roles))
     .map((o) => {
       const serve = inSquadra(o.stato) && serveCertificato(evento.tipo);
-      const ok = !serve || inRegola(o.certificates);
+      // senza certificato, ma con la polizza di ripiego: si aggiunge lo stesso
+      const ok =
+        !serve ||
+        inRegola(o.certificates) ||
+        inRipiego(evento.tipo, o.stato, o.certificates, evento, ripiego);
       // il team leader schiera anche i nuovi: qui li chiama come li vede in elenco
       const come = chiamato(o);
       return {
@@ -593,7 +601,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       importo: quotaPer({ costo: q.importo, costoEsterni: q.importoEsterni }, me.stato).importo,
     }))
     .filter((v) => v.importo > 0);
-  const mioTotale = mioCosto + mieAltreVoci.reduce((t, v) => t + v.importo, 0);
+  // Quello che c'è davvero da pagare: le quote nate, se ci sono — dentro ci
+  // sono anche il kit a noleggio e la polizza di ripiego, che il prezzo
+  // dell'attività non conosce. Prima che nascano, il prezzo.
+  const mieQuoteVive = mieQuote.filter((q) => q.status !== 'ANNULLATO');
+  const mioTotale =
+    mieQuoteVive.length > 0
+      ? mieQuoteVive.reduce((t, q) => t + Number(q.importo), 0)
+      : mioCosto + mieAltreVoci.reduce((t, v) => t + v.importo, 0);
   // le casse la cui quota paga la polizza: lo dicono le voci del tariffario e
   // le quote aggiunte con il +, non la cassa
   const cassePolizza = cassePerPolizza(
@@ -614,11 +629,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         select: { status: true, scadeIl: true, tipo: true },
       })
     : [];
-  const certificatoOk = !certificatoDovuto || inRegola(mieiCertificati);
+  // senza certificato, dove la tipologia ammette la polizza di ripiego: ci si
+  // segna lo stesso, e la polizza entra nella quota
+  const mioRipiego =
+    certificatoDovuto && inRipiego(evento.tipo, me.stato, mieiCertificati, evento, ripiego);
+  const certificatoOk = !certificatoDovuto || inRegola(mieiCertificati) || mioRipiego;
   // vale oggi ma non fino alla fine dell'attività: ci si segna, avvisati
   const mioCertScade =
     certificatoDovuto &&
     certificatoOk &&
+    !mioRipiego &&
     !idoneoAl(mieiCertificati, evento.tipo?.certAgonistico ?? false, finoA(evento))
       ? (scadeCertificatoValido(mieiCertificati, evento.tipo?.certAgonistico ?? false) ?? true)
       : null;
@@ -821,10 +841,20 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
    * lascia spuntare.
    */
   const agonistico = evento.tipo?.certAgonistico ?? false;
-  const certificatoPer = (r: Riga): 'ok' | 'scade' | 'manca' => {
+  // «ripiego»: senza certificato, ma la tipologia ammette la polizza di
+  // ripiego — partecipa, e va assicurato come chi viene da fuori
+  const certificatoPer = (r: Riga): 'ok' | 'scade' | 'manca' | 'ripiego' => {
     if (!serveCertificato(evento.tipo) || !inSquadra(r.user.stato)) return 'ok';
     if (idoneoAl(r.user.certificates, agonistico, finoA(evento))) return 'ok';
+    if (inRipiego(evento.tipo, r.user.stato, r.user.certificates, evento, ripiego)) {
+      return 'ripiego';
+    }
     return idoneoPer(r.user.certificates, agonistico) ? 'scade' : 'manca';
+  };
+  /** Senza certificato e senza ripiego: il giorno dell'attività non partecipa. */
+  const bloccato = (r: Riga) => {
+    const c = certificatoPer(r);
+    return c === 'scade' || c === 'manca';
   };
   const scadenzaDi = (r: Riga) => scadeCertificatoValido(r.user.certificates, agonistico);
 
@@ -1077,9 +1107,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   // Gli serve la giornaliera quel giorno: è un nuovo senza annuale valida, e
   // per questa attività paga qualcosa. Invitato con la quota a zero — l'open
   // day offerto, la riunione — la polizza non si propone.
+  // In ripiego (della squadra, senza certificato) la giornaliera serve anche a
+  // chi ha la tessera annuale: senza certificato non lo copre. In sala
+  // controllo no: non gioca.
+  const inRipiegoR = (r: Riga) => r.assegnazione !== 'TOC' && certificatoPer(r) === 'ripiego';
   const serveAssicurarlo = (r: Riga, giorno: string) =>
-    serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, dataLocale(giorno)) &&
-    !nienteDaPagare(evento, r.user.stato);
+    inRipiegoR(r) ||
+    (serveGiornaliera(diSquadra(r), r.user.stato, r.user.figtCards, dataLocale(giorno)) &&
+      !nienteDaPagare(evento, r.user.stato));
 
   const scoperto = (r: Riga) =>
     giorniEvento.some(
@@ -1853,6 +1888,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   (() => {
                                     const c = certificatoPer(r);
                                     if (c === 'ok') return null;
+                                    if (c === 'ripiego') {
+                                      return (
+                                        <Badge tono="info">senza certificato · con polizza</Badge>
+                                      );
+                                    }
                                     const scade = scadenzaDi(r);
                                     return c === 'scade' ? (
                                       <Badge tono="warn">
@@ -1932,7 +1972,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     // e il pulsante compare da solo quando serve.
                                     const copribile = quotePerPolizza(
                                       quoteDi(r.userId),
-                                      cassePolizza,
+                                      // in ripiego la polizza è nella quota del club
+                                      inRipiegoR(r) ? new Set([...cassePolizza, '']) : cassePolizza,
                                     ).every((q) => quotaOnorata(q));
 
                                     return (
@@ -2375,6 +2416,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     </Link>
                   </div>
                 )}
+                {mioRipiego && (
+                  <div className="mb-3 rounded-md border border-info/40 bg-info/10 px-3 py-2.5 text-sm text-info">
+                    Il tuo certificato medico non copre questa attività: puoi partecipare con la
+                    polizza giornaliera
+                    {ripiego ? ` (${fmtEuro(ripiego)})` : ''}, che si aggiunge alla quota. Ti
+                    assicuriamo quando l’hai pagata o hai segnalato il pagamento.{' '}
+                    <Link href="/certificati" className="underline">
+                      Oppure carica il certificato
+                    </Link>
+                  </div>
+                )}
                 <AdesioneEvento
                   eventId={evento.id}
                   scelta={mio?.status ?? null}
@@ -2522,7 +2574,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       {/* Senza certificato valido per l'attività: nessuna
                           spunta, per nessun motivo. Il nome resta, in rosso,
                           perché chi fa l'appello sappia perché manca. */}
-                      {daAppello.some((r) => certificatoPer(r) !== 'ok') && (
+                      {daAppello.some(bloccato) && (
                         <div className="rounded-lg border-2 border-danger/70 bg-danger/10 p-3">
                           <p className="flex items-center gap-2 text-sm font-semibold text-danger">
                             <Icona nome="certificato" size={16} />
@@ -2530,7 +2582,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           </p>
                           <div className="mt-2 space-y-2">
                             {daAppello
-                              .filter((r) => certificatoPer(r) !== 'ok')
+                              .filter(bloccato)
                               .map((r) => {
                                 const scade = scadenzaDi(r);
                                 return (
@@ -2561,7 +2613,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               (r) =>
                                 r.assegnazione !== 'TOC' &&
                                 diSquadra(r) &&
-                                certificatoPer(r) === 'ok',
+                                !bloccato(r) &&
+                                // in ripiego e non ancora assicurato sta in
+                                // cima, fra i non assicurati
+                                !scoperto(r),
                             ),
                           },
                           {
@@ -2579,7 +2634,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                               (r) =>
                                 r.assegnazione === 'TOC' &&
                                 !scoperto(r) &&
-                                certificatoPer(r) === 'ok',
+                                !bloccato(r),
                             ),
                           },
                         ]

@@ -194,7 +194,12 @@ export default async function PolizzePage() {
                             polizza buttata. */}
                         {/* dei soldi qui si dice una cosa sola: se sono entrati.
                             Quanto siano è mestiere della segreteria */}
-                        <div className="mt-1">
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {/* della squadra, ma senza certificato: gioca con la
+                              polizza di ripiego */}
+                          {n.senzaCertificato && (
+                            <Badge tono="info">squadra · senza certificato</Badge>
+                          )}
                           {!n.haQuota ? (
                             <Badge tono="neutro">niente da pagare</Badge>
                           ) : n.pagato ? (
@@ -289,7 +294,8 @@ export default async function PolizzePage() {
 
       <p className="mt-4 text-xs text-muted">
         Compaiono solo le attività <strong className="text-ink">rilasciate e non ancora
-        passate</strong>, e solo chi non è in squadra: i soci hanno la loro annuale. La polizza si
+        passate</strong>, e solo chi non è in squadra — i soci hanno la loro annuale — più chi è in
+        squadra ma senza certificato, dove la tipologia ammette la polizza di ripiego. La polizza si
         attiva a quota saldata — la spende il club e non torna indietro — e chi è già coperto da
         una tessera federale valida quel giorno non ne ha bisogno.
       </p>

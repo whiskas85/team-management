@@ -232,6 +232,27 @@ export function scadeCertificatoValido(
   return new Date(Math.max(...date.map((d) => d!.getTime())));
 }
 
+/**
+ * Senza certificato, ma con la polizza di ripiego.
+ *
+ * Chi è in squadra e non ha il certificato che l'attività chiede — scaduto,
+ * mancante, o che scade prima della fine — su una tipologia che ammette il
+ * ripiego partecipa lo stesso: paga la polizza giornaliera e si assicura come
+ * chi viene da fuori. Serve anche che il costo del ripiego sia impostato: se
+ * manca, il ripiego è spento ovunque e vale la regola di sempre.
+ */
+export function inRipiego(
+  tipo: { certMedico: boolean; certAgonistico: boolean; ripiegoPolizza: boolean } | null | undefined,
+  stato: StatoOperatore,
+  certs: { status: CertStatus; scadeIl: Date | string | null; tipo?: string }[],
+  evento: { inizio: Date; fine: Date | null },
+  costoRipiego: number | null,
+): boolean {
+  if (costoRipiego === null || !tipo?.ripiegoPolizza) return false;
+  if (!inSquadra(stato) || !serveCertificato(tipo)) return false;
+  return !idoneoAl(certs, tipo.certAgonistico, finoA(evento));
+}
+
 export const MOTIVO_NON_IDONEO = (richiedeAgonistico: boolean) =>
   richiedeAgonistico
     ? 'Serve il certificato agonistico: quello non agonistico non basta.'
