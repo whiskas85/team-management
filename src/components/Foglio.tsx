@@ -75,7 +75,14 @@ export function Foglio({
   tiratoRef.current = tirato;
   const foglioRef = useRef<HTMLDivElement>(null);
   const scorreRef = useRef<HTMLDivElement>(null);
-  const presa = useRef<{ y: number; t: number; valida: boolean } | null>(null);
+  const presa = useRef<{
+    x: number;
+    y: number;
+    t: number;
+    valida: boolean;
+    /** Il verso deciso dai primi pixel: di lato non si tira mai giù. */
+    asse: 'x' | 'y' | null;
+  } | null>(null);
   const onChiusoRef = useRef(onChiuso);
   onChiusoRef.current = onChiuso;
   const chiudendo = useRef(false);
@@ -189,14 +196,24 @@ export function Foglio({
           if (!telefono() || soloDaDentro) return;
           const t = e.target as Element;
           const scorre = scorreRef.current;
+          // dentro il contenuto può esserci un'altra parte che scorre per
+          // conto suo (le schede del modulo di un evento): se non è in cima,
+          // il dito che scende la fa risalire, non chiude il foglio
+          let dentroScorre = false;
+          for (let el: Element | null = t; el && el !== scorre; el = el.parentElement) {
+            if (el.scrollTop > 0) dentroScorre = true;
+          }
           presa.current = {
+            x: e.touches[0].clientX,
             y: e.touches[0].clientY,
             t: Date.now(),
+            asse: null,
             // si tira dalla testata, o dal contenuto quando è in cima; mai
             // da un elenco che scorre per conto suo
             valida:
               // né da quello che si trascina col dito per conto suo: il
               // ritaglio della foto, la maniglia di un elenco da riordinare
+              !dentroScorre &&
               !t.closest?.('[data-scorre], .touch-none, [style*="touch-action: none"]') &&
               (!scorre || !scorre.contains(t) || scorre.scrollTop <= 0),
           };
@@ -210,6 +227,18 @@ export function Foglio({
             return;
           }
           const dy = e.touches[0].clientY - p.y;
+          const dx = e.touches[0].clientX - p.x;
+          // I primi pixel decidono il verso, e resta quello fino a che il dito
+          // non si alza: chi scorre le schede di lato non chiude il foglio
+          // anche se il dito scende un po' mentre lo fa.
+          if (!p.asse) {
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            p.asse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+            if (p.asse === 'x') {
+              p.valida = false;
+              return;
+            }
+          }
           const scorre = scorreRef.current;
           if (dy > 0 && (!scorre || scorre.scrollTop <= 0)) setTirato(dy);
           else if (tirato) setTirato(0);

@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.21.0 — 5 ottobre 2026
+
+### Corretto
+
+- **Di nuovo presente dopo aver tenuto la quota come credito.** Chi si
+  toglieva da un'attività e teneva i soldi come credito, tornando
+  disponibile non aveva più niente da pagare: la quota restava annullata, il
+  posto non si confermava mai e l'assicurazione lo dava per pagato. Ora la
+  quota si riapre da pagare, con l'importo di adesso, e la si può saldare
+  col credito.
+- **Scorrere le schede di lato non chiude più la finestra.** Il verso del
+  gesto lo decidono i primi millimetri: di lato si scorrono le schede (e la
+  finestra resta ferma anche se il dito scende un po'), in giù dal titolo si
+  chiude. Una parte che scorre per conto suo, come le schede del modulo di un
+  evento, risale prima di chiudere la finestra.
+
 ## 3.20.3 — 2 ottobre 2026
 
 ### Corretto

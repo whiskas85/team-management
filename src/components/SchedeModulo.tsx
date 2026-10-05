@@ -29,7 +29,9 @@ export function SchedeModulo({
     >
       <div
         role="tablist"
-        className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-line px-1 [scrollbar-width:none]"
+        // solo di lato: mentre si scorrono le schede la pagina non va su e
+        // giù, e il foglio che le contiene non si chiude
+        className="-mx-1 mb-4 flex touch-pan-x gap-1 overflow-x-auto overscroll-x-contain border-b border-line px-1 [scrollbar-width:none]"
       >
         {schede.map((s) => (
           <button

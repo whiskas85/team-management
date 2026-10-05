@@ -864,6 +864,31 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
     }
 
     if (dovuta && v.importo > 0) {
+      // Annullata quando non serviva più — non ci andava, e i soldi li ha
+      // tenuti come credito — e ora ci torna: la quota si riapre da pagare,
+      // con l'importo di adesso. Senza, restava annullata: nei pagamenti non
+      // c'era niente da saldare (né da pagare col credito appena avuto), il
+      // posto non si confermava mai e l'assicurazione la proponeva come se
+      // avesse pagato.
+      if (esistente && esistente.status === 'ANNULLATO' && Number(esistente.pagato) === 0) {
+        const nota = `Riaperta il ${new Date().toLocaleDateString('it-IT')}: di nuovo presente`;
+        await prisma.payment.update({
+          where: { id: esistente.id },
+          data: {
+            status: 'DA_PAGARE',
+            importo: v.importo,
+            descrizione: v.descrizione,
+            // la storia resta: «trasformata in credito», poi «riaperta»
+            note: [v.note, esistente.note, nota].filter(Boolean).join(' · '),
+            pagatoIl: null,
+            dichiaratoIl: null,
+            metodoId: null,
+            scadenza: evento.inizio,
+          },
+        });
+        totale += v.importo;
+        continue;
+      }
       if (!esistente) {
         if (!v.apribile) continue;
         await prisma.payment.create({
