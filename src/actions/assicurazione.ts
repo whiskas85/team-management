@@ -16,7 +16,7 @@ import {
   cassePerPolizza,
   quotePerPolizza,
   tariffePolizza,
-  costoRipiego,
+  ripiegoImpostato,
   SCORTA_POLIZZE,
 } from '@/lib/assicurazione';
 import { inTest } from '@/lib/ambiente';
@@ -72,13 +72,17 @@ async function quotaDaSaldare(userId: string, eventId: string) {
     await tariffePolizza([...evento.vociSquadra, ...evento.vociEsterni]),
   );
   // in ripiego (della squadra, senza certificato) la polizza è nella quota
-  // del club: è quella che va pagata prima di assicurarlo
+  // della sua cassa: è quella che va pagata prima di assicurarlo
   const chi = await prisma.user.findUnique({
     where: { id: userId },
     select: { stato: true, certificates: { select: { status: true, scadeIl: true, tipo: true } } },
   });
-  if (chi && inRipiego(evento.tipo, chi.stato, chi.certificates, evento, await costoRipiego())) {
-    casse.add('');
+  const ripiego = await ripiegoImpostato();
+  if (
+    chi &&
+    inRipiego(evento.tipo, chi.stato, chi.certificates, evento, ripiego?.importo ?? null)
+  ) {
+    casse.add(ripiego?.cassaId ?? '');
   }
   const quote = await prisma.payment.findMany({
     where: { eventId, userId, tipo: { not: 'RIMBORSO' } },

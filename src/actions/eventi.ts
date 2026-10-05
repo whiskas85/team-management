@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db';
 import { fmtEuro } from '@/lib/format';
 import { avvisaPersona } from '@/lib/avvisi';
 import { prezzoNoleggio } from '@/lib/quote';
-import { costoRipiego } from '@/lib/assicurazione';
+import { costoRipiego, ripiegoImpostato } from '@/lib/assicurazione';
 import { accoda } from '@/lib/federazione-coda';
 import { stagioneAttiva } from '@/lib/stagioni';
 import {
@@ -815,7 +815,7 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
     }),
     // i rimborsi sono movimenti a sé e non si toccano
     prisma.payment.findMany({ where: { eventId, userId, tipo: { not: 'RIMBORSO' } } }),
-    costoRipiego(),
+    ripiegoImpostato(),
   ]);
 
   // un'attività annullata non la deve nessuno (vedi chiudiQuoteAnnullata)
@@ -874,20 +874,35 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
   }
 
   // Senza il certificato che l'attività chiede, dove la tipologia ammette il
-  // ripiego: la polizza giornaliera si somma alla quota del club, che è quella
-  // che la paga. Rinnovato il certificato, sparisce da sola alla prossima
-  // rilettura (finché la quota non è pagata).
+  // ripiego: la polizza giornaliera si somma alla quota della sua cassa — quella
+  // della voce del tariffario scelta, o quella impostata a mano. Rinnovato il
+  // certificato, sparisce da sola alla prossima rilettura (finché la quota non
+  // è pagata).
   if (
-    ripiego !== null &&
-    ripiego > 0 &&
+    ripiego &&
+    ripiego.importo > 0 &&
     chi &&
-    inRipiego(evento.tipo, chi.stato, chi.certificates, evento, ripiego)
+    inRipiego(evento.tipo, chi.stato, chi.certificates, evento, ripiego.importo)
   ) {
-    const voce = voci[0];
-    const polizza = `polizza giornaliera senza certificato ${fmtEuro(ripiego)}`;
-    voce.importo += ripiego;
-    voce.note = voce.note ? `${voce.note} · ${polizza}` : polizza;
-    voce.cresce = true;
+    const prezzo = ripiego.perGiorno
+      ? ripiego.importo * giorniDi(evento.inizio, evento.fine).length
+      : ripiego.importo;
+    const polizza = `${ripiego.nome ?? 'polizza giornaliera'} (senza certificato) ${fmtEuro(prezzo)}`;
+    const voce = voci.find((v) => v.cassaId === ripiego.cassaId);
+    if (voce) {
+      voce.importo += prezzo;
+      voce.note = voce.note ? `${voce.note} · ${polizza}` : polizza;
+      voce.cresce = true;
+    } else {
+      voci.push({
+        cassaId: ripiego.cassaId,
+        importo: prezzo,
+        note: polizza,
+        descrizione: `${evento.titolo} · Polizza giornaliera`,
+        apribile: true,
+        cresce: true,
+      });
+    }
   }
 
   let totale = 0;
@@ -985,6 +1000,20 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
     // non la deve: la quota sparisce, ma solo se non è stato incassato nulla
     if (esistente && Number(esistente.pagato) === 0) {
       await prisma.payment.delete({ where: { id: esistente.id } });
+    }
+  }
+
+  // La quota fatta solo della polizza di ripiego, in una cassa che l'attività
+  // non prevede: se il ripiego non serve più (certificato rinnovato, ripiego
+  // spento, cassa cambiata) e non è entrato niente, se ne va.
+  for (const p of esistenti) {
+    if (
+      p.descrizione === `${evento.titolo} · Polizza giornaliera` &&
+      !voci.some((v) => v.cassaId === p.cassaId) &&
+      Number(p.pagato) === 0 &&
+      p.status !== 'NON_GESTITO'
+    ) {
+      await prisma.payment.delete({ where: { id: p.id } });
     }
   }
 

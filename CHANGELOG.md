@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.23.0 — 5 ottobre 2026
+
+### Aggiunto
+
+- **Polizza di ripiego dal tariffario, con la sua cassa.** Nelle impostazioni
+  della polizza di ripiego si sceglie una voce del tariffario (prima quelle
+  che pagano la polizza): valgono il suo importo, la sua cassa e il «per
+  giorno». In alternativa, importo a mano con la cassa in cui entra. Se la
+  cassa è un'altra rispetto alle quote dell'attività, la polizza diventa una
+  quota a parte («· Polizza giornaliera») in quella cassa, ed è quella che va
+  pagata prima di assicurare.
+
 ## 3.22.0 — 5 ottobre 2026
 
 ### Aggiunto

@@ -123,32 +123,60 @@ export async function eliminaTipologia(_prev: StatoForm, fd: FormData): Promise<
 }
 
 /**
- * Il costo della polizza giornaliera di ripiego, per chi è in squadra senza
- * certificato (sulle tipologie che la ammettono). Vuoto: ripiego spento.
+ * La polizza giornaliera di ripiego, per chi è in squadra senza certificato
+ * (sulle tipologie che la ammettono): una voce del tariffario, che porta con
+ * sé importo e cassa, o un importo scritto a mano con la sua cassa. Niente
+ * dei due: ripiego spento.
  */
 export async function impostaPolizzaRipiego(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin gestisce i dati di base.' };
 
+  const tariffaId = strOpt(fd, 'tariffaId');
+  const tariffa = tariffaId
+    ? await prisma.tariffa.findUnique({
+        where: { id: tariffaId },
+        select: { nome: true, importo: true, cassa: { select: { nome: true } } },
+      })
+    : null;
+  if (tariffaId && !tariffa) return { errore: 'Quella voce del tariffario non esiste più.' };
+
   const testo = str(fd, 'costo');
   const costo = testo ? num(fd, 'costo') : null;
-  if (testo && (costo === null || costo < 0 || costo > 500)) {
+  if (!tariffa && testo && (costo === null || costo < 0 || costo > 500)) {
     return { errore: 'Scrivi il costo in euro, per esempio 5 o 7,50.' };
   }
+  const cassaId = strOpt(fd, 'cassaId');
+  const cassa = cassaId
+    ? await prisma.cassa.findUnique({ where: { id: cassaId }, select: { nome: true } })
+    : null;
+  if (cassaId && !cassa) return { errore: 'Quella cassa non esiste più.' };
 
+  const dati = {
+    polizzaRipiegoTariffaId: tariffa ? tariffaId : null,
+    polizzaRipiego: tariffa ? null : costo,
+    polizzaRipiegoCassaId: tariffa ? null : cassaId,
+  };
   await prisma.impostazioni.upsert({
     where: { id: 'app' },
-    create: { id: 'app', polizzaRipiego: costo },
-    update: { polizzaRipiego: costo },
+    create: { id: 'app', ...dati },
+    update: dati,
   });
-  // le quote di chi è già segnato si adeguano al costo nuovo
+  // le quote di chi è già segnato si adeguano
   await riallineaQuoteTipologie();
   aggiorna();
   revalidatePath('/admin/polizze');
+  if (tariffa) {
+    return {
+      ok: `Polizza di ripiego: «${tariffa.nome}», ${fmtEuro(Number(tariffa.importo))} nella cassa ${
+        tariffa.cassa?.nome ?? 'del club'
+      }.`,
+    };
+  }
   return {
     ok:
       costo === null
         ? 'Polizza di ripiego spenta: senza certificato non ci si segna, su nessuna tipologia.'
-        : `Polizza di ripiego a ${fmtEuro(costo)}: vale sulle tipologie dove è accesa.`,
+        : `Polizza di ripiego a ${fmtEuro(costo)}, nella cassa ${cassa?.nome ?? 'del club'}.`,
   };
 }

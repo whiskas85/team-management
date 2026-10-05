@@ -14,7 +14,7 @@ import {
   riordinaTipologie,
   salvaTipologia,
 } from '@/actions/tipologie';
-import { costoRipiego } from '@/lib/assicurazione';
+import { ripiegoImpostato } from '@/lib/assicurazione';
 import { BottoneElimina } from '@/components/CardRiga';
 
 const QUOTE = [
@@ -50,7 +50,36 @@ export default async function TipologiePage() {
     orderBy: [{ attivo: 'desc' }, { ordine: 'asc' }, { nome: 'asc' }],
     include: { _count: { select: { events: true } } },
   });
-  const ripiego = await costoRipiego();
+  const [ripiego, conf, tariffe, casse] = await Promise.all([
+    ripiegoImpostato(),
+    prisma.impostazioni.findUnique({
+      where: { id: 'app' },
+      select: { polizzaRipiego: true, polizzaRipiegoTariffaId: true, polizzaRipiegoCassaId: true },
+    }),
+    // le voci del tariffario da cui sceglierla: quelle che pagano la polizza
+    // per prime
+    prisma.tariffa.findMany({
+      where: { attiva: true },
+      orderBy: [{ perPolizza: 'desc' }, { nome: 'asc' }],
+      select: {
+        id: true,
+        nome: true,
+        importo: true,
+        perPolizza: true,
+        perGiorno: true,
+        cassa: { select: { nome: true } },
+        stagione: { select: { nome: true } },
+      },
+    }),
+    prisma.cassa.findMany({ where: { attiva: true }, orderBy: { nome: 'asc' }, select: { id: true, nome: true } }),
+  ]);
+  const nomeCassaRipiego = ripiego?.cassaId
+    ? (casse.find((c) => c.id === ripiego.cassaId)?.nome ?? 'altra cassa')
+    : 'club';
+  const vocePolizza = (t: (typeof tariffe)[number]) =>
+    `${t.nome} · ${fmtEuro(Number(t.importo))}${t.perGiorno ? ' al giorno' : ''} · ${
+      t.cassa?.nome ?? 'club'
+    }${t.stagione ? ` · ${t.stagione.nome}` : ''}`;
 
   return (
     <>
@@ -77,7 +106,9 @@ export default async function TipologiePage() {
             <p className="mt-1 text-xs text-muted">
               {ripiego === null
                 ? 'Spenta: senza certificato non ci si segna alle attività che lo chiedono.'
-                : `${fmtEuro(ripiego)}: chi è in squadra senza certificato partecipa pagando la polizza giornaliera, che si aggiunge alla sua quota, e si assicura come chi viene da fuori. Vale sulle tipologie con «Ripiego».`}
+                : `${ripiego.nome ? `«${ripiego.nome}» dal tariffario, ` : ''}${fmtEuro(ripiego.importo)}${
+                    ripiego.perGiorno ? ' al giorno' : ''
+                  } nella cassa ${nomeCassaRipiego}: chi è in squadra senza certificato partecipa pagando la polizza giornaliera, che si aggiunge alla sua quota, e si assicura come chi viene da fuori. Vale sulle tipologie con «Ripiego».`}
             </p>
           </div>
           <BottoneModale
@@ -88,20 +119,76 @@ export default async function TipologiePage() {
           >
             <FormAzione azione={impostaPolizzaRipiego} className="space-y-4">
               <p className="text-sm text-muted">
-                Il costo della polizza giornaliera per chi è in squadra ma non ha il certificato
-                medico (scaduto, mancante, o che scade prima dell’attività). Si aggiunge alla sua
-                quota; pagata o segnalata, la persona si assicura come gli esterni — anche con le
-                polizze automatiche. Lascia vuoto per spegnerla.
+                La polizza giornaliera per chi è in squadra ma non ha il certificato medico
+                (scaduto, mancante, o che scade prima dell’attività). Si aggiunge alla sua quota,
+                nella cassa della polizza; pagata o segnalata, la persona si assicura come gli
+                esterni — anche con le polizze automatiche.
               </p>
-              <Campo label="Costo (€)">
-                <input
-                  name="costo"
-                  inputMode="decimal"
-                  defaultValue={ripiego === null ? '' : String(ripiego).replace('.', ',')}
+              <Campo label="Dal tariffario">
+                <select
+                  name="tariffaId"
+                  defaultValue={conf?.polizzaRipiegoTariffaId ?? ''}
                   className="input"
-                  placeholder="vuoto: spenta"
-                />
+                >
+                  <option value="">— nessuna: importo a mano qui sotto —</option>
+                  {tariffe.some((t) => t.perPolizza) && (
+                    <optgroup label="Pagano la polizza">
+                      {tariffe
+                        .filter((t) => t.perPolizza)
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {vocePolizza(t)}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="Altre voci">
+                    {tariffe
+                      .filter((t) => !t.perPolizza)
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {vocePolizza(t)}
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+                <span className="mt-1 block text-[11px] text-muted">
+                  Scelta una voce, valgono il suo importo e la sua cassa: il prezzo si cambia nel
+                  tariffario.
+                </span>
               </Campo>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Campo label="Oppure a mano: costo (€)">
+                  <input
+                    name="costo"
+                    inputMode="decimal"
+                    defaultValue={
+                      conf?.polizzaRipiego == null
+                        ? ''
+                        : String(Number(conf.polizzaRipiego)).replace('.', ',')
+                    }
+                    className="input"
+                    placeholder="vuoto: spenta"
+                  />
+                </Campo>
+                <Campo label="Nella cassa">
+                  <select
+                    name="cassaId"
+                    defaultValue={conf?.polizzaRipiegoCassaId ?? ''}
+                    className="input"
+                  >
+                    <option value="">Club</option>
+                    {casse.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              </div>
+              <p className="text-[11px] text-muted">
+                Nessuna voce e nessun costo: la polizza di ripiego è spenta.
+              </p>
               <Invia icona="salva">Salva</Invia>
             </FormAzione>
           </BottoneModale>

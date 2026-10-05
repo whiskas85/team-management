@@ -909,6 +909,9 @@ model Tariffa {
   attiva     Boolean       @default(true)
   createdAt  DateTime      @default(now())
 
+  /// È la polizza di ripiego scelta nelle impostazioni.
+  ripiegoDi Impostazioni[]
+
   @@index([nome])
 }
 
@@ -1362,6 +1365,7 @@ model Cassa {
   quoteAttivita QuotaCassa[]
   crediti       MovimentoCredito[]
   versamentiCredito VersamentoCredito[]
+  ripiegoDi         Impostazioni[]
   tariffe       Tariffa[]
   vociAttivita  VoceAttivita[]
   /// Le attività i cui ospiti pagano in questa cassa.
@@ -2461,6 +2465,13 @@ model Impostazioni {
   /// ma non ha il certificato, sulle tipologie che la ammettono. Vuota: il
   /// ripiego è spento ovunque, e senza certificato non ci si segna.
   polizzaRipiego      Decimal? @db.Decimal(10, 2)
+  /// La voce del tariffario da cui prende importo e cassa (di solito una che
+  /// paga la polizza). Scelta, vale lei: importo e cassa scritti a mano no.
+  polizzaRipiegoTariffaId String?
+  polizzaRipiegoTariffa   Tariffa? @relation(fields: [polizzaRipiegoTariffaId], references: [id], onDelete: SetNull)
+  /// La cassa in cui entra la polizza scritta a mano: vuota, quella del club.
+  polizzaRipiegoCassaId   String?
+  polizzaRipiegoCassa     Cassa?   @relation(fields: [polizzaRipiegoCassaId], references: [id], onDelete: SetNull)
   aggiornatoIl        DateTime @updatedAt
 }
 

@@ -99,7 +99,7 @@ import {
   quotePerPolizza,
   tariffePolizza,
   serveGiornaliera,
-  costoRipiego,
+  ripiegoImpostato,
 } from '@/lib/assicurazione';
 import { FormGiornaliera } from '@/components/FormGiornaliera';
 import { ScegliPartecipanti, type Candidato } from '@/components/ScegliPartecipanti';
@@ -533,7 +533,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
    * esattamente come lo si conosce.
    */
   // il costo della polizza di ripiego: senza, il ripiego è spento
-  const ripiego = await costoRipiego();
+  const polizzaRipiego = await ripiegoImpostato();
+  const ripiego = polizzaRipiego?.importo ?? null;
   const candidati: Candidato[] = operatoriGrezzi
     .filter((o) => !gia.has(o.id))
     .filter((o) => !vedeAttivitaSquadra(o.stato) || eAtleta(o.roles))
@@ -1972,8 +1973,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                     // e il pulsante compare da solo quando serve.
                                     const copribile = quotePerPolizza(
                                       quoteDi(r.userId),
-                                      // in ripiego la polizza è nella quota del club
-                                      inRipiegoR(r) ? new Set([...cassePolizza, '']) : cassePolizza,
+                                      // in ripiego la polizza è nella quota della sua cassa
+                                      inRipiegoR(r)
+                                        ? new Set([...cassePolizza, polizzaRipiego?.cassaId ?? ''])
+                                        : cassePolizza,
                                     ).every((q) => quotaOnorata(q));
 
                                     return (

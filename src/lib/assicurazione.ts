@@ -38,16 +38,51 @@ export function serveGiornaliera(
  */
 export const SCORTA_POLIZZE = 5;
 
+/** La polizza di ripiego com'è impostata: quanto, in che cassa, con che nome. */
+export type Ripiego = {
+  importo: number;
+  /** Dalla voce del tariffario: si paga per ogni giorno dell'attività. */
+  perGiorno: boolean;
+  /** La cassa in cui entra: nulla, quella del club. */
+  cassaId: string | null;
+  /** Il nome della voce del tariffario, se viene da lì. */
+  nome: string | null;
+};
+
 /**
- * Il costo della polizza giornaliera di ripiego, o null se non è impostato —
- * e allora il ripiego è spento su tutte le tipologie (vedi inRipiego).
+ * La polizza di ripiego, o null se è spenta (vedi inRipiego).
+ *
+ * Una voce del tariffario scelta vale lei — importo, cassa, «per giorno» —
+ * così il prezzo si cambia in un posto solo, il tariffario. Altrimenti
+ * l'importo e la cassa scritti a mano.
  */
-export async function costoRipiego(): Promise<number | null> {
+export async function ripiegoImpostato(): Promise<Ripiego | null> {
   const conf = await prisma.impostazioni.findUnique({
     where: { id: 'app' },
-    select: { polizzaRipiego: true },
+    select: {
+      polizzaRipiego: true,
+      polizzaRipiegoCassaId: true,
+      polizzaRipiegoTariffa: {
+        select: { nome: true, importo: true, cassaId: true, perGiorno: true },
+      },
+    },
   });
-  return conf?.polizzaRipiego == null ? null : Number(conf.polizzaRipiego);
+  const t = conf?.polizzaRipiegoTariffa;
+  if (t) {
+    return { importo: Number(t.importo), perGiorno: t.perGiorno, cassaId: t.cassaId, nome: t.nome };
+  }
+  if (conf?.polizzaRipiego == null) return null;
+  return {
+    importo: Number(conf.polizzaRipiego),
+    perGiorno: false,
+    cassaId: conf.polizzaRipiegoCassaId,
+    nome: null,
+  };
+}
+
+/** Il costo della polizza di ripiego, o null se è spenta. */
+export async function costoRipiego(): Promise<number | null> {
+  return (await ripiegoImpostato())?.importo ?? null;
 }
 
 export const ETICHETTA_ASSICURAZIONE: Record<StatoAssicurazione, string> = {
@@ -331,7 +366,9 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     },
   });
 
-  const ripiego = await costoRipiego();
+  const ripiego = await ripiegoImpostato();
+  // la cassa la cui quota paga la polizza di ripiego (il club è la chiave vuota)
+  const cassaRipiego = ripiego?.cassaId ?? '';
   // le voci del tariffario usate da queste attività, lette una volta sola
   const tariffe = await tariffePolizza([
     ...new Set(eventi.flatMap((e) => [...e.vociSquadra, ...e.vociEsterni])),
@@ -352,7 +389,7 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
     // della squadra ma senza certificato, dove la tipologia ammette il
     // ripiego: si assicura anche lui, e la sua polizza la paga la quota del club
     const senzaCert = (r: (typeof e.rsvps)[number]) =>
-      inRipiego(e.tipo, r.user.stato, r.user.certificates, e, ripiego);
+      inRipiego(e.tipo, r.user.stato, r.user.certificates, e, ripiego?.importo ?? null);
 
     const nuovi = e.rsvps
       .filter((r) =>
@@ -366,7 +403,10 @@ export async function attivitaDaCoprire(): Promise<AttivitaDaCoprire[]> {
         // tutte le sue quote dicono se ha pagato; quelle con le voci che
         // pagano la polizza dicono se lo si può assicurare
         const sue = quote.get(r.userId) ?? [];
-        const perPolizza = quotePerPolizza(sue, ripiegato ? new Set([...casse, '']) : casse);
+        const perPolizza = quotePerPolizza(
+          sue,
+          ripiegato ? new Set([...casse, cassaRipiego]) : casse,
+        );
         return {
           id: r.userId,
           nome: nomeCompleto(r.user),
