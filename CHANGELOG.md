@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.28.0 — 7 ottobre 2026
+
+### Cambiato
+
+- **Un solo Postgres per tutte le squadre ospitate.** Prima ogni gestionale
+  ospitato aveva il suo Postgres, con la sua memoria anche a riposo. Ora c'è
+  `zd-sq-pg` (docker-compose.pg.yml) con un database e un utente per squadra
+  (`sq_<nome>`): ogni utente entra solo nel suo database, in una rete senza
+  uscita su internet. Le squadre già ospitate traslocano da sole al primo
+  rilascio, con un backup prima; se qualcosa non va tornano sul loro Postgres.
+  Backup, ritorno indietro di «aggiorna», «rimuovi» ed «elimina» lavorano sul
+  database comune. La produzione e i test restano col loro.
+- **Il server non compila più le immagini.** Il rilascio le costruisce su
+  GitHub (job «pubblica», prima del server) e il server le scarica dal
+  registro col nome della versione. La build sul server teneva occupato quasi
+  un giga di memoria per minuti; resta solo come riserva, se il registro non
+  le ha. I test si costruiscono ancora sul server.
+- La modalità «prova» misura anche la produzione: picco di memoria di app,
+  database e ponte WhatsApp, e quanti dati ha.
+
 ## 3.27.2 — 6 ottobre 2026
 
 ### Cambiato

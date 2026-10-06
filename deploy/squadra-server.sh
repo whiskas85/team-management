@@ -37,6 +37,11 @@
 # indirizzo). Senza, il gestionale nasce lo stesso ma da fuori non si
 # raggiunge; appena il record c'è, «rilascia» aggancia il proxy da solo.
 #
+# **Il database** di ogni squadra sta nel Postgres comune delle squadre ospitate
+# (zd-sq-pg, docker-compose.pg.yml): un database e un utente suoi, sq_<nome>,
+# che agli altri database non si collegano. Le squadre nate col Postgres loro
+# ci traslocano da sole al primo «rilascia» (trasloca_db), con un backup prima.
+#
 # Le password non passano mai dal log dell'automazione, che su un repository
 # pubblico è pubblico.
 
@@ -44,6 +49,12 @@ set -euo pipefail
 
 PROD=/opt/gestionale
 DOMINIO_PROD=ops.zerodarkteam.it
+# Il Postgres comune delle squadre ospitate (docker-compose.pg.yml): un database
+# e un utente per squadra. La password dell'amministratore sta solo qui.
+PG=zd-sq-pg
+PG_CARTELLA=/opt/squadre-pg
+PG_ENV=$PG_CARTELLA/.env.pg
+PG_RETE=zd-pg
 IMMAGINE=gestionale-app:latest
 IMMAGINE_WHATSAPP=gestionale-whatsapp:latest
 
@@ -161,6 +172,135 @@ ricarica_proxy() {
   docker exec zd-proxy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 }
 
+# ------------------------------------------------------- il Postgres comune
+
+# Lo accende se non c'è: la rete senza uscita, la password dell'amministratore
+# (solo sul server), il container. Aspetta che risponda.
+pg_condiviso() {
+  docker network inspect "$PG_RETE" > /dev/null 2>&1 || docker network create --internal "$PG_RETE" > /dev/null
+  if [ ! -f "$PG_ENV" ]; then
+    mkdir -p "$PG_CARTELLA"
+    chmod 700 "$PG_CARTELLA"
+    (umask 077; printf 'POSTGRES_PASSWORD=%s\nTZ=Europe/Rome\n' "$(casuale 24)" > "$PG_ENV")
+    echo "== Postgres comune delle squadre: nuovo"
+  fi
+  docker compose -p gestionale-pg -f "$PROD/docker-compose.pg.yml" --env-file "$PG_ENV" up -d --pull missing > /dev/null
+  local _
+  for _ in $(seq 1 30); do
+    docker exec "$PG" pg_isready -U postgres -q 2>/dev/null && return 0
+    sleep 2
+  done
+  echo "!! Il Postgres comune ($PG) non risponde."
+  return 1
+}
+
+# Il nome dell'utente e del database di una squadra: sq_ e il nome breve, coi
+# trattini fatti trattini bassi (pippo-2 → sq_pippo_2).
+ruolo_db() { printf 'sq_%s' "$1" | tr '-' '_'; }
+
+# Il database è già nel Postgres comune?
+condiviso() { [ "$(leggi DB_HOST || true)" = "$PG" ]; }
+
+# Utente e database della squadra nel Postgres comune, se non ci sono. Nessun
+# altro utente può collegarsi al suo database. La password arriva per stdin,
+# mai sulla riga di comando.
+crea_db() {
+  local ruolo pw
+  ruolo=$(leggi POSTGRES_USER)
+  pw=$(leggi POSTGRES_PASSWORD)
+  printf '%s' "$ruolo" | grep -Eq '^sq_[a-z0-9_]+$' || { echo "Utente del database non valido: $ruolo"; return 1; }
+  printf '%s' "$pw" | grep -Eq '^[A-Za-z0-9]+$' || { echo "La password del database deve essere alfanumerica."; return 1; }
+  {
+    printf "SELECT 'CREATE ROLE %s LOGIN' WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '%s')\\gexec\n" "$ruolo" "$ruolo"
+    printf "ALTER ROLE %s PASSWORD '%s';\n" "$ruolo" "$pw"
+    printf "SELECT 'CREATE DATABASE %s OWNER %s' WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '%s')\\gexec\n" "$ruolo" "$ruolo" "$ruolo"
+    printf "REVOKE CONNECT, TEMPORARY ON DATABASE %s FROM PUBLIC;\n" "$ruolo"
+    printf "GRANT CONNECT, TEMPORARY ON DATABASE %s TO %s;\n" "$ruolo" "$ruolo"
+    # nemmeno nel database di servizio: le squadre entrano solo nel loro
+    printf "REVOKE CONNECT, TEMPORARY ON DATABASE postgres FROM PUBLIC;\n"
+  } | docker exec -i "$PG" psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres > /dev/null
+}
+
+# Il backup del database della squadra, in un file: dal Postgres comune, o dal
+# suo se non ha ancora traslocato.
+backup_db() {
+  local file=$1
+  if condiviso; then
+    docker exec "$PG" pg_dump -U "$(leggi POSTGRES_USER)" -d "$(leggi POSTGRES_DB)" -Fc > "$file"
+  else
+    docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$file"
+  fi
+}
+
+# Il database com'era nel backup: lo schema da capo (le tabelle nate dopo non
+# devono restare) e il ripristino fatto come l'utente della squadra, così
+# tutto resta suo.
+ripristina_db() {
+  local file=$1 ruolo db
+  ruolo=$(leggi POSTGRES_USER)
+  db=$(leggi POSTGRES_DB)
+  docker exec "$PG" psql -q -U "$ruolo" -d "$db" \
+    -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;" > /dev/null 2>&1 || true
+  docker exec -i "$PG" pg_restore -U "$ruolo" -d "$db" --no-owner --no-privileges < "$file" > /dev/null 2>&1
+}
+
+# Il trasloco di una squadra nata col Postgres suo nel Postgres comune.
+#   1. l'app si ferma (niente scritture a metà) e si fa il backup;
+#   2. utente e database nuovi, e il backup dentro;
+#   3. l'app riparte sul database nuovo; il Postgres vecchio resta acceso
+#      finché la nuova non risponde, poi si ferma e si toglie. Il suo volume
+#      (gestionale-sq-<nome>_db-data) resta: lo cancella «elimina».
+# Se qualcosa va storto la squadra torna com'era, sul Postgres suo.
+trasloca_db() {
+  local vecchio_user vecchio_db dump ruolo
+  vecchio_user=$(leggi POSTGRES_USER)
+  vecchio_db=$(leggi POSTGRES_DB)
+  ruolo=$(ruolo_db "$SQUADRA")
+  echo "== $SQUADRA: trasloco del database nel Postgres comune"
+  if ! docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
+    echo "!! il Postgres di $SQUADRA (zd-sq-$SQUADRA-db) non e' acceso: non trasloco niente"
+    return 1
+  fi
+  mkdir -p /root/backup
+  dump=/root/backup/sq-$SQUADRA-prima-del-trasloco-$(date +%F-%H%M).dump
+  docker stop "zd-sq-$SQUADRA-app" > /dev/null 2>&1 || true
+  if ! docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$dump"; then
+    echo "!! backup non riuscito: $SQUADRA resta com'era"
+    docker start "zd-sq-$SQUADRA-app" > /dev/null 2>&1 || true
+    return 1
+  fi
+  echo "== backup in $dump"
+
+  # la configurazione nuova; quella vecchia si tiene per tornare indietro
+  sed -i -e '/^DB_HOST=/d' -e '/^DB_VECCHIO_/d' "$ENV"
+  sed -i -e "s/^POSTGRES_USER=.*/POSTGRES_USER=$ruolo/" -e "s/^POSTGRES_DB=.*/POSTGRES_DB=$ruolo/" "$ENV"
+  printf 'DB_HOST=%s\nDB_VECCHIO_USER=%s\nDB_VECCHIO_DB=%s\n' "$PG" "$vecchio_user" "$vecchio_db" >> "$ENV"
+
+  if crea_db && ripristina_db "$dump"; then
+    zds up -d --pull never
+    if risponde 45; then
+      docker stop "zd-sq-$SQUADRA-db" > /dev/null 2>&1 || true
+      docker rm "zd-sq-$SQUADRA-db" > /dev/null 2>&1 || true
+      echo "== $SQUADRA: database nel Postgres comune ($ruolo). Il Postgres suo e' spento; il volume resta."
+      return 0
+    fi
+    echo "!! $SQUADRA non risponde sul Postgres comune"
+    docker logs "zd-sq-$SQUADRA-app" --tail 10 2>&1 | grep -vi 'password' || true
+  else
+    echo "!! database nel Postgres comune non riuscito"
+  fi
+
+  # indietro: la squadra torna sul suo Postgres, che non e' mai stato toccato
+  echo "== $SQUADRA: torno al Postgres suo"
+  sed -i -e '/^DB_HOST=/d' -e '/^DB_VECCHIO_/d' \
+    -e "s/^POSTGRES_USER=.*/POSTGRES_USER=$vecchio_user/" -e "s/^POSTGRES_DB=.*/POSTGRES_DB=$vecchio_db/" "$ENV"
+  echo "DB_HOST=db" >> "$ENV"
+  zds up -d --pull never
+  risponde 45 && echo "== $SQUADRA di nuovo sul Postgres suo, e risponde" \
+    || echo "!! $SQUADRA non risponde nemmeno sul Postgres suo: serve un intervento a mano (backup $dump)"
+  return 1
+}
+
 # --------------------------------------------------------------- il proxy
 
 proxy() {
@@ -257,9 +397,10 @@ SQUADRA=$SQUADRA
 DOMINIO=$dominio
 NOME_SQUADRA=$nome
 NOME_GESTIONALE=$nome
-POSTGRES_USER=zerodark
+POSTGRES_USER=$(ruolo_db "$SQUADRA")
 POSTGRES_PASSWORD=$(casuale 24)
-POSTGRES_DB=zerodark
+POSTGRES_DB=$(ruolo_db "$SQUADRA")
+DB_HOST=$PG
 SESSION_SECRET=$(casuale 32)
 SEED_ADMIN_EMAIL=$email
 SEED_ADMIN_PASSWORD=$admin_pw
@@ -301,11 +442,24 @@ rilascia() {
     echo "== $SQUADRA: fissata alla versione $(leggi VERSIONE)"
   fi
   immagini_versione "$(leggi VERSIONE)" || exit 1
-  if docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
+  pg_condiviso || exit 1
+  # nata col Postgres suo: trasloca nel comune (con backup, e indietro se non va)
+  if ! condiviso; then
+    if [ "$(leggi DB_HOST || true)" = "db" ]; then
+      echo "!! $SQUADRA e' rimasta sul Postgres suo dopo un trasloco non riuscito: la riavvio cosi'."
+      zds up -d --pull never
+    else
+      trasloca_db || echo "!! $SQUADRA: trasloco non riuscito, resta sul Postgres suo"
+    fi
+    proxy
+    stato_una
+    return
+  fi
+  crea_db
+  if docker ps -q --filter "name=^zd-sq-$SQUADRA-app\$" | grep -q .; then
     echo "== $SQUADRA: backup"
     mkdir -p /root/backup
-    docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-      > "/root/backup/sq-$SQUADRA-$(date +%F-%H%M).dump"
+    backup_db "/root/backup/sq-$SQUADRA-$(date +%F-%H%M).dump"
     # restano gli ultimi dieci
     ls -1t /root/backup/sq-"$SQUADRA"-*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f
   fi
@@ -337,7 +491,7 @@ rilascia_tutte() {
 stato_una() {
   local dominio codice ip
   dominio=$(leggi DOMINIO)
-  echo "== Squadra $SQUADRA: $(leggi NOME_SQUADRA) — https://$dominio — versione $(leggi VERSIONE || echo '?')"
+  echo "== Squadra $SQUADRA: $(leggi NOME_SQUADRA) — https://$dominio — versione $(leggi VERSIONE || echo '?') — database $(condiviso && echo "$(leggi POSTGRES_DB) nel Postgres comune" || echo 'suo')"
   docker ps --filter "name=zd-sq-$SQUADRA-" --format '{{.Names}}\t{{.Status}}'
   docker logs "zd-sq-$SQUADRA-app" --tail 8 2>&1 | grep -vi 'password' || true
   if [ -f "$SITO_CADDY" ]; then
@@ -418,13 +572,14 @@ rimuovi() {
   local dominio archivio
   dominio=$(leggi DOMINIO)
   echo "== $SQUADRA: rimozione di https://$dominio"
-  if docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
+  if condiviso || docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
     mkdir -p /root/backup
-    docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-      > "/root/backup/sq-$SQUADRA-finale-$(date +%F-%H%M).dump"
+    backup_db "/root/backup/sq-$SQUADRA-finale-$(date +%F-%H%M).dump"
     echo "== backup finale in /root/backup/sq-$SQUADRA-finale-*.dump"
   fi
   zds down --remove-orphans
+  # il Postgres suo, se non aveva traslocato (non e' piu' nel compose)
+  docker rm -f "zd-sq-$SQUADRA-db" > /dev/null 2>&1 || true
   if [ -f "$SITO_CADDY" ]; then
     rm -f "$SITO_CADDY"
     ricarica_proxy
@@ -436,8 +591,8 @@ rimuovi() {
   mkdir -p /opt/archivio
   mv "$CARTELLA" "$archivio"
   echo "== cartella spostata in $archivio (chiavi e accesso restano li')"
-  echo "I dati restano nei volumi gestionale-sq-${SQUADRA}_*: per cancellarli davvero,"
-  echo "  docker volume rm gestionale-sq-${SQUADRA}_db-data gestionale-sq-${SQUADRA}_uploads gestionale-sq-${SQUADRA}_whatsapp"
+  echo "I dati restano: il database $(ruolo_db "$SQUADRA") nel Postgres comune e i volumi"
+  echo "gestionale-sq-${SQUADRA}_*. Per cancellarli davvero: «elimina $SQUADRA»."
 }
 
 # Cancella per sempre un gestionale gia' tolto con «rimuovi»: i volumi dei
@@ -478,6 +633,14 @@ elimina() {
   for v in $(docker volume ls -q | grep -E "^gestionale-sq-${SQUADRA}_(db-data|uploads|whatsapp)\$" || true); do
     docker volume rm "$v" > /dev/null && echo "== volume $v cancellato"
   done
+  # il suo database e il suo utente nel Postgres comune
+  local ruolo
+  ruolo=$(ruolo_db "$SQUADRA")
+  if docker ps -q --filter "name=^$PG\$" | grep -q .; then
+    printf 'DROP DATABASE IF EXISTS %s WITH (FORCE);\nDROP ROLE IF EXISTS %s;\n' "$ruolo" "$ruolo" \
+      | docker exec -i "$PG" psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres > /dev/null \
+      && echo "== database $ruolo cancellato"
+  fi
   for v in "${archivi[@]}"; do
     rm -rf -- "$v" && echo "== cartella $v cancellata"
   done
@@ -488,6 +651,10 @@ elimina() {
   for v in "${archivi[@]}"; do
     [ -e "$v" ] && { echo "!! resta $v"; resta=1; }
   done
+  if docker ps -q --filter "name=^$PG\$" | grep -q . \
+    && docker exec "$PG" psql -At -U postgres -d postgres -c "SELECT 1 FROM pg_database WHERE datname = '$ruolo'" | grep -q 1; then
+    echo "!! resta il database $ruolo"; resta=1
+  fi
   [ "$resta" = 0 ] || exit 1
   echo "$SQUADRA cancellato. I backup restano in /root/backup/sq-$SQUADRA-*.dump"
 }
@@ -612,8 +779,14 @@ aggiorna() {
 
   echo "== $SQUADRA: da $prima a $nuova"
   mkdir -p /root/backup
+  # sul Postgres comune prima di tutto: da qui in poi backup e ritorno
+  # indietro lavorano lì
+  pg_condiviso || exit 1
+  if ! condiviso; then
+    trasloca_db || { echo "{\"version\":\"$prima\",\"attempted\":\"$nuova\",\"rolled_back\":true}"; exit 1; }
+  fi
   dump=/root/backup/sq-$SQUADRA-prima-di-$nuova-$(date +%F-%H%M).dump
-  docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$dump"
+  backup_db "$dump"
   echo "== backup in $dump"
 
   sed -i "s/^VERSIONE=.*/VERSIONE=$nuova/" "$ENV"
@@ -632,12 +805,7 @@ aggiorna() {
   docker stop "zd-sq-$SQUADRA-app" > /dev/null 2>&1 || true
   # lo schema da capo: le tabelle che la versione nuova ha già creato non
   # devono restare, o il prossimo aggiornamento non riuscirebbe a ricrearle
-  docker exec "zd-sq-$SQUADRA-db" sh -c \
-    'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"' \
-    > /dev/null 2>&1 || true
-  docker exec -i "zd-sq-$SQUADRA-db" sh -c \
-    'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' < "$dump" \
-    > /dev/null 2>&1 || echo "!! ripristino del database con avvisi: controlla, il backup e' $dump"
+  ripristina_db "$dump" || echo "!! ripristino del database con avvisi: controlla, il backup e' $dump"
   zds up -d --pull never
   if risponde 45; then
     echo "== $SQUADRA di nuovo alla $prima e risponde"
@@ -714,6 +882,7 @@ console() {
     echo "   $(basename "$(dirname "$env")" | sed 's/^squadra-//') — $(grep '^DOMINIO=' "$env" | cut -d= -f2) — versione $(grep '^VERSIONE=' "$env" | cut -d= -f2)"
   done
   [ "$trovate" = 1 ] || echo "   nessuno"
+  echo "== Postgres comune: $(docker ps --filter "name=^$PG\$" --format '{{.Status}}' | head -1)"
   echo "== Container zd-sq-*:"
   docker ps -a --filter "name=zd-sq-" --format '   {{.Names}}\t{{.Status}}' || true
   echo "== In archivio: $(ls -d /opt/archivio/squadra-* 2>/dev/null | xargs -r -n1 basename | paste -sd' ' - || true)"

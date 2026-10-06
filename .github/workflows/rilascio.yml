@@ -6,8 +6,11 @@
 #                    cosa arriverebbe con il prossimo rilascio, se il codice sul
 #                    server e' pulito, disco, memoria, e com'e' messo il test.
 #                    Non cambia niente.
-#   rilascio         la produzione, con i passi di deploy/DEPLOY.md: backup,
-#                    pull, ricostruzione, riavvio del proxy, pulizia, controllo.
+#   rilascio         la produzione, con i passi di deploy/DEPLOY.md: le
+#                    immagini costruite qui su GitHub (job «pubblica»), poi sul
+#                    server backup, pull, immagini scaricate dal registro,
+#                    riavvio del proxy, pulizia, controllo. Il server non
+#                    compila più: lo fa solo se il registro non le ha.
 #   test             l'ambiente di test (https://test.zerodarkteam.it) portato
 #                    al ramo scelto qui sotto. La prima volta lo crea da zero.
 #                    La produzione non la tocca.
@@ -75,8 +78,7 @@ on:
         type: string
         default: ''
 
-# mai due lavori insieme sulla stessa macchina: due build in parallelo non
-# ci stanno nei suoi 4 GB
+# mai due lavori insieme sulla stessa macchina
 concurrency:
   group: rilascio-produzione
   cancel-in-progress: false
@@ -90,8 +92,16 @@ env:
 
 jobs:
   server:
+    # nel rilascio, dopo «pubblica»: le immagini le scarica, non le costruisce.
+    # Negli altri modi «pubblica» non c'è e si parte subito; se «pubblica»
+    # fallisce il rilascio va avanti lo stesso, e il server le costruisce lui.
+    needs: pubblica
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Il repository, per gli script da mandare al server
         uses: actions/checkout@v4
@@ -145,7 +155,7 @@ jobs:
           echo "== Cosa occupa Docker (e quanto se ne potrebbe liberare)"
           docker system df
           echo "== Macchina"
-          echo "processori: $(nproc)"
+          echo "processori: $(nproc) ($(uname -m))"
           uptime
           free -h
           echo "== Consumo dei container adesso"
@@ -183,21 +193,46 @@ jobs:
         if: inputs.modo == 'rilascio'
         env:
           UTENTE: ${{ secrets.SERVER_USER }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ATTORE: ${{ github.actor }}
+          REGISTRO: ghcr.io/${{ github.repository_owner }}
         run: |
-          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
-            "$UTENTE@$HOST" 'bash -s' <<'SUL_SERVER'
+          SSH="ssh -i $HOME/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519"
+          # Il server entra nel registro con il token di questo lavoro, che
+          # scade quando il lavoro finisce: passa per stdin, mai sulla riga di
+          # comando, e alla fine si esce («Fuori dal registro»).
+          printf '%s' "$GH_TOKEN" | $SSH "$UTENTE@$HOST" "docker login ghcr.io -u '$ATTORE' --password-stdin" > /dev/null \
+            || echo "::warning::Accesso al registro non riuscito: il server costruira' le immagini da se'"
+          $SSH "$UTENTE@$HOST" "REGISTRO='$REGISTRO' bash -s" <<'SUL_SERVER'
           set -euo pipefail
           cd /opt/gestionale
           zd() { docker compose -p gestionale -f docker-compose.prod.yml --env-file .env.prod "$@"; }
+          export REGISTRO
 
           echo "== 1. Backup"
           mkdir -p /root/backup
           docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/prima.dump'
           docker cp zd-db:/tmp/prima.dump /root/backup/prod-$(date +%F-%H%M).dump
 
-          echo "== 2. Codice nuovo e ricostruzione"
+          echo "== 2. Codice nuovo e immagini"
           git pull --ff-only
-          zd up -d --build
+          V=$(grep -m1 '"version"' package.json | sed -E 's/.*"([0-9.]+)".*/\1/')
+          # Costruite su GitHub (job «pubblica»): qui si scaricano soltanto.
+          # La build sul server mangiava quasi un giga di memoria per qualche
+          # minuto; resta solo come riserva, se il registro non le ha.
+          # (GitHub le costruisce per x86: su un'altra architettura si compila qui)
+          if [ "$(uname -m)" = x86_64 ] && docker pull -q "$REGISTRO/gestionale-app:$V" > /dev/null \
+            && docker pull -q "$REGISTRO/gestionale-whatsapp:$V" > /dev/null; then
+            for img in gestionale-app gestionale-whatsapp; do
+              docker tag "$REGISTRO/$img:$V" "$img:$V"
+              docker tag "$REGISTRO/$img:$V" "$img:latest"
+            done
+            echo "immagini $V scaricate dal registro"
+            zd up -d --no-build --pull never
+          else
+            echo "!! le immagini $V non sono nel registro: le costruisco qui"
+            zd up -d --build
+          fi
           # il proxy nelle reti di bordo di test e squadre ospitate, una per
           # istanza: se l'up l'ha ricreato, le ha perse
           for r in $(docker network ls --format '{{.Name}}' | grep '^zd-bordo-' || true); do
@@ -211,7 +246,6 @@ jobs:
           echo "== 3b. Versione nuova pronta per le squadre ospitate"
           # le immagini col nome della versione: le squadre ospitate restano
           # alla loro finché il portale ZeroDark non le aggiorna (update_app)
-          V=$(grep -m1 '"version"' package.json | sed -E 's/.*"([0-9.]+)".*/\1/')
           docker tag gestionale-app:latest "gestionale-app:$V"
           docker tag gestionale-whatsapp:latest "gestionale-whatsapp:$V"
           echo "immagini gestionale-app:$V e gestionale-whatsapp:$V"
@@ -337,6 +371,14 @@ jobs:
           npm install --no-audit --no-fund playwright@1 > /dev/null
           npx playwright install --with-deps chromium > /dev/null
           node prova-collegamento.mjs
+
+      - name: Fuori dal registro
+        if: always() && inputs.modo == 'rilascio'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" 'docker logout ghcr.io' > /dev/null 2>&1 || true
 
       - name: Via la chiave
         if: always()

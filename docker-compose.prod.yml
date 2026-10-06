@@ -6,7 +6,8 @@
 # certificato lo rilascia Let's Encrypt. Tenerli nello stesso file avrebbe
 # voluto dire un groviglio di variabili per dire "in questo caso no".
 #
-#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#   docker compose -p gestionale -f docker-compose.prod.yml --env-file .env.prod up -d
+#   (le immagini le porta il rilascio; --build per costruirle qui)
 #
 # Il TAK **non sta qui dentro**: ha una sua distribuzione con il suo compose e
 # il suo database, e ogni suo aggiornamento romperebbe questo file. Sta sulla
@@ -43,6 +44,10 @@ services:
           memory: 2g
 
   app:
+    # Costruita su GitHub e scaricata dal rilascio col nome della versione
+    # (anche :latest): il server non compila più. «build» resta per la riserva
+    # (registro irraggiungibile) e per chi la lancia a mano con --build.
+    image: gestionale-app:latest
     build:
       context: .
     container_name: zd-app
@@ -87,6 +92,7 @@ services:
           memory: 2g
 
   whatsapp:
+    image: gestionale-whatsapp:latest
     build: ./whatsapp
     container_name: zd-whatsapp
     restart: unless-stopped

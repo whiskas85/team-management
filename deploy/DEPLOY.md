@@ -249,9 +249,14 @@ mkdir -p /root/backup
 docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/prima.dump'
 docker cp zd-db:/tmp/prima.dump /root/backup/prod-$(date +%F-%H%M).dump
 
-# 2. il codice nuovo e la ricostruzione
+# 2. il codice nuovo e le immagini, costruite su GitHub (job «pubblica»)
 git pull --ff-only
-zd up -d --build
+V=$(grep -m1 '"version"' package.json | sed -E 's/.*"([0-9.]+)".*/\1/')
+for img in gestionale-app gestionale-whatsapp; do
+  docker pull ghcr.io/whiskas85/$img:$V && docker tag ghcr.io/whiskas85/$img:$V $img:$V \
+    && docker tag ghcr.io/whiskas85/$img:$V $img:latest
+done
+zd up -d --no-build --pull never   # oppure, senza registro: zd up -d --build
 for r in $(docker network ls --format '{{.Name}}' | grep '^zd-bordo-'); do
   docker network connect "$r" zd-proxy 2>/dev/null || true
 done
@@ -274,6 +279,15 @@ Le quattro righe, una per una:
   invece di scriverli a mano: se un giorno cambiano in `.env.prod`, il comando
   continua a funzionare e non fa un backup vuoto credendo di averlo fatto.
   L'ora nel nome serve a distinguere due rilasci nello stesso giorno.
+- **Le immagini non si costruiscono più qui.** Le costruisce GitHub (job
+  «pubblica» del Rilascio, su una macchina sua da 16 GB) e le mette nel
+  registro `ghcr.io/whiskas85`; il server le scarica col nome della versione.
+  La build sul server prendeva quasi un giga di memoria per qualche minuto, e
+  su 4 GB era la ragione per tenere mezza macchina libera. Se il registro non
+  le ha, o il server non è x86, l'automazione torna a costruirle qui. Per
+  scaricarle il server entra nel registro col token del lavoro, che scade a
+  fine lavoro, ed esce subito dopo. I test (`test`, `test2`) invece si
+  costruiscono ancora qui: portano un ramo qualsiasi, non una versione.
 - **`git pull --ff-only`** si rifiuta di fare merge: se sul server qualcuno ha
   modificato un file, è meglio saperlo adesso che scoprirlo in un conflitto a
   metà build.
@@ -481,6 +495,41 @@ A mano, dal server:
 ```bash
 bash /opt/gestionale/deploy/squadra-server.sh stato
 bash /opt/gestionale/deploy/squadra-server.sh rilascia pippo
+```
+
+### Il Postgres comune
+
+Le squadre ospitate non hanno più un Postgres ciascuna: ce n'è uno solo,
+`zd-sq-pg` (`docker-compose.pg.yml`, progetto `gestionale-pg`), con **un
+database e un utente per squadra**, `sq_<nome>` (i trattini diventano `_`). Un
+Postgres per squadra si teneva la sua memoria anche a riposo (in produzione il
+picco è sui 130 MB): con uno solo, sulla stessa macchina ci stanno quasi il
+doppio dei gestionali.
+
+- **I dati restano separati.** Ogni utente entra solo nel suo database: il
+  permesso di collegarsi agli altri, e a quello di servizio `postgres`, è tolto
+  a tutti. La password dell'amministratore sta solo in
+  `/opt/squadre-pg/.env.pg` (600); nessuna app la conosce.
+- **Rete sua, `zd-pg`, senza uscita su internet**: ci sono solo il Postgres e
+  le app delle squadre. La produzione e i test hanno il loro database e qui non
+  entrano.
+- **Lo accende lo script** alla prima squadra che lo chiede (`pg_condiviso`), e
+  `nuova` crea utente e database.
+- **Il trasloco** delle squadre nate col Postgres loro è automatico, al primo
+  `rilascia` (lo fa anche il rilascio della produzione) o `aggiorna`: app
+  ferma, backup in `/root/backup/sq-<nome>-prima-del-trasloco-*.dump`,
+  database nuovo col backup dentro, app di nuovo su. Il Postgres vecchio si
+  spegne solo quando la nuova risponde; se non risponde la squadra torna sul
+  suo (`DB_HOST=db` in `.env.squadra`) e il rilascio lo dice. Il volume
+  vecchio `gestionale-sq-<nome>_db-data` resta finché non si fa `elimina`.
+- **Backup, ritorno indietro di `aggiorna`, `rimuovi` ed `elimina`** lavorano
+  sul database della squadra nel Postgres comune; `elimina` cancella anche
+  database e utente.
+
+A mano, per guardarci dentro:
+
+```bash
+docker exec -it zd-sq-pg psql -U sq_pippo -d sq_pippo
 ```
 
 ### Dalla console ZeroDark

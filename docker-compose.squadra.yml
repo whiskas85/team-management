@@ -8,7 +8,9 @@
 #   - niente password del proxy, niente accessi rapidi, AMBIENTE=prod;
 #   - database, allegati, chiavi e identità suoi: dei nostri dati non vede
 #     niente, e noi dei suoi nemmeno dall'app (sono due gestionali diversi,
-#     che si parlano solo se si collegano come due squadre qualsiasi);
+#     che si parlano solo se si collegano come due squadre qualsiasi). Il
+#     database è il suo, sq_<nome>, nel Postgres comune delle squadre ospitate
+#     (docker-compose.pg.yml): un Postgres per squadra costava troppa memoria;
 #   - lavori automatici e notifiche push con chiavi sue;
 #   - il suo ponte WhatsApp, con la sua sessione: si collega col telefono di
 #     chi gestisce il suo gestionale, non col nostro.
@@ -20,38 +22,16 @@
 name: gestionale-squadra
 
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: zd-sq-${SQUADRA:?serve il nome breve della squadra}-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:?serve un utente per il database}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?serve una password per il database}
-      POSTGRES_DB: ${POSTGRES_DB:-zerodark}
-      TZ: ${TZ:-Europe/Rome}
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-zerodark}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    deploy:
-      resources:
-        limits:
-          memory: 512m
-
   app:
     # la versione fissata per questa squadra (VERSIONE in .env.squadra): la
     # cambia solo «squadra-server.sh aggiorna», quando lo decide chi la gestisce
     image: gestionale-app:${VERSIONE:-latest}
-    container_name: zd-sq-${SQUADRA}-app
+    container_name: zd-sq-${SQUADRA:?serve il nome breve della squadra}-app
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-zerodark}?schema=public
+      # il suo database nel Postgres comune (DB_HOST=zd-sq-pg). DB_HOST=db solo
+      # per una squadra rimasta col Postgres suo, se il trasloco non è riuscito
+      DATABASE_URL: postgresql://${POSTGRES_USER:?serve l'utente del database}:${POSTGRES_PASSWORD:?serve la password del database}@${DB_HOST:-zd-sq-pg}:5432/${POSTGRES_DB:?serve il nome del database}?schema=public
       SESSION_SECRET: ${SESSION_SECRET:?serve una chiave di sessione sua}
       # come la chiamano gli altri gestionali: il suo nome, non il nostro
       INDIRIZZO_PUBBLICO: https://${DOMINIO:?serve il nome a dominio della squadra}
@@ -75,11 +55,13 @@ services:
       NOME_GESTIONALE: ${NOME_GESTIONALE:-}
     volumes:
       - uploads:/data/uploads
-    # default per il suo database, bordo per farsi raggiungere dal proxy: una
-    # rete sua, zd-bordo-sq-<squadra>, dove c'è solo il proxy
+    # default per il suo ponte WhatsApp, bordo per farsi raggiungere dal
+    # proxy (una rete sua, zd-bordo-sq-<squadra>, dove c'è solo il proxy), pg
+    # per il database
     networks:
       - default
       - bordo
+      - pg
     deploy:
       resources:
         limits:
@@ -108,8 +90,10 @@ networks:
   bordo:
     external: true
     name: zd-bordo-sq-${SQUADRA}
+  pg:
+    external: true
+    name: zd-pg
 
 volumes:
-  db-data:
   uploads:
   whatsapp:

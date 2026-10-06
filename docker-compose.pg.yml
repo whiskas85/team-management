@@ -1,0 +1,64 @@
+# Il Postgres delle squadre ospitate: uno solo per tutte, con un database e un
+# utente per ciascuna.
+#
+# Non lo si lancia a mano: lo accende deploy/squadra-server.sh (pg_condiviso)
+# la prima volta che serve, e lo tiene acceso.
+#
+# Prima ogni squadra aveva il suo Postgres, e ognuno si teneva la sua memoria
+# anche a riposo (in produzione il picco è sui 130 MB): su una macchina da 4 GB
+# era la voce che limitava quante squadre ci stanno. Uno solo costa una volta.
+#
+# I dati restano separati per davvero:
+#   - un database per squadra (sq_<nome>), di proprietà del suo utente;
+#   - ogni utente si collega solo al suo: il permesso di collegarsi agli altri
+#     è tolto a tutti (REVOKE CONNECT … FROM PUBLIC);
+#   - la password dell'amministratore di Postgres sta solo sul server
+#     (/opt/squadre-pg/.env.pg), e nessuna app la conosce.
+#
+# Sta in una rete sua, zd-pg, senza uscita verso internet: ci entrano solo le
+# app delle squadre ospitate. La produzione e i test hanno il loro database e
+# qui non ci sono.
+
+name: gestionale-pg
+
+services:
+  pg:
+    image: postgres:16-alpine
+    container_name: zd-sq-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?serve la password dell'amministratore}
+      TZ: ${TZ:-Europe/Rome}
+    # Tarato per tante squadre piccole: la cache comune resta quella di
+    # partenza, e le connessioni bastano per una ventina di gestionali (Prisma
+    # ne apre poche per app).
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=4MB
+    volumes:
+      - dati:/var/lib/postgresql/data
+    networks:
+      - pg
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+networks:
+  pg:
+    external: true
+    name: zd-pg
+
+volumes:
+  dati:
