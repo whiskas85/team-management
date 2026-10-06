@@ -473,11 +473,25 @@ server) crea e toglie i gestionali ospitati con due hook che stanno qui, in
 ln -sf /opt/gestionale/deploy/console-hooks/create_app /etc/zdt-agent/hooks/create_app
 ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
 ln -sf /opt/gestionale/deploy/console-hooks/purge_app /etc/zdt-agent/hooks/purge_app
+ln -sf /opt/gestionale/deploy/console-hooks/set_admin_password /etc/zdt-agent/hooks/set_admin_password
 ```
 
 - **Nuova app** → `squadra-server.sh nuova`, con `ZDT_APP_NAME` come nome
-  breve e `ZDT_APP_DOMAIN` come dominio (vuoto: `<nome>.zerodarkteam.it`).
-  L'ultima riga dice alla console di guardare i container `zd-sq-<nome>-*`.
+  breve, `ZDT_APP_DOMAIN` come dominio (vuoto: `<nome>.zerodarkteam.it`) e
+  `ZDT_APP_EMAIL` come email dell'admin. Se c'è `ZDT_APP_ADMIN_PASSWORD`,
+  l'admin prende quella (poi `squadra-server.sh password`) e l'ultima riga
+  aggiunge `"admin_password":"applied"`; se non si riesce ad applicarla esce
+  con errore. L'ultima riga dice alla console di guardare i container
+  `zd-sq-<nome>-*`.
+- **Reimposta password** → hook `set_admin_password` → `squadra-server.sh
+  password <nome> [email]`, con la password in `ADMIN_PASSWORD`, mai sulla
+  riga di comando. Tocca un utente solo: quello con `ZDT_APP_EMAIL` o, se è
+  vuota, l'admin di partenza; e solo se è amministratore. La salva come l'app
+  (bcrypt, dentro il suo container), riaccende «cambia la password al primo
+  accesso» e aggiorna `ACCESSO.txt`. Le sessioni già aperte restano valide fino
+  alla scadenza: sono cookie firmati, senza un registro da cui toglierle.
+  Rifiuta nomi riservati e squadre che non esistono; esce con 0 e
+  `{"admin_password":"applied"}` solo se la password è applicata.
 - **Rimuovi app** → `squadra-server.sh rimuovi <nome>`: backup finale,
   container tolti, proxy e rete staccati, cartella in `/opt/archivio`. I volumi
   restano; il comando per cancellarli lo stampa la rimozione.

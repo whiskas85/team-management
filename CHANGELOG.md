@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.23.4 — 6 ottobre 2026
+
+### Aggiunto
+
+- **Password dell'admin scelta dalla console.** `create_app` usa
+  `ZDT_APP_ADMIN_PASSWORD` se c'è, e lo conferma con
+  `"admin_password":"applied"`; il nuovo hook `set_admin_password` la
+  reimposta su un gestionale già esistente. Entrambi passano da
+  `squadra-server.sh password`: un solo utente amministratore, bcrypt come
+  l'app, password mai stampata.
+
 ## 3.23.3 — 6 ottobre 2026
 
 ### Aggiunto

@@ -14,6 +14,7 @@
 #   bash /opt/gestionale/deploy/squadra-server.sh rimuovi pippo
 #   bash /opt/gestionale/deploy/squadra-server.sh aggancia   (lo fa da sé lavori.sh)
 #   bash /opt/gestionale/deploy/squadra-server.sh elimina pippo [/opt/archivio/squadra-pippo-…]
+#   ADMIN_PASSWORD=… bash /opt/gestionale/deploy/squadra-server.sh password pippo [email]
 #
 # Ogni squadra ha la sua cartella, /opt/squadra-<nome>, con il suo .env.squadra
 # (chiavi e password sue, permessi 600) e ACCESSO.txt con l'admin di partenza.
@@ -46,6 +47,14 @@ valida_squadra() {
     echo "Nome breve non valido: «$1» (minuscole, cifre e trattini; non test…)"
     exit 1
   fi
+}
+
+# I nomi che non sono gestionali ospitati: la produzione e i suoi dintorni.
+# (I test, test…, li rifiuta già valida_squadra.)
+riservato() {
+  case "$1" in
+    ops | www | zd | gestionale) echo "«$1» e' un nome riservato, non un gestionale ospitato."; exit 1 ;;
+  esac
 }
 
 # Un nome buono per una squadra: scritto bene, non già nostro, non già usato.
@@ -405,9 +414,7 @@ rimuovi() {
 elimina() {
   prepara "$1"
   local archivio=${2:-} v resta=0
-  case "$SQUADRA" in
-    ops | www | zd | gestionale) echo "«$SQUADRA» non e' un gestionale ospitato: non lo cancello."; exit 1 ;;
-  esac
+  riservato "$SQUADRA"
   if [ -e "$CARTELLA" ]; then
     echo "$CARTELLA c'e' ancora: il gestionale e' attivo. Prima «rimuovi $SQUADRA»."
     exit 1
@@ -448,6 +455,90 @@ elimina() {
   echo "$SQUADRA cancellato. I backup restano in /root/backup/sq-$SQUADRA-*.dump"
 }
 
+# La password di un amministratore del gestionale, scelta da fuori (la console).
+#
+# Arriva in ADMIN_PASSWORD, mai sulla riga di comando: si passa all'app per
+# stdin e non si stampa da nessuna parte. Si salva come la salva l'app (bcrypt,
+# dentro il suo container, con le sue librerie). Tocca un utente solo: quello
+# con l'email data, o l'admin di partenza (SEED_ADMIN_EMAIL), e solo se è
+# amministratore.
+#   CAMBIA=1  al primo accesso gli si chiede di cambiarla (deveCambiarePassword)
+# Le sessioni sono cookie firmati senza un registro sul server: non si possono
+# chiudere per una persona sola, e restano valide fino alla loro scadenza.
+imposta_password() {
+  prepara "$1"
+  riservato "$SQUADRA"
+  local email=${2:-} cambia=${CAMBIA:-0} esito tentativo
+  [ -f "$ENV" ] || { echo "La squadra $SQUADRA non c'e'."; exit 1; }
+  [ -n "${ADMIN_PASSWORD:-}" ] || { echo "Manca la password."; exit 1; }
+  if [ "${#ADMIN_PASSWORD}" -lt 8 ]; then echo "Password troppo corta: almeno 8 caratteri."; exit 1; fi
+  case "$ADMIN_PASSWORD" in *$'\n'*) echo "La password non puo' andare a capo."; exit 1 ;; esac
+  [ -n "$email" ] || email=$(leggi SEED_ADMIN_EMAIL)
+  docker ps -q --filter "name=^zd-sq-$SQUADRA-app\$" | grep -q . \
+    || { echo "Il gestionale $SQUADRA non e' acceso."; exit 1; }
+
+  # appena creato l'admin di partenza nasce con il seed, all'avvio: si aspetta
+  for tentativo in $(seq 1 20); do
+    esito=$(printf '%s\n%s' "$email" "$ADMIN_PASSWORD" | docker exec -i -e CAMBIA="$cambia" -w /app \
+      "zd-sq-$SQUADRA-app" node -e '
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+let d = "";
+process.stdin.on("data", (c) => (d += c)).on("end", async () => {
+  const i = d.indexOf("\n");
+  const email = d.slice(0, i).trim().toLowerCase();
+  const password = d.slice(i + 1);
+  const prisma = new PrismaClient();
+  try {
+    const u = await prisma.user.findUnique({ where: { email } });
+    if (!u) return console.log("NESSUNO");
+    if (!u.roles.includes("ADMIN")) return console.log("NON_ADMIN");
+    await prisma.user.update({
+      where: { id: u.id },
+      data: {
+        passwordHash: await bcrypt.hash(password, 10),
+        deveCambiarePassword: process.env.CAMBIA === "1",
+      },
+    });
+    console.log("FATTO");
+  } catch (e) {
+    console.log("ERRORE " + (e && e.code ? e.code : "db"));
+  } finally {
+    await prisma.$disconnect();
+  }
+});' 2>/dev/null | tail -n 1) || esito="ERRORE exec"
+    # si aspetta solo l'admin di partenza, che nasce col seed all'avvio
+    [ "$esito" = "NESSUNO" ] && [ "$email" = "$(leggi SEED_ADMIN_EMAIL)" ] && [ "$tentativo" -lt 20 ] \
+      && { sleep 3; continue; }
+    break
+  done
+  case "$esito" in
+    FATTO) ;;
+    NESSUNO) echo "Nel gestionale $SQUADRA non c'e' un utente $email."; exit 1 ;;
+    NON_ADMIN) echo "$email non e' un amministratore di $SQUADRA: non la cambio."; exit 1 ;;
+    *) echo "Password non applicata ($esito)."; exit 1 ;;
+  esac
+
+  # ACCESSO.txt e .env.squadra restano in pari, se parlano di questo utente
+  if [ "$email" = "$(leggi SEED_ADMIN_EMAIL)" ]; then
+    (umask 077
+      # fra apici: compose non interpreta i $ dentro; con un apice nella
+      # password resta la vecchia (serve solo se l'admin andasse ricreato)
+      case "$ADMIN_PASSWORD" in
+        *"'"*) ;;
+        *)
+          PW="$ADMIN_PASSWORD" awk 'BEGIN{p=ENVIRON["PW"]} /^SEED_ADMIN_PASSWORD=/{print "SEED_ADMIN_PASSWORD='"'"'" p "'"'"'"; next} {print}' \
+            "$ENV" > "$ENV.nuovo" && mv "$ENV.nuovo" "$ENV"
+          ;;
+      esac
+      if [ -f "$CARTELLA/ACCESSO.txt" ]; then
+        PW="$ADMIN_PASSWORD" awk 'BEGIN{p=ENVIRON["PW"]} /^  password: /{print "  password: " p; next} {print}' \
+          "$CARTELLA/ACCESSO.txt" > "$CARTELLA/ACCESSO.txt.nuovo" && mv "$CARTELLA/ACCESSO.txt.nuovo" "$CARTELLA/ACCESSO.txt"
+      fi)
+  fi
+  echo "== $SQUADRA: password di $email impostata$([ "$cambia" = 1 ] && echo ', da cambiare al primo accesso')."
+}
+
 # I gestionali nati prima che il loro nome puntasse qui: il sito nel proxy non
 # c'e' (e da fuori si vede un errore SSL). Lo chiama deploy/lavori.sh ogni
 # pochi minuti: appena il DNS arriva, si aggancia da solo, senza un rilascio.
@@ -474,5 +565,6 @@ case "${1:-stato}" in
   rimuovi) rimuovi "${2:?quale squadra?}" ;;
   aggancia) aggancia ;;
   elimina) elimina "${2:?quale squadra?}" "${3:-}" ;;
-  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | aggancia"; exit 1 ;;
+  password) imposta_password "${2:?quale squadra?}" "${3:-}" ;;
+  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | password <squadra> [email] | aggancia"; exit 1 ;;
 esac
