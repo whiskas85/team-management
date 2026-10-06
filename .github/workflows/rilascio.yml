@@ -23,6 +23,8 @@
 #                    vecchio nome rimanda al nuovo per sei mesi, e le squadre
 #                    collegate vengono avvisate dal gestionale stesso.
 #   squadre          solo lo stato delle squadre ospitate.
+#   console          il server visto dal portale ZeroDark: collega gli hook
+#                    all'agent, e mostra agent, hook, versioni, gestionali.
 #
 # Il lavoro del test lo fa deploy/test-server.sh, mandato al server da qui.
 #
@@ -45,7 +47,7 @@ on:
       modo:
         description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test'
         type: choice
-        options: [prova, rilascio, test, test-copia-dati, prova-collegamento, squadra-nuova, squadra-dominio, squadre]
+        options: [prova, rilascio, test, test-copia-dati, prova-collegamento, squadra-nuova, squadra-dominio, squadre, console]
         default: prova
       ramo:
         description: 'Solo per «test»: il ramo da mettere nel test'
@@ -191,6 +193,8 @@ jobs:
           # ognuna riparte con la sua versione (proxy, chiavi nuove), senza cambiarla
           bash deploy/squadra-server.sh rilascia-tutte
           bash deploy/squadra-server.sh pulisci-versioni
+          # gli hook nuovi del portale ZeroDark, se c'è il suo agent
+          bash deploy/squadra-server.sh collega-hook
 
           echo "== 4. Pulizia"
           docker image prune -f --filter until=24h
@@ -259,6 +263,16 @@ jobs:
         run: |
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" 'bash -s -- stato' < deploy/squadra-server.sh
+
+      - name: Portale ZeroDark, hook e stato
+        if: inputs.modo == 'console'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          # dal codice del server (/opt/gestionale), non da quello del runner:
+          # i link devono puntare lì
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" 'bash /opt/gestionale/deploy/squadra-server.sh console'
 
       - name: Test, copia dei dati dalla produzione
         if: inputs.modo == 'test-copia-dati'

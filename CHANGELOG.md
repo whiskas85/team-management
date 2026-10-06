@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.25.1 — 6 ottobre 2026
+
+### Aggiunto
+
+- **Gli hook del portale ZeroDark si collegano da soli.** A ogni rilascio
+  `squadra-server.sh collega-hook` mette in `/etc/zdt-agent/hooks` un link per
+  ogni hook di `deploy/console-hooks` (se l'agent c'è). Nuovo modo «console»
+  del Rilascio: collega e mostra agent, hook, versioni e gestionali ospitati.
+
 ## 3.25.0 — 6 ottobre 2026
 
 ### Aggiunto

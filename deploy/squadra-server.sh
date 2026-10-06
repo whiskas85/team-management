@@ -678,6 +678,47 @@ pulisci_versioni() {
   done
 }
 
+# Gli hook del portale ZeroDark collegati all'agent (zdt-agent), se c'è: un
+# link per ogni file eseguibile di deploy/console-hooks. I link seguono il
+# codice, quindi un hook corretto arriva col rilascio; uno nuovo si collega qui.
+# Lo chiama il rilascio della produzione; il modo «console» mostra lo stato.
+collega_hook() {
+  local cartella=/etc/zdt-agent/hooks h nome
+  if [ ! -d /etc/zdt-agent ]; then
+    echo "== Nessun agent del portale ZeroDark su questo server (/etc/zdt-agent)"
+    return
+  fi
+  mkdir -p "$cartella"
+  for h in "$PROD"/deploy/console-hooks/*; do
+    [ -f "$h" ] && [ -x "$h" ] || continue
+    nome=$(basename "$h")
+    if [ "$(readlink -f "$cartella/$nome" 2>/dev/null)" != "$h" ]; then
+      ln -sf "$h" "$cartella/$nome"
+      echo "== hook $nome collegato"
+    fi
+  done
+}
+
+# Com'è messo il server dal punto di vista del portale ZeroDark.
+console() {
+  collega_hook
+  echo "== Hook in /etc/zdt-agent/hooks:"
+  ls -l /etc/zdt-agent/hooks 2>/dev/null | awk 'NR>1 {print "   " $9, $10, $11}'
+  echo "== Agent: $(systemctl is-active zdt-agent 2>/dev/null || echo 'non trovato')"
+  echo "== Versioni pronte: $(versioni)"
+  echo "== Gestionali ospitati:"
+  local env trovate=0
+  for env in /opt/squadra-*/.env.squadra; do
+    [ -f "$env" ] || continue
+    trovate=1
+    echo "   $(basename "$(dirname "$env")" | sed 's/^squadra-//') — $(grep '^DOMINIO=' "$env" | cut -d= -f2) — versione $(grep '^VERSIONE=' "$env" | cut -d= -f2)"
+  done
+  [ "$trovate" = 1 ] || echo "   nessuno"
+  echo "== Container zd-sq-*:"
+  docker ps -a --filter "name=zd-sq-" --format '   {{.Names}}\t{{.Status}}' || true
+  echo "== In archivio: $(ls -d /opt/archivio/squadra-* 2>/dev/null | xargs -r -n1 basename | paste -sd' ' - || true)"
+}
+
 # I gestionali nati prima che il loro nome puntasse qui: il sito nel proxy non
 # c'e' (e da fuori si vede un errore SSL). Lo chiama deploy/lavori.sh ogni
 # pochi minuti: appena il DNS arriva, si aggancia da solo, senza un rilascio.
@@ -708,5 +749,7 @@ case "${1:-stato}" in
   aggiorna) aggiorna "${2:?quale squadra?}" "${3:?quale versione?}" ;;
   versioni) versioni "${2:-}" ;;
   pulisci-versioni) pulisci_versioni ;;
+  collega-hook) collega_hook ;;
+  console) console ;;
   *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | password <squadra> [email] | aggiorna <squadra> <versione> | versioni [squadra] | aggancia"; exit 1 ;;
 esac
