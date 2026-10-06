@@ -2,7 +2,9 @@ FROM node:22-alpine AS base
 # tzdata non c'e' in alpine, e senza di lui la variabile TZ e' carta straccia:
 # il container resta in UTC e le ore scritte dal server — calendario, dashboard,
 # ricevute — escono indietro di due ore rispetto a quelle digitate.
-RUN apk add --no-cache libc6-compat openssl tzdata
+# fontconfig e un carattere: senza, l'icona dell'app di chi non ha un logo (le
+# iniziali della squadra, disegnate in SVG da sharp) uscirebbe senza lettere
+RUN apk add --no-cache libc6-compat openssl tzdata fontconfig font-dejavu
 WORKDIR /app
 
 # ---------------------------------------------------------------- dipendenze

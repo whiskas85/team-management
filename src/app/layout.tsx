@@ -14,6 +14,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const v = await versioneIcona();
   return {
     title: m.nomeGestionale,
+    // anche per il browser: i messaggi d'accesso composti lì li leggono
+    // (lib/messaggio-accesso)
+    applicationName: m.nomeGestionale,
+    other: { 'nome-squadra': m.nome },
     description: `Gestionale operativo della squadra ${m.nome}`,
     // installato dalla schermata iniziale si comporta da applicazione: iOS legge
     // queste, Android e desktop leggono il manifest

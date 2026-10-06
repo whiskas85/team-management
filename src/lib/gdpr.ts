@@ -6,7 +6,7 @@
 
 export const VERSIONE_PRIVACY = '2026-09-01';
 
-export const TITOLARE = 'Zero Dark Team';
+/** Il titolare del trattamento è la squadra: il nome lo dà «La mia squadra» (marchio()). */
 
 /** Basi giuridiche dichiarate all'operatore, in chiaro. */
 export const FINALITA = [

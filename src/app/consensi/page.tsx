@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { mancanze, qualcosaManca } from '@/lib/consensi';
-import { FINALITA, TITOLARE, VERSIONE_PRIVACY } from '@/lib/gdpr';
+import { FINALITA, VERSIONE_PRIVACY } from '@/lib/gdpr';
+import { marchio } from '@/lib/mia-squadra';
 import { Logo } from '@/components/Logo';
 import { Badge } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
@@ -69,7 +70,7 @@ export default async function ConsensiPage() {
           {manca.privacy && (
             <>
               <p className="mt-2 text-sm text-muted">
-                Titolare del trattamento: {TITOLARE} · versione {VERSIONE_PRIVACY}. Senza questa non
+                Titolare del trattamento: {(await marchio()).nome} · versione {VERSIONE_PRIVACY}. Senza questa non
                 si può tenere in ordine niente: né il tesseramento, né il certificato medico, né le
                 quote.
               </p>

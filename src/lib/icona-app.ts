@@ -1,7 +1,8 @@
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
-import { leggiMiaSquadra, PARTENZA } from './mia-squadra';
+import { leggiMiaSquadra, logoIniziali, marchio, PARTENZA } from './mia-squadra';
+import { inizialiSquadra } from './iniziali-squadra';
 import { percorsoAssoluto } from './storage';
 import { tavolozza } from './tema';
 import { temaSquadra } from './tema-server';
@@ -24,7 +25,10 @@ import { temaSquadra } from './tema-server';
 /** Cambia quando cambia il logo: va nell'indirizzo, così il telefono la riscarica. */
 export async function versioneIcona(): Promise<string> {
   const s = await leggiMiaSquadra();
-  return s?.logoPath ? String(s.aggiornatoIl.getTime()) : `p-${PARTENZA.logo}`.replace(/\W/g, '');
+  if (s?.logoPath) return String(s.aggiornatoIl.getTime());
+  // senza logo: le iniziali, che cambiano col nome
+  if (!PARTENZA.logo) return `i-${inizialiSquadra((await marchio()).nome)}`.replace(/\W/g, '');
+  return `p-${PARTENZA.logo}`.replace(/\W/g, '');
 }
 
 async function sorgente(): Promise<Buffer | null> {
@@ -36,6 +40,8 @@ async function sorgente(): Promise<Buffer | null> {
       // file sparito: si torna al logo di partenza
     }
   }
+  // niente logo né logo di partenza: le iniziali (sharp disegna l'SVG)
+  if (!PARTENZA.logo) return Buffer.from(await logoIniziali());
   try {
     return await readFile(path.join(process.cwd(), 'public', PARTENZA.logo.replace(/^\//, '')));
   } catch {

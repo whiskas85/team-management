@@ -186,9 +186,11 @@ async function main() {
   } else if (await creaSeNonEsiste({
     email: EMAIL,
     nome: 'Admin',
-    cognome: 'Zero Dark',
-    callsign: 'Zero',
-    telefono: '3401110000',
+    // il nome della squadra, se il gestionale è di un'altra (NOME_SQUADRA)
+    cognome: process.env.NOME_SQUADRA || 'Zero Dark',
+    callsign: process.env.NOME_SQUADRA ? 'Admin' : 'Zero',
+    // un numero finto solo per Zero Dark (le prove): altrove nessun numero inventato
+    telefono: process.env.NOME_SQUADRA ? null : '3401110000',
     roles: ['ADMIN', 'ATLETA'],
     stato: 'SQUADRA',
     creatoDalSeed: true,
@@ -245,28 +247,8 @@ async function main() {
     console.log('[seed] creati 5 metodi di pagamento');
   }
 
-  const quanti = await prisma.field.count();
-  if (quanti === 0) {
-    await prisma.field.createMany({
-      data: [
-        {
-          nome: 'Area Boschiva Nord',
-          tipo: 'BOSCHIVO',
-          citta: 'Bergamo',
-          provincia: 'BG',
-          note: 'Campo di riferimento per le partite domenicali.',
-        },
-        {
-          nome: 'Capannone CQB',
-          tipo: 'CQB',
-          citta: 'Brescia',
-          provincia: 'BS',
-          note: 'Struttura al coperto, ideale per gli allenamenti invernali.',
-        },
-      ],
-    });
-    console.log('[seed] creati 2 campi di esempio');
-  }
+  // Nessun campo di esempio: un gestionale nuovo parte vuoto, i suoi campi li
+  // aggiunge la squadra (prima ne nascevano due inventati, a Bergamo e Brescia).
 
   await importaDocumenti();
 }

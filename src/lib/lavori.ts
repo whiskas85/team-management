@@ -1,4 +1,5 @@
 import { prisma } from './db';
+import { marchio } from './mia-squadra';
 import { conIdentita } from './identita';
 import { attivitaDaCoprire, costoRipiego, dataLocale } from './assicurazione';
 import { attivaGiornaliera } from '@/actions/assicurazione';
@@ -247,10 +248,10 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
       // scritto per stare da solo in una chat, con dentro la data
       whatsapp:
         tappa === TAPPA_SCADUTO
-          ? `Zero Dark Ops — il tuo certificato medico è scaduto il ${fmtDate(cert.scadeIl)}.
+          ? `${(await marchio()).nomeGestionale} — il tuo certificato medico è scaduto il ${fmtDate(cert.scadeIl)}.
 
 Senza non si scende in campo: prenota la visita e carica il nuovo nel gestionale appena ce l'hai.${elenco ? `\n\n${elenco.trim()}` : ''}`
-          : `Zero Dark Ops — il tuo certificato medico scade ${
+          : `${(await marchio()).nomeGestionale} — il tuo certificato medico scade ${
               giorni === 0 ? 'oggi' : `fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`
             }, il ${fmtDate(cert.scadeIl)}.
 

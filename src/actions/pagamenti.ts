@@ -1,5 +1,6 @@
 'use server';
 
+import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
@@ -673,7 +674,7 @@ export async function rifiutaSegnalazione(_prev: StatoForm, fd: FormData): Promi
     testo: `Il pagamento che avevi segnalato per «${pagamento.descrizione}» è stato annullato: ${motivo}. La quota è di nuovo da pagare.`,
     url: '/pagamenti',
     tag: `pagamento-${pagamento.id}`,
-    whatsapp: `Zero Dark Ops — pagamento annullato
+    whatsapp: `${(await marchio()).nomeGestionale} — pagamento annullato
 
 Il pagamento che avevi segnalato il ${segnalato} per «${pagamento.descrizione}» (${fmtEuro(Number(pagamento.importo) - Number(pagamento.pagato))}) è stato annullato.
 Motivo: ${motivo}

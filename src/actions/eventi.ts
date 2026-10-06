@@ -1,5 +1,6 @@
 'use server';
 
+import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { diffondiEvento, ritiraEvento, segnalaNumeri } from '@/lib/eventi-condivisi';
@@ -1753,7 +1754,7 @@ export async function confermaNoleggio(_prev: StatoForm, fd: FormData): Promise<
     testo: `Per «${evento.titolo}» il kit c’è: ${fmtEuro(prezzo.importo)} in più nella quota.`,
     url: `/calendario/${evento.id}`,
     tag: `noleggio-${rsvp.id}`,
-    whatsapp: `Zero Dark Ops — kit a noleggio confermato
+    whatsapp: `${(await marchio()).nomeGestionale} — kit a noleggio confermato
 
 Per «${evento.titolo}» il kit c'è. Alla quota si aggiungono ${fmtEuro(prezzo.importo)}: la trovi in Miei pagamenti.`,
   }).catch(() => null);
@@ -1793,7 +1794,7 @@ export async function rifiutaNoleggio(_prev: StatoForm, fd: FormData): Promise<S
     testo: `Per «${rsvp.event.titolo}» il kit non c’è: ${motivo}. La tua adesione è stata tolta.`,
     url: `/calendario/${rsvp.event.id}`,
     tag: `noleggio-${rsvp.id}`,
-    whatsapp: `Zero Dark Ops — kit a noleggio non disponibile
+    whatsapp: `${(await marchio()).nomeGestionale} — kit a noleggio non disponibile
 
 Per «${rsvp.event.titolo}» il kit che avevi chiesto non c'è.
 Motivo: ${motivo}

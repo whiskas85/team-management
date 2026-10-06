@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.24.0 — 6 ottobre 2026
+
+### Cambiato
+
+- **Un gestionale nuovo parte neutro, senza niente di Zero Dark.** Sui
+  gestionali di altre squadre (quelli con NOME_SQUADRA: le squadre ospitate,
+  test2):
+  - **logo**: finché la squadra non carica il suo, al posto di quello di Zero
+    Dark ci sono le sue iniziali in un cerchio, coi colori del tema
+    («BKArmy» → BK) — nell'intestazione, nell'icona dell'app e nel profilo
+    per le squadre collegate;
+  - **motto** di partenza «HUB»;
+  - **messaggi** (WhatsApp, benvenuto, accesso), titolare della privacy,
+    esportazione dei dati, assistente MCP: con il nome della squadra e del
+    suo gestionale, non più «Zero Dark Ops»;
+  - **seed**: niente campi d'esempio (Bergamo, Brescia), niente numero di
+    telefono inventato per l'admin di partenza.
+  Per Zero Dark non cambia niente.
+
 ## 3.23.5 — 6 ottobre 2026
 
 ### Corretto

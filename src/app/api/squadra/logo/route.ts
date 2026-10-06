@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import { NextResponse } from 'next/server';
-import { leggiMiaSquadra, PARTENZA } from '@/lib/mia-squadra';
+import { leggiMiaSquadra, logoIniziali, PARTENZA } from '@/lib/mia-squadra';
 import { percorsoAssoluto } from '@/lib/storage';
 import { leggiMiniatura, miniaturaPubblica, rispostaMiniatura } from '@/lib/miniature';
 
@@ -11,10 +11,17 @@ export const dynamic = 'force-dynamic';
  * di accesso, sull'invito che si manda alle altre squadre e, domani, sul badge
  * degli eventi nei gestionali delle squadre collegate.
  *
- * Senza un logo caricato si torna a quello di partenza, in public/.
+ * Senza un logo caricato si torna a quello di partenza, in public/; e se
+ * nemmeno quello c'è (una squadra ospitata), le iniziali della squadra.
  */
 export async function GET(req: Request) {
   const s = await leggiMiaSquadra();
+  if (!s?.logoPath && !PARTENZA.logo) {
+    // niente logo: le iniziali, in SVG — piccolo o grande è lo stesso disegno
+    return new NextResponse(await logoIniziali(), {
+      headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=300' },
+    });
+  }
   // ?mini=1: la copia piccola, per l'intestazione e i badge
   if (new URL(req.url).searchParams.has('mini')) {
     const mini = s?.logoPath

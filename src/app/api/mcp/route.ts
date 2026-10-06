@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { marchio } from '@/lib/mia-squadra';
 import { conIdentita } from '@/lib/identita';
 import { chiPresenta, segnaUso } from '@/lib/mcp/chiavi';
 import { strumentiPer, strumentoDetto } from '@/lib/mcp/strumenti';
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     // una chiave invece di riprovare all'infinito
     return NextResponse.json(
       errore(null, -32001, 'Chiave mancante, revocata o non valida.'),
-      { status: 401, headers: { 'WWW-Authenticate': 'Bearer realm="Zero Dark"' } },
+      { status: 401, headers: { 'WWW-Authenticate': 'Bearer realm="gestionale"' } },
     );
   }
 
@@ -103,9 +104,9 @@ async function eseguiUna(r: Richiesta, chi: Awaited<ReturnType<typeof chiPresent
       return risposta(r.id, {
         protocolVersion: PROTOCOLLO,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'zero-dark-gestionale', version: VERSIONE },
+        serverInfo: { name: 'gestionale-squadra', version: VERSIONE },
         instructions:
-          `Stai lavorando dentro il gestionale della squadra Zero Dark, per conto di ` +
+          `Stai lavorando dentro il gestionale della squadra ${(await marchio()).nome}, per conto di ` +
           `${me.nome} ${me.cognome}${me.callsign ? ` (${me.callsign})` : ''}. ` +
           `Puoi fare solo ciò che potrebbe fare questa persona con il suo account: ` +
           `gli strumenti che non le competono non compaiono nemmeno. ` +
@@ -163,7 +164,7 @@ async function eseguiUna(r: Richiesta, chi: Awaited<ReturnType<typeof chiPresent
 export async function GET() {
   return NextResponse.json(
     {
-      nome: 'Zero Dark Ops',
+      nome: (await marchio()).nomeGestionale,
       protocollo: PROTOCOLLO,
       versione: VERSIONE,
       come: 'POST JSON-RPC 2.0 con intestazione Authorization: Bearer <chiave personale>.',

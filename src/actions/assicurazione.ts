@@ -1,5 +1,6 @@
 'use server';
 
+import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
@@ -267,7 +268,7 @@ async function avvisaAssicurato(dati: {
     testo: `Polizza giornaliera n. ${dati.codice} per ${dati.titolo}, ${dati.giorno}.`,
     url: '/profilo',
     tag: 'polizza-giornaliera',
-    whatsapp: `Zero Dark Ops \u2014 sei coperto
+    whatsapp: `${(await marchio()).nomeGestionale} — sei coperto
 
 ${dati.nome} ${dati.cognome}
 Attivit\u00e0: ${dati.titolo}

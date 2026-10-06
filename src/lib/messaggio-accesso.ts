@@ -1,4 +1,16 @@
 /**
+ * I nomi della squadra e del gestionale, letti dalla pagina (il layout li
+ * scrive nei meta): servono quando il messaggio si compone nel browser, che
+ * l'ambiente del server non lo vede. Sul server si passano esplicitamente.
+ */
+function nomiPagina(): { gestionale: string; squadra: string } {
+  if (typeof document === 'undefined') return { gestionale: 'il gestionale', squadra: '' };
+  const meta = (n: string) =>
+    document.querySelector<HTMLMetaElement>(`meta[name="${n}"]`)?.content?.trim() ?? '';
+  return { gestionale: meta('application-name') || 'il gestionale', squadra: meta('nome-squadra') };
+}
+
+/**
  * Il messaggio con cui si consegnano le chiavi di casa.
  *
  * Sta qui, in un posto solo, perché lo usano in due: il pulsante che lo copia
@@ -14,15 +26,18 @@ export function componiMessaggioAccesso({
   password,
   link,
   indirizzo,
+  gestionale = nomiPagina().gestionale,
 }: {
   utente: string;
   password: string;
   link?: string;
   indirizzo?: string;
+  /** Il nome del gestionale di questa squadra («La mia squadra»). */
+  gestionale?: string;
 }): string {
   const righe = link
     ? [
-        'Accesso a Zero Dark Ops',
+        `Accesso a ${gestionale}`,
         `Il tuo utente: ${utente}`,
         '',
         'Entra da qui:',
@@ -31,7 +46,7 @@ export function componiMessaggioAccesso({
         'Il link vale 7 giorni e si usa una volta sola: ti fa entrare e ti chiede di scegliere la tua password.',
       ]
     : [
-        'Accesso a Zero Dark Ops',
+        `Accesso a ${gestionale}`,
         indirizzo ? `Indirizzo: ${indirizzo}` : null,
         `Il tuo utente: ${utente}`,
         `Password: ${password}`,
@@ -57,15 +72,18 @@ export function componiMessaggioBenvenuto({
   password,
   link,
   indirizzo,
+  squadra = nomiPagina().squadra,
 }: {
   nome: string;
   utente: string;
   password: string;
   link?: string;
   indirizzo?: string;
+  /** Il nome della squadra («La mia squadra»). */
+  squadra?: string;
 }): string {
   return [
-    `Ciao ${nome}, benvenuto nello Zero Dark Team!`,
+    squadra ? `Ciao ${nome}, benvenuto in ${squadra}!` : `Ciao ${nome}, benvenuto!`,
     'Ti abbiamo creato l’accesso al gestionale della squadra: è da lì che ti segni alle giocate, ricevi gli avvisi e trovi tutto quello che serve.',
     '',
     'COME ACCEDERE',

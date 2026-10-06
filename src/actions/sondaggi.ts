@@ -1,5 +1,6 @@
 'use server';
 
+import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
@@ -359,6 +360,7 @@ async function annuncia(id: string) {
           .map((o) => ({ id: o.id, testo: o.testo }))
       : undefined;
 
+  const gestionale = (await marchio()).nomeGestionale;
   await Promise.all(
     persone
       .filter((p) => p.id !== s.creatoDaId && loRiguarda(s.destinatari, p.stato))
@@ -369,7 +371,7 @@ async function annuncia(id: string) {
           url: dove,
           tag: `sondaggio-${s.id}`,
           azioni,
-          whatsapp: `Zero Dark Ops — c’è una domanda per te
+          whatsapp: `${gestionale} — c’è una domanda per te
 
 ${s.domanda}${s.dettaglio ? `\n${s.dettaglio}` : ''}
 ${manca ? `\nSi vota entro ${manca}.` : ''}

@@ -66,12 +66,12 @@ self.addEventListener('fetch', (evento) => {
           new Response(
             `<!doctype html><html lang="it"><head><meta charset="utf-8">
              <meta name="viewport" content="width=device-width,initial-scale=1">
-             <title>Zero Dark — offline</title></head>
+             <title>Offline</title></head>
              <body style="background:#050605;color:#d7dbd7;font-family:system-ui,sans-serif;
                           display:flex;min-height:100vh;align-items:center;justify-content:center;
                           margin:0;padding:2rem;text-align:center">
                <div>
-                 <p style="font-size:.75rem;letter-spacing:.3em;color:#7bd88f">ZERO DARK</p>
+                 <p style="font-size:.75rem;letter-spacing:.3em;color:#7bd88f">GESTIONALE</p>
                  <h1 style="font-size:1.25rem;margin-top:1rem">Nessuna connessione</h1>
                  <p style="font-size:.875rem;color:#8b918b;margin-top:.75rem">
                    Il telefono non riesce a raggiungere il gestionale: di solito è la rete
@@ -99,7 +99,7 @@ self.addEventListener('fetch', (evento) => {
  * schermo bloccato, e lì può leggerla chiunque abbia in mano il telefono.
  */
 self.addEventListener('push', (evento) => {
-  let avviso = { titolo: 'Zero Dark', testo: 'C’è una novità.', url: '/dashboard' };
+  let avviso = { titolo: 'Avviso', testo: 'C’è una novità.', url: '/dashboard' };
   try {
     if (evento.data) avviso = { ...avviso, ...evento.data.json() };
   } catch {

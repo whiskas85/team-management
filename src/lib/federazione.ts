@@ -12,7 +12,7 @@ import path from 'node:path';
 import type { CollegamentoSquadra } from '@prisma/client';
 import { prisma } from './db';
 import { cifra, decifra } from './segreti';
-import { leggiMiaSquadra, marchio, PARTENZA } from './mia-squadra';
+import { leggiMiaSquadra, logoIniziali, marchio, PARTENZA } from './mia-squadra';
 import { percorsoAssoluto } from './storage';
 
 /**
@@ -180,7 +180,11 @@ export async function profiloNostro(): Promise<Profilo> {
       telefono: r.mostraTelefono ? r.user.telefono : null,
       email: r.mostraEmail ? r.user.email : null,
     })),
-    logo: s?.logoPath ? `l${s.aggiornatoIl.getTime()}` : `p${PARTENZA.logo}`,
+    logo: s?.logoPath
+      ? `l${s.aggiornatoIl.getTime()}`
+      : PARTENZA.logo
+        ? `p${PARTENZA.logo}`
+        : `i${s?.nome ?? PARTENZA.nome}`,
   };
 }
 
@@ -243,6 +247,10 @@ export const profiloDi = (c: Pick<CollegamentoSquadra, 'profilo'>) =>
 /** Il nostro logo, in byte: per chi lo scarica da un altro gestionale. */
 export async function logoNostro(): Promise<{ dati: Buffer; tipo: string } | null> {
   const s = await leggiMiaSquadra();
+  // senza logo: le iniziali, in SVG
+  if (!s?.logoPath && !PARTENZA.logo) {
+    return { dati: Buffer.from(await logoIniziali()), tipo: 'image/svg+xml' };
+  }
   const file = s?.logoPath
     ? percorsoAssoluto(s.logoPath)
     : path.join(process.cwd(), 'public', PARTENZA.logo.replace(/^\/+/, ''));

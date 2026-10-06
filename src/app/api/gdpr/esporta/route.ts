@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { marchio } from '@/lib/mia-squadra';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
@@ -32,14 +33,14 @@ export async function GET() {
 
   const dati = {
     esportatoIl: new Date().toISOString(),
-    titolare: 'Zero Dark Team',
+    titolare: (await marchio()).nome,
     anagrafica,
   };
 
   return new NextResponse(JSON.stringify(dati, null, 2), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': `attachment; filename="zerodark-dati-${u.cognome.toLowerCase()}.json"`,
+      'Content-Disposition': `attachment; filename="dati-${u.cognome.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json"`,
       'Cache-Control': 'private, no-store',
     },
   });

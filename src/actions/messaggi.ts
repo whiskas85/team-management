@@ -15,6 +15,7 @@ import {
 } from '@/lib/whatsapp';
 import { enumVal, str, strOpt, type StatoForm } from '@/lib/form';
 import { componiMessaggioAccesso, componiMessaggioBenvenuto } from '@/lib/messaggio-accesso';
+import { marchio } from '@/lib/mia-squadra';
 import { perWhatsapp } from '@/lib/telefono';
 
 const SCATENANTI = [
@@ -163,6 +164,7 @@ export async function mandaAccessoWhatsapp(
   }
 
   const nomeUtente = utente.callsign || utente.email || utente.telefono || '';
+  const m = await marchio();
   const testo = benvenuto
     ? componiMessaggioBenvenuto({
         nome: benvenuto.nome,
@@ -170,8 +172,14 @@ export async function mandaAccessoWhatsapp(
         password: benvenuto.password,
         link,
         indirizzo: new URL(link).origin,
+        squadra: m.nome,
       })
-    : componiMessaggioAccesso({ utente: nomeUtente, password: '', link });
+    : componiMessaggioAccesso({
+        utente: nomeUtente,
+        password: '',
+        link,
+        gestionale: m.nomeGestionale,
+      });
 
   const esito = await inviaWhatsapp(numero, testo);
   if (!esito.ok) return { errore: `Non sono riuscito a mandarlo: ${esito.errore}` };

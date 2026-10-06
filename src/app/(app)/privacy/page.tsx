@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { CONSERVAZIONE, DIRITTI, FINALITA, TITOLARE, VERSIONE_PRIVACY } from '@/lib/gdpr';
+import { CONSERVAZIONE, DIRITTI, FINALITA, VERSIONE_PRIVACY } from '@/lib/gdpr';
+import { marchio } from '@/lib/mia-squadra';
 import { fmtDate } from '@/lib/format';
 import { Badge, Intestazione } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
@@ -26,7 +27,7 @@ export default async function PrivacyPage() {
     <>
       <Intestazione
         titolo="Informativa privacy"
-        sottotitolo={`Titolare del trattamento: ${TITOLARE} · versione ${VERSIONE_PRIVACY}`}
+        sottotitolo={`Titolare del trattamento: ${(await marchio()).nome} · versione ${VERSIONE_PRIVACY}`}
       />
 
       <div className="mb-6 card">
