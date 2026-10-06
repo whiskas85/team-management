@@ -12,6 +12,7 @@
 #   bash /opt/gestionale/deploy/squadra-server.sh rilascia-tutte
 #   bash /opt/gestionale/deploy/squadra-server.sh stato [pippo]
 #   bash /opt/gestionale/deploy/squadra-server.sh rimuovi pippo
+#   bash /opt/gestionale/deploy/squadra-server.sh aggancia   (lo fa da sé lavori.sh)
 #
 # Ogni squadra ha la sua cartella, /opt/squadra-<nome>, con il suo .env.squadra
 # (chiavi e password sue, permessi 600) e ACCESSO.txt con l'admin di partenza.
@@ -125,7 +126,8 @@ proxy() {
   if [ -z "$la" ] || [ "$la" != "$qui" ]; then
     echo "== $dominio non punta ancora a questa macchina (${la:-nessun indirizzo}; qui e' $qui)."
     echo "   Il gestionale gira, ma da fuori non si raggiunge: serve il record nel DNS della squadra"
-    echo "   (CNAME verso $DOMINIO_PROD, o A verso $qui). Poi si rilancia e il proxy lo prende da solo."
+    echo "   (CNAME verso $DOMINIO_PROD, o A verso $qui). Appena c'e', entro cinque minuti il proxy"
+    echo "   lo aggancia da solo (deploy/lavori.sh) e Caddy chiede il certificato."
     # un certificato chiesto per un nome che non porta qui fallisce, e Let's
     # Encrypt conta i tentativi falliti: meglio non chiederlo affatto
     if [ -f "$SITO_CADDY" ]; then
@@ -391,6 +393,23 @@ rimuovi() {
   echo "  docker volume rm gestionale-sq-${SQUADRA}_db-data gestionale-sq-${SQUADRA}_uploads gestionale-sq-${SQUADRA}_whatsapp"
 }
 
+# I gestionali nati prima che il loro nome puntasse qui: il sito nel proxy non
+# c'e' (e da fuori si vede un errore SSL). Lo chiama deploy/lavori.sh ogni
+# pochi minuti: appena il DNS arriva, si aggancia da solo, senza un rilascio.
+# Chi ha gia' il suo sito non viene toccato.
+aggancia() {
+  local env
+  for env in /opt/squadra-*/.env.squadra; do
+    [ -f "$env" ] || continue
+    prepara "$(basename "$(dirname "$env")" | sed 's/^squadra-//')"
+    [ -f "$SITO_CADDY" ] && continue
+    # i container devono girare: un gestionale fermo non si aggancia
+    docker ps -q --filter "name=^zd-sq-$SQUADRA-app\$" | grep -q . || continue
+    rete
+    proxy | grep 'agganciato' || true
+  done
+}
+
 case "${1:-stato}" in
   nuova) nuova ;;
   dominio) cambia_dominio ;;
@@ -398,5 +417,6 @@ case "${1:-stato}" in
   rilascia-tutte) rilascia_tutte ;;
   stato) stato "${2:-}" ;;
   rimuovi) rimuovi "${2:?quale squadra?}" ;;
-  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra>"; exit 1 ;;
+  aggancia) aggancia ;;
+  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | aggancia"; exit 1 ;;
 esac

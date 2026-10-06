@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.23.2 — 6 ottobre 2026
+
+### Corretto
+
+- **Un gestionale ospitato creato prima del suo DNS si aggancia da solo.** Se
+  il nome non puntava ancora al server, il sito non entrava nel proxy e da
+  fuori si vedeva un errore SSL finché qualcuno non rilanciava. Ora
+  `deploy/lavori.sh`, ogni cinque minuti, chiama `squadra-server.sh
+  aggancia`: appena il DNS arriva il proxy lo aggancia e Caddy chiede il
+  certificato.
+
 ## 3.23.1 — 6 ottobre 2026
 
 ### Aggiunto

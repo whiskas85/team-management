@@ -56,6 +56,15 @@ for ENV_SQUADRA in /opt/squadra-*/.env.squadra; do
   [ -f "$ENV_SQUADRA" ] && bussa "$ENV_SQUADRA"
 done
 
+# I gestionali ospitati nati prima che il loro nome puntasse qui: appena il DNS
+# arriva, il proxy li aggancia (e Caddy chiede il certificato). Nel registro
+# solo quando succede.
+if ls /opt/squadra-*/.env.squadra > /dev/null 2>&1; then
+  bash /opt/gestionale/deploy/squadra-server.sh aggancia 2>&1 | while read -r RIGA; do
+    echo "$(date '+%F %T') $RIGA" >> "$REGISTRO"
+  done
+fi
+
 # il registro non cresce all'infinito: restano le ultime mille righe
 if [ "$(wc -l < "$REGISTRO" 2>/dev/null || echo 0)" -gt 1000 ]; then
   tail -n 500 "$REGISTRO" > "$REGISTRO.tmp" && mv "$REGISTRO.tmp" "$REGISTRO"
