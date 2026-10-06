@@ -11,6 +11,7 @@
 #   bash /opt/gestionale/deploy/squadra-server.sh rilascia pippo
 #   bash /opt/gestionale/deploy/squadra-server.sh rilascia-tutte
 #   bash /opt/gestionale/deploy/squadra-server.sh stato [pippo]
+#   bash /opt/gestionale/deploy/squadra-server.sh rimuovi pippo
 #
 # Ogni squadra ha la sua cartella, /opt/squadra-<nome>, con il suo .env.squadra
 # (chiavi e password sue, permessi 600) e ACCESSO.txt con l'admin di partenza.
@@ -355,11 +356,47 @@ cambia_dominio() {
   rilascia "$SQUADRA"
 }
 
+# Toglie un gestionale ospitato senza perdere niente: backup finale del
+# database, container fermati e tolti, proxy e rete staccati, cartella spostata
+# in /opt/archivio. I volumi (database, allegati, sessione WhatsApp) restano:
+# si cancellano solo a mano, sapendolo (vedi il messaggio alla fine).
+rimuovi() {
+  prepara "$1"
+  if [ ! -f "$ENV" ]; then
+    echo "La squadra $SQUADRA non c'e': niente da togliere."
+    return
+  fi
+  local dominio archivio
+  dominio=$(leggi DOMINIO)
+  echo "== $SQUADRA: rimozione di https://$dominio"
+  if docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
+    mkdir -p /root/backup
+    docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
+      > "/root/backup/sq-$SQUADRA-finale-$(date +%F-%H%M).dump"
+    echo "== backup finale in /root/backup/sq-$SQUADRA-finale-*.dump"
+  fi
+  zds down --remove-orphans
+  if [ -f "$SITO_CADDY" ]; then
+    rm -f "$SITO_CADDY"
+    ricarica_proxy
+    echo "== proxy: $dominio staccato"
+  fi
+  docker network disconnect "$RETE" zd-proxy > /dev/null 2>&1 || true
+  docker network rm "$RETE" > /dev/null 2>&1 || true
+  archivio=/opt/archivio/squadra-$SQUADRA-$(date +%Y%m%d%H%M%S)
+  mkdir -p /opt/archivio
+  mv "$CARTELLA" "$archivio"
+  echo "== cartella spostata in $archivio (chiavi e accesso restano li')"
+  echo "I dati restano nei volumi gestionale-sq-${SQUADRA}_*: per cancellarli davvero,"
+  echo "  docker volume rm gestionale-sq-${SQUADRA}_db-data gestionale-sq-${SQUADRA}_uploads gestionale-sq-${SQUADRA}_whatsapp"
+}
+
 case "${1:-stato}" in
   nuova) nuova ;;
   dominio) cambia_dominio ;;
   rilascia) rilascia "${2:?quale squadra?}" ;;
   rilascia-tutte) rilascia_tutte ;;
   stato) stato "${2:-}" ;;
-  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra]"; exit 1 ;;
+  rimuovi) rimuovi "${2:?quale squadra?}" ;;
+  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra>"; exit 1 ;;
 esac

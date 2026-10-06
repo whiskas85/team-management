@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Hook della console ZeroDark (repo whiskas85/team-dashboard, agent zdt-agent):
+# «Nuova app» crea un gestionale ospitato con deploy/squadra-server.sh nuova.
+#
+# Installazione sul server (una volta; i link seguono il codice aggiornato):
+#   ln -sf /opt/gestionale/deploy/console-hooks/create_app /etc/zdt-agent/hooks/create_app
+#   ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
+#
+# L'agent lo lancia come root, con ZDT_APP_NAME e ZDT_APP_DOMAIN (gli altri
+# campi qui non servono). Uscita 0 = fatto; quello che si stampa finisce nella
+# console, e l'ultima riga JSON dice alla console quali container guardare.
+#
+# **Nessuna password esce da qui**: l'admin di partenza resta in
+# /opt/squadra-<nome>/ACCESSO.txt, sul server.
+set -euo pipefail
+
+nome=${ZDT_APP_NAME:?manca il nome dell app}
+dominio=${ZDT_APP_DOMAIN:-$nome.zerodarkteam.it}
+
+# Nome, dominio e duplicati li controlla squadra-server.sh: ops, test*, www e
+# i nomi già usati sono rifiutati con un messaggio, e qui si esce con errore.
+SQUADRA=$nome DOMINIO=$dominio NOME=$nome EMAIL=${ZDT_APP_EMAIL:-} \
+  bash /opt/gestionale/deploy/squadra-server.sh nuova
+
+echo "{\"kind\": \"docker\", \"match\": \"^zd-sq-$nome-\"}"

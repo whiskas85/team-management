@@ -463,6 +463,25 @@ bash /opt/gestionale/deploy/squadra-server.sh stato
 bash /opt/gestionale/deploy/squadra-server.sh rilascia pippo
 ```
 
+### Dalla console ZeroDark
+
+La console (repository `whiskas85/team-dashboard`, agent `zdt-agent` sul
+server) crea e toglie i gestionali ospitati con due hook che stanno qui, in
+`deploy/console-hooks/`, e chiamano `squadra-server.sh`:
+
+```
+ln -sf /opt/gestionale/deploy/console-hooks/create_app /etc/zdt-agent/hooks/create_app
+ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
+```
+
+- **Nuova app** → `squadra-server.sh nuova`, con `ZDT_APP_NAME` come nome
+  breve e `ZDT_APP_DOMAIN` come dominio (vuoto: `<nome>.zerodarkteam.it`).
+  L'ultima riga dice alla console di guardare i container `zd-sq-<nome>-*`.
+- **Rimuovi app** → `squadra-server.sh rimuovi <nome>`: backup finale,
+  container tolti, proxy e rete staccati, cartella in `/opt/archivio`. I volumi
+  restano; il comando per cancellarli lo stampa la rimozione.
+- Le password non escono: l'admin di partenza resta in `ACCESSO.txt`.
+
 ## Il sito pubblico su www
 
 Il sito della squadra (`www.zerodarkteam.it`) **non fa parte del gestionale**:

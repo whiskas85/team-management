@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.23.1 — 6 ottobre 2026
+
+### Aggiunto
+
+- **Hook per la console ZeroDark.** In `deploy/console-hooks/` ci sono
+  `create_app` e `remove_app` per l'agent della console (team-dashboard):
+  «Nuova app» crea un gestionale ospitato con `squadra-server.sh nuova`,
+  «Rimuovi app» lo toglie con il nuovo `squadra-server.sh rimuovi` (backup
+  finale, cartella in archivio, volumi conservati).
+
 ## 3.23.0 — 5 ottobre 2026
 
 ### Aggiunto

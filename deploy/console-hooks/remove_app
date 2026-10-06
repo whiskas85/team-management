@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Hook della console ZeroDark: «Rimuovi app» toglie un gestionale ospitato con
+# deploy/squadra-server.sh rimuovi. Non cancella dati: backup finale del
+# database, cartella spostata in /opt/archivio, volumi lasciati dove sono.
+# Installazione: vedi create_app.
+set -euo pipefail
+
+bash /opt/gestionale/deploy/squadra-server.sh rimuovi "${ZDT_APP_NAME:?manca il nome dell app}"
