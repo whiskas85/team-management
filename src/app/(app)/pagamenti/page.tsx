@@ -8,7 +8,7 @@ import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
 import { dichiaraPagamento } from '@/actions/metodi';
-import { chiediRimborso, trasformaInCredito } from '@/actions/pagamenti';
+import { cediCredito, chiediRimborso, trasformaInCredito } from '@/actions/pagamenti';
 import { SceltaPagamento } from '@/components/SceltaPagamento';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { daSaldare } from '@/lib/da-saldare';
@@ -79,15 +79,28 @@ export default async function MieiPagamentiPage() {
     .map((cassaId) => ({ cassaId, nome: nomeCassa(cassaId), metodi: metodi.filter((m) => m.cassaId === cassaId) }));
 
   // il credito, cassa per cassa: soldi versati e non ancora usati
-  const perCassa = new Map<string, { nome: string; credito: number }>();
+  const perCassa = new Map<string, { cassaId: string | null; nome: string; credito: number }>();
   for (const m of movimentiCredito) {
     const chiave = m.cassaId ?? 'club';
-    const voce = perCassa.get(chiave) ?? { nome: m.cassa?.nome ?? 'il club', credito: 0 };
+    const voce = perCassa.get(chiave) ?? {
+      cassaId: m.cassaId,
+      nome: m.cassa?.nome ?? 'il club',
+      credito: 0,
+    };
     voce.credito += Number(m.importo);
     perCassa.set(chiave, voce);
   }
   const crediti = [...perCassa.values()].filter((c) => c.credito > 0.001);
   const credito = crediti.reduce((t, c) => t + c.credito, 0);
+  // a chi si può passare il proprio credito: Pippo non viene e lo lascia a Pluto
+  const altri =
+    crediti.length === 0
+      ? []
+      : await prisma.user.findMany({
+          where: { id: { not: me.id }, stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] } },
+          orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+          select: { id: true, nome: true, cognome: true, callsign: true },
+        });
   /** Il credito disponibile nella cassa di una quota. */
   const creditoPer = (p: (typeof pagamenti)[number]) =>
     Math.max(0, perCassa.get(p.cassaId ?? 'club')?.credito ?? 0);
@@ -246,6 +259,7 @@ export default async function MieiPagamentiPage() {
           )}
         </div>
           {crediti.length > 0 ? (
+            <>
             <p className="text-sm">
               {crediti.map((c, i) => (
                 <span key={c.nome}>
@@ -258,6 +272,57 @@ export default async function MieiPagamentiPage() {
                 Quando paghi una quota di quella cassa te lo proponiamo per primo: basta un tocco.
               </span>
             </p>
+              <div className="mt-2">
+                <BottoneModale
+                  etichetta="Passalo a un altro"
+                  icona="invita"
+                  titolo="Passa il tuo credito"
+                  className="btn-ghost btn-sm"
+                >
+                  <FormAzione azione={cediCredito}>
+                    <p className="text-sm text-muted">
+                      Il credito passa a un’altra persona, nella stessa cassa: lo userà lei per le
+                      sue quote. Riceve un avviso.
+                    </p>
+                    <SceltaCassa
+                      etichetta="Da quale cassa"
+                      casse={crediti.map((c) => ({
+                        id: c.cassaId ?? '',
+                        nome: `${c.nome} · ${fmtEuro(c.credito)}`,
+                        contenuto: (
+                          <div className="space-y-4">
+                            <input type="hidden" name="cassaId" value={c.cassaId ?? ''} />
+                            <Campo label="Quanto (€)">
+                              <input
+                                name="importo"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={c.credito}
+                                defaultValue={Math.round(c.credito * 100) / 100}
+                                className="input"
+                              />
+                            </Campo>
+                          </div>
+                        ),
+                      }))}
+                    />
+                    <Campo label="A chi *">
+                      <select name="aUserId" required className="input" defaultValue="">
+                        <option value="">— seleziona —</option>
+                        {altri.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.cognome} {p.nome}
+                            {p.callsign ? ` · ${p.callsign}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                    <Invia icona="invita">Passa il credito</Invia>
+                  </FormAzione>
+                </BottoneModale>
+              </div>
+            </>
           ) : (
             <p className="text-sm text-muted">
               {movimentiCredito.length > 0
@@ -317,7 +382,9 @@ export default async function MieiPagamentiPage() {
                       ? `Usato per «${m.descrizione}»`
                       : m.tipo === 'RIPRESO'
                         ? `Tornato da «${m.descrizione}»`
-                        : 'Restituito'}
+                        : m.tipo === 'CEDUTO'
+                          ? m.descrizione
+                          : 'Restituito'}
                   {m.cassa && <span className="text-xs text-muted"> · {m.cassa.nome}</span>}
                 </span>
                 <span

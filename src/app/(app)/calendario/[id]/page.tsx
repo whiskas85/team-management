@@ -37,7 +37,7 @@ import {
   tonoRsvp,
   vedeAttivitaSquadra,
 } from '@/lib/domain';
-import { comeChiamare, fmtDate, fmtDateTime, fmtEuro, fmtTime, umanizza } from '@/lib/format';
+import { comeChiamare, fmtDate, fmtDateTime, fmtEuro, fmtTime, nomeCompleto, umanizza } from '@/lib/format';
 import { listinoAttivo, quotaPer } from '@/lib/quote';
 import { stagioniAperte } from '@/lib/stagioni';
 import { Avatar, Badge, Blocco, Campo, Dato, Intestazione, Vuoto } from '@/components/ui';
@@ -64,6 +64,7 @@ import { linkEsternoAllegato } from '@/lib/allegati-link';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
 import { ContaRisposte } from '@/components/ContaRisposte';
 import { BottoneModale } from '@/components/Modale';
+import { CediQuota, type Cedente, type Ricevente } from '@/components/CediQuota';
 import { AzioniEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
 import { MappaPunti } from '@/components/MappaPunti';
@@ -592,6 +593,57 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const quoteDi = (userId: string) =>
     evento.payments.filter((p) => p.tipo !== 'RIMBORSO' && p.userId === userId);
   const mieQuote = quoteDi(me.id);
+
+  // Lo scambio di quota: chi ha pagato e non può venire la passa a un altro.
+  // Lo fa chi tiene la cassa in cui la quota è stata pagata — l'accordo fra i
+  // due è a voce, e qualcuno che risponde dei soldi deve averlo visto.
+  const quotePagate = evento.payments.filter(
+    (p) =>
+      p.tipo !== 'RIMBORSO' &&
+      (p.status === 'PAGATO' || p.status === 'PARZIALE') &&
+      Number(p.pagato) > 0,
+  );
+  const casseMie = new Set<string | null>();
+  if (!['ANNULLATA', 'CONCLUSA'].includes(evento.status)) {
+    for (const c of new Set(quotePagate.map((p) => p.cassaId))) {
+      if (await puoGestireCassa(me, c)) casseMie.add(c);
+    }
+  }
+  const cedenti: Cedente[] = evento.rsvps
+    .filter((r) => r.status === 'PRESENTE')
+    .map((r) => {
+      const sue = quotePagate.filter((p) => p.userId === r.userId);
+      return {
+        id: r.userId,
+        nome: nomeCompleto(r.user),
+        pagato: sue.reduce((t, p) => t + Number(p.pagato), 0),
+        dettaglio:
+          sue.length > 1 ? sue.map((p) => `${fmtEuro(Number(p.pagato))} ${p.cassa?.nome ?? 'al club'}`).join(' · ') : '',
+        tutte: sue.length > 0 && sue.every((p) => casseMie.has(p.cassaId)),
+      };
+    })
+    .filter((c) => c.pagato > 0 && c.tutte)
+    .map(({ tutte: _, ...c }) => c);
+  const riceventi: Ricevente[] =
+    cedenti.length === 0
+      ? []
+      : (
+          await prisma.user.findMany({
+            where: { stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] } },
+            orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+            select: { id: true, nome: true, cognome: true, callsign: true, stato: true },
+          })
+        )
+          .filter((u) => !evento.rsvps.some((r) => r.userId === u.id && r.status === 'PRESENTE'))
+          .map((u) => ({
+            id: u.id,
+            nome: nomeCompleto(u),
+            gruppo: evento.rsvps.some((r) => r.userId === u.id)
+              ? ('attivita' as const)
+              : vedeAttivitaSquadra(u.stato)
+                ? ('squadra' as const)
+                : ('fuori' as const),
+          }));
   const mieSaldate = mieQuote.length > 0 && mieQuote.every((q) => quotaChiusa(q.status));
   // quanto mi chiedono le altre casse, una per una
   const mieAltreVoci = evento.quoteCasse
@@ -1809,7 +1861,19 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 inGiocata={inGiocata}
               />
 
-              {tl && aggiungiPartecipanti(false)}
+              <div className="flex flex-wrap gap-2">
+                {cedenti.length > 0 && (
+                  <BottoneModale
+                    etichetta="Cedi una quota"
+                    icona="pagamenti"
+                    titolo="Cedi una quota"
+                    className="btn-ghost btn-sm"
+                  >
+                    <CediQuota eventId={evento.id} cedenti={cedenti} riceventi={riceventi} />
+                  </BottoneModale>
+                )}
+                {tl && aggiungiPartecipanti(false)}
+              </div>
             </div>
 
             {evento.rsvps.length === 0 ? (

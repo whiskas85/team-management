@@ -1435,6 +1435,7 @@ enum TipoCredito {
   USO // una quota pagata col credito: esce dal credito, entra nella quota
   RIPRESO // una quota pagata col credito che non è più dovuta: torna credito
   RESO // restituito in contanti a chi l'aveva versato: esce dalla cassa
+  CEDUTO // passato da una persona all'altra: −X a chi lo dà, +X a chi lo riceve; in cassa non cambia niente
 }
 
 /// Il credito di una persona in una cassa: soldi versati prima delle quote.

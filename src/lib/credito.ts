@@ -261,3 +261,44 @@ export async function chiudiQuoteAnnullata(eventId: string): Promise<void> {
     }
   }
 }
+
+/**
+ * Il credito passa da una persona all'altra, nella stessa cassa: Pippo non
+ * può venire e lascia i suoi 40 € a Pluto, o chi tiene la cassa sposta il
+ * credito di uno su un altro che si sono accordati fra loro.
+ *
+ * In cassa non entra e non esce niente: due movimenti, −X a chi lo dà e +X a
+ * chi lo riceve. Il saldo si ricontrolla dentro la transazione, così due
+ * passaggi insieme non danno via più di quello che c'è.
+ *
+ * Restituisce quanto è passato: zero se chi lo dà non ne ha abbastanza.
+ */
+export async function passaCredito(p: {
+  da: string;
+  a: string;
+  cassaId: string | null;
+  importo: number;
+  descrizione: string;
+  note?: string | null;
+  registratoDaId?: string | null;
+}): Promise<number> {
+  const importo = centesimi(p.importo);
+  if (importo <= 0 || p.da === p.a) return 0;
+  return prisma.$transaction(async (tx) => {
+    const r = await tx.movimentoCredito.aggregate({
+      where: { userId: p.da, cassaId: p.cassaId },
+      _sum: { importo: true },
+    });
+    if (centesimi(Number(r._sum.importo ?? 0)) + 0.001 < importo) return 0;
+    const comune = {
+      cassaId: p.cassaId,
+      tipo: 'CEDUTO' as const,
+      descrizione: p.descrizione,
+      note: p.note ?? null,
+      registratoDaId: p.registratoDaId ?? null,
+    };
+    await tx.movimentoCredito.create({ data: { ...comune, userId: p.da, importo: -importo } });
+    await tx.movimentoCredito.create({ data: { ...comune, userId: p.a, importo } });
+    return importo;
+  });
+}

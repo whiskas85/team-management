@@ -10,14 +10,20 @@ import { Campo } from './ui';
  *
  * Con una cassa sola la scelta non c'è: si vede direttamente il modulo.
  */
-export function SceltaCassa({ casse }: { casse: { id: string; nome: string; contenuto: ReactNode }[] }) {
+export function SceltaCassa({
+  casse,
+  etichetta = 'In quale cassa versi *',
+}: {
+  casse: { id: string; nome: string; contenuto: ReactNode }[];
+  etichetta?: string;
+}) {
   const [scelta, setScelta] = useState(casse[0]?.id ?? '');
   const attiva = casse.find((c) => c.id === scelta) ?? casse[0];
 
   return (
     <div className="space-y-5">
       {casse.length > 1 && (
-        <Campo label="In quale cassa versi *">
+        <Campo label={etichetta}>
           <select value={scelta} onChange={(e) => setScelta(e.target.value)} className="input">
             {casse.map((c) => (
               <option key={c.id} value={c.id}>

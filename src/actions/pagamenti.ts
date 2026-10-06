@@ -10,11 +10,12 @@ import { data, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
 import {
   pagaConCredito,
   parteDaCredito,
+  passaCredito,
   quotaInCredito,
   riprendiCredito,
   saldoCredito,
 } from '@/lib/credito';
-import { fmtEuro } from '@/lib/format';
+import { fmtEuro, nomeCompleto } from '@/lib/format';
 import { eliminaAllegato } from '@/lib/storage';
 import { avvisaPersona } from '@/lib/avvisi';
 
@@ -547,6 +548,80 @@ export async function restituisciCredito(_prev: StatoForm, fd: FormData): Promis
   });
   aggiorna();
   return { ok: `Restituiti ${fmtEuro(importo)}.` };
+}
+
+/**
+ * Il credito passa a un'altra persona, nella stessa cassa.
+ *
+ * Lo fa chi lo possiede — «i miei 40 € li lascio a Pluto» — o chi tiene la
+ * cassa, quando due si sono accordati fra loro: Zio Paperone prende il credito
+ * di Pippo e lo passa a Pluto. Solo fino a quanto ce n'è; senza importo passa
+ * tutto. Chi lo riceve è avvisato, e chi lo dà anche, se non l'ha fatto lui.
+ */
+export async function cediCredito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const cassaId = strOpt(fd, 'cassaId');
+  const da = str(fd, 'daUserId') || me.id;
+  const a = str(fd, 'aUserId');
+  if (!a) return { errore: 'Scegli a chi passa il credito.' };
+  if (a === da) return { errore: 'Chi lo riceve è la stessa persona che lo dà.' };
+  const suo = da === me.id;
+  if (!suo && !(await puoGestireCassa(me, cassaId))) {
+    return { errore: 'Il credito di un altro lo sposta chi tiene la cassa.' };
+  }
+
+  const [chiDa, chiA, cassa] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: da },
+      select: { nome: true, cognome: true, callsign: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: a },
+      select: { nome: true, cognome: true, callsign: true, stato: true },
+    }),
+    cassaId ? prisma.cassa.findUnique({ where: { id: cassaId }, select: { nome: true } }) : null,
+  ]);
+  if (!chiDa || !chiA || chiA.stato === 'DISABILITATO' || chiA.stato === 'RIFIUTATO') {
+    return { errore: 'Persona non trovata.' };
+  }
+
+  const credito = await saldoCredito(da, cassaId);
+  if (credito <= 0) return { errore: 'Non c’è credito da passare in questa cassa.' };
+  const importo = num(fd, 'importo') ?? credito;
+  if (importo <= 0) return { errore: 'Indica quanto credito passa.' };
+  if (importo > credito + 0.001) {
+    return { errore: `Il credito è di ${fmtEuro(credito)}: di più non si passa.` };
+  }
+
+  const passato = await passaCredito({
+    da,
+    a,
+    cassaId,
+    importo,
+    descrizione: `Credito passato da ${nomeCompleto(chiDa)} a ${nomeCompleto(chiA)}`,
+    note: strOpt(fd, 'note'),
+    registratoDaId: me.id,
+  });
+  if (passato <= 0) return { errore: 'Il credito nel frattempo è cambiato: riprova.' };
+
+  const dove = cassa?.nome ?? (await marchio()).nome;
+  await avvisaPersona(a, {
+    titolo: 'Hai ricevuto del credito',
+    testo: `${nomeCompleto(chiDa)} ti ha passato ${fmtEuro(passato)} di credito presso ${dove}: lo usi quando paghi le prossime quote di quella cassa.`,
+    url: '/pagamenti#credito',
+    tag: `credito-ceduto-${da}-${a}`,
+  }).catch(() => null);
+  if (!suo) {
+    await avvisaPersona(da, {
+      titolo: 'Il tuo credito è passato',
+      testo: `${fmtEuro(passato)} del tuo credito presso ${dove} sono passati a ${nomeCompleto(chiA)}.`,
+      url: '/pagamenti#credito',
+      tag: `credito-ceduto-${da}-${a}`,
+    }).catch(() => null);
+  }
+
+  aggiorna();
+  return { ok: `Passati ${fmtEuro(passato)} di credito a ${nomeCompleto(chiA)}.` };
 }
 
 /**

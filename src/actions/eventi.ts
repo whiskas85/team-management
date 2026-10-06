@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { diffondiEvento, ritiraEvento, segnalaNumeri } from '@/lib/eventi-condivisi';
 import { prisma } from '@/lib/db';
-import { fmtEuro } from '@/lib/format';
+import { fmtEuro, nomeCompleto } from '@/lib/format';
 import { avvisaPersona } from '@/lib/avvisi';
 import { prezzoNoleggio } from '@/lib/quote';
 import { costoRipiego, ripiegoImpostato } from '@/lib/assicurazione';
@@ -25,8 +25,15 @@ import {
 } from '@/lib/quote';
 import { annoCredibile, annoSbagliato, giorniDi } from '@/lib/giorni';
 import { requireUser } from '@/lib/auth';
-import { quoteTutteSaldate } from '@/lib/casse';
-import { chiudiQuoteAnnullata, parteDaCredito, riprendiCredito } from '@/lib/credito';
+import { puoGestireCassa, quoteTutteSaldate } from '@/lib/casse';
+import {
+  chiudiQuoteAnnullata,
+  pagaConCredito,
+  parteDaCredito,
+  passaCredito,
+  quotaInCredito,
+  riprendiCredito,
+} from '@/lib/credito';
 import { Prisma } from '@prisma/client';
 import {
   MOTIVO_NON_IDONEO,
@@ -1232,6 +1239,228 @@ export async function scambiaTitolare(_prev: StatoForm, fd: FormData): Promise<S
       quotaEntrante !== null
         ? `Scambio fatto: chi entra è convocato e diventa titolare al saldo della quota di ${quotaEntrante} €.`
         : 'Scambio fatto.',
+  };
+}
+
+/**
+ * Una persona ha pagato, non può più venire, e cede la quota a un'altra.
+ *
+ * Il caso semplice è uno della squadra che la passa a un altro della squadra:
+ * stesso prezzo, posto pagato. Ma può cederla a uno da fuori, che paga di più
+ * perché ha la polizza: Pippo ha pagato 40, Pluto ne deve 50. Si accordano
+ * fra loro, e qui il conto lo fa il gestionale:
+ *
+ * - quello che Pippo ha pagato, cassa per cassa, diventa **credito di Pluto**
+ *   in quella cassa (passando da Pippo: il registro racconta da dove viene);
+ * - Pippo esce dall'attività, Pluto entra e trova la sua quota, al suo prezzo;
+ * - il credito appena ricevuto la paga fin dove arriva: a Pluto restano i 10 €
+ *   della polizza. Se invece la sua quota costa meno, quello che avanza gli
+ *   resta come credito per la prossima.
+ *
+ * La fa chi tiene la cassa delle quote pagate: l'accordo fra i due è a voce,
+ * e qualcuno che risponde dei soldi deve averlo visto.
+ */
+export async function cediQuota(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const eventId = str(fd, 'eventId');
+  const daId = str(fd, 'daUserId');
+  const aId = str(fd, 'aUserId');
+  if (!daId) return { errore: 'Scegli chi cede la quota.' };
+  if (!aId) return { errore: 'Scegli chi la riceve.' };
+  if (daId === aId) return { errore: 'Chi cede e chi riceve sono la stessa persona.' };
+
+  const [evento, da, a, rsvpDa, rsvpA] = await Promise.all([
+    prisma.event.findUnique({ where: { id: eventId }, include: { tipo: true, quoteCasse: true } }),
+    prisma.user.findUnique({
+      where: { id: daId },
+      select: { nome: true, cognome: true, callsign: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: aId },
+      select: {
+        nome: true,
+        cognome: true,
+        callsign: true,
+        stato: true,
+        roles: true,
+        certificates: { select: { status: true, scadeIl: true, tipo: true } },
+      },
+    }),
+    prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId: daId } } }),
+    prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId: aId } } }),
+  ]);
+  if (!evento) return { errore: 'Attività non trovata.' };
+  if (evento.status === 'ANNULLATA' || evento.status === 'CONCLUSA') {
+    return { errore: 'L’attività è chiusa: la quota non si cede più.' };
+  }
+  if (!da || !a || a.stato === 'DISABILITATO' || a.stato === 'RIFIUTATO') {
+    return { errore: 'Persona non trovata.' };
+  }
+
+  // quello che ha pagato davvero: una quota gestita fuori non è passata dal
+  // gestionale, e non ha soldi da spostare
+  const pagate = await prisma.payment.findMany({
+    where: {
+      eventId,
+      userId: daId,
+      tipo: { not: 'RIMBORSO' },
+      status: { in: ['PAGATO', 'PARZIALE'] },
+      pagato: { gt: 0 },
+    },
+  });
+  if (pagate.length === 0) {
+    return {
+      errore: `${da.nome} non ha pagato niente per questa attività: non c’è una quota da cedere.`,
+    };
+  }
+  for (const q of pagate) {
+    if (!(await puoGestireCassa(me, q.cassaId))) {
+      return { errore: 'La quota la cede chi tiene la cassa in cui è stata pagata.' };
+    }
+  }
+
+  // chi entra deve poterci andare, con le regole di chi viene aggiunto a mano
+  if (!rsvpA || rsvpA.status !== 'PRESENTE') {
+    if (vedeAttivitaSquadra(a.stato) && !eAtleta(a.roles)) {
+      return { errore: `${a.nome} non è un atleta: in campo non ci va.` };
+    }
+    const ripiego = await costoRipiego();
+    if (
+      serveCertificato(evento.tipo) &&
+      inSquadra(a.stato) &&
+      !inRipiego(evento.tipo, a.stato, a.certificates, evento, ripiego) &&
+      !idoneoPer(a.certificates, evento.tipo?.certAgonistico ?? false)
+    ) {
+      return { errore: `${a.nome} non ha un certificato medico valido per questa attività.` };
+    }
+    // da fuori, su un'attività senza un prezzo per gli esterni: quanto paga
+    // lo decide l'admin, non uno scambio
+    if (
+      !vedeAttivitaSquadra(a.stato) &&
+      evento.costoEsterni === null &&
+      !(Number(evento.costo ?? 0) > 0) &&
+      !evento.quoteCasse.some((q) => Number(q.importo) > 0 || q.importoEsterni !== null)
+    ) {
+      return {
+        errore:
+          'L’attività non ha un prezzo per chi viene da fuori: lo decide l’admin, poi si cede la quota.',
+      };
+    }
+  }
+
+  const chi = `${me.nome} ${me.cognome}`;
+  const titolo = `Quota di «${evento.titolo}» ceduta da ${nomeCompleto(da)} a ${nomeCompleto(a)}`;
+
+  // Pippo esce. Prima l'adesione, poi la quota in credito: così allineandola
+  // non torna dovuta.
+  if (rsvpDa) {
+    await prisma.eventRsvp.update({
+      where: { id: rsvpDa.id },
+      data: {
+        status: 'ASSENTE',
+        assegnazione: 'NON_ASSEGNATO',
+        presente: null,
+        esenteQuota: false,
+      },
+    });
+  }
+  const ceduto = new Map<string | null, number>();
+  for (const q of pagate) {
+    const valore = await quotaInCredito(q.id, `ceduta a ${a.nome} ${a.cognome}, ${chi}`);
+    if (valore <= 0) continue;
+    const passato = await passaCredito({
+      da: daId,
+      a: aId,
+      cassaId: q.cassaId,
+      importo: valore,
+      descrizione: titolo,
+      registratoDaId: me.id,
+    });
+    if (passato > 0) ceduto.set(q.cassaId, (ceduto.get(q.cassaId) ?? 0) + passato);
+  }
+  await allineaQuota(eventId, daId);
+
+  // Pluto entra al posto di Pippo: dove c'era una formazione è convocato, e
+  // titolare quando la sua quota è chiusa (pagaConCredito lo promuove)
+  const posto =
+    rsvpDa && (rsvpDa.assegnazione === 'TITOLARE' || rsvpDa.assegnazione === 'CONVOCATO')
+      ? 'CONVOCATO'
+      : rsvpDa && rsvpDa.assegnazione !== 'NON_ASSEGNATO'
+        ? rsvpDa.assegnazione
+        : null;
+  await prisma.eventRsvp.upsert({
+    where: { eventId_userId: { eventId, userId: aId } },
+    create: {
+      eventId,
+      userId: aId,
+      status: 'PRESENTE',
+      note: NOTA_AGGIUNTO_STAFF,
+      ...(posto ? { assegnazione: posto } : {}),
+    },
+    update: {
+      status: 'PRESENTE',
+      ...(posto && (!rsvpA || rsvpA.assegnazione === 'NON_ASSEGNATO')
+        ? { assegnazione: posto }
+        : {}),
+    },
+  });
+  await allineaQuota(eventId, aId);
+
+  // il credito appena ricevuto paga la sua quota, cassa per cassa, e solo
+  // quello: un credito che aveva già da prima non si tocca senza chiederglielo
+  let usato = 0;
+  const quoteA = await prisma.payment.findMany({
+    where: {
+      eventId,
+      userId: aId,
+      tipo: { not: 'RIMBORSO' },
+      status: { in: ['DA_PAGARE', 'PARZIALE'] },
+    },
+  });
+  for (const q of quoteA) {
+    const disponibile = ceduto.get(q.cassaId) ?? 0;
+    if (disponibile <= 0) continue;
+    const fatto = await pagaConCredito(q.id, disponibile);
+    ceduto.set(q.cassaId, disponibile - fatto);
+    usato += fatto;
+  }
+  const totale = pagate.reduce((t, q) => t + Number(q.pagato), 0);
+  const avanza = [...ceduto.values()].reduce((t, v) => t + v, 0);
+  const dopo = await prisma.payment.findMany({
+    where: {
+      eventId,
+      userId: aId,
+      tipo: { not: 'RIMBORSO' },
+      status: { in: ['DA_PAGARE', 'PARZIALE'] },
+    },
+    select: { importo: true, pagato: true },
+  });
+  const resta = dopo.reduce((t, q) => t + Number(q.importo) - Number(q.pagato), 0);
+
+  const racconto =
+    (resta > 0.001 ? ` Restano da pagare ${fmtEuro(resta)}.` : ' La quota è pagata.') +
+    (avanza > 0.001 ? ` Avanzano ${fmtEuro(avanza)} di credito per le prossime.` : '');
+  await avvisaPersona(aId, {
+    titolo: 'Ti hanno ceduto una quota',
+    testo: `${nomeCompleto(da)} ti ha ceduto la quota di «${evento.titolo}»: i ${fmtEuro(totale)} che aveva pagato sono diventati tuo credito, e ${fmtEuro(usato)} pagano la tua quota.${racconto}`,
+    url: resta > 0.001 ? '/pagamenti' : `/calendario/${eventId}`,
+    tag: `quota-ceduta-${eventId}-${aId}`,
+  }).catch(() => null);
+  await avvisaPersona(daId, {
+    titolo: 'Quota ceduta',
+    testo: `La tua quota di «${evento.titolo}» è passata a ${nomeCompleto(a)}: non risulti più fra i presenti.`,
+    url: `/calendario/${eventId}`,
+    tag: `quota-ceduta-${eventId}-${daId}`,
+  }).catch(() => null);
+
+  aggiorna(eventId);
+  revalidatePath('/pagamenti');
+  revalidatePath('/admin/pagamenti');
+  revalidatePath('/admin/cassa');
+  revalidatePath('/cassa');
+
+  return {
+    ok: `Quota ceduta: i ${fmtEuro(totale)} di ${da.nome} sono credito di ${a.nome}, che ne usa ${fmtEuro(usato)} per la sua quota.${racconto}`,
   };
 }
 

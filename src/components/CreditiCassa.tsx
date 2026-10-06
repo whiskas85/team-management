@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { creditiDellaCassa } from '@/lib/credito';
 import { fmtDate, fmtEuro, inputDate, nomeCompleto } from '@/lib/format';
-import { registraCredito, restituisciCredito } from '@/actions/pagamenti';
+import { cediCredito, registraCredito, restituisciCredito } from '@/actions/pagamenti';
 import { annullaVersamentoCredito, confermaVersamentoCredito } from '@/actions/versamenti-credito';
 import { prisma } from '@/lib/db';
 import { AzioneBottone } from './AzioneBottone';
@@ -207,6 +207,55 @@ export async function CreditiCassa({
               <span className="num shrink-0 text-sm font-semibold text-nvg">
                 {fmtEuro(c.credito)}
               </span>
+              {/* due si sono accordati: il credito di uno passa all'altro, e
+                  in cassa non cambia niente */}
+              <BottoneModale
+                etichetta="Passa"
+                icona="invita"
+                titolo={`Passa il credito di ${nomeCompleto(c.user)}`}
+                className="btn-ghost btn-sm"
+                compatto
+              >
+                <FormAzione azione={cediCredito}>
+                  <input type="hidden" name="cassaId" value={cassaId ?? ''} />
+                  <input type="hidden" name="daUserId" value={c.userId} />
+                  <p className="mb-4 text-sm text-muted">
+                    Il credito passa a un’altra persona, in questa cassa: in cassa non entra e non
+                    esce niente. Ne ha <strong className="text-ink">{fmtEuro(c.credito)}</strong>;
+                    tutti e due ricevono un avviso.
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Campo label="A chi *" span>
+                      <select name="aUserId" required className="input" defaultValue="">
+                        <option value="">— seleziona —</option>
+                        {persone
+                          .filter((p) => p.id !== c.userId)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.cognome} {p.nome}
+                              {p.callsign ? ` · ${p.callsign}` : ''}
+                            </option>
+                          ))}
+                      </select>
+                    </Campo>
+                    <Campo label="Quanto (€)">
+                      <input
+                        name="importo"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={c.credito}
+                        defaultValue={c.credito}
+                        className="input"
+                      />
+                    </Campo>
+                    <Campo label="Note">
+                      <input name="note" className="input" placeholder="Si sono accordati per…" />
+                    </Campo>
+                  </div>
+                  <Invia icona="invita">Passa il credito</Invia>
+                </FormAzione>
+              </BottoneModale>
               <BottoneModale
                 etichetta="Restituisci"
                 icona="pagamenti"

@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.26.0 — 6 ottobre 2026
+
+### Aggiunto
+
+- **Cedere una quota.** Nella pagina dell'attività, accanto ad «Aggiungi
+  partecipanti», il pulsante «Cedi una quota» apre una finestra: chi ha pagato
+  e non può venire, e chi va al suo posto (della squadra o da fuori). Quello
+  che il primo ha pagato diventa credito del secondo, cassa per cassa; il
+  primo esce, il secondo entra con la sua quota al suo prezzo, e il credito
+  la paga fin dove arriva. Pippo ha pagato 40, Pluto viene da fuori e ne deve
+  50 con la polizza: a Pluto restano da versare 10 €. Se la sua quota costa
+  meno, l'avanzo resta suo credito. Lo fa chi tiene la cassa in cui la quota
+  è stata pagata; tutti e due ricevono un avviso.
+- **Il credito passa da una persona all'altra.** Chi tiene la cassa ha
+  «Passa» accanto a ogni credito (Zio Paperone prende il credito di Pippo e
+  lo passa a Pluto); ognuno può passare il proprio da «Il tuo credito»
+  («Passalo a un altro»). Nella stessa cassa, fino a quanto ce n'è: in cassa
+  non entra e non esce niente, e il registro racconta da chi a chi.
+
 ## 3.25.1 — 6 ottobre 2026
 
 ### Aggiunto
