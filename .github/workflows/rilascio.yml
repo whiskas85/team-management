@@ -150,6 +150,31 @@ jobs:
           free -h
           echo "== Consumo dei container adesso"
           docker stats --no-stream --format '{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}'
+          # Per capire quanto pesa davvero un gestionale: la produzione, non i
+          # test (sono quasi vuoti). Il picco di memoria è quello da quando il
+          # container è partito; solo letture.
+          echo "== Produzione: memoria di picco dall'avvio"
+          for c in zd-app zd-db zd-whatsapp; do
+            id=$(docker inspect -f '{{.Id}}' "$c" 2>/dev/null) || continue
+            avvio=$(docker inspect -f '{{.State.StartedAt}}' "$c" | cut -c1-16)
+            f=/sys/fs/cgroup/system.slice/docker-$id.scope/memory.peak
+            [ -r "$f" ] || f=/sys/fs/cgroup/memory/docker/$id/memory.max_usage_in_bytes
+            if [ -r "$f" ]; then
+              echo "$c  picco $(( $(cat "$f") / 1048576 )) MiB  (partito $avvio)"
+            else
+              echo "$c  picco non leggibile"
+            fi
+          done
+          echo "== Produzione: dati"
+          U=$(docker exec zd-db printenv POSTGRES_USER); D=$(docker exec zd-db printenv POSTGRES_DB)
+          docker exec zd-db psql -U "$U" -d "$D" -At -F ' ' -c "
+            select 'database', pg_size_pretty(pg_database_size(current_database()))
+            union all select 'persone', count(*)::text from \"User\"
+            union all select 'attivita', count(*)::text from \"Event\"
+            union all select 'adesioni', count(*)::text from \"EventRsvp\"
+            union all select 'pagamenti', count(*)::text from \"Payment\"
+            union all select 'connessioni db ora', count(*)::text from pg_stat_activity" || true
+          echo "allegati: $(docker exec zd-app du -sh /data/uploads 2>/dev/null | cut -f1)"
           SUL_SERVER
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" 'bash -s -- stato' < deploy/test-server.sh
