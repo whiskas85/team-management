@@ -233,6 +233,9 @@ model User {
   rsvps                 EventRsvp[]
   payments              Payment[]               @relation("PaymentUser")
   recordedPays          Payment[]               @relation("PaymentRecorder")
+  /// L'ultima volta che ha aperto Miei pagamenti: quello che è nato dopo
+  /// (una quota, un credito ricevuto) è nuovo, e accende il pallino.
+  pagamentiVistiIl      DateTime                @default(now())
   crediti               MovimentoCredito[]      @relation("CreditiDi")
   creditiRegistrati     MovimentoCredito[]      @relation("CreditiRegistrati")
   versamentiCredito     VersamentoCredito[]
@@ -1465,6 +1468,9 @@ model MovimentoCredito {
   data           DateTime         @default(now())
   registratoDaId String?
   registratoDa   User?            @relation("CreditiRegistrati", fields: [registratoDaId], references: [id], onDelete: SetNull)
+  /// Quando è stato scritto: `data` può essere quella del pagamento vero,
+  /// giorni prima; per dire «nuovo» conta questa.
+  createdAt      DateTime         @default(now())
 
   @@index([userId, cassaId])
   @@index([cassaId])

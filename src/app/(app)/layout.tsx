@@ -140,14 +140,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // ho già segnalato come pagata: per me è fatta, aspetta solo la verifica di
   // chi tiene la cassa. Nell'elenco resta finché non la conferma lui; dal
   // pallino esce subito, perché il pallino dice cosa devo fare io.
-  const mieiPagamentiAperti = await prisma.payment.count({
-    where: {
-      userId: utente.id,
-      status: { in: ['DA_PAGARE', 'PARZIALE'] },
-      tipo: { not: 'RIMBORSO' },
-      dichiaratoIl: null,
-    },
+  const daFare = {
+    status: { in: ['DA_PAGARE' as const, 'PARZIALE' as const] },
+    tipo: { not: 'RIMBORSO' as const },
+    dichiaratoIl: null,
+  };
+  // E le novità che non ha ancora visto: una riga nata dopo la sua ultima
+  // visita a Miei pagamenti (contata una volta sola se è anche da pagare), o
+  // un credito arrivato — passato da un altro, confermato dalla cassa.
+  const { pagamentiVistiIl: visti } = await prisma.user.findUniqueOrThrow({
+    where: { id: utente.id },
+    select: { pagamentiVistiIl: true },
   });
+  const [aperti, righeNuove, creditiNuovi] = await Promise.all([
+    prisma.payment.count({ where: { userId: utente.id, ...daFare } }),
+    prisma.payment.count({
+      where: { userId: utente.id, createdAt: { gt: visti }, NOT: daFare },
+    }),
+    prisma.movimentoCredito.count({
+      where: {
+        userId: utente.id,
+        createdAt: { gt: visti },
+        importo: { gt: 0 },
+        OR: [{ registratoDaId: null }, { registratoDaId: { not: utente.id } }],
+      },
+    }),
+  ]);
+  const mieiPagamentiAperti = aperti + righeNuove + creditiNuovi;
 
   // Le attività rilasciate che questa persona non ha ancora aperto. È il
   // pallino sul calendario: senza, un'attività appena pubblicata la scopre

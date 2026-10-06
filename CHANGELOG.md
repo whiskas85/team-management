@@ -5,6 +5,31 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.27.0 — 6 ottobre 2026
+
+### Aggiunto
+
+- **«Passa» sulla quota che non serve più.** Accanto a «Credito» e «Chiedi
+  rimborso» c'è «Passa»: si apre l'elenco delle persone con la barra di
+  ricerca, se ne tocca una e quello che avevi pagato diventa suo credito,
+  nella cassa della quota. È la scorciatoia di «tienila come credito» e poi
+  «passa il credito». Anche «Passalo a un altro» del credito usa lo stesso
+  elenco con la ricerca.
+- **Ritirare una segnalazione di pagamento.** In «Correggi la segnalazione»
+  c'è «Ritira la segnalazione», finché chi tiene la cassa non l'ha
+  confermata: la quota torna da pagare e la ricevuta se ne va.
+- **Le righe nuove di Miei pagamenti si vedono.** Una quota appena
+  addebitata o un credito ricevuto è in evidenza con «Nuovo» la prima volta
+  che apri la pagina, e accende il pallino di «Miei pagamenti» finché non la
+  apri.
+
+### Corretto
+
+- **Il credito ricevuto avvisa anche chi non ha le notifiche.** Prima
+  l'avviso partiva solo come notifica: chi non l'aveva accesa non sapeva
+  niente. Ora gli arriva su WhatsApp, come gli altri avvisi; lo stesso per
+  la quota ceduta da un'attività.
+
 ## 3.26.1 — 6 ottobre 2026
 
 ### Cambiato

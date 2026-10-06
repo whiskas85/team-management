@@ -1445,12 +1445,20 @@ export async function cediQuota(_prev: StatoForm, fd: FormData): Promise<StatoFo
     testo: `${nomeCompleto(da)} ti ha ceduto la quota di «${evento.titolo}»: i ${fmtEuro(totale)} che aveva pagato sono diventati tuo credito, e ${fmtEuro(usato)} pagano la tua quota.${racconto}`,
     url: resta > 0.001 ? '/pagamenti' : `/calendario/${eventId}`,
     tag: `quota-ceduta-${eventId}-${aId}`,
+    whatsapp: `Ti hanno ceduto una quota
+
+${nomeCompleto(da)} ti ha ceduto il suo posto a «${evento.titolo}»: i ${fmtEuro(totale)} che aveva pagato sono diventati tuo credito, e ${fmtEuro(usato)} pagano la tua quota.${racconto}
+
+Trovi tutto in Miei pagamenti.`,
   }).catch(() => null);
   await avvisaPersona(daId, {
     titolo: 'Quota ceduta',
     testo: `La tua quota di «${evento.titolo}» è passata a ${nomeCompleto(a)}: non risulti più fra i presenti.`,
     url: `/calendario/${eventId}`,
     tag: `quota-ceduta-${eventId}-${daId}`,
+    whatsapp: `Quota ceduta
+
+La tua quota di «${evento.titolo}» è passata a ${nomeCompleto(a)}: non risulti più fra i presenti.`,
   }).catch(() => null);
 
   aggiorna(eventId);

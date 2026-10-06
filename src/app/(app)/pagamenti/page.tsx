@@ -7,8 +7,10 @@ import { Badge, Campo, Elenco, Intestazione, Statistica, Vuoto } from '@/compone
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { Invia } from '@/components/Bottone';
-import { dichiaraPagamento } from '@/actions/metodi';
-import { cediCredito, chiediRimborso, trasformaInCredito } from '@/actions/pagamenti';
+import { dichiaraPagamento, ritiraSegnalazione } from '@/actions/metodi';
+import { cediCredito, chiediRimborso, passaQuota, trasformaInCredito } from '@/actions/pagamenti';
+import { ScegliPersona, type PersonaScelta } from '@/components/ScegliPersona';
+import { SegnaPagamentiVisti } from '@/components/SegnaPagamentiVisti';
 import { SceltaPagamento } from '@/components/SceltaPagamento';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { daSaldare } from '@/lib/da-saldare';
@@ -93,14 +95,26 @@ export default async function MieiPagamentiPage() {
   const crediti = [...perCassa.values()].filter((c) => c.credito > 0.001);
   const credito = crediti.reduce((t, c) => t + c.credito, 0);
   // a chi si può passare il proprio credito: Pippo non viene e lo lascia a Pluto
-  const altri =
-    crediti.length === 0
-      ? []
-      : await prisma.user.findMany({
-          where: { id: { not: me.id }, stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] } },
-          orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
-          select: { id: true, nome: true, cognome: true, callsign: true },
-        });
+  const altri: PersonaScelta[] = (
+    await prisma.user.findMany({
+      where: { id: { not: me.id }, stato: { notIn: ['DISABILITATO', 'RIFIUTATO'] } },
+      orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, cognome: true, callsign: true },
+    })
+  ).map((u) => ({ id: u.id, nome: `${u.cognome} ${u.nome}`, sotto: u.callsign }));
+
+  // Quello che è nato dopo l'ultima visita è nuovo: una quota appena
+  // addebitata, un credito ricevuto. Si vede in evidenza finché non si esce
+  // dalla pagina (SegnaPagamentiVisti), poi diventa una riga come le altre.
+  const { pagamentiVistiIl: visto } = await prisma.user.findUniqueOrThrow({
+    where: { id: me.id },
+    select: { pagamentiVistiIl: true },
+  });
+  const nuovo = (quando: Date) => quando > visto;
+  // un credito che arriva: non quello che ho mosso io
+  const creditoArrivato = (m: (typeof movimentiCredito)[number]) =>
+    Number(m.importo) > 0 && nuovo(m.createdAt) && m.registratoDaId !== me.id;
+  const creditoNuovo = movimentiCredito.some(creditoArrivato);
   /** Il credito disponibile nella cassa di una quota. */
   const creditoPer = (p: (typeof pagamenti)[number]) =>
     Math.max(0, perCassa.get(p.cassaId ?? 'club')?.credito ?? 0);
@@ -118,6 +132,7 @@ export default async function MieiPagamentiPage() {
 
   return (
     <>
+      <SegnaPagamentiVisti />
       <Intestazione
         titolo="I miei pagamenti"
         sottotitolo="Quote associative, tessere e attività a pagamento"
@@ -157,7 +172,10 @@ export default async function MieiPagamentiPage() {
           Chi ha dato 30 € alla segreteria vuole ritrovarli qui, e vedere quali
           quote hanno pagato. E da qui si versa: come una quota, con i metodi
           della cassa scelta, e diventa credito quando chi la tiene conferma. */}
-      <div id="credito" className="card mb-6 scroll-mt-24">
+      <div
+        id="credito"
+        className={`card mb-6 scroll-mt-24 ${creditoNuovo ? 'border-nvg/60 ring-1 ring-nvg/40' : ''}`}
+      >
         <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
           <p className="titolo-sezione">Il tuo credito</p>
           {casseVersamento.length > 0 && (
@@ -308,15 +326,7 @@ export default async function MieiPagamentiPage() {
                       }))}
                     />
                     <Campo label="A chi *">
-                      <select name="aUserId" required className="input" defaultValue="">
-                        <option value="">— seleziona —</option>
-                        {altri.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.cognome} {p.nome}
-                            {p.callsign ? ` · ${p.callsign}` : ''}
-                          </option>
-                        ))}
-                      </select>
+                      <ScegliPersona persone={altri} />
                     </Campo>
                     <Invia icona="invita">Passa il credito</Invia>
                   </FormAzione>
@@ -371,7 +381,12 @@ export default async function MieiPagamentiPage() {
           {movimentiCredito.length > 0 && (
           <ul className="mt-3 divide-y divide-line border-t border-line text-sm">
             {movimentiCredito.slice(0, 12).map((m) => (
-              <li key={m.id} className="flex items-baseline gap-3 py-1.5">
+              <li
+                key={m.id}
+                className={`flex items-baseline gap-3 py-1.5 ${
+                  creditoArrivato(m) ? 'font-medium text-ink' : ''
+                }`}
+              >
                 <span className="num w-20 shrink-0 text-xs text-muted">{fmtDate(m.data)}</span>
                 <span className="min-w-0 flex-1 break-words">
                   {m.tipo === 'VERSAMENTO'
@@ -386,6 +401,12 @@ export default async function MieiPagamentiPage() {
                           ? m.descrizione
                           : 'Restituito'}
                   {m.cassa && <span className="text-xs text-muted"> · {m.cassa.nome}</span>}
+                  {creditoArrivato(m) && (
+                    <>
+                      {' '}
+                      <Badge tono="ok">Nuovo</Badge>
+                    </>
+                  )}
                 </span>
                 <span
                   className={`num shrink-0 ${Number(m.importo) >= 0 ? 'text-nvg' : 'text-muted'}`}
@@ -410,11 +431,15 @@ export default async function MieiPagamentiPage() {
       ) : (
         <Elenco
           cards={pagamenti.map((p) => (
-            <div key={p.id} className="card">
+            <div
+              key={p.id}
+              className={`card ${nuovo(p.createdAt) ? 'border-nvg/60 ring-1 ring-nvg/40' : ''}`}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
+                  <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-nvg">
                     {umanizza(p.tipo)}
+                    {nuovo(p.createdAt) && <Badge tono="ok">Nuovo</Badge>}
                   </p>
                   <h3 className="mt-1 break-words font-medium">{p.descrizione}</h3>
                   {/* non tutto si paga al club: il corso si paga a chi lo tiene */}
@@ -450,6 +475,7 @@ export default async function MieiPagamentiPage() {
                   cassa={p.cassa?.nome ?? null}
                   credito={creditoPer(p)}
                   nonServe={nonServe(p)}
+                  persone={altri}
                 />
               </div>
             </div>
@@ -469,9 +495,15 @@ export default async function MieiPagamentiPage() {
               </thead>
               <tbody>
                 {pagamenti.map((p) => (
-                  <tr key={p.id}>
+                  <tr key={p.id} className={nuovo(p.createdAt) ? 'bg-nvg/5' : undefined}>
                     <td>
                       <span className="font-medium">{p.descrizione}</span>
+                      {nuovo(p.createdAt) && (
+                        <>
+                          {' '}
+                          <Badge tono="ok">Nuovo</Badge>
+                        </>
+                      )}
                       {p.cassa && (
                         <span className="block text-[11px] text-nvg/80">
                           da pagare a {p.cassa.nome}
@@ -511,6 +543,7 @@ export default async function MieiPagamentiPage() {
                   cassa={p.cassa?.nome ?? null}
                   credito={creditoPer(p)}
                   nonServe={nonServe(p)}
+                  persone={altri}
                 />
                     </td>
                   </tr>
@@ -566,6 +599,7 @@ function Dichiara({
   cassa = null,
   credito,
   nonServe,
+  persone,
 }: {
   pagamento: {
     id: string;
@@ -596,6 +630,8 @@ function Dichiara({
   credito: number;
   /** La quota non serve più (attività annullata, o non ci va): si può tenere come credito. */
   nonServe: boolean;
+  /** A chi si può passare la quota che non serve più. */
+  persone: PersonaScelta[];
 }) {
   // quota già versata: se non serve più si tiene come credito, oppure si
   // chiede indietro la parte pagata in contanti
@@ -629,6 +665,28 @@ function Dichiara({
           >
             Credito
           </AzioneBottone>
+        )}
+        {/* la scorciatoia: non vengo, la lascio a un altro. Diventa suo
+            credito in quella cassa, in un gesto solo */}
+        {nonServe && (!pagamento.rimborso || rimborsoAperto) && (
+          <BottoneModale
+            etichetta="Passa"
+            icona="invita"
+            titolo={`Passa a qualcuno · ${pagamento.descrizione}`}
+            className="btn-ghost btn-sm"
+          >
+            <FormAzione azione={passaQuota} className="space-y-4 text-left">
+              <input type="hidden" name="id" value={pagamento.id} />
+              <p className="text-sm text-muted">
+                Quello che hai pagato ({fmtEuro(Number(pagamento.pagato))}) diventa credito della
+                persona che scegli{cassa ? `, presso ${cassa}` : ''}: lo usa per pagare le sue
+                prossime quote di quella cassa. Riceve un avviso.
+                {rimborsoAperto ? ' Il rimborso che avevi chiesto non serve più.' : ''}
+              </p>
+              <ScegliPersona persone={persone} />
+              <Invia icona="invita">Passa la quota</Invia>
+            </FormAzione>
+          </BottoneModale>
         )}
         {inContanti && !pagamento.rimborso && (
           <AzioneBottone
@@ -740,6 +798,24 @@ function Dichiara({
           {cassa ? `chi gestisce «${cassa}»` : 'la segreteria'} avrà verificato l’incasso.
         </p>
       </FormAzione>
+      {/* sbagliato tutto, non c'è niente da correggere: la segnalazione si
+          ritira, finché non è confermata */}
+      {giaSegnalato && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+          <p className="text-xs text-muted">
+            Segnalato per sbaglio? Ritirala: la quota torna da pagare.
+          </p>
+          <AzioneBottone
+            azione={ritiraSegnalazione}
+            valori={{ id: pagamento.id }}
+            icona="annulla"
+            conferma="Ritirare la segnalazione di questo pagamento? La quota torna da pagare."
+            className="btn-ghost btn-sm"
+          >
+            Ritira la segnalazione
+          </AzioneBottone>
+        </div>
+      )}
     </>
   );
 

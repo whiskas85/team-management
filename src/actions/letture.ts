@@ -83,3 +83,14 @@ export async function segnaDebriefingLetti(ids: string[]): Promise<void> {
   // resterebbe acceso fino al primo cambio pagina
   revalidatePath('/debriefing', 'layout');
 }
+
+/**
+ * Miei pagamenti è stata vista: quello che c'era non è più nuovo. La chiama la
+ * pagina quando la si lascia, così le righe nuove restano in evidenza mentre
+ * la si guarda.
+ */
+export async function segnaPagamentiVisti(): Promise<void> {
+  const me = await requireUser();
+  await prisma.user.update({ where: { id: me.id }, data: { pagamentiVistiIl: new Date() } });
+  revalidatePath('/', 'layout');
+}

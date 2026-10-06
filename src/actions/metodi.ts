@@ -218,3 +218,34 @@ export async function dichiaraPagamento(_prev: StatoForm, fd: FormData): Promise
     }.`,
   };
 }
+
+/**
+ * Chi ha segnalato un pagamento per sbaglio lo ritira da sé, finché chi tiene
+ * la cassa non l'ha confermato: la quota torna da pagare com'era, e la
+ * ricevuta allegata se ne va con la segnalazione.
+ */
+export async function ritiraSegnalazione(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const pagamento = await prisma.payment.findUnique({ where: { id: str(fd, 'id') } });
+  if (!pagamento || pagamento.userId !== me.id) return { errore: 'Pagamento non trovato.' };
+  if (pagamento.status === 'PAGATO') {
+    return { errore: 'Il pagamento è già stato confermato: per correggerlo scrivi a chi tiene la cassa.' };
+  }
+  if (!pagamento.dichiaratoIl) return { errore: 'Non c’è una segnalazione da ritirare.' };
+
+  await prisma.payment.update({
+    where: { id: pagamento.id },
+    data: {
+      dichiaratoIl: null,
+      metodoId: null,
+      allegatoPath: null,
+      allegatoNome: null,
+      allegatoTipo: null,
+      allegatoTitolo: null,
+    },
+  });
+  if (pagamento.allegatoPath) await eliminaAllegato(pagamento.allegatoPath).catch(() => null);
+
+  aggiorna();
+  return { ok: 'Segnalazione ritirata: la quota torna da pagare.' };
+}

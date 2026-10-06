@@ -570,7 +570,7 @@ export async function cediCredito(_prev: StatoForm, fd: FormData): Promise<Stato
     return { errore: 'Il credito di un altro lo sposta chi tiene la cassa.' };
   }
 
-  const [chiDa, chiA, cassa] = await Promise.all([
+  const [chiDa, chiA] = await Promise.all([
     prisma.user.findUnique({
       where: { id: da },
       select: { nome: true, cognome: true, callsign: true },
@@ -579,7 +579,6 @@ export async function cediCredito(_prev: StatoForm, fd: FormData): Promise<Stato
       where: { id: a },
       select: { nome: true, cognome: true, callsign: true, stato: true },
     }),
-    cassaId ? prisma.cassa.findUnique({ where: { id: cassaId }, select: { nome: true } }) : null,
   ]);
   if (!chiDa || !chiA || chiA.stato === 'DISABILITATO' || chiA.stato === 'RIFIUTATO') {
     return { errore: 'Persona non trovata.' };
@@ -604,24 +603,64 @@ export async function cediCredito(_prev: StatoForm, fd: FormData): Promise<Stato
   });
   if (passato <= 0) return { errore: 'Il credito nel frattempo è cambiato: riprova.' };
 
-  const dove = cassa?.nome ?? (await marchio()).nome;
-  await avvisaPersona(a, {
-    titolo: 'Hai ricevuto del credito',
-    testo: `${nomeCompleto(chiDa)} ti ha passato ${fmtEuro(passato)} di credito presso ${dove}: lo usi quando paghi le prossime quote di quella cassa.`,
-    url: '/pagamenti#credito',
-    tag: `credito-ceduto-${da}-${a}`,
-  }).catch(() => null);
-  if (!suo) {
-    await avvisaPersona(da, {
-      titolo: 'Il tuo credito è passato',
-      testo: `${fmtEuro(passato)} del tuo credito presso ${dove} sono passati a ${nomeCompleto(chiA)}.`,
-      url: '/pagamenti#credito',
-      tag: `credito-ceduto-${da}-${a}`,
-    }).catch(() => null);
-  }
+  await avvisaCreditoRicevuto({
+    da,
+    a,
+    nomeDa: nomeCompleto(chiDa),
+    nomeA: nomeCompleto(chiA),
+    importo: passato,
+    cassaId,
+    perChi: me.id,
+    cosa: 'del suo credito',
+  });
 
   aggiorna();
   return { ok: `Passati ${fmtEuro(passato)} di credito a ${nomeCompleto(chiA)}.` };
+}
+
+/**
+ * Chi riceve del credito lo deve sapere: la notifica a chi le ha accese, il
+ * WhatsApp agli altri. Chi lo dà riceve due righe se a farlo non è stato lui.
+ */
+async function avvisaCreditoRicevuto(p: {
+  da: string;
+  a: string;
+  nomeDa: string;
+  nomeA: string;
+  importo: number;
+  cassaId: string | null;
+  perChi: string;
+  /** Cosa è passato: «la quota di «Op. X»», «del suo credito». */
+  cosa: string;
+}) {
+  const cassa = p.cassaId
+    ? await prisma.cassa.findUnique({ where: { id: p.cassaId }, select: { nome: true } })
+    : null;
+  const dove = cassa?.nome ?? (await marchio()).nome;
+  const euro = fmtEuro(p.importo);
+  const tag = `credito-ricevuto-${p.da}-${p.a}-${Date.now()}`;
+  await avvisaPersona(p.a, {
+    titolo: `Hai ricevuto ${euro} di credito`,
+    testo: `${p.nomeDa} ti ha passato ${p.cosa}: ${euro} di credito presso ${dove}, da usare quando paghi le prossime quote di quella cassa.`,
+    url: '/pagamenti#credito',
+    tag,
+    whatsapp: `Hai ricevuto del credito
+
+${p.nomeDa} ti ha passato ${p.cosa}: ora hai ${euro} di credito in più presso ${dove}.
+
+Lo usi quando paghi le prossime quote di quella cassa: te lo proponiamo per primo. Lo trovi in Miei pagamenti.`,
+  }).catch(() => null);
+  if (p.perChi !== p.da) {
+    await avvisaPersona(p.da, {
+      titolo: 'Il tuo credito è passato',
+      testo: `${euro} presso ${dove} sono passati a ${p.nomeA}.`,
+      url: '/pagamenti#credito',
+      tag,
+      whatsapp: `Il tuo credito è passato
+
+${euro} presso ${dove} sono passati a ${p.nomeA}.`,
+    }).catch(() => null);
+  }
 }
 
 /**
@@ -660,7 +699,87 @@ export async function pagaColCredito(_prev: StatoForm, fd: FormData): Promise<St
  */
 export async function trasformaInCredito(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  const id = str(fd, 'id');
+  const esito = await quotaCheNonServe(me, str(fd, 'id'));
+  if ('errore' in esito) return esito;
+  const { pagamento } = esito;
+
+  const credito = await quotaInCredito(pagamento.id, `${me.nome} ${me.cognome}`);
+  aggiorna();
+  if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
+  return credito > 0
+    ? { ok: `${fmtEuro(credito)} tenuti come credito: si spendono alla prossima quota.` }
+    : { errore: 'Non c’era niente da trasformare in credito.' };
+}
+
+/**
+ * La quota pagata che non serve più passa direttamente a un altro: la
+ * scorciatoia di «tienila come credito» e poi «passa il credito». Diventa
+ * credito di chi la riceve, nella cassa della quota, e lui la spende sulle
+ * sue prossime quote di quella cassa.
+ */
+export async function passaQuota(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  const a = str(fd, 'aUserId');
+  if (!a) return { errore: 'Scegli a chi la passi.' };
+  const esito = await quotaCheNonServe(me, str(fd, 'id'));
+  if ('errore' in esito) return esito;
+  const { pagamento } = esito;
+  if (a === pagamento.userId) return { errore: 'È già sua: scegli un’altra persona.' };
+
+  const [chiDa, chiA] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: pagamento.userId },
+      select: { nome: true, cognome: true, callsign: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: a },
+      select: { nome: true, cognome: true, callsign: true, stato: true },
+    }),
+  ]);
+  if (!chiDa || !chiA || chiA.stato === 'DISABILITATO' || chiA.stato === 'RIFIUTATO') {
+    return { errore: 'Persona non trovata.' };
+  }
+
+  const credito = await quotaInCredito(
+    pagamento.id,
+    `${me.nome} ${me.cognome}, passata a ${chiA.nome} ${chiA.cognome}`,
+  );
+  if (credito <= 0) return { errore: 'Non c’era niente da passare.' };
+  const passato = await passaCredito({
+    da: pagamento.userId,
+    a,
+    cassaId: pagamento.cassaId,
+    importo: credito,
+    descrizione: `«${pagamento.descrizione}» passata da ${nomeCompleto(chiDa)} a ${nomeCompleto(chiA)}`,
+    registratoDaId: me.id,
+  });
+  aggiorna();
+  if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
+  if (passato <= 0) {
+    return { errore: `${fmtEuro(credito)} sono tuo credito, ma non è stato possibile passarli: riprova da «Il tuo credito».` };
+  }
+  await avvisaCreditoRicevuto({
+    da: pagamento.userId,
+    a,
+    nomeDa: nomeCompleto(chiDa),
+    nomeA: nomeCompleto(chiA),
+    importo: passato,
+    cassaId: pagamento.cassaId,
+    perChi: me.id,
+    cosa: `la quota di «${pagamento.descrizione}»`,
+  });
+  return { ok: `${fmtEuro(passato)} passati a ${nomeCompleto(chiA)} come credito.` };
+}
+
+/**
+ * La quota pagata che si può togliere dal suo posto: tenerla come credito,
+ * o passarla a un altro. La propria, quando non serve più (attività
+ * annullata, o non ci si va); chi tiene la cassa, sempre.
+ */
+async function quotaCheNonServe(
+  me: Awaited<ReturnType<typeof requireUser>>,
+  id: string,
+): Promise<{ errore: string } | { pagamento: NonNullable<Awaited<ReturnType<typeof leggiQuota>>> }> {
   let pagamento = await prisma.payment.findUnique({
     where: { id },
     include: { event: { select: { status: true } } },
@@ -696,13 +815,11 @@ export async function trasformaInCredito(_prev: StatoForm, fd: FormData): Promis
     }
   }
 
-  const credito = await quotaInCredito(pagamento.id, `${me.nome} ${me.cognome}`);
-  aggiorna();
-  if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
-  return credito > 0
-    ? { ok: `${fmtEuro(credito)} tenuti come credito: si spendono alla prossima quota.` }
-    : { errore: 'Non c’era niente da trasformare in credito.' };
+  return { pagamento };
 }
+
+const leggiQuota = (id: string) =>
+  prisma.payment.findUnique({ where: { id }, include: { event: { select: { status: true } } } });
 
 /**
  * Un pagamento segnalato che non è arrivato: la segnalazione si annulla, con
