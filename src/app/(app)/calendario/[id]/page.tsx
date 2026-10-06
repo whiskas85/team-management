@@ -1660,7 +1660,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   gestisce ? (
                     <>
                       <span className="num">{fmtEuro(tariffaInterni)}</span>{' '}
-                      <span className="text-base font-normal text-muted">interni</span>
+                      <span className="text-base font-normal text-muted">chi è in squadra</span>
                     </>
                   ) : mioTotale > 0 ? (
                     fmtEuro(mioTotale)
@@ -1672,7 +1672,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                   gestisce ? (
                     <>
                       <span className="text-warn">{fmtEuro(tariffaEsterni)}</span>{' '}
-                      <span className="text-sm text-muted">esterni</span>
+                      <span className="text-sm text-muted">chi viene da fuori</span>
                     </>
                   ) : null
                 }
@@ -1685,30 +1685,93 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       <p>{composizione.join(' · ')}</p>
                     )}
 
-                    {/* a chi governa: di cosa sono fatti i due totali, cassa
-                        per cassa. Il numero grande dice quanto, questo dice a
-                        chi va. */}
-                    {gestisce && evento.quoteCasse.length > 0 && (
-                      <p>
-                        attività &middot; interni {fmtEuro(costo)} &middot; esterni{' '}
-                        {quotaEsterni === null ? fmtEuro(costo) : fmtEuro(quotaEsterni)}
-                        {evento.quoteCasse.map((q) => (
-                          <span key={q.id} className="block">
-                            {q.cassa.nome} &middot; interni {fmtEuro(Number(q.importo))} &middot;{' '}
-                            esterni{' '}
-                            {fmtEuro(Number(q.importoEsterni === null ? q.importo : q.importoEsterni))}
-                          </span>
-                        ))}
-                      </p>
+                    {/* A chi governa: di cosa sono fatti i due totali, cassa
+                        per cassa, e quanto tocca a lui. Ripiegato: in fila
+                        su tre righe era troppo stretto per dire qualcosa e
+                        occupava lo spazio lo stesso. Aperto è una tabellina
+                        che si legge: righe le casse, colonne i due prezzi. */}
+                    {gestisce && (evento.quoteCasse.length > 0 || mioTotale > 0) && (
+                      <details className="group mt-1">
+                        <summary className="cursor-pointer list-none text-nvg hover:underline">
+                          <span className="group-open:hidden">Come si compone ›</span>
+                          <span className="hidden group-open:inline">Nascondi il dettaglio</span>
+                        </summary>
+                        <div className="mt-2 space-y-2 rounded-md border border-line bg-surface2 p-3 text-xs">
+                          {evento.quoteCasse.length > 0 && (
+                            <>
+                              <p>
+                                Ognuno paga ogni riga alla sua cassa: sono pagamenti separati, e
+                                ognuno lo conferma chi tiene quella cassa.
+                              </p>
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="text-[11px] uppercase tracking-wide text-muted">
+                                    <th className="py-1 text-left font-medium">Cassa</th>
+                                    <th className="py-1 text-right font-medium">Squadra</th>
+                                    <th className="py-1 text-right font-medium">Da fuori</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="num text-ink">
+                                  <tr className="border-t border-line">
+                                    <td className="py-1">Club · quota dell’attività</td>
+                                    <td className="py-1 text-right">{fmtEuro(costo)}</td>
+                                    <td className="py-1 text-right">
+                                      {fmtEuro(quotaEsterni === null ? costo : quotaEsterni)}
+                                    </td>
+                                  </tr>
+                                  {evento.quoteCasse.map((q) => (
+                                    <tr key={q.id} className="border-t border-line">
+                                      <td className="py-1">
+                                        {q.cassa.nome}
+                                        {q.descrizione ? ` · ${q.descrizione}` : ''}
+                                      </td>
+                                      <td className="py-1 text-right">
+                                        {fmtEuro(Number(q.importo))}
+                                      </td>
+                                      <td className="py-1 text-right">
+                                        {fmtEuro(
+                                          Number(
+                                            q.importoEsterni === null
+                                              ? q.importo
+                                              : q.importoEsterni,
+                                          ),
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  <tr className="border-t border-line font-semibold">
+                                    <td className="py-1">Totale</td>
+                                    <td className="py-1 text-right">{fmtEuro(tariffaInterni)}</td>
+                                    <td className="py-1 text-right text-warn">
+                                      {fmtEuro(tariffaEsterni)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                              {tariffaEsterni > tariffaInterni && (
+                                <p>
+                                  Di solito la differenza è la polizza giornaliera: chi viene da
+                                  fuori non ha la tessera annuale.
+                                </p>
+                              )}
+                            </>
+                          )}
+                          {mioTotale > 0 && (
+                            <p>
+                              <strong className="text-ink">La tua quota: {fmtEuro(mioTotale)}</strong>
+                              .{' '}
+                              {mioConvocato
+                                ? 'Sei convocato: il posto è tuo, diventa tuo davvero al saldo.'
+                                : schieraQuesta && !mioTitolare
+                                  ? 'Si paga solo se il TL ti schiera titolare.'
+                                  : 'La tua presenza è confermata quando è saldata.'}
+                            </p>
+                          )}
+                        </div>
+                      </details>
                     )}
 
-                    {/* Quanto tocca a chi sta guardando: il numero grande qui
-                        sopra è il listino, non la sua quota. Senza la
-                        composizione fra parentesi — dove va, l'ha appena
-                        letto riga per riga. */}
-                    {gestisce && mioTotale > 0 && <p>la tua &middot; {fmtEuro(mioTotale)}</p>}
-
-                    {mioTotale > 0 && (
+                    {!gestisce && mioTotale > 0 && (
                       <p className="text-warn">
                         {mioConvocato
                           ? 'sei convocato: il posto è tuo, diventa tuo davvero al saldo'

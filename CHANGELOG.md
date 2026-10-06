@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.26.1 — 6 ottobre 2026
+
+### Cambiato
+
+- **La quota dell'attività, per chi la gestisce, si legge meglio.** In vista
+  restano le due cifre — «chi è in squadra» e «chi viene da fuori» — e la
+  composizione è ripiegata sotto «Come si compone»: aperta è una tabellina
+  con una riga per cassa e le colonne Squadra / Da fuori, il totale, la
+  spiegazione di cosa vuol dire, e la tua quota. Prima erano tre righe
+  compresse che occupavano spazio senza spiegare niente.
+
 ## 3.26.0 — 6 ottobre 2026
 
 ### Aggiunto
