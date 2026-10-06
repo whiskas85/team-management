@@ -2514,13 +2514,31 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             ) : chiuso && evento.status === 'RILASCIATA' ? (
               // attiva, ma non ci si segna più: il badge al posto dei pulsanti,
               // e sotto quello che avevi risposto, se l'avevi fatto
-              <div className="flex flex-wrap items-center gap-2">
-                <BadgeIscrizioniChiuse />
-                {mio && (
-                  <span className="text-sm text-muted">
-                    Avevi risposto:{' '}
-                    <Badge tono={tonoRsvp[mio.status]}>{etichettaRisposta[mio.status]}</Badge>
-                  </span>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <BadgeIscrizioniChiuse />
+                  {mio && (
+                    <span className="text-sm text-muted">
+                      Avevi risposto:{' '}
+                      <Badge tono={tonoRsvp[mio.status]}>{etichettaRisposta[mio.status]}</Badge>
+                    </span>
+                  )}
+                </div>
+                {/* segnarsi no, ma dire che non si viene sì */}
+                {mio?.status !== 'ASSENTE' && (
+                  <>
+                    <p className="text-xs text-muted">
+                      Non ti puoi più segnare, ma se hai un contrattempo puoi ancora dire che non
+                      ci sei.
+                    </p>
+                    <AdesioneEvento
+                      eventId={evento.id}
+                      scelta={mio?.status ?? null}
+                      nota={mio?.note ?? null}
+                      pieno={pieno}
+                      soloNo
+                    />
+                  </>
                 )}
               </div>
             ) : chiuso ? (

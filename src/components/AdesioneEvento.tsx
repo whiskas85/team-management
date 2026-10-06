@@ -39,6 +39,7 @@ export function AdesioneEvento({
   pieno,
   compatta = false,
   kit,
+  soloNo = false,
 }: {
   eventId: string;
   scelta: string | null;
@@ -51,6 +52,11 @@ export function AdesioneEvento({
   kit?: { prezzo: number; stato: 'RICHIESTO' | 'CONFERMATO' | null; esauriti: boolean };
   /** Nella card serve solo la fila di pulsanti, senza campo nota. */
   compatta?: boolean;
+  /**
+   * Adesioni chiuse: segnarsi non si può più, ma «non ci sono» sì — chi ha un
+   * contrattempo lo deve poter dire. Resta solo quel pulsante.
+   */
+  soloNo?: boolean;
 }) {
   const [stato, azione] = useActionState(rispondiEvento, {} as StatoForm);
   const campoScelta = useRef<HTMLInputElement>(null);
@@ -75,8 +81,10 @@ export function AdesioneEvento({
         </div>
       )}
 
-      <div className={compatta ? 'flex gap-1.5' : 'grid grid-cols-3 gap-2'}>
-        {SCELTE.map((s) => (
+      <div
+        className={compatta ? 'flex gap-1.5' : soloNo ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-3 gap-2'}
+      >
+        {SCELTE.filter((s) => !soloNo || s.valore === 'ASSENTE').map((s) => (
           <Scelta
             key={s.valore}
             testo={s.testo}
@@ -86,15 +94,17 @@ export function AdesioneEvento({
             compatta={compatta}
             onScegli={() => {
               // il pulsante già acceso, toccato di nuovo, toglie la risposta
+              // (ad adesioni chiuse no: si direbbe di nuovo «non ci sono»)
               if (campoScelta.current) {
-                campoScelta.current.value = scelta === s.valore ? 'NESSUNA' : s.valore;
+                campoScelta.current.value =
+                  scelta === s.valore && !soloNo ? 'NESSUNA' : s.valore;
               }
             }}
           />
         ))}
       </div>
 
-      {!compatta && scelta && (
+      {!compatta && scelta && !soloNo && (
         <p className="text-[11px] text-muted">
           Tocca di nuovo la tua risposta per toglierla.
         </p>

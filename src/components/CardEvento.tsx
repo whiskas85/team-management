@@ -260,6 +260,17 @@ export function CardEvento({
             />
           )}
           {e.iscrizioniChiuse && <BadgeIscrizioniChiuse />}
+          {/* chiuse: resta solo «non ci sono», per chi non lo ha già detto */}
+          {e.iscrizioniChiuse && e.mioStato !== 'ASSENTE' && (
+            <AdesioneEvento
+              eventId={e.id}
+              scelta={e.mioStato}
+              nota={e.miaNota}
+              pieno={false}
+              compatta
+              soloNo
+            />
+          )}
           {azioni}
         </div>
       )}

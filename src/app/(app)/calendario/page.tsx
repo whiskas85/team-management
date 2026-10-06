@@ -486,8 +486,18 @@ export default async function CalendarioPage({
                   )}
 
                   {e.iscrizioniChiuse && (
-                    <div className="mt-2 border-t border-line pt-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line pt-2">
                       <BadgeIscrizioniChiuse />
+                      {e.mioStato !== 'ASSENTE' && (
+                        <AdesioneEvento
+                          eventId={e.id}
+                          scelta={e.mioStato}
+                          nota={e.miaNota}
+                          pieno={false}
+                          compatta
+                          soloNo
+                        />
+                      )}
                     </div>
                   )}
                   {e.adesioniAperte && (

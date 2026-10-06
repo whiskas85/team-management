@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.27.2 — 6 ottobre 2026
+
+### Cambiato
+
+- **Ad adesioni chiuse si può ancora dire «non ci sono».** Segnarsi non si
+  può più, ma chi ha un contrattempo lo deve poter far sapere: nella pagina
+  dell'attività e nelle card del calendario, accanto a «Iscrizioni chiuse»,
+  resta il solo pulsante «Non ci sono» (per chi non l'ha già detto). Prima
+  i pulsanti sparivano tutti, e chi non veniva restava contato fra i
+  presenti.
+
 ## 3.27.1 — 6 ottobre 2026
 
 ### Corretto

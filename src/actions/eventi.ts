@@ -632,8 +632,15 @@ export async function rispondiEvento(_prev: StatoForm, fd: FormData): Promise<St
     }
   }
   if (evento.status === 'ANNULLATA') return { errore: 'L’attività è stata annullata.' };
-  if (evento.chiusuraIscrizioni && evento.chiusuraIscrizioni < new Date()) {
-    return { errore: 'Le adesioni per questo evento sono chiuse.' };
+  // Chiuse le adesioni non ci si segna più, ma «non ci sono» si dice sempre:
+  // chi ha un contrattempo deve poterlo far sapere, e tenerlo fra i presenti
+  // perché il pulsante è sparito vuol dire contarlo in campo quando non c'è.
+  if (
+    evento.chiusuraIscrizioni &&
+    evento.chiusuraIscrizioni < new Date() &&
+    str(fd, 'status') !== 'ASSENTE'
+  ) {
+    return { errore: 'Le adesioni per questo evento sono chiuse: puoi solo dire che non ci sei.' };
   }
 
   // senza certificato medico valido non si scende in campo: vale per chi è in
