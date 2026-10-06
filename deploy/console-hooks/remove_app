@@ -4,5 +4,8 @@
 # database, cartella spostata in /opt/archivio, volumi lasciati dove sono.
 # Installazione: vedi create_app.
 set -euo pipefail
+# i campi anche dal JSON su stdin, per le versioni dell'agent che non li
+# mettono tutti nell'ambiente
+. "$(dirname "$(readlink -f "$0")")/campi.sh"
 
 bash /opt/gestionale/deploy/squadra-server.sh rimuovi "${ZDT_APP_NAME:?manca il nome dell app}"

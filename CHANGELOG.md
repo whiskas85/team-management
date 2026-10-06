@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.23.5 — 6 ottobre 2026
+
+### Corretto
+
+- **Gli hook della console leggono i campi anche dal JSON su stdin.** Con
+  un agent che non mette la password nell'ambiente, `set_admin_password`
+  rispondeva «Manca la password.»: ora i campi mancanti (password, email,
+  archivio…) si prendono dal JSON che l'agent passa sempre su stdin.
+
 ## 3.23.4 — 6 ottobre 2026
 
 ### Aggiunto

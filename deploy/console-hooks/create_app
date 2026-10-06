@@ -17,6 +17,9 @@
 # "admin_password":"applied"; vuota, resta quella generata dallo script. In
 # entrambi i casi **non esce da qui**: sta solo in /opt/squadra-<nome>/ACCESSO.txt.
 set -euo pipefail
+# i campi anche dal JSON su stdin, per le versioni dell'agent che non li
+# mettono tutti nell'ambiente
+. "$(dirname "$(readlink -f "$0")")/campi.sh"
 
 nome=${ZDT_APP_NAME:?manca il nome dell app}
 dominio=${ZDT_APP_DOMAIN:-$nome.zerodarkteam.it}
