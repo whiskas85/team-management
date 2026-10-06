@@ -5,6 +5,7 @@
 # Installazione sul server (una volta; i link seguono il codice aggiornato):
 #   ln -sf /opt/gestionale/deploy/console-hooks/create_app /etc/zdt-agent/hooks/create_app
 #   ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
+#   ln -sf /opt/gestionale/deploy/console-hooks/purge_app /etc/zdt-agent/hooks/purge_app
 #
 # L'agent lo lancia come root, con ZDT_APP_NAME e ZDT_APP_DOMAIN (gli altri
 # campi qui non servono). Uscita 0 = fatto; quello che si stampa finisce nella

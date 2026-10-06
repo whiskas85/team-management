@@ -472,6 +472,7 @@ server) crea e toglie i gestionali ospitati con due hook che stanno qui, in
 ```
 ln -sf /opt/gestionale/deploy/console-hooks/create_app /etc/zdt-agent/hooks/create_app
 ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
+ln -sf /opt/gestionale/deploy/console-hooks/purge_app /etc/zdt-agent/hooks/purge_app
 ```
 
 - **Nuova app** → `squadra-server.sh nuova`, con `ZDT_APP_NAME` come nome
@@ -480,6 +481,11 @@ ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remo
 - **Rimuovi app** → `squadra-server.sh rimuovi <nome>`: backup finale,
   container tolti, proxy e rete staccati, cartella in `/opt/archivio`. I volumi
   restano; il comando per cancellarli lo stampa la rimozione.
+- **Archivio → Elimina definitivamente** → `squadra-server.sh elimina <nome>
+  [archivio]`: cancella i volumi `gestionale-sq-<nome>_*` e la cartella in
+  `/opt/archivio`, lascia i backup. Rifiuta i nomi nostri (`ops`, `www`,
+  `test…`), un gestionale ancora attivo e una cartella che non è il suo
+  archivio; esce con 0 solo se non resta niente.
 - Le password non escono: l'admin di partenza resta in `ACCESSO.txt`.
 
 ## Il sito pubblico su www

@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.23.3 — 6 ottobre 2026
+
+### Aggiunto
+
+- **Eliminazione definitiva dalla console.** Nuovo hook
+  `deploy/console-hooks/purge_app` per «Archivio → Elimina definitivamente»,
+  che chiama il nuovo `squadra-server.sh elimina`: cancella volumi e cartella
+  archiviata di un gestionale già rimosso, lascia i backup, e rifiuta nomi
+  nostri, gestionali ancora attivi e archivi che non sono suoi.
+
 ## 3.23.2 — 6 ottobre 2026
 
 ### Corretto

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Hook della console ZeroDark: «Archivio → Elimina definitivamente» cancella
+# per sempre un gestionale ospitato già rimosso, con
+# deploy/squadra-server.sh elimina: volumi dei dati e cartella archiviata. I
+# backup in /root/backup restano.
+#
+# Contratto (README della console): ZDT_APP_NAME e ZDT_APP_ARCHIVE_PATH; uscita
+# 0 solo se ha cancellato tutto. I rifiuti — nomi nostri, gestionale ancora
+# attivo, cartella che non è il suo archivio — escono con errore senza toccare
+# niente, e il portale resta nell'archivio della console.
+# Installazione: vedi create_app.
+set -euo pipefail
+
+bash /opt/gestionale/deploy/squadra-server.sh elimina \
+  "${ZDT_APP_NAME:?manca il nome dell app}" "${ZDT_APP_ARCHIVE_PATH:-}"

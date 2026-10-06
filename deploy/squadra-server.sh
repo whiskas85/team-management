@@ -13,6 +13,7 @@
 #   bash /opt/gestionale/deploy/squadra-server.sh stato [pippo]
 #   bash /opt/gestionale/deploy/squadra-server.sh rimuovi pippo
 #   bash /opt/gestionale/deploy/squadra-server.sh aggancia   (lo fa da sé lavori.sh)
+#   bash /opt/gestionale/deploy/squadra-server.sh elimina pippo [/opt/archivio/squadra-pippo-…]
 #
 # Ogni squadra ha la sua cartella, /opt/squadra-<nome>, con il suo .env.squadra
 # (chiavi e password sue, permessi 600) e ACCESSO.txt con l'admin di partenza.
@@ -393,6 +394,60 @@ rimuovi() {
   echo "  docker volume rm gestionale-sq-${SQUADRA}_db-data gestionale-sq-${SQUADRA}_uploads gestionale-sq-${SQUADRA}_whatsapp"
 }
 
+# Cancella per sempre un gestionale gia' tolto con «rimuovi»: i volumi dei
+# dati (database, allegati, sessione WhatsApp) e la cartella archiviata. I
+# backup in /root/backup restano. Non si annulla, quindi rifiuta tutto quello
+# che non e' esattamente un gestionale ospitato gia' rimosso:
+# - i nomi nostri (ops, www, test…: valida_squadra e la lista qui sotto);
+# - un gestionale ancora attivo (cartella in /opt o container presenti);
+# - una cartella che non e' un archivio di quel gestionale.
+# Esce con 0 solo se alla fine non resta niente.
+elimina() {
+  prepara "$1"
+  local archivio=${2:-} v resta=0
+  case "$SQUADRA" in
+    ops | www | zd | gestionale) echo "«$SQUADRA» non e' un gestionale ospitato: non lo cancello."; exit 1 ;;
+  esac
+  if [ -e "$CARTELLA" ]; then
+    echo "$CARTELLA c'e' ancora: il gestionale e' attivo. Prima «rimuovi $SQUADRA»."
+    exit 1
+  fi
+  if docker ps -a --format '{{.Names}}' | grep -q "^zd-sq-$SQUADRA-"; then
+    echo "Ci sono ancora container zd-sq-$SQUADRA-*: prima «rimuovi $SQUADRA»."
+    exit 1
+  fi
+  # la cartella archiviata: quella indicata, se e' davvero sua, o tutte le sue
+  local archivi=()
+  if [ -n "$archivio" ]; then
+    if ! printf '%s' "$archivio" | grep -Eq "^/opt/archivio/squadra-$SQUADRA-[0-9]{14}\$"; then
+      echo "$archivio non e' un archivio di $SQUADRA: non tocco niente."
+      exit 1
+    fi
+    [ -d "$archivio" ] && archivi+=("$archivio")
+  else
+    for v in /opt/archivio/squadra-"$SQUADRA"-*; do
+      printf '%s' "$v" | grep -Eq "^/opt/archivio/squadra-$SQUADRA-[0-9]{14}\$" && [ -d "$v" ] && archivi+=("$v")
+    done
+  fi
+  echo "== $SQUADRA: cancellazione definitiva"
+  # solo i volumi di questo progetto, per nome esatto: «demo» non tocca «demo2»
+  for v in $(docker volume ls -q | grep -E "^gestionale-sq-${SQUADRA}_(db-data|uploads|whatsapp)\$" || true); do
+    docker volume rm "$v" > /dev/null && echo "== volume $v cancellato"
+  done
+  for v in "${archivi[@]}"; do
+    rm -rf -- "$v" && echo "== cartella $v cancellata"
+  done
+  # controllo finale: esce bene solo se non resta niente
+  if docker volume ls -q | grep -Eq "^gestionale-sq-${SQUADRA}_"; then
+    echo "!! restano volumi di $SQUADRA:"; docker volume ls -q | grep -E "^gestionale-sq-${SQUADRA}_"; resta=1
+  fi
+  for v in "${archivi[@]}"; do
+    [ -e "$v" ] && { echo "!! resta $v"; resta=1; }
+  done
+  [ "$resta" = 0 ] || exit 1
+  echo "$SQUADRA cancellato. I backup restano in /root/backup/sq-$SQUADRA-*.dump"
+}
+
 # I gestionali nati prima che il loro nome puntasse qui: il sito nel proxy non
 # c'e' (e da fuori si vede un errore SSL). Lo chiama deploy/lavori.sh ogni
 # pochi minuti: appena il DNS arriva, si aggancia da solo, senza un rilascio.
@@ -418,5 +473,6 @@ case "${1:-stato}" in
   stato) stato "${2:-}" ;;
   rimuovi) rimuovi "${2:?quale squadra?}" ;;
   aggancia) aggancia ;;
-  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | aggancia"; exit 1 ;;
+  elimina) elimina "${2:?quale squadra?}" "${3:-}" ;;
+  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | aggancia"; exit 1 ;;
 esac
