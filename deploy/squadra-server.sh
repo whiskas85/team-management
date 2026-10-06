@@ -15,6 +15,14 @@
 #   bash /opt/gestionale/deploy/squadra-server.sh aggancia   (lo fa da sé lavori.sh)
 #   bash /opt/gestionale/deploy/squadra-server.sh elimina pippo [/opt/archivio/squadra-pippo-…]
 #   ADMIN_PASSWORD=… bash /opt/gestionale/deploy/squadra-server.sh password pippo [email]
+#   bash /opt/gestionale/deploy/squadra-server.sh aggiorna pippo 3.25.0
+#   bash /opt/gestionale/deploy/squadra-server.sh versioni [pippo]
+#
+# **Ogni squadra ha la sua versione** (VERSIONE in .env.squadra) e la tiene
+# finché qualcuno non la aggiorna con «aggiorna» — di solito il portale ZeroDark
+# (hook update_app), che decide quando. Il rilascio della produzione prepara
+# le immagini della versione nuova (gestionale-app:<versione>) ma non sposta
+# nessuna squadra.
 #
 # Ogni squadra ha la sua cartella, /opt/squadra-<nome>, con il suo .env.squadra
 # (chiavi e password sue, permessi 600) e ACCESSO.txt con l'admin di partenza.
@@ -40,6 +48,33 @@ IMMAGINE=gestionale-app:latest
 IMMAGINE_WHATSAPP=gestionale-whatsapp:latest
 
 casuale() { openssl rand -hex "$1"; }
+
+# La versione del codice in /opt/gestionale: quella che la produzione ha appena
+# costruito.
+versione_corrente() {
+  grep -m1 '"version"' "$PROD/package.json" | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/'
+}
+
+valida_versione() {
+  printf '%s' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    || { echo "Versione non valida: «$1» (es. 3.25.0)"; exit 1; }
+}
+
+# Le immagini di una versione, qui sul server. Se non ci sono si prendono dal
+# registro (REGISTRO, es. ghcr.io/whiskas85): così una macchina che non le ha
+# costruite può averle lo stesso.
+immagini_versione() {
+  local v=$1 img
+  for img in gestionale-app gestionale-whatsapp; do
+    docker image inspect "$img:$v" > /dev/null 2>&1 && continue
+    if [ -n "${REGISTRO:-}" ] && docker pull -q "$REGISTRO/$img:$v" > /dev/null 2>&1; then
+      docker tag "$REGISTRO/$img:$v" "$img:$v"
+      continue
+    fi
+    echo "La versione $v non c'e' su questo server ($img:$v)${REGISTRO:+, nemmeno in $REGISTRO}."
+    return 1
+  done
+}
 
 valida_squadra() {
   # finisce in nomi di cartelle, container e volumi: solo minuscole e trattini
@@ -208,12 +243,7 @@ nuova() {
     exit 1
   fi
   local img
-  for img in "$IMMAGINE" "$IMMAGINE_WHATSAPP"; do
-    if ! docker image inspect "$img" > /dev/null 2>&1; then
-      echo "Manca l'immagine $img: prima un rilascio della produzione."
-      exit 1
-    fi
-  done
+  immagini_versione "$(versione_corrente)" || { echo "Prima un rilascio della produzione."; exit 1; }
 
   echo "== Nuova squadra: $nome ($SQUADRA) su https://$dominio"
   mkdir -p "$CARTELLA"
@@ -239,6 +269,7 @@ VAPID_PUBLIC_KEY=${push%% *}
 VAPID_PRIVATE_KEY=${push##* }
 VAPID_SUBJECT=mailto:$email
 TZ=Europe/Rome
+VERSIONE=$(versione_corrente)
 EOF
   cat > "$CARTELLA/ACCESSO.txt" <<EOF
 Gestionale di $nome: https://$dominio
@@ -264,6 +295,12 @@ rilascia() {
   if ! grep -q '^SEGRETO_WHATSAPP=' "$ENV"; then
     (umask 077; echo "SEGRETO_WHATSAPP=$(casuale 16)" >> "$ENV")
   fi
+  # le squadre nate prima delle versioni fissate: si fermano a quella di adesso
+  if ! grep -q '^VERSIONE=' "$ENV"; then
+    (umask 077; echo "VERSIONE=$(versione_corrente)" >> "$ENV")
+    echo "== $SQUADRA: fissata alla versione $(leggi VERSIONE)"
+  fi
+  immagini_versione "$(leggi VERSIONE)" || exit 1
   if docker ps -q --filter "name=^zd-sq-$SQUADRA-db\$" | grep -q .; then
     echo "== $SQUADRA: backup"
     mkdir -p /root/backup
@@ -272,7 +309,7 @@ rilascia() {
     # restano gli ultimi dieci
     ls -1t /root/backup/sq-"$SQUADRA"-*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f
   fi
-  echo "== $SQUADRA: avvio con le immagini della produzione"
+  echo "== $SQUADRA: avvio, versione $(leggi VERSIONE)"
   # up ricrea app e ponte solo se l'immagine e' cambiata: le migrazioni le fa
   # l'app, e la sessione WhatsApp sta sul suo volume, quindi resta collegata
   zds up -d --pull never
@@ -300,7 +337,7 @@ rilascia_tutte() {
 stato_una() {
   local dominio codice ip
   dominio=$(leggi DOMINIO)
-  echo "== Squadra $SQUADRA: $(leggi NOME_SQUADRA) — https://$dominio"
+  echo "== Squadra $SQUADRA: $(leggi NOME_SQUADRA) — https://$dominio — versione $(leggi VERSIONE || echo '?')"
   docker ps --filter "name=zd-sq-$SQUADRA-" --format '{{.Names}}\t{{.Status}}'
   docker logs "zd-sq-$SQUADRA-app" --tail 8 2>&1 | grep -vi 'password' || true
   if [ -f "$SITO_CADDY" ]; then
@@ -539,6 +576,108 @@ process.stdin.on("data", (c) => (d += c)).on("end", async () => {
   echo "== $SQUADRA: password di $email impostata$([ "$cambia" = 1 ] && echo ', da cambiare al primo accesso')."
 }
 
+# Risponde il gestionale di questa squadra? (dal proxy, sulla sua rete)
+risponde() {
+  local _
+  for _ in $(seq 1 "${TENTATIVI:-${1:-45}}"); do
+    docker exec zd-proxy wget -q -O /dev/null "http://zd-sq-$SQUADRA-app:3000/login" 2>/dev/null && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# Porta una squadra a un'altra versione (anche indietro), in sicurezza:
+#   1. le immagini della versione ci sono (qui, o dal REGISTRO);
+#   2. backup del database, che resta in /root/backup;
+#   3. si cambia VERSIONE e si riparte: le migrazioni le fa l'app all'avvio;
+#   4. se entro un minuto e mezzo il gestionale non risponde, si torna alla
+#      versione di prima col database com'era, e si esce con errore.
+# L'ultima riga è un JSON per chi l'ha chiesto (il portale ZeroDark):
+#   {"version":"3.25.0","previous":"3.24.0"}                       fatto
+#   {"version":"3.24.0","attempted":"3.25.0","rolled_back":true}   tornato indietro
+aggiorna() {
+  prepara "$1"
+  riservato "$SQUADRA"
+  local nuova=$2 prima dump
+  valida_versione "$nuova"
+  [ -f "$ENV" ] || { echo "La squadra $SQUADRA non c'e'."; exit 1; }
+  prima=$(leggi VERSIONE || true)
+  [ -n "$prima" ] || prima=$(versione_corrente)
+  if [ "$nuova" = "$prima" ] && docker ps -q --filter "name=^zd-sq-$SQUADRA-app\$" | grep -q .; then
+    echo "== $SQUADRA e' gia' alla versione $nuova."
+    echo "{\"version\":\"$nuova\",\"previous\":\"$prima\"}"
+    return
+  fi
+  immagini_versione "$nuova" || exit 1
+
+  echo "== $SQUADRA: da $prima a $nuova"
+  mkdir -p /root/backup
+  dump=/root/backup/sq-$SQUADRA-prima-di-$nuova-$(date +%F-%H%M).dump
+  docker exec "zd-sq-$SQUADRA-db" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$dump"
+  echo "== backup in $dump"
+
+  sed -i "s/^VERSIONE=.*/VERSIONE=$nuova/" "$ENV"
+  grep -q '^VERSIONE=' "$ENV" || echo "VERSIONE=$nuova" >> "$ENV"
+  zds up -d --pull never
+  if risponde 45; then
+    echo "== $SQUADRA: versione $nuova, il gestionale risponde"
+    echo "{\"version\":\"$nuova\",\"previous\":\"$prima\"}"
+    return
+  fi
+
+  # non risponde: si torna com'era, codice e dati
+  echo "!! $SQUADRA non risponde con la $nuova: torno alla $prima col database di prima"
+  docker logs "zd-sq-$SQUADRA-app" --tail 15 2>&1 | grep -vi 'password' || true
+  sed -i "s/^VERSIONE=.*/VERSIONE=$prima/" "$ENV"
+  docker stop "zd-sq-$SQUADRA-app" > /dev/null 2>&1 || true
+  # lo schema da capo: le tabelle che la versione nuova ha già creato non
+  # devono restare, o il prossimo aggiornamento non riuscirebbe a ricrearle
+  docker exec "zd-sq-$SQUADRA-db" sh -c \
+    'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"' \
+    > /dev/null 2>&1 || true
+  docker exec -i "zd-sq-$SQUADRA-db" sh -c \
+    'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' < "$dump" \
+    > /dev/null 2>&1 || echo "!! ripristino del database con avvisi: controlla, il backup e' $dump"
+  zds up -d --pull never
+  if risponde 45; then
+    echo "== $SQUADRA di nuovo alla $prima e risponde"
+  else
+    echo "!! $SQUADRA non risponde nemmeno con la $prima: serve un intervento a mano"
+  fi
+  echo "{\"version\":\"$prima\",\"attempted\":\"$nuova\",\"rolled_back\":true}"
+  exit 1
+}
+
+# Le versioni pronte su questo server, e quella di una squadra se la si nomina:
+#   {"available":["3.25.0","3.24.0"],"latest":"3.25.0","current":"3.24.0"}
+versioni() {
+  local disponibili ultima corrente=""
+  disponibili=$(docker image ls gestionale-app --format '{{.Tag}}' \
+    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1nr -k2,2nr -k3,3nr | uniq || true)
+  ultima=$(versione_corrente)
+  if [ -n "${1:-}" ]; then
+    prepara "$1"
+    [ -f "$ENV" ] || { echo "La squadra $SQUADRA non c'e'."; exit 1; }
+    corrente=$(leggi VERSIONE || true)
+  fi
+  printf '{"available":[%s],"latest":"%s"%s}\n' \
+    "$(printf '%s\n' $disponibili | sed 's/.*/"&"/' | paste -sd, -)" "$ultima" \
+    "${corrente:+,\"current\":\"$corrente\"}"
+}
+
+# Le immagini delle versioni vecchie: restano le ultime TENERE (5) e tutte
+# quelle che qualche squadra sta usando. Lo chiama il rilascio della produzione.
+pulisci_versioni() {
+  local tenere=${TENERE:-5} usate v
+  usate=$(grep -h '^VERSIONE=' /opt/squadra-*/.env.squadra 2>/dev/null | cut -d= -f2 | sort -u || true)
+  for v in $(docker image ls gestionale-app --format '{{.Tag}}' \
+    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1nr -k2,2nr -k3,3nr | uniq | tail -n +"$((tenere + 1))"); do
+    printf '%s\n' $usate | grep -qx "$v" && continue
+    docker image rm "gestionale-app:$v" "gestionale-whatsapp:$v" > /dev/null 2>&1 || true
+    echo "== versione $v tolta"
+  done
+}
+
 # I gestionali nati prima che il loro nome puntasse qui: il sito nel proxy non
 # c'e' (e da fuori si vede un errore SSL). Lo chiama deploy/lavori.sh ogni
 # pochi minuti: appena il DNS arriva, si aggancia da solo, senza un rilascio.
@@ -566,5 +705,8 @@ case "${1:-stato}" in
   aggancia) aggancia ;;
   elimina) elimina "${2:?quale squadra?}" "${3:-}" ;;
   password) imposta_password "${2:?quale squadra?}" "${3:-}" ;;
-  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | password <squadra> [email] | aggancia"; exit 1 ;;
+  aggiorna) aggiorna "${2:?quale squadra?}" "${3:?quale versione?}" ;;
+  versioni) versioni "${2:-}" ;;
+  pulisci-versioni) pulisci_versioni ;;
+  *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | password <squadra> [email] | aggiorna <squadra> <versione> | versioni [squadra] | aggancia"; exit 1 ;;
 esac

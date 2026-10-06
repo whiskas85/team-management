@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Hook del portale ZeroDark: porta un gestionale ospitato a un'altra versione,
+# con deploy/squadra-server.sh aggiorna. Il portale decide quando (anche da
+# solo, pianificato); qui si fa in sicurezza: backup, cambio, controllo che
+# risponda, e se non risponde si torna alla versione di prima col database
+# com'era.
+#
+# Riceve ZDT_APP_NAME e ZDT_APP_VERSION (o "version" nel JSON su stdin).
+# Uscita 0 solo se la versione nuova gira; l'ultima riga è sempre un JSON:
+#   {"version":"3.25.0","previous":"3.24.0"}
+#   {"version":"3.24.0","attempted":"3.25.0","rolled_back":true}   (uscita 1)
+# Installazione: vedi create_app.
+set -euo pipefail
+. "$(dirname "$(readlink -f "$0")")/campi.sh"
+
+bash /opt/gestionale/deploy/squadra-server.sh aggiorna \
+  "${ZDT_APP_NAME:?manca il nome dell app}" "${ZDT_APP_VERSION:?manca la versione}"

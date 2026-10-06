@@ -445,12 +445,32 @@ federale, collegamenti). Il **ponte WhatsApp** lo collega lui dal suo
 gestionale, inquadrando il codice col telefono di chi lo gestisce: ogni
 squadra ha il suo numero e la sua sessione, e la nostra non la vede.
 
-**Da lì in poi non c'è niente da fare.** Il gestionale di una squadra ospitata
-usa le immagini della produzione, gestionale e ponte
-(`docker-compose.squadra.yml` non costruisce niente): a ogni **rilascio**, subito dopo la ricostruzione, tutte le squadre
-ospitate fanno il loro backup (`/root/backup/sq-<nome>-*.dump`, gli ultimi
-dieci) e ripartono con la versione nuova. `deploy/lavori.sh` bussa anche a
+**Le versioni.** Ogni squadra ospitata è fissata a una versione (`VERSIONE`
+in `.env.squadra`): nasce con quella della produzione e la tiene. Il
+**rilascio** della produzione prepara la versione nuova — immagini
+`gestionale-app:<versione>` e `gestionale-whatsapp:<versione>` sul server,
+le stesse pubblicate su `ghcr.io/whiskas85/…` e una release di GitHub con il
+suo pezzo di CHANGELOG — ma **non sposta nessuna squadra**: le fa solo
+ripartire con la loro versione (proxy, chiavi) e toglie le versioni vecchie
+che nessuno usa (restano le ultime cinque). Ad aggiornarle è il portale
+ZeroDark, quando lo decide (vedi sotto, `update_app`); a mano:
+
+```bash
+bash /opt/gestionale/deploy/squadra-server.sh versioni pippo     # disponibili e attuale
+bash /opt/gestionale/deploy/squadra-server.sh aggiorna pippo 3.25.0
+```
+
+`aggiorna` fa il backup, cambia versione e controlla che il gestionale
+risponda; se non risponde torna alla versione di prima **col database com'era**
+(lo schema si svuota e si ripristina il backup) ed esce con errore. Ogni
+squadra fa il suo backup a ogni riavvio (`/root/backup/sq-<nome>-*.dump`, gli
+ultimi dieci) e prima di ogni aggiornamento. `deploy/lavori.sh` bussa anche a
 loro, ciascuna con la sua chiave. Il modo **squadre** mostra come stanno.
+
+Su un server che le immagini non le costruisce (quello di un'altra squadra) si
+prendono dal registro: `REGISTRO=ghcr.io/whiskas85` nell'ambiente dello
+script, e un `docker login ghcr.io` con una chiave di sola lettura se il
+pacchetto è privato.
 
 La macchina ha 4 GB: ogni squadra ne prende fino a 2 (app 1 GB, database e
 ponte WhatsApp 512 MB ciascuno), anche se di solito ne usa molto meno. Una o due ci stanno; oltre, serve una macchina più
@@ -474,6 +494,8 @@ ln -sf /opt/gestionale/deploy/console-hooks/create_app /etc/zdt-agent/hooks/crea
 ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
 ln -sf /opt/gestionale/deploy/console-hooks/purge_app /etc/zdt-agent/hooks/purge_app
 ln -sf /opt/gestionale/deploy/console-hooks/set_admin_password /etc/zdt-agent/hooks/set_admin_password
+ln -sf /opt/gestionale/deploy/console-hooks/update_app /etc/zdt-agent/hooks/update_app
+ln -sf /opt/gestionale/deploy/console-hooks/list_versions /etc/zdt-agent/hooks/list_versions
 ```
 
 - **Nuova app** → `squadra-server.sh nuova`, con `ZDT_APP_NAME` come nome
@@ -501,6 +523,17 @@ ln -sf /opt/gestionale/deploy/console-hooks/set_admin_password /etc/zdt-agent/ho
   `test…`), un gestionale ancora attivo e una cartella che non è il suo
   archivio; esce con 0 solo se non resta niente.
 - Le password non escono: l'admin di partenza resta in `ACCESSO.txt`.
+- **Aggiornamento** → hook `update_app` → `squadra-server.sh aggiorna <nome>
+  <versione>`, con `ZDT_APP_NAME` e `ZDT_APP_VERSION` (o `version` nel JSON).
+  Backup, cambio, controllo, ritorno indietro se non risponde. Ultima riga:
+  `{"version":"3.25.0","previous":"3.24.0"}`, oppure (uscita 1)
+  `{"version":"3.24.0","attempted":"3.25.0","rolled_back":true}`.
+- **Versioni** → hook `list_versions` → `squadra-server.sh versioni [nome]`:
+  `{"available":[…],"latest":"3.25.0","current":"3.24.0"}`. Le novità di ogni
+  versione sono nelle release di GitHub (`v3.25.0`).
+- **Che versione gira**: `GET https://<dominio>/api/stato` → `{"version":"3.25.0"}`,
+  pubblico e senza altro: serve al portale per controllare che un
+  aggiornamento sia arrivato davvero.
 
 ## Il sito pubblico su www
 

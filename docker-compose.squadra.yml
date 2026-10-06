@@ -42,7 +42,9 @@ services:
           memory: 512m
 
   app:
-    image: gestionale-app:latest
+    # la versione fissata per questa squadra (VERSIONE in .env.squadra): la
+    # cambia solo «squadra-server.sh aggiorna», quando lo decide chi la gestisce
+    image: gestionale-app:${VERSIONE:-latest}
     container_name: zd-sq-${SQUADRA}-app
     restart: unless-stopped
     depends_on:
@@ -88,7 +90,7 @@ services:
   # telefono di chi lo gestisce. Resta nella rete della squadra: non è sulla
   # rete del proxy e da fuori non si raggiunge.
   whatsapp:
-    image: gestionale-whatsapp:latest
+    image: gestionale-whatsapp:${VERSIONE:-latest}
     container_name: zd-sq-${SQUADRA}-whatsapp
     restart: unless-stopped
     environment:

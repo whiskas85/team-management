@@ -22,6 +22,7 @@ sys.stdout.write("" if v is None else str(v))' "$1" 2> /dev/null || true
     [ -n "${ZDT_APP_EMAIL:-}" ] || ZDT_APP_EMAIL=$(zdt_campo email)
     [ -n "${ZDT_APP_ADMIN_PASSWORD:-}" ] || ZDT_APP_ADMIN_PASSWORD=$(zdt_campo admin_password)
     [ -n "${ZDT_APP_ARCHIVE_PATH:-}" ] || ZDT_APP_ARCHIVE_PATH=$(zdt_campo archive_path)
+    [ -n "${ZDT_APP_VERSION:-}" ] || ZDT_APP_VERSION=$(zdt_campo version)
     unset -f zdt_campo
   fi
   unset ZDT_STDIN

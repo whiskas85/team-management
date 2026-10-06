@@ -7,6 +7,8 @@
 #   ln -sf /opt/gestionale/deploy/console-hooks/remove_app /etc/zdt-agent/hooks/remove_app
 #   ln -sf /opt/gestionale/deploy/console-hooks/purge_app /etc/zdt-agent/hooks/purge_app
 #   ln -sf /opt/gestionale/deploy/console-hooks/set_admin_password /etc/zdt-agent/hooks/set_admin_password
+#   ln -sf /opt/gestionale/deploy/console-hooks/update_app /etc/zdt-agent/hooks/update_app
+#   ln -sf /opt/gestionale/deploy/console-hooks/list_versions /etc/zdt-agent/hooks/list_versions
 #
 # L'agent lo lancia come root, con ZDT_APP_NAME e ZDT_APP_DOMAIN (gli altri
 # campi qui non servono). Uscita 0 = fatto; quello che si stampa finisce nella

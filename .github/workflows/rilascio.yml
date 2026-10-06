@@ -15,9 +15,9 @@
 #                    produzione la legge soltanto.
 #   squadra-nuova    il gestionale di un'altra squadra, ospitato qui col suo
 #                    nome (campi «squadra», «dominio», «nome», «email»). Prima
-#                    la squadra punta il suo nome a ops.zerodarkteam.it. Le
-#                    squadre ospitate si aggiornano poi da sole a ogni
-#                    «rilascio», con la stessa versione della produzione.
+#                    la squadra punta il suo nome a ops.zerodarkteam.it. Nasce
+#                    con la versione della produzione e la tiene: la aggiorna
+#                    il portale ZeroDark (hook update_app), non il «rilascio».
 #   squadra-dominio  una squadra ospitata cambia nome a dominio (campi
 #                    «squadra» e «dominio», il nuovo, già puntato qui). Il
 #                    vecchio nome rimanda al nuovo per sei mesi, e le squadre
@@ -181,8 +181,16 @@ jobs:
           echo "== 3. Proxy"
           zd restart proxy
 
-          echo "== 3b. Squadre ospitate, con l'immagine appena costruita"
+          echo "== 3b. Versione nuova pronta per le squadre ospitate"
+          # le immagini col nome della versione: le squadre ospitate restano
+          # alla loro finché il portale ZeroDark non le aggiorna (update_app)
+          V=$(grep -m1 '"version"' package.json | sed -E 's/.*"([0-9.]+)".*/\1/')
+          docker tag gestionale-app:latest "gestionale-app:$V"
+          docker tag gestionale-whatsapp:latest "gestionale-whatsapp:$V"
+          echo "immagini gestionale-app:$V e gestionale-whatsapp:$V"
+          # ognuna riparte con la sua versione (proxy, chiavi nuove), senza cambiarla
           bash deploy/squadra-server.sh rilascia-tutte
+          bash deploy/squadra-server.sh pulisci-versioni
 
           echo "== 4. Pulizia"
           docker image prune -f --filter until=24h
@@ -294,3 +302,62 @@ jobs:
       - name: Via la chiave
         if: always()
         run: rm -f ~/.ssh/rilascio
+
+  # Le stesse immagini della produzione, pubblicate nel registro di GitHub con
+  # il nome della versione (ghcr.io/whiskas85/gestionale-app:3.25.0): così un
+  # server che non le costruisce — quello di un'altra squadra, gestito dal
+  # portale ZeroDark — le scarica (REGISTRO in deploy/squadra-server.sh). E una
+  # release di GitHub con il pezzo di CHANGELOG di quella versione: il portale
+  # la legge per sapere cosa c'è di nuovo prima di aggiornare.
+  pubblica:
+    if: inputs.modo == 'rilascio'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versione
+        id: v
+        run: echo "v=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Immagine del gestionale
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/gestionale-app:${{ steps.v.outputs.v }}
+            ghcr.io/${{ github.repository_owner }}/gestionale-app:latest
+
+      - name: Immagine del ponte WhatsApp
+        uses: docker/build-push-action@v6
+        with:
+          context: ./whatsapp
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/gestionale-whatsapp:${{ steps.v.outputs.v }}
+            ghcr.io/${{ github.repository_owner }}/gestionale-whatsapp:latest
+
+      - name: Release con le novità
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ steps.v.outputs.v }}
+        run: |
+          # il pezzo di CHANGELOG fra il titolo di questa versione e il successivo
+          awk -v v="$V" '$0 ~ "^## "v" " {dentro=1; next} /^## / && dentro {exit} dentro' CHANGELOG.md > note.md
+          if gh release view "v$V" > /dev/null 2>&1; then
+            echo "La release v$V c'e' gia'"
+          else
+            gh release create "v$V" --title "$V" --notes-file note.md --target "$GITHUB_SHA"
+          fi

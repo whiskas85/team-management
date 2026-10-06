@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.25.0 — 6 ottobre 2026
+
+### Aggiunto
+
+- **Ogni gestionale ospitato ha la sua versione, e la aggiorna il portale
+  ZeroDark.** Le squadre ospitate sono fissate a una versione (`VERSIONE` in
+  `.env.squadra`) e il rilascio della produzione non le sposta più: prepara
+  la versione nuova e basta. Per aggiornarle:
+  - `squadra-server.sh aggiorna <nome> <versione>` e l'hook `update_app`:
+    backup, cambio, controllo che risponda; se non risponde torna alla
+    versione di prima col database com'era;
+  - `squadra-server.sh versioni [nome]` e l'hook `list_versions`: le versioni
+    pronte e quella in uso;
+  - `GET /api/stato`: la versione che gira, pubblica e senza altro.
+- **Immagini pubblicate e release.** A ogni rilascio le immagini vanno anche
+  su `ghcr.io/whiskas85/gestionale-app:<versione>` (e il ponte WhatsApp), per
+  i server che non le costruiscono, e nasce una release di GitHub con il pezzo
+  di CHANGELOG di quella versione. Sul server restano le ultime cinque
+  versioni più quelle in uso.
+
 ## 3.24.0 — 6 ottobre 2026
 
 ### Cambiato
