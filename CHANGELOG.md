@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.27.1 — 6 ottobre 2026
+
+### Corretto
+
+- **Quando arriva del credito, arriva l'avviso. Sempre.** Una funzione sola
+  per tutte le strade da cui il credito arriva: un versamento confermato o
+  registrato da chi tiene la cassa, una quota messa a credito dalla
+  segreteria, il credito passato da un altro, quello che torna da una quota
+  tolta o cambiata. Prima avvisava solo il passaggio fra persone. Notifica a
+  chi le ha accese, WhatsApp agli altri; niente avviso a chi il credito se
+  l'è fatto da sé.
+
+### Aggiunto
+
+- **Il numero sull'icona dell'app.** Sul telefono, dove l'app installata lo
+  permette, l'icona mostra quante cose aspettano (gli stessi pallini del menu
+  principale, compresi i pagamenti e i crediti nuovi); una notifica in arrivo
+  accende il punto anche ad app chiusa.
+
 ## 3.27.0 — 6 ottobre 2026
 
 ### Aggiunto

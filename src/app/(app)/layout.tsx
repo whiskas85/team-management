@@ -1,3 +1,4 @@
+import { BadgeApp } from '@/components/BadgeApp';
 import { assicurazioniValide } from '@/lib/mie-assicurazioni';
 import { temaPagina } from '@/lib/tema-server';
 import { marchio } from '@/lib/mia-squadra';
@@ -794,6 +795,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Tiene fresco quello che si sta guardando: adesioni, incassi, polizze
           si muovono mentre la pagina è aperta, senza ricaricare a mano. */}
       <Aggiornamento />
+      {/* sull'icona dell'app: quello che aspetta nel menu principale */}
+      <BadgeApp
+        n={voci
+          .filter((v) => v.gruppo === 'principale')
+          .reduce((t, v) => t + (v.badge ?? 0), 0)}
+      />
 
       {/* Chiede una volta sola, in un angolo, a chi non ha le notifiche: da
           soli non si possono accendere — il browser vuole un gesto — e un

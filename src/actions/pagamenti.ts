@@ -18,6 +18,7 @@ import {
 import { fmtEuro, nomeCompleto } from '@/lib/format';
 import { eliminaAllegato } from '@/lib/storage';
 import { avvisaPersona } from '@/lib/avvisi';
+import { avvisaCreditoArrivato } from '@/lib/avviso-credito';
 
 const TIPI = [
   'ISCRIZIONE',
@@ -273,8 +274,15 @@ export async function eliminaPagamento(_prev: StatoForm, fd: FormData): Promise<
 
   // se l'aveva pagata il credito, quei soldi tornano credito: cancellandola e
   // basta sparirebbero dalla cassa
-  await riprendiCredito(id);
+  const tornato = await riprendiCredito(id);
   await prisma.payment.delete({ where: { id } });
+  await avvisaCreditoArrivato({
+    userId: pagamento.userId,
+    importo: tornato,
+    cassaId: pagamento.cassaId,
+    perche: `«${pagamento.descrizione}» è stata tolta e quello che avevi pagato col credito ti torna`,
+    chiId: me.id,
+  });
   aggiorna();
   return { ok: 'Movimento eliminato.' };
 }
@@ -510,6 +518,14 @@ export async function registraCredito(_prev: StatoForm, fd: FormData): Promise<S
     },
   });
 
+  await avvisaCreditoArrivato({
+    userId,
+    importo,
+    cassaId,
+    perche: 'Chi tiene la cassa ha registrato un tuo versamento a credito',
+    chiId: me.id,
+  });
+
   const resta = await saldoCredito(userId, cassaId);
   aggiorna();
   return { ok: `Credito registrato: ora ne ha ${fmtEuro(resta)}, da spendere quando paga.` };
@@ -639,17 +655,14 @@ async function avvisaCreditoRicevuto(p: {
   const dove = cassa?.nome ?? (await marchio()).nome;
   const euro = fmtEuro(p.importo);
   const tag = `credito-ricevuto-${p.da}-${p.a}-${Date.now()}`;
-  await avvisaPersona(p.a, {
-    titolo: `Hai ricevuto ${euro} di credito`,
-    testo: `${p.nomeDa} ti ha passato ${p.cosa}: ${euro} di credito presso ${dove}, da usare quando paghi le prossime quote di quella cassa.`,
-    url: '/pagamenti#credito',
+  await avvisaCreditoArrivato({
+    userId: p.a,
+    importo: p.importo,
+    cassaId: p.cassaId,
+    perche: `${p.nomeDa} ti ha passato ${p.cosa}`,
+    chiId: p.perChi,
     tag,
-    whatsapp: `Hai ricevuto del credito
-
-${p.nomeDa} ti ha passato ${p.cosa}: ora hai ${euro} di credito in più presso ${dove}.
-
-Lo usi quando paghi le prossime quote di quella cassa: te lo proponiamo per primo. Lo trovi in Miei pagamenti.`,
-  }).catch(() => null);
+  });
   if (p.perChi !== p.da) {
     await avvisaPersona(p.da, {
       titolo: 'Il tuo credito è passato',
@@ -704,6 +717,13 @@ export async function trasformaInCredito(_prev: StatoForm, fd: FormData): Promis
   const { pagamento } = esito;
 
   const credito = await quotaInCredito(pagamento.id, `${me.nome} ${me.cognome}`);
+  await avvisaCreditoArrivato({
+    userId: pagamento.userId,
+    importo: credito,
+    cassaId: pagamento.cassaId,
+    perche: `«${pagamento.descrizione}» non serve più e chi tiene la cassa l’ha messa a tuo credito`,
+    chiId: me.id,
+  });
   aggiorna();
   if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
   return credito > 0

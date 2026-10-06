@@ -21,7 +21,7 @@
  * quello vecchio le notifiche si comportano da vecchie anche se il resto del
  * gestionale e' nuovo. Chi amministra la vede in Operatori -> Avvisi.
  */
-const VERSIONE_SW = '2.82.0';
+const VERSIONE_SW = '2.83.0';
 
 const CACHE = `zero-dark-statici-${VERSIONE_SW}`;
 
@@ -110,6 +110,12 @@ self.addEventListener('push', (evento) => {
   // non darebbe errore, ne farebbe sparire uno in silenzio — e quello che
   // sparisce sarebbe proprio quello che nessuno andrebbe piu' a cercare.
   const azioni = Array.isArray(avviso.azioni) ? avviso.azioni.slice(0, 2) : [];
+
+  // un punto sull'icona dell'app: c'è una novità. Il numero giusto lo mette
+  // il gestionale quando si apre (BadgeApp)
+  if (self.navigator && 'setAppBadge' in self.navigator) {
+    self.navigator.setAppBadge().catch(() => {});
+  }
 
   const mostrata = self.registration.showNotification(avviso.titolo, {
     body: avviso.testo,

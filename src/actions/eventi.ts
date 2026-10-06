@@ -24,7 +24,8 @@ import {
   type RigaQuota,
 } from '@/lib/quote';
 import { annoCredibile, annoSbagliato, giorniDi } from '@/lib/giorni';
-import { requireUser } from '@/lib/auth';
+import { getCurrentUser, requireUser } from '@/lib/auth';
+import { avvisaCreditoArrivato } from '@/lib/avviso-credito';
 import { puoGestireCassa, quoteTutteSaldate } from '@/lib/casse';
 import {
   chiudiQuoteAnnullata,
@@ -924,7 +925,18 @@ async function allineaQuota(eventId: string, userId: string): Promise<number | n
       const dalCredito = await parteDaCredito(esistente.id);
       const cambia = !(dovuta && v.importo > 0) || Number(esistente.importo) !== v.importo;
       if (cambia && dalCredito > 0 && dalCredito + 0.001 >= Number(esistente.pagato)) {
-        await riprendiCredito(esistente.id);
+        const tornato = await riprendiCredito(esistente.id);
+        // a dirglielo solo se non è stato lui (ha appena detto «non ci sono»)
+        const chi = await getCurrentUser().catch(() => null);
+        await avvisaCreditoArrivato({
+          userId,
+          importo: tornato,
+          cassaId: esistente.cassaId,
+          perche: `La quota di «${evento.titolo}» ${
+            dovuta && v.importo > 0 ? 'è cambiata' : 'non è più dovuta'
+          } e quello che avevi pagato col credito ti torna`,
+          chiId: chi?.id ?? null,
+        });
         esistente = { ...esistente, pagato: new Prisma.Decimal(0), status: 'DA_PAGARE' };
       }
     }

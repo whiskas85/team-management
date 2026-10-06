@@ -9,6 +9,7 @@ import { saldoCredito } from '@/lib/credito';
 import { fmtEuro } from '@/lib/format';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 import { avvisaPersona } from '@/lib/avvisi';
+import { avvisaCreditoArrivato } from '@/lib/avviso-credito';
 
 /**
  * Il versamento a credito fatto da chi paga.
@@ -136,12 +137,14 @@ export async function confermaVersamentoCredito(_prev: StatoForm, fd: FormData):
   if (!fatto) return { errore: 'Questo versamento è già stato confermato.' };
 
   const credito = await saldoCredito(v.userId, v.cassaId);
-  await avvisaPersona(v.userId, {
-    titolo: 'Credito confermato',
-    testo: `Il tuo versamento di ${fmtEuro(Number(v.importo))} è arrivato: ora hai ${fmtEuro(credito)} di credito presso ${v.cassa?.nome ?? 'il club'}.`,
-    url: '/pagamenti#credito',
+  await avvisaCreditoArrivato({
+    userId: v.userId,
+    importo: Number(v.importo),
+    cassaId: v.cassaId,
+    perche: 'Il tuo versamento a credito è arrivato',
+    chiId: me.id,
     tag: `versamento-credito-${v.id}`,
-  }).catch(() => null);
+  });
 
   aggiorna();
   return {
