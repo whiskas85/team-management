@@ -4,7 +4,6 @@ import { isAdmin, puoGestirePagamenti } from '@/lib/domain';
 import { fmtEuro } from '@/lib/format';
 import { Intestazione, Statistica } from '@/components/ui';
 import { GiacenzaPolizze } from '@/components/GiacenzaPolizze';
-import { SelettoreCasse } from '@/components/SelettoreCasse';
 import { ORIGINI, PulsantiMovimento, RegistroCassa, type Origine } from '@/components/RegistroCassa';
 import { leggiRegistro, merciDelMagazzino, operatoriPerUscite } from '@/lib/registro-cassa';
 import { CASSA_CLUB } from '@/lib/casse';
@@ -41,7 +40,6 @@ export default async function CassaPage({
         sottotitolo="Registro unico: le quote incassate dalle attività e i movimenti scritti a mano"
         azioni={
           <div className="flex flex-wrap items-center gap-2">
-            <SelettoreCasse me={me} attuale={null} />
             <PulsantiMovimento cassaId={null} metodi={metodi} merci={merci} operatori={operatori} />
           </div>
         }

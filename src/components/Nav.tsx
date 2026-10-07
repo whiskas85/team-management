@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { Role } from '@prisma/client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from './Logo';
@@ -95,10 +95,21 @@ const ETICHETTA_GRUPPO: Record<string, string> = {
  * sotto /mercatino, ma la voce giusta da accendere è il carrello. Con il solo
  * confronto per prefisso si accendeva Usato ovunque dentro il mercatino.
  */
-function voceAttiva(pathname: string, voci: VoceMenu[]) {
-  const candidate = voci.filter((v) =>
-    v.href === '/dashboard' ? pathname === '/dashboard' : pathname === v.href || pathname.startsWith(v.href + '/'),
-  );
+function voceAttiva(pathname: string, query: URLSearchParams, voci: VoceMenu[]) {
+  const candidate = voci.filter((v) => {
+    // una voce con dei parametri (una cassa fra più casse) si accende solo
+    // sulla pagina con quei parametri
+    if (v.href.includes('?')) {
+      const [percorso, parametri] = v.href.split('?');
+      return (
+        pathname === percorso &&
+        [...new URLSearchParams(parametri)].every(([k, x]) => query.get(k) === x)
+      );
+    }
+    return v.href === '/dashboard'
+      ? pathname === '/dashboard'
+      : pathname === v.href || pathname.startsWith(v.href + '/');
+  });
   return candidate.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
@@ -113,7 +124,8 @@ export function Nav({
   levetta = true,
 }: Props) {
   const pathname = usePathname();
-  const acceso = voceAttiva(pathname, voci);
+  const query = useSearchParams();
+  const acceso = voceAttiva(pathname, new URLSearchParams(query.toString()), voci);
   const [apertoMenu, setApertoMenu] = useState(false);
   // Il menu è un foglio che sale dal fondo (components/Foglio): sale, scende
   // a ogni chiusura, si tira giù col dito. Da dentro si chiude col suo

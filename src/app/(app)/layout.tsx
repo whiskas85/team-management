@@ -472,7 +472,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     orderBy: { nome: 'asc' },
     select: { id: true, nome: true },
   });
-  if (mieCasse.length > 0) {
+  // Una voce per cassa: dentro una cassa si vede quella cassa e basta, e chi
+  // ne tiene due le trova tutte e due nel menu, ognuna col suo pallino.
+  const vociCasse: VoceMenu[] = [];
+  for (const c of mieCasse) {
     // Il pallino conta quello che aspetta chi tiene la cassa: le quote che
     // qualcuno ha segnalato come pagate — «Ho pagato» — e che vanno
     // verificate, e i rimborsi chiesti da dare. Le quote non ancora pagate
@@ -480,7 +483,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // pallino restava acceso tutto il tempo e non diceva più niente.
     const inAttesa = await prisma.payment.count({
       where: {
-        cassaId: { in: mieCasse.map((c) => c.id) },
+        cassaId: c.id,
         OR: [
           {
             tipo: { not: 'RIMBORSO' },
@@ -491,19 +494,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ],
       },
     });
-    voci.splice(voci.findIndex((v) => v.href === '/pagamenti') + 1, 0, {
-      href: '/cassa',
-      label: mieCasse.length === 1 ? mieCasse[0].nome : 'Le mie casse',
+    vociCasse.push({
+      // con una cassa sola l'indirizzo resta quello di sempre
+      href: mieCasse.length === 1 ? '/cassa' : `/cassa?cassa=${c.id}`,
+      label: c.nome,
       icona: 'incassa',
       gruppo: 'principale',
       badge:
         inAttesa +
-        (await ospitiDaConfermare(mieCasse.map((c) => c.id))) +
-        (await prisma.versamentoCredito.count({
-          where: { cassaId: { in: mieCasse.map((c) => c.id) }, confermatoIl: null },
-        })),
+        (await ospitiDaConfermare([c.id])) +
+        (await prisma.versamentoCredito.count({ where: { cassaId: c.id, confermatoIl: null } })),
     });
   }
+  voci.splice(voci.findIndex((v) => v.href === '/pagamenti') + 1, 0, ...vociCasse);
 
   // Mercatino e merchandising sono due cose diverse, non un filtro dello stesso
   // elenco — e nemmeno le vede la stessa gente. L'usato passa di mano fra soci

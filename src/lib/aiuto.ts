@@ -374,7 +374,7 @@ export const AIUTO: VoceAiuto[] = [
     chiave: 'mia-cassa',
     area: 'Soldi',
     titolo: 'La tua cassa',
-    cosa: 'Una cassa privata (es. un corso): i pagamenti che finiscono lì, le entrate e uscite a mano, il saldo. Funziona come la cassa del club, e chi le tiene tutt’e due passa dall’una all’altra dal selettore in cima.',
+    cosa: 'Una cassa privata (es. un corso): i pagamenti che finiscono lì, le entrate e uscite a mano, il saldo. Funziona come la cassa del club; chi tiene più casse le trova ognuna come voce del menu.',
     perChi: 'Chi gestisce una cassa',
     passi: [
       { titolo: 'Confermare', testo: 'Chi ha segnalato di aver pagato aspetta te: [[g:incassa|Incassa]] e poi [[p:incassa|Registra l’incasso]]. A chi è in ritardo [[g:whatsapp|Sollecita]] manda un promemoria su WhatsApp. Se i soldi non sono arrivati, [[g:annulla|Annulla]] toglie la segnalazione, con il motivo scritto: la quota torna da pagare e la persona viene avvisata con quel motivo.' },

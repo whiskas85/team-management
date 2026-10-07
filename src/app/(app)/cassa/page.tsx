@@ -27,7 +27,6 @@ import { MetodiCassa } from '@/components/MetodiCassa';
 import { CreditiCassa } from '@/components/CreditiCassa';
 import { creditiDellaCassa, creditoInCassa } from '@/lib/credito';
 import { elencoOperatori } from '@/lib/query';
-import { SelettoreCasse } from '@/components/SelettoreCasse';
 import { ORIGINI, PulsantiMovimento, RegistroCassa, type Origine } from '@/components/RegistroCassa';
 import { leggiRegistro, operatoriPerUscite } from '@/lib/registro-cassa';
 
@@ -202,8 +201,6 @@ export default async function CassaPage({
         sottotitolo="Cassa privata: i pagamenti che finiscono qui, le entrate e uscite a mano, il saldo. Quelli del club restano nella sua"
         azioni={
           <div className="flex flex-wrap items-center gap-2">
-            {/* la cassa del club e le altre, una accanto all'altra */}
-            <SelettoreCasse me={me} attuale={cassa.id} />
             <PulsantiMovimento cassaId={cassa.id} metodi={registro.metodi} operatori={operatori} />
           </div>
         }
