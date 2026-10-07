@@ -1,3 +1,4 @@
+import { PagaEvento } from '@/components/PagaEvento';
 import Link from 'next/link';
 import { festivitaVicine } from '@/lib/festivita';
 import { requireUser } from '@/lib/auth';
@@ -384,6 +385,11 @@ export default async function CalendarioPage({
                       <CardEvento
                         e={e}
                         elimina={admin ? <EliminaEvento id={e.id} titolo={e.titolo} /> : undefined}
+                        paga={
+                          e.quotaDovuta && !e.quotaSaldata ? (
+                            <PagaEvento eventId={e.id} userId={me.id} titolo={e.titolo} />
+                          ) : undefined
+                        }
                         azioni={
                           /* solo la bozza porta pulsanti: sul resto il piede
                              resterebbe una fascia vuota */

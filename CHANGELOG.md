@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.37.0 — 7 ottobre 2026
+
+### Cambiato
+
+- **La quota nel piede della card, con «Paga».** Nelle card delle attività
+  (calendario e home) la quota non sta più nel corpo né nella striscia: è
+  nel piede, a sinistra, come cifra colorata (arancio da pagare, verde
+  pagata) e non dentro un badge. Accanto ai pulsanti di presenza c'è
+  «Paga»: apre una finestra con tutte le quote dell'attività — club e altre
+  casse — e per ognuna il credito, i metodi e la segnalazione del
+  pagamento, come in «Miei pagamenti». Pagata, la cifra resta con accanto
+  il badge «Pagato» e il pulsante sparisce; tutta segnalata, il pulsante
+  diventa «Segnalato» per correggerla. La cifra è la propria quota se ci si
+  è già segnati, altrimenti il prezzo dell'attività.
+
 ## 3.36.0 — 7 ottobre 2026
 
 ### Aggiunto

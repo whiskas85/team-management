@@ -1,3 +1,4 @@
+import { PagaEvento } from '@/components/PagaEvento';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -396,7 +397,15 @@ export default async function DashboardPage({
           </h2>
           <div className="grid gap-3 md:grid-cols-2">
             {oggi.map((e) => (
-              <CardEvento key={e.id} e={e} />
+              <CardEvento
+                key={e.id}
+                e={e}
+                paga={
+                  e.quotaDovuta && !e.quotaSaldata ? (
+                    <PagaEvento eventId={e.id} userId={me.id} titolo={e.titolo} />
+                  ) : undefined
+                }
+              />
             ))}
           </div>
         </section>
@@ -422,7 +431,15 @@ export default async function DashboardPage({
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {altri.map((e) => (
-              <CardEvento key={e.id} e={e} />
+              <CardEvento
+                key={e.id}
+                e={e}
+                paga={
+                  e.quotaDovuta && !e.quotaSaldata ? (
+                    <PagaEvento eventId={e.id} userId={me.id} titolo={e.titolo} />
+                  ) : undefined
+                }
+              />
             ))}
           </div>
         )}

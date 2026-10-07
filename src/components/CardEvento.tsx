@@ -59,6 +59,10 @@ export type EventoLista = {
   sondaggioId?: string | null;
   /** Ci hanno invitati su proposta di un'altra squadra ospite. */
   propostaDa?: string | null;
+  /** La mia quota per l'attività (tutte le casse), se c'è. */
+  quotaDovuta?: number | null;
+  /** Saldata tutta: club e altre casse. */
+  quotaSaldata?: boolean;
 };
 
 /**
@@ -123,9 +127,12 @@ export function CardEvento({
   e,
   azioni,
   elimina,
+  paga,
 }: {
   e: EventoLista;
   azioni?: ReactNode;
+  /** Il «Paga» della mia quota (PagaEvento): accanto ai pulsanti di presenza. */
+  paga?: ReactNode;
   /**
    * Il cestino, in alto a destra all'altezza del titolo. Sta fuori dal link
    * della card — un pulsante dentro un link si preme aprendo la scheda — e ci
@@ -138,7 +145,10 @@ export function CardEvento({
   // uno preme "ci sono" e in quel momento deve sapere che sta prendendo un
   // impegno da dieci euro. Se le adesioni sono chiuse resta nel corpo, dove
   // c'è il resto dei dati.
-  const quota = e.costo !== null && e.costo > 0 ? fmtEuro(e.costo) : null;
+  // la mia quota se c'è già (mi sono segnato), altrimenti quanto costa
+  const importo = e.quotaDovuta ?? (e.costo !== null && e.costo > 0 ? e.costo : null);
+  const quota = importo !== null && importo > 0 ? fmtEuro(importo) : null;
+  const pagata = !!e.quotaSaldata && e.quotaDovuta !== null && e.quotaDovuta !== undefined;
 
   /*
    * Il piede sta in fondo, anche quando la card è più corta delle sue vicine.
@@ -154,8 +164,8 @@ export function CardEvento({
    * fondo, e l'aria in più finisce sotto al testo — dove per giunta è ancora
    * area cliccabile, perché il corpo è tutto un link all'attività.
    */
-  const striscia = puoNavigare || (quota && e.adesioniAperte);
-  const piede = e.adesioniAperte || e.iscrizioniChiuse || azioni;
+  const striscia = puoNavigare;
+  const piede = e.adesioniAperte || e.iscrizioniChiuse || azioni || quota;
 
   return (
     <div className="relative flex h-full flex-col rounded-lg border border-line bg-surface">
@@ -217,7 +227,6 @@ export function CardEvento({
         {e.status !== 'INVITATA' && (
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3">
           <ContoAdesioni e={e} />
-          {quota && !e.adesioniAperte && <Badge tono="warn">quota {quota}</Badge>}
           {!e.adesioniAperte && (
             <span className="ml-auto">
               {e.mioStato ? (
@@ -238,11 +247,6 @@ export function CardEvento({
       {striscia && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
           <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
-          {quota && e.adesioniAperte && (
-            <span className="badge border-warn/40 bg-warn/10 font-semibold text-warn">
-              a pagamento · {quota}
-            </span>
-          )}
         </div>
       )}
 
@@ -250,6 +254,16 @@ export function CardEvento({
           di una bozza, tutto allineato a destra come in tutte le card. */}
       {piede && (
         <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-[calc(0.5rem-1px)] border-t border-line bg-ink/[0.045] px-4 py-3 [&>div]:justify-end">
+          {/* Quanto costa, a sinistra: la cifra colorata (da pagare o
+              pagata), e accanto «Pagato» quando è saldata. */}
+          {quota && (
+            <span className="mr-auto flex items-center gap-2">
+              <span className={`num text-sm font-semibold ${pagata ? 'text-nvg' : 'text-warn'}`}>
+                {quota}
+              </span>
+              {pagata && <Badge tono="ok">Pagato</Badge>}
+            </span>
+          )}
           {e.adesioniAperte && (
             <AdesioneEvento
               eventId={e.id}
@@ -271,6 +285,7 @@ export function CardEvento({
               soloNo
             />
           )}
+          {!pagata && paga}
           {azioni}
         </div>
       )}
