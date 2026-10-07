@@ -139,6 +139,11 @@ jobs:
           git log --oneline -1
           echo "== Modifiche locali sul server (deve essere vuoto, o il pull si ferma)"
           git status --short
+          # cosa c'e' di cambiato a mano nel Caddyfile (le righe con password o
+          # hash restano fuori: il log e' pubblico)
+          git diff deploy/Caddyfile | grep -viE 'basicauth|hash|password|\$2[aby]\$' || true
+          echo "== Siti in siti/"
+          ls -1 siti/ 2>/dev/null || true
           # fetch soltanto: aggiorna i riferimenti, non il codice che gira
           git fetch -q origin
           echo "== Cosa arriverebbe con il rilascio"
