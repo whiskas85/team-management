@@ -67,20 +67,3 @@ export async function quoteTutteSaldate(eventId: string, userId: string): Promis
 /** Il nome della cassa di partenza, quella del club. */
 export const CASSA_CLUB = 'Cassa del club';
 
-/**
- * Le casse che questa persona tiene, quella del club per prima: è la cassa di
- * partenza, le altre sono casse private come lei. Servono al selettore in
- * cima a ogni cassa, che le mette in fila come una cosa sola.
- */
-export async function casseDi(me: {
-  id: string;
-  roles: Role[];
-}): Promise<{ id: string | null; nome: string; href: string; attiva: boolean }[]> {
-  const private_ = await casseGestite(me.id);
-  return [
-    ...(puoGestirePagamenti(me.roles)
-      ? [{ id: null, nome: CASSA_CLUB, href: '/admin/cassa', attiva: true }]
-      : []),
-    ...private_.map((c) => ({ id: c.id, nome: c.nome, href: `/cassa?cassa=${c.id}`, attiva: c.attiva })),
-  ];
-}

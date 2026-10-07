@@ -5,16 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.32.1 — 7 ottobre 2026
+
+### Cambiato
+
+- **Dentro una cassa si vede quella cassa e basta.** Via il selettore in cima
+  che metteva la cassa del club accanto alle casse private: chi tiene più
+  casse le trova ognuna come voce del menu, col suo pallino.
+
 ## 3.32.0 — 7 ottobre 2026
 
 ### Cambiato
 
 - **Una cassa è una cassa.** La cassa del club e le casse private funzionano
   allo stesso modo: stesso registro (quote incassate, crediti, pagamenti
-  degli ospiti, movimenti a mano), stesso saldo, stessi pulsanti. In cima a
-  ognuna un selettore mette in fila «Cassa del club», la cassa di partenza, e
-  le casse private che si tengono. Nel menu: «Cassa del club» e «Casse
-  private».
+  degli ospiti, movimenti a mano), stesso saldo, stessi pulsanti. Nel menu:
+  «Cassa del club» e «Casse private».
 
 ### Aggiunto
 
