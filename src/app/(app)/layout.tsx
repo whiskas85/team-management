@@ -1,7 +1,7 @@
 import { BadgeApp } from '@/components/BadgeApp';
 import { assicurazioniValide } from '@/lib/mie-assicurazioni';
 import { temaPagina } from '@/lib/tema-server';
-import { marchio } from '@/lib/mia-squadra';
+import { leggiMiaSquadra, marchio } from '@/lib/mia-squadra';
 import { redirect } from 'next/navigation';
 import { requireUser, segnaAttivita } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -42,6 +42,7 @@ import { esci } from '@/actions/auth';
 import { Aggiornamento } from '@/components/Aggiornamento';
 import { InvitoNotifiche } from '@/components/InvitoNotifiche';
 import { SegnaVersione } from '@/components/SegnaVersione';
+import { GiroGuidato } from '@/components/GiroGuidato';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const utente = await requireUser();
@@ -73,6 +74,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Un nuovo creato da un contatto entra con quello che si sapeva: il resto
   // (cognome, telefono, data e luogo di nascita) lo mette lui, qui, una volta.
   if (utente.stato === 'NUOVO' && (await datiMancanti(utente.id))) redirect('/completa-profilo');
+
+  // Un gestionale appena nato: il primo admin che entra lo configura, con la
+  // procedura guidata, prima che entrino gli altri.
+  if (isAdmin(utente.roles) && !(await leggiMiaSquadra())?.configurataIl) redirect('/configura');
 
   // contatori mostrati come pallino accanto alle voci di back office
   let certificatiDaVagliare = 0;
@@ -811,6 +816,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           segna: quando a qualcuno le notifiche non arrivano, e' la prima
           cosa da guardare. */}
       <SegnaVersione />
+
+      {/* Il giro delle funzioni principali: parte da solo al primo accesso,
+          si rivede dal chip col nome. */}
+      <GiroGuidato
+        automatico={!utente.giroVistoIl}
+        voci={voci.map((v) => v.href)}
+        admin={isAdmin(utente.roles)}
+      />
 
       <main className="px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-12 md:pt-2">
         <div className="mx-auto max-w-6xl">

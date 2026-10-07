@@ -7,6 +7,7 @@
 #
 #   bash /opt/gestionale/deploy/test-server.sh rilascia main
 #   bash /opt/gestionale/deploy/test-server.sh copia-dati
+#   bash /opt/gestionale/deploy/test-server.sh azzera main
 #   bash /opt/gestionale/deploy/test-server.sh stato
 #
 # Gli ambienti di test possono essere più d'uno: ISTANZA dice quale (di
@@ -22,6 +23,11 @@
 #
 # «copia-dati» porta nel test il database e gli allegati della produzione.
 # La produzione la legge soltanto: un pg_dump e una copia del volume.
+#
+# «azzera» porta il test al ramo chiesto e lo svuota: database e allegati
+# cancellati, come un gestionale appena nato. Al riavvio restano solo l'admin
+# di partenza e gli account di prova; è il modo di provare il primo accesso
+# (la configurazione guidata dell'admin). Solo il test, mai la produzione.
 #
 # Le password non passano mai dal log dell'automazione, che su un repository
 # pubblico è pubblico: stanno in /opt/gestionale-<istanza>/ACCESSO.txt, permessi
@@ -316,6 +322,26 @@ copia_dati() {
   echo "Le credenziali del portale federale restano illeggibili: e' voluto."
 }
 
+azzera() {
+  local ramo=${1:-main}
+  [ -f "$TEST/.env.test" ] || { echo "Il test non c'e' ancora: prima «test»."; exit 1; }
+  rilascia "$ramo"
+  echo "== Test $ISTANZA azzerato: database e allegati vuoti"
+  zdt stop app
+  docker exec "zd-$ISTANZA-db" sh -c \
+    'dropdb -U "$POSTGRES_USER" --if-exists "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+  docker run --rm -v "gestionale-${ISTANZA}_uploads:/a" alpine sh -c 'find /a -mindepth 1 -delete'
+  # al riavvio: migrazioni da zero, poi il seed (admin di partenza e account di prova)
+  zdt start app
+  local _
+  for _ in $(seq 1 45); do
+    docker exec zd-proxy wget -q -O /dev/null "http://zd-$ISTANZA-app:3000/login" 2>/dev/null && break
+    sleep 2
+  done
+  echo "Fatto. Si entra come all'inizio: admin di partenza (ACCESSO.txt) o i pulsanti di accesso rapido."
+  stato
+}
+
 stato() {
   echo "== Test: $ISTANZA"
   if [ -d "$TEST/.git" ]; then
@@ -362,6 +388,7 @@ stato() {
 case "${1:-stato}" in
   rilascia) rilascia "${2:-main}" ;;
   copia-dati) copia_dati ;;
+  azzera) azzera "${2:-main}" ;;
   stato) stato ;;
-  *) echo "uso: $0 rilascia <ramo> | copia-dati | stato"; exit 1 ;;
+  *) echo "uso: $0 rilascia <ramo> | copia-dati | azzera <ramo> | stato"; exit 1 ;;
 esac

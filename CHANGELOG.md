@@ -5,6 +5,33 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.31.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **La configurazione guidata del primo accesso.** In un gestionale appena
+  nato il primo admin che entra passa da `/configura`: la squadra (nome,
+  gestionale, motto, recapiti, logo), il tema, il portale FIGT e i campi di
+  gioco, la cui posizione è il punto «P · Parcheggio» delle attività. Portale
+  e campi si saltano, e «Lo finisco dopo» chiude tutto: quello che manca si
+  ritrova in «La mia squadra», che ha anche il pulsante per rifare la
+  procedura. I gestionali che hanno già qualcuno dentro risultano configurati.
+- **Il giro guidato.** Al primo accesso di ognuno si accendono una dopo
+  l'altra le parti principali — menu, home, calendario, pagamenti,
+  certificati, profilo, bacheche, sondaggi, mercatino, la ricerca, la
+  stellina e il «?», il chip col nome — con due righe su cosa fanno. Si vede
+  solo quello che la persona può aprire; sul telefono le voci che non stanno
+  nella barra in basso indicano «Menu». Si rivede dal chip col nome, «Rivedi
+  il giro guidato». Chi usava già il gestionale non lo vede partire da solo.
+- **Portale FIGT con utenza e password soltanto.** Il codice
+  dell'associazione e le affiliazioni il gestionale li legge dal portale
+  (anagrafica e lista affiliazioni), li conserva e li mostra in «La mia
+  squadra», con «Rileggi dal portale». Le polizze prova usano l'affiliazione
+  attiva il giorno della giocata, ricavata dalle date di validità; se nessuna
+  lo copre (un rinnovo appena fatto) il portale si rilegge da solo.
+- Automazione Rilascio, modo **`test-azzera`**: porta il test al ramo scelto
+  e lo svuota, database e allegati, per provare il primo accesso.
+
 ## 3.30.0 — 7 ottobre 2026
 
 ### Aggiunto

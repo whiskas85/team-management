@@ -16,6 +16,9 @@
 #                    La produzione non la tocca.
 #   test-copia-dati  database e allegati della produzione copiati nel test. La
 #                    produzione la legge soltanto.
+#   test-azzera      il test portato al ramo scelto e svuotato: database e
+#                    allegati cancellati, come un gestionale appena nato (per
+#                    provare il primo accesso). La produzione non la tocca.
 #   squadra-nuova    il gestionale di un'altra squadra, ospitato qui col suo
 #                    nome (campi «squadra», «dominio», «nome», «email»). Prima
 #                    la squadra punta il suo nome a ops.zerodarkteam.it. Nasce
@@ -50,14 +53,14 @@ on:
       modo:
         description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test'
         type: choice
-        options: [prova, rilascio, test, test-copia-dati, prova-collegamento, squadra-nuova, squadra-dominio, squadre, console]
+        options: [prova, rilascio, test, test-copia-dati, test-azzera, prova-collegamento, squadra-nuova, squadra-dominio, squadre, console]
         default: prova
       ramo:
-        description: 'Solo per «test»: il ramo da mettere nel test'
+        description: 'Per «test» e «test-azzera»: il ramo da mettere nel test'
         type: string
         default: main
       istanza:
-        description: 'Solo per «test»: quale ambiente (test2 = squadra finta per il collegamento fra gestionali)'
+        description: 'Per «test» e «test-azzera»: quale ambiente (test2 = squadra finta per il collegamento fra gestionali)'
         type: choice
         options: [test, test2]
         default: test
@@ -317,6 +320,21 @@ jobs:
           fi
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" "ISTANZA=$ISTANZA bash -s -- rilascia $RAMO" < deploy/test-server.sh
+
+      - name: Ambiente di test, azzerato
+        if: inputs.modo == 'test-azzera'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+          RAMO: ${{ inputs.ramo }}
+          ISTANZA: ${{ inputs.istanza }}
+        run: |
+          # il nome del ramo finisce in un comando sul server: solo caratteri da ramo
+          if ! printf '%s' "$RAMO" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+            echo "::error::Nome di ramo non valido: $RAMO"
+            exit 1
+          fi
+          ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
+            "$UTENTE@$HOST" "ISTANZA=$ISTANZA bash -s -- azzera $RAMO" < deploy/test-server.sh
 
       - name: Squadra ospitata, nuova
         if: inputs.modo == 'squadra-nuova'

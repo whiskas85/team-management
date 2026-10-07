@@ -7,12 +7,15 @@ import { isAdmin, puoAmministrare } from '@/lib/domain';
 import { cifra, decifra } from '@/lib/segreti';
 import {
   abbina,
+  affiliazioneValida,
+  scopriAssociazione,
   scadenzaTessera,
   scaricaAnagrafiche,
   scaricaTessere,
   type CredenzialiFigt,
 } from '@/lib/figt';
 import { randomUUID } from 'node:crypto';
+import { conservaAffiliazioni, rileggiAffiliazioni } from '@/lib/affiliazioni';
 import { stagioneAttiva } from '@/lib/stagioni';
 import { intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 
@@ -27,43 +30,65 @@ function aggiorna() {
  * fare il login, quindi non si puo' hashare: viene cifrata e resta nel
  * database solo in quella forma.
  *
- * Se non si spunta "ricorda la password" non si salva niente: le credenziali
- * valgono per quella singola importazione e basta.
+ * Bastano utenza e password: l'id dell'anagrafica e le affiliazioni il
+ * gestionale li legge dal portale stesso, e fra le affiliazioni sceglie
+ * quella che vale oggi. Prima andavano copiati a mano dagli indirizzi delle
+ * pagine, e chi non sapeva dove guardare si fermava lì.
  */
 export async function salvaCredenzialiFigt(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin configura il portale federale.' };
 
   const login = str(fd, 'login');
-  const password = str(fd, 'password');
-  const idAnagrafica = str(fd, 'idAnagrafica');
+  // riscritta per cambiarla; vuota, resta quella già salvata
+  const salvate = await prisma.credenzialeFigt.findUnique({ where: { id: 'figt' } });
+  const password =
+    str(fd, 'password') || (salvate && salvate.login === login ? decifra(salvate.passwordCifrata) : '');
 
-  if (!login || !password || !idAnagrafica) {
-    return { errore: 'Servono utenza, password e id anagrafica dell’associazione.' };
-  }
+  if (!login || !password) return { errore: 'Servono utenza e password del portale.' };
 
   // prima di salvarle si verifica che funzionino: credenziali sbagliate messe
   // via in silenzio si scoprirebbero solo alla prossima importazione
+  let scoperta;
   try {
-    await scaricaTessere({ login, password, idAnagrafica }, new Date().getFullYear());
+    scoperta = await scopriAssociazione({ login, password });
   } catch (e) {
     return { errore: `Il portale non ha accettato l’accesso: ${(e as Error).message}` };
   }
 
+  await conservaAffiliazioni(scoperta.affiliazioni);
+  const valida = affiliazioneValida(scoperta.affiliazioni);
+
   const dati = {
     login,
     passwordCifrata: cifra(password),
-    idAnagrafica,
-    idAffiliazione: strOpt(fd, 'idAffiliazione'),
+    idAnagrafica: scoperta.idAnagrafica,
+    idAffiliazione: valida?.codice ?? null,
     salvataDa: me.id,
     salvataIl: new Date(),
+    ultimoAccesso: new Date(),
     ultimoEsito: 'accesso verificato',
   };
 
   await prisma.credenzialeFigt.upsert({ where: { id: 'figt' }, create: { id: 'figt', ...dati }, update: dati });
 
   aggiorna();
-  return { ok: 'Collegamento al portale salvato e verificato.' };
+  revalidatePath('/configura');
+  return {
+    ok: valida
+      ? `Collegato: associazione ${scoperta.idAnagrafica}, affiliazione ${valida.codice} valida fino al ${valida.validaA?.toLocaleDateString('it-IT') ?? '—'}.`
+      : `Collegato (associazione ${scoperta.idAnagrafica}), ma nessuna affiliazione è attiva oggi: le polizze prova partono quando c’è.`,
+  };
+}
+
+/** Rilegge le affiliazioni dal portale, col collegamento salvato. */
+export async function aggiornaAffiliazioniFigt(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin configura il portale federale.' };
+  const codice = await rileggiAffiliazioni().catch((e: Error) => e);
+  if (codice instanceof Error) return { errore: `Il portale non ha risposto: ${codice.message}` };
+  aggiorna();
+  return { ok: codice ? `Affiliazione in corso: ${codice}.` : 'Nessuna affiliazione attiva oggi.' };
 }
 
 export async function scollegaFigt(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {

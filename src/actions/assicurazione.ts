@@ -1,5 +1,6 @@
 'use server';
 
+import { affiliazionePerIl } from '@/lib/affiliazioni';
 import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
@@ -461,10 +462,12 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
   }
 
   if (!cred) return { errore: 'Il portale federale non è collegato: mancano le credenziali.' };
-  if (!cred.idAffiliazione) {
+  // il codice dell'affiliazione valida quel giorno: cambia a ogni rinnovo
+  const idAffiliazione = await affiliazionePerIl(giorno.locale, cred.idAffiliazione);
+  if (!idAffiliazione) {
     return {
       errore:
-        'Manca l’id affiliazione, che le polizze prova usano al posto dell’id anagrafica. Aggiungilo nel collegamento al portale.',
+        'Nessuna affiliazione FIGT attiva per quel giorno: le polizze prova si fanno sull’affiliazione in corso. Rinnovala sul portale, poi riprova.',
     };
   }
 
@@ -504,7 +507,7 @@ export async function attivaGiornaliera(_prev: StatoForm, fd: FormData): Promise
         password: decifra(cred.passwordCifrata),
         idAnagrafica: cred.idAnagrafica,
       },
-      cred.idAffiliazione,
+      idAffiliazione,
       {
         nome: utente.nome,
         cognome: utente.cognome,

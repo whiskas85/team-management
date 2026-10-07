@@ -44,6 +44,14 @@ resta cancellato. Da lì in poi il gestionale non ti lascia rimanere senza:
 l'ultimo amministratore non si può né cancellare né declassare, prima se ne
 nomina un altro.
 
+**Il primo accesso.** Il primo admin che entra in un gestionale appena nato
+passa dalla configurazione guidata (`/configura`): la squadra con nome e logo,
+il tema, il portale FIGT — bastano utenza e password, codice dell'associazione
+e affiliazioni li legge il gestionale — e i campi di gioco. Portale e campi si
+saltano; tutto si ritrova in «La mia squadra». Tutti gli altri, al loro primo
+accesso, fanno il **giro guidato** delle funzioni principali, che si rivede dal
+chip col nome («Rivedi il giro guidato»).
+
 **Prima dell'uso reale**: cambia `SESSION_SECRET`, la password admin e metti
 `DEBUG_LOGIN=0`.
 

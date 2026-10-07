@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { salvaTemaSquadra } from '@/actions/mia-squadra';
 import { ACCENTI_PRONTI, aHex, tavolozza, type ModoTema, type TemaSquadra } from '@/lib/tema';
+import type { StatoForm } from '@/lib/form';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { AnteprimaTema } from './AnteprimaTema';
@@ -84,9 +85,14 @@ function Pallino({
 export function SceltaTemaSquadra({
   iniziale,
   logoUrl,
+  azione = salvaTemaSquadra,
+  etichetta = 'Salva il tema',
 }: {
   iniziale: TemaSquadra;
   logoUrl: string;
+  /** Dove va il tema: la configurazione guidata salva e passa oltre. */
+  azione?: (prev: StatoForm, fd: FormData) => Promise<StatoForm>;
+  etichetta?: string;
 }) {
   const [accento, setAccento] = useState(iniziale.accento);
   const [modo, setModo] = useState<ModoTema>(iniziale.modo);
@@ -109,7 +115,7 @@ export function SceltaTemaSquadra({
   const adattato = t.colori.nvg.toLowerCase() !== accento.toLowerCase();
 
   return (
-    <FormAzione azione={salvaTemaSquadra} className="grid gap-5 lg:grid-cols-2">
+    <FormAzione azione={azione} className="grid gap-5 lg:grid-cols-2">
       <input type="hidden" name="accento" value={accento} />
       <input type="hidden" name="modo" value={modo} />
       <div className="space-y-4">
@@ -188,7 +194,7 @@ export function SceltaTemaSquadra({
           )}{' '}
           Chi ne ha bisogno può sempre scegliere un tema di accessibilità dal suo profilo.
         </p>
-        <Invia icona="salva">Salva il tema</Invia>
+        <Invia icona="salva">{etichetta}</Invia>
       </div>
       <div>
         <p className="label">Anteprima</p>

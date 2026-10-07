@@ -64,6 +64,8 @@ export type SessionUser = {
   roles: Role[];
   stato: StatoOperatore;
   ultimaAttivita: Date | null;
+  /** Quando ha visto il giro guidato: nullo, parte da solo. */
+  giroVistoIl?: Date | null;
   /** Il tema scelto per sé, se non segue quello della squadra. */
   tema?: string | null;
   testoGrande?: boolean;
@@ -99,6 +101,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         roles: true,
         stato: true,
         ultimaAttivita: true,
+        giroVistoIl: true,
         tema: true,
         testoGrande: true,
         testoGrandeMobile: true,

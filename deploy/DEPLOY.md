@@ -365,6 +365,7 @@ che può stare su un ramo qualunque. Si comanda dall'automazione **Rilascio**:
 |---|---|
 | `test` | porta il test al ramo scritto nel campo «ramo» e lo ricostruisce. La prima volta lo crea da zero |
 | `test-copia-dati` | copia database e allegati della produzione nel test. La produzione la legge soltanto |
+| `test-azzera` | porta il test al ramo scelto e lo svuota: database e allegati cancellati, come un gestionale appena nato. Restano l'admin di partenza e gli account di prova. Serve a provare il primo accesso |
 | `prova` | alla fine dice anche su che codice è il test e se si raggiunge da fuori |
 
 Il lavoro lo fa `deploy/test-server.sh`, che si può lanciare anche a mano dal

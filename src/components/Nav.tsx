@@ -197,7 +197,7 @@ export function Nav({
   return (
     <>
       {/* ---------------------------------------------------- sidebar desktop */}
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-line bg-surface md:flex">
+      <aside data-giro="menu" className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-line bg-surface md:flex">
         <Link href="/dashboard" className="flex items-center gap-3 border-b border-line px-4 py-4">
           <Logo size={36} src={marchio.logoUrl} />
           <div className="leading-tight">
@@ -360,7 +360,7 @@ export function Nav({
               schermo che, restando in fila, schiacciava il logo e il nome fino
               a ridurli a «ZE…». */}
           <div className="mx-auto hidden w-full max-w-6xl items-center gap-3 pr-24 md:flex xl:pr-0">
-            <div className="min-w-0 flex-1">
+            <div data-giro="cerca" className="min-w-0 flex-1">
               <Omnisearch voci={voci} />
             </div>
           </div>
@@ -371,7 +371,7 @@ export function Nav({
           {/* Fuori dal flusso, agganciata al bordo destro: dentro alla fila
               rubava larghezza alla colonna e le spostava il centro, così la
               barra cadeva un po' più a sinistra del contenuto. */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 md:right-8">
+          <div data-giro="avatar" className="absolute right-4 top-1/2 -translate-y-1/2 md:right-8">
             <MenuUtente utente={utente} esci={esci} notte={notte} levetta={levetta} />
           </div>
         </div>
@@ -379,6 +379,7 @@ export function Nav({
 
       {/* ---------------------------------------------------- barra inferiore mobile */}
       <nav
+        data-giro="menu"
         // le colonne sono quante sono le voci più il menu: con due preferiti
         // una griglia fissa da cinque lascerebbe tre buchi e il pulsante del
         // menu a metà schermo
@@ -409,6 +410,7 @@ export function Nav({
           </Link>
         ))}
         <button
+          data-giro="apri-menu"
           onClick={() => setApertoMenu(true)}
           className="relative flex flex-col items-center gap-1 py-2.5 text-[10px] text-muted"
         >
