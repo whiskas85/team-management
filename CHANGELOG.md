@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.33.1 — 7 ottobre 2026
+
+### Cambiato
+
+- **I campi del primo accesso sono nostri.** Nella configurazione guidata il
+  modulo del campo chiede solo nome, tipologia, posizione e note: niente
+  squadra che lo gestisce, referente, telefono, sito e costo, che servono per
+  i campi delle altre squadre e restano nella pagina Campi.
+
 ## 3.33.0 — 7 ottobre 2026
 
 ### Aggiunto

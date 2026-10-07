@@ -26,11 +26,18 @@ export function FormCampo({
   campo,
   squadre,
   squadraPredefinita,
+  nostro = false,
 }: {
   campo?: CampoGioco;
   squadre: Squadra[];
   /** Per un campo nuovo aggiunto dal profilo di una squadra: è già suo. */
   squadraPredefinita?: string;
+  /**
+   * Un campo nostro, del team (la configurazione del primo accesso): niente
+   * squadra che lo gestisce, referente, telefono, sito e costo, che servono
+   * per i campi degli altri.
+   */
+  nostro?: boolean;
 }) {
   return (
     <>
@@ -62,45 +69,49 @@ export function FormCampo({
           }
         />
 
-        <Campo label="Squadra che lo gestisce">
-          <select
-            name="squadraId"
-            defaultValue={campo?.squadraId ?? squadraPredefinita ?? ''}
-            className="input"
-          >
-            <option value="">— nessuna, è nostro —</option>
-            {squadre.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.stato === 'PREFERITA' ? '★ ' : ''}
-                {s.nome}
-                {s.stato === 'DISATTIVATA' ? ' (disattivata)' : ''}
-              </option>
-            ))}
-          </select>
-        </Campo>
+        {!nostro && (
+          <>
+            <Campo label="Squadra che lo gestisce">
+              <select
+                name="squadraId"
+                defaultValue={campo?.squadraId ?? squadraPredefinita ?? ''}
+                className="input"
+              >
+                <option value="">— nessuna, è nostro —</option>
+                {squadre.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.stato === 'PREFERITA' ? '★ ' : ''}
+                    {s.nome}
+                    {s.stato === 'DISATTIVATA' ? ' (disattivata)' : ''}
+                  </option>
+                ))}
+              </select>
+            </Campo>
 
-        <Campo label="Referente">
-          <input name="referente" defaultValue={campo?.referente ?? ''} className="input" />
-        </Campo>
+            <Campo label="Referente">
+              <input name="referente" defaultValue={campo?.referente ?? ''} className="input" />
+            </Campo>
 
-        <Campo label="Telefono">
-          <CampoTelefono name="telefono" defaultValue={campo?.telefono} campoNome="referente" />
-        </Campo>
+            <Campo label="Telefono">
+              <CampoTelefono name="telefono" defaultValue={campo?.telefono} campoNome="referente" />
+            </Campo>
 
-        <Campo label="Sito / pagina">
-          <input name="sito" defaultValue={campo?.sito ?? ''} className="input" />
-        </Campo>
+            <Campo label="Sito / pagina">
+              <input name="sito" defaultValue={campo?.sito ?? ''} className="input" />
+            </Campo>
 
-        <Campo label="Costo indicativo (€)">
-          <input
-            name="costo"
-            type="number"
-            step="0.01"
-            min="0"
-            defaultValue={campo?.costo ? Number(campo.costo) : ''}
-            className="input"
-          />
-        </Campo>
+            <Campo label="Costo indicativo (€)">
+              <input
+                name="costo"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={campo?.costo ? Number(campo.costo) : ''}
+                className="input"
+              />
+            </Campo>
+          </>
+        )}
 
         <Campo label="Note" span>
           <textarea name="note" rows={3} defaultValue={campo?.note ?? ''} className="input" />

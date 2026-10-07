@@ -348,7 +348,7 @@ async function PassoCampi() {
         </ul>
       )}
       <FormAzione azione={passoCampo} restaAperto>
-        <FormCampo squadre={[]} />
+        <FormCampo squadre={[]} nostro />
         <div className="flex flex-wrap gap-2">
           <Invia icona="aggiungi">{campi.length > 0 ? 'Aggiungi un altro campo' : 'Aggiungi il campo'}</Invia>
           {campi.length > 0 && (
