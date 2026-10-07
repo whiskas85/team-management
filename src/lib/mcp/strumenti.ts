@@ -459,7 +459,7 @@ const cassaRiepilogo: Strumento = {
         where: { cassaId: null },
         select: { tipo: true, importo: true, pagato: true, status: true },
       }),
-      prisma.movimentoCassa.findMany({ select: { tipo: true, importo: true } }),
+      prisma.movimentoCassa.findMany({ where: { cassaId: null }, select: { tipo: true, importo: true } }),
     ]);
 
     const somma = (v: { importo: unknown }[], f = (_: unknown) => true) =>

@@ -67,10 +67,13 @@ export async function eliminaCassa(_prev: StatoForm, fd: FormData): Promise<Stat
   const id = str(fd, 'id');
   // anche una voce del tariffario la tiene in vita: cancellandola, la voce non
   // saprebbe più a chi mandare i soldi
-  const [usata, voci] = await Promise.all([
+  // i movimenti scritti a mano contano come i pagamenti: sono la sua storia
+  const [pagamenti, movimenti, voci] = await Promise.all([
     prisma.payment.count({ where: { cassaId: id } }),
+    prisma.movimentoCassa.count({ where: { cassaId: id } }),
     prisma.tariffa.count({ where: { cassaId: id } }),
   ]);
+  const usata = pagamenti + movimenti;
   if (usata === 0 && voci > 0) {
     await prisma.cassa.update({ where: { id }, data: { attiva: false } });
     aggiorna();
@@ -82,7 +85,7 @@ export async function eliminaCassa(_prev: StatoForm, fd: FormData): Promise<Stat
     await prisma.cassa.update({ where: { id }, data: { attiva: false } });
     aggiorna();
     return {
-      ok: `La cassa ha ${usata === 1 ? 'un pagamento' : `${usata} pagamenti`}: spenta invece che eliminata, così restano leggibili.`,
+      ok: `La cassa ha ${usata === 1 ? 'un pagamento o movimento' : `${usata} pagamenti e movimenti`}: spenta invece che eliminata, così restano leggibili.`,
     };
   }
 

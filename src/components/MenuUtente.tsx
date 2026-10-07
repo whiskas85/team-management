@@ -7,6 +7,7 @@ import type { Role } from '@prisma/client';
 import { Avatar, Badge } from './ui';
 import { Icona } from './Icona';
 import { etichettaRuolo, tonoRuolo } from '@/lib/domain';
+import { avviaGiroGuidato } from './GiroGuidato';
 
 /** Quanto è largo il chip una volta aperto. */
 const APERTO = 240;
@@ -206,6 +207,21 @@ export function MenuUtente({
                 <Icona nome="aiuto" size={16} />
                 Aiuto
               </Link>
+
+              {/* il giro del primo accesso, per chi lo vuole ripassare */}
+              <button
+                type="button"
+                onClick={() => {
+                  setAperto(false);
+                  avviaGiroGuidato();
+                }}
+                role="menuitem"
+                tabIndex={aperto ? undefined : -1}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/90 transition-colors hover:bg-surface2 hover:text-ink"
+              >
+                <Icona nome="naviga" size={16} />
+                Rivedi il giro guidato
+              </button>
 
               {/* Notte o giorno: lo decide ognuno per sé. La squadra sceglie
                   solo da dove si parte, e al sole un fondo chiaro si legge

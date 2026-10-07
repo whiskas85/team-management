@@ -43,8 +43,11 @@ export function Intestazione({
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{titolo}</h1>
-          <Stellina />
-          <AiutoPagina />
+          {/* il giro guidato li indica insieme: sono gli stessi in ogni pagina */}
+          <span data-giro="titolo" className="flex items-center gap-1.5">
+            <Stellina />
+            <AiutoPagina />
+          </span>
         </div>
         {descrizione && (
           <p className="mt-2 whitespace-pre-wrap break-words text-base text-ink/90">

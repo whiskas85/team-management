@@ -279,12 +279,13 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Il biglietto da visita della squadra: nome, nome del gestionale, motto, logo, recapiti, referenti — e il tema dei colori.',
     perChi: 'Admin',
     passi: [
-      { titolo: 'Collegamenti esterni', testo: 'In un posto solo: il portale federale FIGT (utenza, password, id anagrafica e id affiliazione, per tessere e polizze prova), i gestionali delle altre squadre e WhatsApp.' },
+      { titolo: 'Collegamenti esterni', testo: 'In un posto solo: il portale federale FIGT (bastano utenza e password: codice dell’associazione e affiliazioni li legge il gestionale, e per le polizze prova usa l’affiliazione attiva quel giorno — l’elenco si rilegge con [[g:riapri|Rileggi dal portale]]), i gestionali delle altre squadre e WhatsApp.' },
       { titolo: 'Profilo e logo', testo: 'Compila e premi [[p:salva|Salva il profilo]]. Sono anche i dati che vedono le squadre collegate; [[p:collegamento|Condividi il profilo]] li manda a chi vuoi.' },
       { titolo: 'Tema', testo: 'Il colore d’accento (preso dal logo, fra quelli pronti o libero) e il fondo di partenza, poi [[p:salva|Salva il tema]]. Il contrasto lo sistema il gestionale; chiaro o scuro lo sceglie poi ognuno per sé.' },
       { titolo: 'Referenti', testo: 'Chi rappresenta la squadra verso fuori, col callsign e i recapiti scelti: [[p:salva|Salva i referenti]].' },
+      { titolo: 'Configurazione guidata', testo: 'La procedura del primo accesso — squadra, tema, portale FIGT, campi — si rifà quando vuoi da [[g:naviga|Configurazione guidata]].' },
     ],
-    parole: 'logo nome motto tema colori accento referenti profilo squadra',
+    parole: 'logo nome motto tema colori accento referenti profilo squadra configurazione guidata primo accesso',
   },
   {
     percorso: '/mercatino',
@@ -373,14 +374,15 @@ export const AIUTO: VoceAiuto[] = [
     chiave: 'mia-cassa',
     area: 'Soldi',
     titolo: 'La tua cassa',
-    cosa: 'Per chi gestisce una cassa diversa da quella del club (es. un corso): solo i pagamenti che finiscono lì.',
+    cosa: 'Una cassa privata (es. un corso): i pagamenti che finiscono lì, le entrate e uscite a mano, il saldo. Funziona come la cassa del club, e chi le tiene tutt’e due passa dall’una all’altra dal selettore in cima.',
     perChi: 'Chi gestisce una cassa',
     passi: [
       { titolo: 'Confermare', testo: 'Chi ha segnalato di aver pagato aspetta te: [[g:incassa|Incassa]] e poi [[p:incassa|Registra l’incasso]]. A chi è in ritardo [[g:whatsapp|Sollecita]] manda un promemoria su WhatsApp. Se i soldi non sono arrivati, [[g:annulla|Annulla]] toglie la segnalazione, con il motivo scritto: la quota torna da pagare e la persona viene avvisata con quel motivo.' },
       { titolo: 'Credito', testo: '[[p:incassa|Registra versamento]] tiene dei soldi come credito della persona; [[g:pagamenti|Restituisci]] glieli rende.' },
       { titolo: 'Come si paga', testo: 'I metodi della tua cassa: [[g:aggiungi|Aggiungi metodo]] o [[g:modifica|Modifica]], con IBAN, link, e se li usano anche le squadre esterne.' },
+      { titolo: 'Movimenti a mano', testo: '[[p:incassa|Registra entrata]] per i soldi che non hanno un pagante (un fondo iniziale, un contributo), [[g:pagamenti|Registra uscita]] per le spese. Entrano nel saldo e nel registro in fondo alla pagina, dove si correggono.' },
     ],
-    parole: 'cassa corso incassi gestore credito',
+    parole: 'cassa corso incassi gestore credito saldo entrata uscita fondo iniziale',
   },
   {
     percorso: '/admin/metodi',
@@ -413,8 +415,8 @@ export const AIUTO: VoceAiuto[] = [
     percorso: '/admin/casse',
     chiave: 'casse',
     area: 'Soldi',
-    titolo: 'Altre casse',
-    cosa: 'Le casse che non sono del club (es. un istruttore): chi le gestisce e come si paga.',
+    titolo: 'Casse private',
+    cosa: 'Le casse accanto a quella del club (es. un istruttore): chi le gestisce e come si paga.',
     perChi: 'Segreteria',
     passi: [
       { titolo: 'Creare', testo: '[[p:aggiungi|Nuova cassa]]; poi, sulla cassa, scegli la persona e [[g:aggiungi|Abilita]] per farne un gestore. Il gestore trova la cassa nel suo menu e conferma i pagamenti da lì. [[g:modifica|Modifica]] per nome e metodi.' },
@@ -551,7 +553,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'Le tessere le emette la federazione: qui si importano dal portale e si abbinano alle persone.',
     perChi: 'Amministrazione',
     passi: [
-      { titolo: 'Collegare il portale', testo: 'Le credenziali del portale federale e l’id affiliazione si impostano in La mia squadra → Collegamenti esterni: da qui [[g:collegamento|Collega il portale]] porta lì.' },
+      { titolo: 'Collegare il portale', testo: 'Utenza e password del portale federale si impostano in La mia squadra → Collegamenti esterni: da qui [[g:collegamento|Collega il portale]] porta lì.' },
       { titolo: 'Importare', testo: '[[p:tessera|Importa dal portale]] legge le tessere dell’anno; [[p:operatori|Importa anagrafiche]] prende i dati completi dei tesserati. Sono solo letture: sul portale non cambia niente.' },
       { titolo: 'Abbinare', testo: 'Le tessere che non si attribuiscono con certezza restano da abbinare: [[g:operatori|Proponi abbinamenti]] suggerisce a chi.' },
     ],

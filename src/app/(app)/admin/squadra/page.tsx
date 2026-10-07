@@ -12,6 +12,7 @@ import { ReferentiMiaSquadra } from '@/components/ReferentiMiaSquadra';
 import { salvaLogoSquadra, salvaMiaSquadra, salvaReferenti } from '@/actions/mia-squadra';
 import { SceltaTemaSquadra } from '@/components/SceltaTemaSquadra';
 import { PortaleFigt } from '@/components/PortaleFigt';
+import { AffiliazioniFigt } from '@/components/AffiliazioniFigt';
 import { URL_ASNWG } from '@/lib/domain';
 import { temaSquadra } from '@/lib/tema-server';
 
@@ -49,9 +50,15 @@ export default async function MiaSquadraPage() {
         titolo="La mia squadra"
         sottotitolo="Il biglietto da visita della squadra, e il nome del gestionale"
         azioni={
+          <>
+          {/* la procedura del primo accesso, per ripassare tutto in fila */}
+          <Link href="/configura" className="btn-ghost btn-sm">
+            <Icona nome="naviga" size={15} /> Configurazione guidata
+          </Link>
           <Link href="/admin/collegamenti" className="btn-primary btn-sm">
             <Icona nome="collegamento" size={15} /> Condividi il profilo
           </Link>
+          </>
         }
       />
 
@@ -158,14 +165,15 @@ export default async function MiaSquadraPage() {
               <p className="font-medium">Portale federale FIGT (ASNWG)</p>
               <p className="text-xs text-muted">
                 {figt
-                  ? `Collegato come ${figt.login}${figt.idAffiliazione ? ` · affiliazione ${figt.idAffiliazione}` : ' · manca l’id affiliazione (serve alle polizze prova)'}`
-                  : 'Non collegato: servono utenza, password, id anagrafica e affiliazione. Senza, niente tessere importate né polizze prova.'}
+                  ? `Collegato come ${figt.login} · associazione ${figt.idAnagrafica}${figt.idAffiliazione ? ` · affiliazione ${figt.idAffiliazione}` : ' · nessuna affiliazione attiva'}`
+                  : 'Non collegato: bastano utenza e password del portale. Senza, niente tessere importate né polizze prova.'}
               </p>
             </div>
             <a href={URL_ASNWG} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">
               <Icona nome="apri" size={15} /> Portale
             </a>
             <PortaleFigt collegamento={figt} />
+            {figt && <AffiliazioniFigt />}
           </li>
           <li className="flex flex-wrap items-center gap-3 py-3">
             <div className="min-w-0 flex-1">

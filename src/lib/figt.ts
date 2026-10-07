@@ -133,6 +133,132 @@ export async function entra(cred: CredenzialiFigt): Promise<string> {
   return cookie;
 }
 
+/**
+ * L'id dell'anagrafica dell'associazione, letto dal menu del portale: ogni
+ * pagina dopo l'accesso ha il link «ANAGRAFICA» con
+ * anagrafiche_scheda.php?idanagrafica=… — è il codice affiliato FIGT.
+ * Non serve chiederlo a chi collega il portale.
+ */
+export function leggiIdAnagrafica(html: string): string | null {
+  return html.match(/anagrafiche_scheda\.php\?idanagrafica=(\d+)/i)?.[1] ?? null;
+}
+
+export type AffiliazionePortale = {
+  /** Il codice affiliazione FIGT: è l'idaffiliazione delle polizze prova. */
+  codice: string;
+  /** Quando è stata richiesta. */
+  richiestaIl: Date | null;
+  ragioneSociale: string | null;
+  tipo: string | null;
+  validaDa: Date | null;
+  validaA: Date | null;
+  anno: number | null;
+  /** ATTIVA, SOSPESA, ELIMINATA. */
+  stato: string;
+  /** «18 / 18»: tesserati e tetto. */
+  tesserati: number | null;
+  limite: number | null;
+  codiceAcsi: string | null;
+};
+
+/** «16-01-2026» o «16-01-2026 10:32», all'ora italiana. */
+function dataPortale(testo: string | undefined): Date | null {
+  const m = testo?.match(/(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+  if (!m) return null;
+  return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] ?? 12), Number(m[5] ?? 0));
+}
+
+/**
+ * Le affiliazioni dalla pagina affiliazioni_lista.php: una per anno, ognuna
+ * col suo codice. Come per le tessere ci si appoggia all'ordine delle colonne
+ * (codice, data, ragione sociale, tipo, valida da / a, anno, stato, scheda,
+ * tesseramenti, codice ACSI).
+ */
+export function leggiAffiliazioni(html: string): AffiliazionePortale[] {
+  const righe = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) ?? [];
+  return righe.flatMap((riga) => {
+    const codice = riga.match(/affiliazioni_scheda\.php\?idaffiliazione=(\d+)/i)?.[1];
+    if (!codice) return [];
+    const celle = (riga.match(/<td[^>]*>[\s\S]*?<\/td>/gi) ?? []).map(ripulisci);
+    const [da, a] = (celle[4] ?? '').split('/');
+    const conto = celle[8]?.match(/(\d+)\s*\/\s*(\d+)/);
+    return [
+      {
+        codice,
+        richiestaIl: dataPortale(celle[1]),
+        ragioneSociale: celle[2] || null,
+        tipo: celle[3] || null,
+        validaDa: dataPortale(da),
+        validaA: dataPortale(a),
+        anno: Number(celle[5]) || null,
+        stato: (celle[6] || 'SCONOSCIUTO').toUpperCase(),
+        tesserati: conto ? Number(conto[1]) : null,
+        limite: conto ? Number(conto[2]) : null,
+        codiceAcsi: celle[9] || null,
+      },
+    ];
+  });
+}
+
+/**
+ * L'affiliazione che vale in un giorno: attiva, e con quel giorno fra «valida
+ * da» e «valida a». Se due si sovrappongono vince quella partita dopo. È la
+ * data di attivazione a dire quale codice usare adesso: a gennaio quello
+ * dell'anno vecchio è scaduto e quello nuovo non c'è finché non lo si rinnova.
+ */
+export function affiliazioneValida<
+  T extends { stato: string; validaDa: Date | null; validaA: Date | null },
+>(affiliazioni: T[], giorno = new Date()): T | null {
+  const fine = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+  const inizio = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return (
+    affiliazioni
+      .filter(
+        (a) =>
+          a.stato === 'ATTIVA' &&
+          a.validaDa !== null &&
+          inizio(a.validaDa) <= giorno &&
+          (a.validaA === null || fine(a.validaA) >= giorno),
+      )
+      .sort((x, y) => y.validaDa!.getTime() - x.validaDa!.getTime())[0] ?? null
+  );
+}
+
+/**
+ * Entra con utenza e password e ricava da solo quello che prima si doveva
+ * copiare dagli indirizzi del portale: l'id dell'anagrafica e la lista delle
+ * affiliazioni.
+ */
+export async function scopriAssociazione(cred: {
+  login: string;
+  password: string;
+}): Promise<{ idAnagrafica: string; affiliazioni: AffiliazionePortale[] }> {
+  const cookie = await entra({ ...cred, idAnagrafica: '' });
+  // il menu con il link all'anagrafica sta in ogni pagina dopo l'accesso:
+  // prima la home, e se un giorno cambia, la pagina delle polizze prova
+  let idAnagrafica: string | null = null;
+  for (const pagina of ['home.php', 'polizzeprova_info.php']) {
+    const res = await fetch(`${BASE}/${pagina}`, { headers: { cookie } });
+    if (res.ok) idAnagrafica = leggiIdAnagrafica(await res.text());
+    if (idAnagrafica) break;
+  }
+  if (!idAnagrafica) throw new Error('Il portale non mostra l’anagrafica dell’associazione.');
+  return { idAnagrafica, affiliazioni: await scaricaAffiliazioni(cookie, idAnagrafica) };
+}
+
+/** Le affiliazioni, con una sessione già aperta. */
+export async function scaricaAffiliazioni(
+  cookie: string,
+  idAnagrafica: string,
+): Promise<AffiliazionePortale[]> {
+  const res = await fetch(
+    `${BASE}/affiliazioni_lista.php?idanagrafica=${encodeURIComponent(idAnagrafica)}`,
+    { headers: { cookie } },
+  );
+  if (!res.ok) throw new Error(`Il portale ha risposto ${res.status}.`);
+  return leggiAffiliazioni(await res.text());
+}
+
 export async function scaricaTessere(
   cred: CredenzialiFigt,
   anno: number,

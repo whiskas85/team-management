@@ -64,8 +64,8 @@ export default async function AltreCassePage() {
   return (
     <>
       <Intestazione
-        titolo="Altre casse"
-        sottotitolo="Le casse che non sono del club: chi le gestisce e come si paga"
+        titolo="Casse private"
+        sottotitolo="Le casse accanto a quella del club: chi le gestisce e come si paga"
         azioni={
           <BottoneModale etichetta="Nuova cassa" icona="aggiungi" titolo="Nuova cassa">
             <FormAzione azione={salvaCassa}>

@@ -41,8 +41,8 @@ export function PortaleFigt({
           </p>
         ) : (
           <p className="mb-4 text-sm text-muted">
-            Le credenziali del portale ASNWG. Vengono provate subito: se il portale non le
-            accetta non vengono salvate.
+            Utenza e password del portale ASNWG, quelle con cui entri tu. Le provo subito: se il
+            portale non le accetta non le salvo.
           </p>
         )}
 
@@ -56,38 +56,24 @@ export function PortaleFigt({
               autoComplete="username"
             />
           </Campo>
-          <Campo label="Password *">
+          <Campo label={collegamento ? 'Password' : 'Password *'}>
             <input
               name="password"
               type="password"
-              required
+              required={!collegamento}
               className="input"
               autoComplete="current-password"
-              placeholder={collegamento ? 'riscrivila per cambiarla' : ''}
+              placeholder={collegamento ? 'vuota: resta quella salvata' : ''}
             />
-          </Campo>
-          <Campo label="Id anagrafica dell’associazione *">
-            <input
-              name="idAnagrafica"
-              required
-              defaultValue={collegamento?.idAnagrafica ?? ''}
-              className="input"
-              placeholder="dopo idanagrafica= nell’indirizzo"
-            />
-          </Campo>
-          <Campo label="Id affiliazione">
-            <input
-              name="idAffiliazione"
-              defaultValue={collegamento?.idAffiliazione ?? ''}
-              className="input"
-              placeholder="dopo idaffiliazione= nell’indirizzo"
-            />
-            <p className="mt-1 text-[11px] text-muted">
-              Numero diverso dal precedente: lo usano le polizze prova, cioè le
-              giornaliere degli ospiti.
-            </p>
           </Campo>
         </div>
+
+        {/* id anagrafica e affiliazione non si chiedono più: li legge il
+            gestionale dal portale, entrando */}
+        <p className="mt-2 text-xs text-muted">
+          Il codice dell’associazione e le affiliazioni li leggo io dal portale: fra queste uso
+          quella attiva il giorno della giocata.
+        </p>
 
         <p className="mt-2 text-[11px] text-muted">
           La password viene ricordata cifrata. Non si può sostituire con un’impronta come
