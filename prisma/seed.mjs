@@ -9,6 +9,21 @@ const EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@zerodark.team';
 const PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'ZeroDark2026!';
 const DEBUG = process.env.DEBUG_LOGIN === '1';
 
+/**
+ * Il proprietario del gestionale, quando lo crea la console ZeroDark: nome,
+ * cognome, data di nascita (AAAA-MM-GG) e telefono del primo amministratore.
+ * Un campo vuoto resta quello generico di sempre.
+ */
+const pulito = (v) => (v || '').trim() || null;
+const PROPRIETARIO = {
+  nome: pulito(process.env.SEED_ADMIN_NOME),
+  cognome: pulito(process.env.SEED_ADMIN_COGNOME),
+  nascita: /^\d{4}-\d{2}-\d{2}$/.test(pulito(process.env.SEED_ADMIN_NASCITA) || '')
+    ? new Date(`${process.env.SEED_ADMIN_NASCITA.trim()}T12:00:00Z`)
+    : null,
+  telefono: pulito(process.env.SEED_ADMIN_TELEFONO),
+};
+
 /** Account di prova, uno per figura: alimentano i pulsanti di accesso rapido. */
 const FIGURE = [
   {
@@ -185,15 +200,20 @@ async function main() {
     );
   } else if (await creaSeNonEsiste({
     email: EMAIL,
-    nome: 'Admin',
+    nome: PROPRIETARIO.nome ?? 'Admin',
     // il nome della squadra, se il gestionale è di un'altra (NOME_SQUADRA)
-    cognome: process.env.NOME_SQUADRA || 'Zero Dark',
-    callsign: process.env.NOME_SQUADRA ? 'Admin' : 'Zero',
+    cognome: PROPRIETARIO.cognome ?? (process.env.NOME_SQUADRA || 'Zero Dark'),
+    // il proprietario il nome di battaglia se lo mette lui
+    callsign: PROPRIETARIO.nome ? null : process.env.NOME_SQUADRA ? 'Admin' : 'Zero',
     // un numero finto solo per Zero Dark (le prove): altrove nessun numero inventato
-    telefono: process.env.NOME_SQUADRA ? null : '3401110000',
+    telefono: PROPRIETARIO.telefono ?? (process.env.NOME_SQUADRA ? null : '3401110000'),
+    dataNascita: PROPRIETARIO.nascita,
     roles: ['ADMIN', 'ATLETA'],
     stato: 'SQUADRA',
-    creatoDalSeed: true,
+    // Con nome e cognome è una persona vera, il proprietario: resta anche
+    // quando nascono altri amministratori. Senza è l'admin di partenza, che
+    // se ne va appena ce n'è uno vero.
+    creatoDalSeed: !(PROPRIETARIO.nome && PROPRIETARIO.cognome),
   })) {
     console.log(`[seed] nessun amministratore: creato ${EMAIL}`);
   } else {

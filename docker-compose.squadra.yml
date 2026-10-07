@@ -41,6 +41,11 @@ services:
       UPLOAD_DIR: /data/uploads
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?serve un'email per l'admin di partenza}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?serve una password per l'admin di partenza}
+      # il proprietario, se la console l'ha detto (vuoti: admin generico)
+      SEED_ADMIN_NOME: ${SEED_ADMIN_NOME:-}
+      SEED_ADMIN_COGNOME: ${SEED_ADMIN_COGNOME:-}
+      SEED_ADMIN_NASCITA: ${SEED_ADMIN_NASCITA:-}
+      SEED_ADMIN_TELEFONO: ${SEED_ADMIN_TELEFONO:-}
       NODE_ENV: production
       TZ: ${TZ:-Europe/Rome}
       # il suo ponte, nella sua rete: il nostro da qui non si vede

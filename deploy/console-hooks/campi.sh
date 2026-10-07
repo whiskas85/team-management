@@ -23,6 +23,12 @@ sys.stdout.write("" if v is None else str(v))' "$1" 2> /dev/null || true
     [ -n "${ZDT_APP_ADMIN_PASSWORD:-}" ] || ZDT_APP_ADMIN_PASSWORD=$(zdt_campo admin_password)
     [ -n "${ZDT_APP_ARCHIVE_PATH:-}" ] || ZDT_APP_ARCHIVE_PATH=$(zdt_campo archive_path)
     [ -n "${ZDT_APP_VERSION:-}" ] || ZDT_APP_VERSION=$(zdt_campo version)
+    # il proprietario, primo amministratore (agent 0.1.5 li mette anche
+    # nell'ambiente): nome, cognome, nascita AAAA-MM-GG, telefono
+    [ -n "${ZDT_APP_FIRST_NAME:-}" ] || ZDT_APP_FIRST_NAME=$(zdt_campo first_name)
+    [ -n "${ZDT_APP_LAST_NAME:-}" ] || ZDT_APP_LAST_NAME=$(zdt_campo last_name)
+    [ -n "${ZDT_APP_BIRTH_DATE:-}" ] || ZDT_APP_BIRTH_DATE=$(zdt_campo birth_date)
+    [ -n "${ZDT_APP_PHONE:-}" ] || ZDT_APP_PHONE=$(zdt_campo phone)
     unset -f zdt_campo
   fi
   unset ZDT_STDIN

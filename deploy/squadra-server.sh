@@ -8,6 +8,8 @@
 #
 #   SQUADRA=pippo DOMINIO=gestionale.pippo.it NOME='Pippo Softair' \
 #     EMAIL=presidente@pippo.it bash /opt/gestionale/deploy/squadra-server.sh nuova
+#     (e, se si sanno, i dati del primo amministratore: ADMIN_NOME, ADMIN_COGNOME,
+#      ADMIN_NASCITA=AAAA-MM-GG, ADMIN_TELEFONO)
 #   bash /opt/gestionale/deploy/squadra-server.sh rilascia pippo
 #   bash /opt/gestionale/deploy/squadra-server.sh rilascia-tutte
 #   bash /opt/gestionale/deploy/squadra-server.sh stato [pippo]
@@ -320,6 +322,14 @@ trasloca_db() {
   return 1
 }
 
+# Un dato del proprietario, pulito per finire in .env.squadra: una riga sola,
+# niente caratteri che il file d'ambiente di compose interpreterebbe ($, \,
+# virgolette, apice in testa), al massimo 80 caratteri. Vuoto se non resta
+# niente.
+dato_admin() {
+  printf '%s' "$1" | tr -d '\000-\037$\\"`' | sed -e "s/^[' ]*//" -e 's/ *$//' | cut -c1-80
+}
+
 # --------------------------------------------------------------- il proxy
 
 proxy() {
@@ -407,9 +417,20 @@ nuova() {
   echo "== Nuova squadra: $nome ($SQUADRA) su https://$dominio"
   mkdir -p "$CARTELLA"
   chmod 700 "$CARTELLA"
-  local admin_pw push
+  local admin_pw push a_nome a_cognome a_nascita a_telefono
   admin_pw=$(casuale 12)
   push=$(chiavi_push)
+  # il proprietario, se la console lo dice: compila il profilo del primo
+  # amministratore. Un dato vuoto o sbagliato resta come prima (generico).
+  a_nome=$(dato_admin "${ADMIN_NOME:-}")
+  a_cognome=$(dato_admin "${ADMIN_COGNOME:-}")
+  a_nascita=${ADMIN_NASCITA:-}
+  if [ -n "$a_nascita" ] && ! { printf '%s' "$a_nascita" | grep -Eq '^(19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$' \
+    && date -d "$a_nascita" +%F > /dev/null 2>&1; }; then
+    echo "== data di nascita «$a_nascita» non valida (AAAA-MM-GG): la lascio vuota"
+    a_nascita=""
+  fi
+  a_telefono=$(printf '%s' "${ADMIN_TELEFONO:-}" | tr -cd '0-9+ -' | cut -c1-20 | sed -e 's/^ *//' -e 's/ *$//')
   umask 077
   cat > "$ENV" <<EOF
 SQUADRA=$SQUADRA
@@ -430,6 +451,10 @@ VAPID_PRIVATE_KEY=${push##* }
 VAPID_SUBJECT=mailto:$email
 TZ=Europe/Rome
 VERSIONE=$(versione_corrente)
+SEED_ADMIN_NOME=$a_nome
+SEED_ADMIN_COGNOME=$a_cognome
+SEED_ADMIN_NASCITA=$a_nascita
+SEED_ADMIN_TELEFONO=$a_telefono
 EOF
   cat > "$CARTELLA/ACCESSO.txt" <<EOF
 Gestionale di $nome: https://$dominio

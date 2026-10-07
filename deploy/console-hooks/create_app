@@ -10,8 +10,10 @@
 #   ln -sf /opt/gestionale/deploy/console-hooks/update_app /etc/zdt-agent/hooks/update_app
 #   ln -sf /opt/gestionale/deploy/console-hooks/list_versions /etc/zdt-agent/hooks/list_versions
 #
-# L'agent lo lancia come root, con ZDT_APP_NAME e ZDT_APP_DOMAIN (gli altri
-# campi qui non servono). Uscita 0 = fatto; quello che si stampa finisce nella
+# L'agent lo lancia come root, con ZDT_APP_NAME e ZDT_APP_DOMAIN, ZDT_APP_EMAIL
+# e i dati del proprietario, il primo amministratore: ZDT_APP_FIRST_NAME,
+# ZDT_APP_LAST_NAME, ZDT_APP_BIRTH_DATE (AAAA-MM-GG), ZDT_APP_PHONE. Quelli
+# vuoti restano come prima (nome «Admin», cognome il nome della squadra). Uscita 0 = fatto; quello che si stampa finisce nella
 # console, e l'ultima riga JSON dice alla console quali container guardare.
 #
 # La password dell'admin: se la console la sceglie (ZDT_APP_ADMIN_PASSWORD),
@@ -29,6 +31,8 @@ dominio=${ZDT_APP_DOMAIN:-$nome.zerodarkteam.it}
 # Nome, dominio e duplicati li controlla squadra-server.sh: ops, test*, www e
 # i nomi già usati sono rifiutati con un messaggio, e qui si esce con errore.
 SQUADRA=$nome DOMINIO=$dominio NOME=$nome EMAIL=${ZDT_APP_EMAIL:-} \
+  ADMIN_NOME=${ZDT_APP_FIRST_NAME:-} ADMIN_COGNOME=${ZDT_APP_LAST_NAME:-} \
+  ADMIN_NASCITA=${ZDT_APP_BIRTH_DATE:-} ADMIN_TELEFONO=${ZDT_APP_PHONE:-} \
   bash /opt/gestionale/deploy/squadra-server.sh nuova
 
 if [ -n "${ZDT_APP_ADMIN_PASSWORD:-}" ]; then

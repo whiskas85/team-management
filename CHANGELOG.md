@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.30.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **Il proprietario dalla console.** Alla creazione di un gestionale la
+  console ZeroDark manda i dati del primo amministratore — nome, cognome,
+  data di nascita, telefono — come `ZDT_APP_FIRST_NAME`, `ZDT_APP_LAST_NAME`,
+  `ZDT_APP_BIRTH_DATE`, `ZDT_APP_PHONE` (agent 0.1.5) o nel JSON su stdin
+  (`first_name`, `last_name`, `birth_date`, `phone`). L'hook `create_app` li
+  usa per compilare il suo profilo al posto di «Admin» e del nome della
+  squadra; quelli vuoti restano come prima. Con nome e cognome il
+  proprietario è un amministratore vero: non sparisce quando nascono gli
+  altri.
+
 ## 3.29.0 — 7 ottobre 2026
 
 ### Cambiato

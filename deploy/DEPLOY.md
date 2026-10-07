@@ -577,6 +577,26 @@ ln -sf /opt/gestionale/deploy/console-hooks/list_versions /etc/zdt-agent/hooks/l
   aggiunge `"admin_password":"applied"`; se non si riesce ad applicarla esce
   con errore. L'ultima riga dice alla console di guardare i container
   `zd-sq-<nome>-*`.
+- **Il proprietario**, primo amministratore: la console lo chiede alla
+  creazione e l'hook usa i suoi dati per compilarne il profilo al posto di
+  quelli generici. Arrivano come `ZDT_APP_FIRST_NAME`, `ZDT_APP_LAST_NAME`,
+  `ZDT_APP_BIRTH_DATE` (AAAA-MM-GG) e `ZDT_APP_PHONE` (agent 0.1.5), oppure
+  nel JSON su stdin come `first_name`, `last_name`, `birth_date`, `phone`
+  (`campi.sh`; le variabili già valorizzate vincono); l'email resta
+  `ZDT_APP_EMAIL`. Passano a `nuova` come `ADMIN_NOME`, `ADMIN_COGNOME`,
+  `ADMIN_NASCITA`, `ADMIN_TELEFONO`, finiscono in `.env.squadra`
+  (`SEED_ADMIN_NOME`, …) e il seed li usa al primo avvio.
+  - Un campo vuoto resta com'era: nome «Admin», cognome il nome della
+    squadra, nessuna data, nessun telefono.
+  - Una data che non è AAAA-MM-GG, o non esiste (1985-02-30), si lascia vuota
+    e lo si dice. Nomi e telefono si ripuliscono dai caratteri che il file
+    d'ambiente interpreterebbe (`$`, virgolette, a capo); il telefono tiene
+    solo cifre, `+`, spazi e trattini.
+  - **Con nome e cognome è un amministratore vero**, non quello di partenza:
+    resta anche quando nel gestionale nascono altri amministratori (l'admin
+    di partenza generico invece se ne va appena ce n'è uno vero).
+  - I dati valgono solo alla creazione: dopo, il profilo lo cambia lui dal
+    gestionale.
 - **Reimposta password** → hook `set_admin_password` → `squadra-server.sh
   password <nome> [email]`, con la password in `ADMIN_PASSWORD`, mai sulla
   riga di comando. Tocca un utente solo: quello con `ZDT_APP_EMAIL` o, se è
