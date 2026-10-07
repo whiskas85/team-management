@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.35.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **Novità, per l'admin.** In Comando → Novità c'è il registro delle
+  modifiche formattato: ogni versione con la sua data e quello che è
+  aggiunto, cambiato o corretto. Le ultime cinque sono aperte, le precedenti
+  si aprono a una a una; quella che gira è evidenziata. È lo stesso registro
+  che si scrive a ogni rilascio, quindi è sempre aggiornato.
+
 ## 3.34.0 — 7 ottobre 2026
 
 ### Aggiunto

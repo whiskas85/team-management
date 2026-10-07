@@ -735,6 +735,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       // massimali e franchigie della polizza prova: si leggono dentro ogni polizza
       { href: '/admin/info-polizza', label: 'Info polizza', icona: 'scudo', gruppo: 'comando' },
       { href: '/admin/statistiche', label: 'Statistiche', icona: 'grafici', gruppo: 'comando' },
+      // cosa è cambiato in ogni versione: il registro delle modifiche, formattato
+      { href: '/admin/novita', label: 'Novità', icona: 'avvisi', gruppo: 'comando' },
       { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },
       {
         href: '/admin/errori',

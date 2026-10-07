@@ -8,3 +8,6 @@ certificati
 # i testi che nascono con l'applicazione (il regolamento del mercatino) servono
 # dentro l'immagine: il seed li legge all'avvio
 !prisma/testi/*.md
+
+# il registro delle modifiche: la pagina «Novità» dell'admin lo legge
+!CHANGELOG.md

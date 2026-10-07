@@ -33,6 +33,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
+# le novità di ogni versione, per la pagina «Novità» dell'admin
+COPY --from=builder /app/CHANGELOG.md ./CHANGELOG.md
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /data/uploads
 
