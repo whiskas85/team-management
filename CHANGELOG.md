@@ -58,6 +58,19 @@ accanto a ZERO DARK.
 - Automazione Rilascio, modo **`test-azzera`**: porta il test al ramo scelto
   e lo svuota, database e allegati, per provare il primo accesso.
 
+## 3.31.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **Le polizze prova si rileggono da sole, alle 14 e alle 19.** I lavori
+  automatici rileggono dal portale federale quante polizze prova restano,
+  dopo pranzo e alla sera (ora di Roma), in orario d'ufficio della segreteria
+  federale. Una lettura fatta a mano dopo quell'ora vale anche per quella
+  automatica; se il portale non risponde si riprova ogni mezz'ora.
+- **Avviso quando arrivano polizze.** Se una lettura — automatica, a mano o
+  dopo un'attivazione — trova più polizze di prima, chi segue i nuovi (admin,
+  amministrazione, segreteria) riceve «Sono arrivate N polizze prova».
+
 ## 3.30.0 — 7 ottobre 2026
 
 ### Aggiunto
