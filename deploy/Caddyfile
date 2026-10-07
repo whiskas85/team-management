@@ -1,49 +1,23 @@
-# Davanti al gestionale sulla macchina pubblica. Fa le stesse cose del nginx di
-# casa (certificati/nginx.conf.template), con un certificato vero al posto di
-# quello firmato da noi: lo chiede a Let's Encrypt, lo rinnova e manda chi
-# arriva in http sulla porta sicura, tutto da solo.
+# Il proxy della macchina pubblica. Fa le stesse cose del nginx di casa
+# (certificati/nginx.conf.template), con certificati veri: li chiede a Let's
+# Encrypt, li rinnova e manda chi arriva in http sulla porta sicura, da solo.
 #
-# DOMINIO ed EMAIL_CERTIFICATI arrivano da .env.prod, attraverso il compose.
+# EMAIL_CERTIFICATI arriva da .env.prod, attraverso il compose.
+#
+# **Qui non c'è nessun sito.** Ognuno ha il suo file .caddy nella cartella
+# siti/ del server, fuori dal repository, e lo scrive chi lo accende:
+#   - sq-<nome>.caddy  i gestionali ospitati, compreso il nostro (sq-zerodark,
+#                      ops.zerodarkteam.it): deploy/squadra-server.sh;
+#   - test.caddy, test2.caddy  gli ambienti di test: deploy/test-server.sh;
+#   - gli altri (il sito www, la console) scritti a mano; locale.caddy è
+#     quello che prima era aggiunto in fondo a questo file, spostato dal
+#     rilascio per non bloccare il git pull.
+#
+# Il Caddyfile è montato come file nel container: dopo averlo cambiato il
+# proxy va riavviato (un reload rilegge il file vecchio).
 
 {
 	email {$EMAIL_CERTIFICATI}
 }
 
-{$DOMINIO} {
-	encode zstd gzip
-
-	# I certificati medici arrivano come li dà il medico: la scansione a colori
-	# dello studio fa quindici mega senza fatica. Il tetto vero è quello del
-	# gestionale (20 MB) ed è lui che deve dirlo, con parole sue: qui si sta più
-	# larghi, perché un caricamento fermato dal proxy si interrompe e basta, e
-	# a chi guarda resta una pagina rotta senza spiegazione.
-	request_body {
-		max_size 25MB
-	}
-
-	# chi è arrivato una volta in HTTPS non torna più in chiaro, nemmeno
-	# scrivendo l'indirizzo a mano senza https davanti
-	header Strict-Transport-Security "max-age=31536000"
-
-	# Host, X-Forwarded-Proto e X-Forwarded-Host li passa già Caddy: è da
-	# quelli che il gestionale compone i link verso sé stesso. Il nome viene
-	# risolto a ogni connessione, quindi dopo una ricostruzione non c'è il 502
-	# che in casa costringeva al resolver esplicito.
-	# Il nome del container e non "app": il proxy sta anche nelle reti dei
-	# test e delle squadre ospitate, dove "app" è la loro. Con "app" il
-	# traffico vero poteva finire in un'altra istanza.
-	reverse_proxy zd-app:3000 {
-		header_up X-Real-IP {remote_host}
-
-		# le server action sono richieste lunghe: caricare un certificato o
-		# parlare col portale federale può prendere qualche secondo
-		transport http {
-			read_timeout 120s
-		}
-	}
-}
-
-# Gli altri siti che questa macchina serve oltre al gestionale: un file .caddy
-# per sito nella cartella siti/ del server, fuori dal repository. Se non ce ne
-# sono, non succede niente.
 import /etc/caddy/siti/*.caddy

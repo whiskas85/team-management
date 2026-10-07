@@ -5,6 +5,31 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.29.0 — 7 ottobre 2026
+
+### Cambiato
+
+- **Il nostro gestionale è la squadra «zerodark», come tutte le altre.** Non
+  è più il compose a parte della produzione (zd-app, zd-db): è una squadra
+  ospitata con la sua cartella, il suo database `sq_zerodark` nel Postgres
+  comune e la sua versione. Il rilascio lo aggiorna con lo stesso
+  `aggiorna` delle altre — backup prima, ritorno indietro se non risponde — e
+  le altre restano alla loro versione. Stesso indirizzo, stesse chiavi:
+  sessioni, notifiche, admin e WhatsApp continuano come prima.
+- **Il passaggio è automatico** al primo rilascio (`migra-produzione`): sito
+  di riserva verso la produzione vecchia, backup, database e allegati
+  copiati, sessione WhatsApp copiata, controllo da fuori attraverso il proxy;
+  se qualcosa non risponde, si torna al compose vecchio. I volumi di prima
+  restano come copia.
+- `docker-compose.prod.yml` tiene solo il proxy, e il Caddyfile solo le
+  impostazioni comuni: ogni sito ha il suo file in `siti/`. Il sito della
+  console, aggiunto a mano in fondo al Caddyfile, il rilascio lo sposta in
+  `siti/locale.caddy`.
+- «zerodark» non si toglie né si cancella per sbaglio, nemmeno dalla
+  console: `rimuovi` ed `elimina` vogliono `FORZA=1`.
+- I lavori automatici, la copia dei dati nel test e la modalità «prova»
+  seguono il nostro gestionale dove sta ora.
+
 ## 3.28.0 — 7 ottobre 2026
 
 ### Cambiato

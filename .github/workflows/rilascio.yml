@@ -6,11 +6,11 @@
 #                    cosa arriverebbe con il prossimo rilascio, se il codice sul
 #                    server e' pulito, disco, memoria, e com'e' messo il test.
 #                    Non cambia niente.
-#   rilascio         la produzione, con i passi di deploy/DEPLOY.md: le
-#                    immagini costruite qui su GitHub (job «pubblica»), poi sul
-#                    server backup, pull, immagini scaricate dal registro,
-#                    riavvio del proxy, pulizia, controllo. Il server non
-#                    compila più: lo fa solo se il registro non le ha.
+#   rilascio         le immagini costruite qui su GitHub (job «pubblica»), poi
+#                    sul server: pull, immagini scaricate dal registro, il
+#                    nostro gestionale (la squadra «zerodark») aggiornato con
+#                    backup e ritorno indietro, proxy, le altre squadre (che
+#                    restano alla loro versione), pulizia, controllo.
 #   test             l'ambiente di test (https://test.zerodarkteam.it) portato
 #                    al ramo scelto qui sotto. La prima volta lo crea da zero.
 #                    La produzione non la tocca.
@@ -168,8 +168,8 @@ jobs:
           # Per capire quanto pesa davvero un gestionale: la produzione, non i
           # test (sono quasi vuoti). Il picco di memoria è quello da quando il
           # container è partito; solo letture.
-          echo "== Produzione: memoria di picco dall'avvio"
-          for c in zd-app zd-db zd-whatsapp; do
+          echo "== Il nostro gestionale: memoria di picco dall'avvio"
+          for c in zd-sq-zerodark-app zd-sq-zerodark-whatsapp zd-sq-pg zd-app zd-db zd-whatsapp; do
             id=$(docker inspect -f '{{.Id}}' "$c" 2>/dev/null) || continue
             avvio=$(docker inspect -f '{{.State.StartedAt}}' "$c" | cut -c1-16)
             f=/sys/fs/cgroup/system.slice/docker-$id.scope/memory.peak
@@ -180,16 +180,21 @@ jobs:
               echo "$c  picco non leggibile"
             fi
           done
-          echo "== Produzione: dati"
-          U=$(docker exec zd-db printenv POSTGRES_USER); D=$(docker exec zd-db printenv POSTGRES_DB)
-          docker exec zd-db psql -U "$U" -d "$D" -At -F ' ' -c "
+          echo "== Il nostro gestionale: dati"
+          Q="
             select 'database', pg_size_pretty(pg_database_size(current_database()))
             union all select 'persone', count(*)::text from \"User\"
             union all select 'attivita', count(*)::text from \"Event\"
             union all select 'adesioni', count(*)::text from \"EventRsvp\"
-            union all select 'pagamenti', count(*)::text from \"Payment\"
-            union all select 'connessioni db ora', count(*)::text from pg_stat_activity" || true
-          echo "allegati: $(docker exec zd-app du -sh /data/uploads 2>/dev/null | cut -f1)"
+            union all select 'pagamenti', count(*)::text from \"Payment\""
+          if docker ps -q --filter name=^zd-sq-zerodark-app$ | grep -q .; then
+            docker exec zd-sq-pg psql -U sq_zerodark -d sq_zerodark -At -F ' ' -c "$Q" || true
+            echo "allegati: $(docker exec zd-sq-zerodark-app du -sh /data/uploads 2>/dev/null | cut -f1)"
+          else
+            U=$(docker exec zd-db printenv POSTGRES_USER); D=$(docker exec zd-db printenv POSTGRES_DB)
+            docker exec zd-db psql -U "$U" -d "$D" -At -F ' ' -c "$Q" || true
+            echo "allegati: $(docker exec zd-app du -sh /data/uploads 2>/dev/null | cut -f1)"
+          fi
           SUL_SERVER
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" 'bash -s -- stato' < deploy/test-server.sh
@@ -214,10 +219,23 @@ jobs:
           zd() { docker compose -p gestionale -f docker-compose.prod.yml --env-file .env.prod "$@"; }
           export REGISTRO
 
-          echo "== 1. Backup"
-          mkdir -p /root/backup
-          docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/prima.dump'
-          docker cp zd-db:/tmp/prima.dump /root/backup/prod-$(date +%F-%H%M).dump
+          echo "== 1. Il Caddyfile toccato a mano sul server"
+          # Quello aggiunto a mano in fondo (la console) diventa un sito suo in
+          # siti/locale.caddy, e il file torna quello del repository: così il
+          # pull non si ferma e niente va perso (copia in /root/backup).
+          if ! git diff --quiet deploy/Caddyfile; then
+            mkdir -p /root/backup siti
+            cp deploy/Caddyfile "/root/backup/Caddyfile-locale-$(date +%F-%H%M)"
+            sed -n '/^import \/etc\/caddy\/siti\/\*\.caddy/,$p' deploy/Caddyfile | tail -n +2 > /tmp/zd-locale.caddy
+            if grep -q '[^[:space:]]' /tmp/zd-locale.caddy; then
+              dove=siti/locale.caddy
+              [ -f "$dove" ] && dove="siti/locale-$(date +%Y%m%d%H%M).caddy"
+              { echo "# Spostato dal Caddyfile dal rilascio del $(date +%F)"; cat /tmp/zd-locale.caddy; } > "$dove"
+              echo "aggiunte a mano spostate in $dove"
+            fi
+            rm -f /tmp/zd-locale.caddy
+            git checkout -- deploy/Caddyfile
+          fi
 
           echo "== 2. Codice nuovo e immagini"
           git pull --ff-only
@@ -233,34 +251,43 @@ jobs:
               docker tag "$REGISTRO/$img:$V" "$img:latest"
             done
             echo "immagini $V scaricate dal registro"
-            zd up -d --no-build --pull never
           else
             echo "!! le immagini $V non sono nel registro: le costruisco qui"
-            zd up -d --build
+            docker build -q -t "gestionale-app:$V" -t gestionale-app:latest .
+            docker build -q -t "gestionale-whatsapp:$V" -t gestionale-whatsapp:latest ./whatsapp
           fi
-          # il proxy nelle reti di bordo di test e squadre ospitate, una per
-          # istanza: se l'up l'ha ricreato, le ha perse
-          for r in $(docker network ls --format '{{.Name}}' | grep '^zd-bordo-' || true); do
-            docker network inspect "$r" --format '{{range .Containers}}{{.Name}} {{end}}' \
-              | grep -qw zd-proxy || docker network connect "$r" zd-proxy
-          done
 
-          echo "== 3. Proxy"
+          echo "== 3. Il nostro gestionale: la squadra «zerodark»"
+          # come tutte le altre: backup, versione nuova, ritorno indietro se
+          # non risponde. La prima volta lascia il compose vecchio (zd-app,
+          # zd-db) e diventa la squadra (migra-produzione).
+          if [ -f /opt/squadra-zerodark/.env.squadra ]; then
+            bash deploy/squadra-server.sh aggiorna zerodark "$V"
+          else
+            bash deploy/squadra-server.sh migra-produzione
+          fi
+
+          echo "== 4. Proxy"
+          # Se il compose del proxy è cambiato, «up» lo ricrea e il proxy perde
+          # le reti in cui era stato aggiunto a mano (squadre, test, console):
+          # si annotano prima e si ricollegano dopo. Il riavvio rilegge il
+          # Caddyfile, che è montato come file.
+          reti=$(docker inspect zd-proxy -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' 2>/dev/null || true)
+          zd up -d proxy
+          for r in $reti $(docker network ls --format '{{.Name}}' | grep '^zd-bordo-' || true); do
+            docker network inspect "$r" --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null \
+              | grep -qw zd-proxy || docker network connect "$r" zd-proxy 2>/dev/null || true
+          done
           zd restart proxy
 
-          echo "== 3b. Versione nuova pronta per le squadre ospitate"
-          # le immagini col nome della versione: le squadre ospitate restano
-          # alla loro finché il portale ZeroDark non le aggiorna (update_app)
-          docker tag gestionale-app:latest "gestionale-app:$V"
-          docker tag gestionale-whatsapp:latest "gestionale-whatsapp:$V"
-          echo "immagini gestionale-app:$V e gestionale-whatsapp:$V"
+          echo "== 5. Le squadre ospitate"
           # ognuna riparte con la sua versione (proxy, chiavi nuove), senza cambiarla
           bash deploy/squadra-server.sh rilascia-tutte
           bash deploy/squadra-server.sh pulisci-versioni
           # gli hook nuovi del portale ZeroDark, se c'è il suo agent
           bash deploy/squadra-server.sh collega-hook
 
-          echo "== 4. Pulizia"
+          echo "== 6. Pulizia"
           docker image prune -f --filter until=24h
           # la cache delle build con un tetto, non con una data: a settimana
           # erano diventati 57 GB. Il nome dell'opzione e' cambiato fra le
@@ -271,7 +298,7 @@ jobs:
           echo "== Controllo"
           sleep 15
           curl -s https://ops.zerodarkteam.it/login | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || true
-          docker logs zd-app --tail 20
+          docker logs zd-sq-zerodark-app --tail 20 2>&1 | grep -vi password || true
           docker exec zd-proxy caddy validate --config /etc/caddy/Caddyfile
           df -h /
           SUL_SERVER

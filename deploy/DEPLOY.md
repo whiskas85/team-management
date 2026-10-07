@@ -235,6 +235,29 @@ ZeroTier, come la SSH.
 
 ## I rilasci, da qui in avanti
 
+> **Dal 3.29.0 il nostro gestionale è la squadra ospitata «zerodark»**, come
+> tutte le altre (vedi «Le squadre ospitate»): `/opt/squadra-zerodark`,
+> container `zd-sq-zerodark-app` e `zd-sq-zerodark-whatsapp`, database
+> `sq_zerodark` nel Postgres comune. `docker-compose.prod.yml` tiene solo il
+> proxy. Il rilascio costruisce le immagini su GitHub, porta «zerodark» alla
+> versione nuova con `squadra-server.sh aggiorna zerodark <versione>` (backup,
+> e ritorno indietro se non risponde) e lascia le altre squadre alla loro. Il
+> passaggio l'ha fatto `squadra-server.sh migra-produzione`, una volta: i
+> volumi di prima (`gestionale_db-data`, `gestionale_uploads`,
+> `gestionale_whatsapp`) restano come copia. «zerodark» non si toglie né si
+> cancella per sbaglio: `rimuovi` ed `elimina` vogliono `FORZA=1`.
+>
+> I passi a mano qui sotto descrivono com'era prima; oggi, senza GitHub:
+>
+> ```bash
+> cd /opt/gestionale && git pull --ff-only
+> V=$(grep -m1 '"version"' package.json | sed -E 's/.*"([0-9.]+)".*/\1/')
+> docker build -t gestionale-app:$V -t gestionale-app:latest .
+> docker build -t gestionale-whatsapp:$V -t gestionale-whatsapp:latest ./whatsapp
+> bash deploy/squadra-server.sh aggiorna zerodark $V
+> ```
+
+
 Sulla macchina, dentro **`/opt/gestionale`**. L'alias `zd` non esiste in una
 sessione ssh non interattiva: o lo si rimette a mano, o si scrive il compose per
 esteso.

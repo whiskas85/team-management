@@ -17,6 +17,13 @@
 #   ADMIN_PASSWORD=… bash /opt/gestionale/deploy/squadra-server.sh password pippo [email]
 #   bash /opt/gestionale/deploy/squadra-server.sh aggiorna pippo 3.25.0
 #   bash /opt/gestionale/deploy/squadra-server.sh versioni [pippo]
+#   bash /opt/gestionale/deploy/squadra-server.sh migra-produzione   (una volta)
+#
+# **Anche il nostro gestionale (ops.zerodarkteam.it) è una squadra ospitata**,
+# «zerodark»: stessa cartella, stesso compose, stesso Postgres comune, stesso
+# «aggiorna» con ritorno indietro. Il rilascio lo aggiorna per primo alla
+# versione appena costruita; le altre restano alla loro. «migra-produzione»
+# l'ha portato qui dal vecchio compose della produzione (zd-app, zd-db).
 #
 # **Ogni squadra ha la sua versione** (VERSIONE in .env.squadra) e la tiene
 # finché qualcuno non la aggiorna con «aggiorna» — di solito il portale ZeroDark
@@ -55,6 +62,9 @@ PG=zd-sq-pg
 PG_CARTELLA=/opt/squadre-pg
 PG_ENV=$PG_CARTELLA/.env.pg
 PG_RETE=zd-pg
+# Il nostro gestionale: dal 3.29.0 è una squadra ospitata come le altre, con
+# questo nome (prima era il compose della produzione, zd-app e zd-db).
+NOSTRA=zerodark
 IMMAGINE=gestionale-app:latest
 IMMAGINE_WHATSAPP=gestionale-whatsapp:latest
 
@@ -101,6 +111,15 @@ riservato() {
   case "$1" in
     ops | www | zd | gestionale) echo "«$1» e' un nome riservato, non un gestionale ospitato."; exit 1 ;;
   esac
+}
+
+# Il nostro gestionale non si toglie per sbaglio, nemmeno dalla console: solo
+# chiedendolo apposta (FORZA=1).
+protetta() {
+  if [ "$1" = "$NOSTRA" ] && [ "${FORZA:-0}" != 1 ]; then
+    echo "«$NOSTRA» e' il nostro gestionale (https://$DOMINIO_PROD): non lo tolgo. Se e' proprio quello che vuoi, FORZA=1."
+    exit 1
+  fi
 }
 
 # Un nome buono per una squadra: scritto bene, non già nostro, non già usato.
@@ -565,6 +584,7 @@ cambia_dominio() {
 # si cancellano solo a mano, sapendolo (vedi il messaggio alla fine).
 rimuovi() {
   prepara "$1"
+  protetta "$SQUADRA"
   if [ ! -f "$ENV" ]; then
     echo "La squadra $SQUADRA non c'e': niente da togliere."
     return
@@ -607,6 +627,7 @@ elimina() {
   prepara "$1"
   local archivio=${2:-} v resta=0
   riservato "$SQUADRA"
+  protetta "$SQUADRA"
   if [ -e "$CARTELLA" ]; then
     echo "$CARTELLA c'e' ancora: il gestionale e' attivo. Prima «rimuovi $SQUADRA»."
     exit 1
@@ -905,6 +926,159 @@ aggancia() {
   done
 }
 
+# ------------------------------------------- il nostro gestionale, da qui in poi
+
+# Il sito di riserva del nostro gestionale: ops.zerodarkteam.it verso il
+# compose vecchio (zd-app). Serve durante la migrazione, e dopo se non riesce.
+sito_riserva() {
+  local riserva=$PROD/siti/ops-riserva.caddy
+  mkdir -p "$PROD/siti"
+  cat > "$riserva" <<EOF2
+# Scritto da squadra-server.sh migra-produzione: il nostro gestionale sul
+# compose vecchio (zd-app), finche' non e' la squadra «zerodark». Si toglie da
+# solo quando la migrazione riesce.
+$DOMINIO_PROD {
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy zd-app:3000 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 120s
+		}
+	}
+}
+EOF2
+}
+
+# Una volta sola: il nostro gestionale lascia il compose della produzione (zd-app,
+# zd-db, zd-whatsapp) e diventa la squadra ospitata «zerodark».
+#   - chiavi e identità restano le sue (sessioni, notifiche push, lavori, admin
+#     di partenza): si copiano da .env.prod, che resta per il proxy;
+#   - il database passa nel Postgres comune (sq_zerodark), con un backup prima;
+#   - allegati e sessione WhatsApp si copiano nei volumi della squadra;
+#   - il proxy manda ops.zerodarkteam.it alla nuova (siti/sq-zerodark.caddy).
+# Se la nuova non risponde si torna com'era: i container vecchi non sono mai
+# stati cancellati, solo fermati, e ripartono; il proxy li ritrova con un sito
+# di riserva (siti/ops-riserva.caddy). I volumi vecchi restano comunque.
+migra_produzione() {
+  prepara "$NOSTRA"
+  local penv=$PROD/.env.prod v dump k riserva=$PROD/siti/ops-riserva.caddy
+  if [ -f "$ENV" ]; then
+    echo "== Il nostro gestionale e' gia' la squadra «$NOSTRA»."
+    return 0
+  fi
+  # Il proxy legge il Caddyfile nuovo (senza il sito della produzione: ora ce
+  # l'ha la squadra) solo ripartendo, perché è montato come file. Prima di
+  # ripartire trova il sito di riserva verso zd-app: la produzione resta
+  # raggiungibile finché la migrazione non la ferma, e anche se si ferma qui.
+  sito_riserva
+  docker restart zd-proxy > /dev/null
+  sleep 3
+  [ -f "$penv" ] || { echo "Manca $penv: non so le chiavi della produzione."; return 1; }
+  docker ps -q --filter "name=^zd-db\$" | grep -q . || { echo "zd-db non e' acceso: niente da migrare."; return 1; }
+  v=$(versione_corrente)
+  immagini_versione "$v" || return 1
+  pg_condiviso || return 1
+
+  echo "== Il nostro gestionale diventa la squadra «$NOSTRA», versione $v"
+  mkdir -p "$CARTELLA"
+  chmod 700 "$CARTELLA"
+  (
+    umask 077
+    {
+      echo "SQUADRA=$NOSTRA"
+      # copiate così come sono: le stesse chiavi, quindi le stesse sessioni,
+      # le stesse notifiche, lo stesso admin di partenza
+      for k in DOMINIO SESSION_SECRET SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SEGRETO_LAVORI \
+        SEGRETO_WHATSAPP VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT TZ; do
+        grep -m1 "^$k=" "$penv" || true
+      done
+      # nessun nome: è il nostro, con il marchio Zero Dark
+      echo "NOME_SQUADRA="
+      echo "NOME_GESTIONALE="
+      echo "POSTGRES_USER=$(ruolo_db "$NOSTRA")"
+      echo "POSTGRES_PASSWORD=$(casuale 24)"
+      echo "POSTGRES_DB=$(ruolo_db "$NOSTRA")"
+      echo "DB_HOST=$PG"
+      echo "VERSIONE=$v"
+    } > "$ENV"
+    grep -q '^SEGRETO_WHATSAPP=.' "$ENV" || { sed -i '/^SEGRETO_WHATSAPP=/d' "$ENV"; echo "SEGRETO_WHATSAPP=$(casuale 16)" >> "$ENV"; }
+    grep -q '^TZ=' "$ENV" || echo "TZ=Europe/Rome" >> "$ENV"
+    cat > "$CARTELLA/ACCESSO.txt" <<EOF2
+Il nostro gestionale: https://$(leggi DOMINIO)
+Era la produzione (zd-app, zd-db), dal $(date +%F) e' la squadra ospitata «$NOSTRA».
+Gli accessi sono quelli di sempre.
+EOF2
+  )
+  if [ "$(leggi DOMINIO)" != "$DOMINIO_PROD" ]; then
+    echo "!! In .env.prod il dominio e' $(leggi DOMINIO), non $DOMINIO_PROD: mi fermo."
+    rm -rf "$CARTELLA"
+    return 1
+  fi
+
+  rete
+  crea_db || { rm -rf "$CARTELLA"; return 1; }
+
+  # da qui il gestionale e' fermo, un minuto o due
+  echo "== Fermo la produzione vecchia e faccio il backup"
+  docker stop zd-app zd-whatsapp > /dev/null 2>&1 || true
+  mkdir -p /root/backup
+  dump=/root/backup/prod-prima-di-$NOSTRA-$(date +%F-%H%M).dump
+  if docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$dump" \
+    && ripristina_db "$dump"; then
+    echo "== database in $(ruolo_db "$NOSTRA") (backup in $dump)"
+    zds create > /dev/null 2>&1 || true
+    # allegati e sessione WhatsApp: copiati, gli originali restano dove sono
+    for k in uploads whatsapp; do
+      docker run --rm --entrypoint sh -v "gestionale_$k:/da:ro" -v "gestionale-sq-${NOSTRA}_$k:/a" \
+        postgres:16-alpine -c 'find /a -mindepth 1 -delete; cp -a /da/. /a/' \
+        && echo "== $k copiati"
+    done
+    zds up -d --pull never
+    if risponde 60; then
+      rm -f "$riserva"
+      proxy || true
+      # da fuori, attraverso il proxy: è questo che vedono le persone
+      local codice="" _
+      for _ in $(seq 1 15); do
+        codice=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+          --resolve "$DOMINIO_PROD:443:127.0.0.1" "https://$DOMINIO_PROD/login" || true)
+        [ "$codice" = 200 ] && break
+        sleep 2
+      done
+      if [ -f "$SITO_CADDY" ] && [ "$codice" = 200 ]; then
+        docker rm zd-app zd-whatsapp > /dev/null 2>&1 || true
+        docker stop zd-db > /dev/null 2>&1 || true
+        docker rm zd-db > /dev/null 2>&1 || true
+        echo "== Fatto: https://$DOMINIO_PROD e' la squadra «$NOSTRA». I volumi vecchi"
+        echo "   (gestionale_db-data, gestionale_uploads, gestionale_whatsapp) restano come copia."
+        return 0
+      fi
+      echo "!! https://$DOMINIO_PROD dal proxy risponde ${codice:-niente}, non 200"
+    else
+      echo "!! la squadra «$NOSTRA» non risponde"
+      docker logs "zd-sq-$NOSTRA-app" --tail 15 2>&1 | grep -vi 'password' || true
+    fi
+  else
+    echo "!! backup o ripristino del database non riusciti"
+  fi
+
+  # indietro: la produzione vecchia riparte com'era, e il proxy la ritrova
+  echo "== Torno alla produzione di prima"
+  zds down > /dev/null 2>&1 || true
+  rm -f "$SITO_CADDY"
+  docker start zd-db zd-app zd-whatsapp > /dev/null 2>&1 || true
+  sito_riserva
+  ricarica_proxy || true
+  mkdir -p /opt/archivio
+  mv "$CARTELLA" "/opt/archivio/squadra-$NOSTRA-fallita-$(date +%Y%m%d%H%M%S)"
+  echo "!! Migrazione non riuscita: il gestionale e' di nuovo sul compose vecchio (zd-app)."
+  return 1
+}
+
 case "${1:-stato}" in
   nuova) nuova ;;
   dominio) cambia_dominio ;;
@@ -920,5 +1094,6 @@ case "${1:-stato}" in
   pulisci-versioni) pulisci_versioni ;;
   collega-hook) collega_hook ;;
   console) console ;;
+  migra-produzione) migra_produzione ;;
   *) echo "uso: $0 nuova | dominio | rilascia <squadra> | rilascia-tutte | stato [squadra] | rimuovi <squadra> | elimina <squadra> [archivio] | password <squadra> [email] | aggiorna <squadra> <versione> | versioni [squadra] | aggancia"; exit 1 ;;
 esac

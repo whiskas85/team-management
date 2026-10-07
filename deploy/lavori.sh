@@ -51,7 +51,9 @@ bussa() {
   echo "$(date '+%F %T') $DOMINIO esito=$ESITO $RISPOSTA" >> "$REGISTRO"
 }
 
-bussa /opt/gestionale/.env.prod
+# il nostro: dal 3.29 e' la squadra «zerodark» e bussa con le altre; .env.prod
+# solo finche' non e' migrato (o busserebbe due volte)
+[ -f /opt/squadra-zerodark/.env.squadra ] || bussa /opt/gestionale/.env.prod
 for ENV_SQUADRA in /opt/squadra-*/.env.squadra; do
   [ -f "$ENV_SQUADRA" ] && bussa "$ENV_SQUADRA"
 done

@@ -276,8 +276,16 @@ copia_dati() {
   local dump=/root/backup/per-test.dump
   mkdir -p /root/backup
 
+  # la produzione: la squadra «zerodark» nel Postgres comune, o il compose
+  # vecchio (zd-db) se non e' ancora migrata
+  local uploads=gestionale_uploads
   echo "== Dump della produzione (sola lettura)"
-  docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$dump"
+  if [ -f /opt/squadra-zerodark/.env.squadra ]; then
+    docker exec zd-sq-pg pg_dump -U sq_zerodark -d sq_zerodark -Fc > "$dump"
+    uploads=gestionale-sq-zerodark_uploads
+  else
+    docker exec zd-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$dump"
+  fi
 
   echo "== Database del test: svuotato e riempito"
   zdt stop app
@@ -290,7 +298,7 @@ copia_dati() {
 
   echo "== Allegati"
   docker run --rm \
-    -v gestionale_uploads:/da:ro \
+    -v "$uploads:/da:ro" \
     -v gestionale-test_uploads:/a \
     alpine sh -c 'find /a -mindepth 1 -delete && cp -a /da/. /a/'
 
