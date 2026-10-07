@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.36.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **Campi di nessuna squadra.** Un campo può essere nostro, di un'altra
+  squadra, o di nessuna: una struttura privata, un campo commerciale. Nel
+  modulo «Squadra che lo gestisce» diventa «Di chi è»: Nostro, Di nessuna
+  squadra, oppure una delle squadre. In Campi sono divisi in Nostri, Di
+  nessuna squadra e una sezione per squadra; in «La mia squadra» e nel primo
+  accesso ci sono solo i nostri. I campi già registrati senza squadra restano
+  nostri.
+
 ## 3.35.0 — 7 ottobre 2026
 
 ### Aggiunto

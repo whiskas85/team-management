@@ -324,7 +324,7 @@ async function PassoFigt() {
 
 async function PassoCampi() {
   const campi = await prisma.field.findMany({
-    where: { squadraId: null },
+    where: { nostro: true },
     orderBy: { nome: 'asc' },
     select: { id: true, nome: true, citta: true, lat: true },
   });
@@ -366,7 +366,7 @@ async function Fine() {
   const [s, figt, campi] = await Promise.all([
     leggiMiaSquadra(),
     prisma.credenzialeFigt.count({ where: { id: 'figt' } }),
-    prisma.field.count({ where: { squadraId: null } }),
+    prisma.field.count({ where: { nostro: true } }),
   ]);
   const fatto: { titolo: string; ok: boolean; passo: Passo }[] = [
     { titolo: s?.nome ? `La squadra si chiama ${s.nome}` : 'Nome della squadra', ok: !!s?.nome, passo: 'squadra' },

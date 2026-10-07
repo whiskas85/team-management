@@ -20,6 +20,7 @@ type CampoGioco = {
   note: string | null;
   attivo: boolean;
   squadraId: string | null;
+  nostro: boolean;
 };
 
 export function FormCampo({
@@ -42,6 +43,8 @@ export function FormCampo({
   return (
     <>
       {campo && <input type="hidden" name="id" value={campo.id} />}
+      {/* il modulo ridotto è sempre per un campo nostro */}
+      {nostro && <input type="hidden" name="squadraId" value="" />}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo label="Nome *">
           <input name="nome" required defaultValue={campo?.nome} className="input" />
@@ -71,13 +74,20 @@ export function FormCampo({
 
         {!nostro && (
           <>
-            <Campo label="Squadra che lo gestisce">
-              <select
-                name="squadraId"
-                defaultValue={campo?.squadraId ?? squadraPredefinita ?? ''}
-                className="input"
-              >
-                <option value="">— nessuna, è nostro —</option>
+            <Campo label="Di chi è">
+          <select
+            name="squadraId"
+            defaultValue={
+              campo
+                ? (campo.squadraId ?? (campo.nostro ? '' : 'terzi'))
+                : (squadraPredefinita ?? '')
+            }
+            className="input"
+          >
+            <option value="">Nostro</option>
+            <option value="terzi">Di nessuna squadra (struttura, privato…)</option>
+            {squadre.length > 0 && (
+              <optgroup label="Di un’altra squadra">
                 {squadre.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.stato === 'PREFERITA' ? '★ ' : ''}
@@ -85,8 +95,10 @@ export function FormCampo({
                     {s.stato === 'DISATTIVATA' ? ' (disattivata)' : ''}
                   </option>
                 ))}
-              </select>
-            </Campo>
+              </optgroup>
+            )}
+          </select>
+        </Campo>
 
             <Campo label="Referente">
               <input name="referente" defaultValue={campo?.referente ?? ''} className="input" />

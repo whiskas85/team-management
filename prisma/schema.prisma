@@ -712,6 +712,10 @@ model Field {
   attivo    Boolean   @default(true)
   createdAt DateTime  @default(now())
 
+  /// È nostro, del team. Un campo non nostro può essere di un'altra squadra
+  /// (squadraId) o di nessuna: una struttura privata, un campo commerciale.
+  nostro    Boolean   @default(false)
+
   /// Squadra che lo gestisce, quando il campo non è nostro.
   squadraId String?
   squadra   SquadraEsterna? @relation(fields: [squadraId], references: [id], onDelete: SetNull)

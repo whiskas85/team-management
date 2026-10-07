@@ -9,6 +9,13 @@ import { bool, enumVal, num, str, strOpt, type StatoForm } from '@/lib/form';
 
 const TIPI = ['BOSCHIVO', 'URBANO', 'CQB', 'INDOOR', 'MISTO'] as const;
 
+/** Di chi è il campo, dalla scelta del modulo. */
+function proprieta(scelta: string): { nostro: boolean; squadraId: string | null } {
+  if (scelta === '') return { nostro: true, squadraId: null };
+  if (scelta === 'terzi') return { nostro: false, squadraId: null };
+  return { nostro: false, squadraId: scelta };
+}
+
 export async function salvaCampo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può gestire i campi.' };
@@ -33,7 +40,8 @@ export async function salvaCampo(_prev: StatoForm, fd: FormData): Promise<StatoF
     costo: fd.has('costo') ? num(fd, 'costo') : undefined,
     note: strOpt(fd, 'note'),
     attivo: bool(fd, 'attivo'),
-    squadraId: fd.has('squadraId') ? strOpt(fd, 'squadraId') : undefined,
+    // di chi è: «» nostro, «terzi» di nessuna squadra, altrimenti la squadra
+    ...(fd.has('squadraId') ? proprieta(str(fd, 'squadraId')) : {}),
   };
 
   if (id) {

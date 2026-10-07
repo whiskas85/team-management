@@ -53,9 +53,9 @@ export default async function MiaSquadraPage() {
       orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, cognome: true, callsign: true },
     }),
-    // i campi nostri: quelli che non gestisce un'altra squadra
+    // i campi nostri, del team
     prisma.field.findMany({
-      where: { squadraId: null },
+      where: { nostro: true },
       orderBy: [{ attivo: 'desc' }, { nome: 'asc' }],
     }),
   ]);

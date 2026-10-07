@@ -51,17 +51,22 @@ export default async function CampiPage() {
     }),
   ]);
 
-  // divisi per la squadra che li gestisce; quelli senza squadra in cima
-  const senza = campi.filter((c) => !c.squadra);
+  // divisi per chi li ha: i nostri in cima, poi quelli di nessuna squadra
+  // (strutture, privati), poi una sezione per squadra
+  const nostri = campi.filter((c) => c.nostro);
+  const senza = campi.filter((c) => !c.nostro && !c.squadra);
   const perSquadra = new Map<string, { id: string; nome: string; campi: CampoElenco[] }>();
   for (const c of campi) {
-    if (!c.squadra) continue;
+    if (c.nostro || !c.squadra) continue;
     const g = perSquadra.get(c.squadra.id);
     if (g) g.campi.push(c);
     else perSquadra.set(c.squadra.id, { id: c.squadra.id, nome: c.squadra.nome, campi: [c] });
   }
   const gruppi = [
-    ...(senza.length > 0 ? [{ id: null, nome: 'Senza squadra', campi: senza }] : []),
+    ...(nostri.length > 0 ? [{ id: null, chiave: 'nostri', nome: 'Nostri', campi: nostri }] : []),
+    ...(senza.length > 0
+      ? [{ id: null, chiave: 'terzi', nome: 'Di nessuna squadra', campi: senza }]
+      : []),
     ...[...perSquadra.values()].sort((a, b) => a.nome.localeCompare(b.nome)),
   ];
 
@@ -85,7 +90,7 @@ export default async function CampiPage() {
       ) : (
         <div className="space-y-8">
           {gruppi.map((g) => (
-            <section key={g.id ?? 'senza'}>
+            <section key={g.id ?? ('chiave' in g ? g.chiave : 'altro')}>
               <h2 className="titolo-sezione mb-3 flex items-center gap-2">
                 {g.id ? (
                   <Link href={`/admin/squadre/${g.id}`} className="hover:text-nvg">
