@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.33.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **Info polizza: massimali e franchigie della polizza prova.** L'admin le
+  scrive in Comando → Info polizza (Markdown, con anteprima); chi è
+  assicurato le legge dentro ogni sua polizza, in «Cosa copre», in sola
+  lettura, e l'admin anche in Assicurazioni. Si parte dal testo FIGT attuale
+  (invalidità permanente e morte € 90.000, spese mediche € 3.000, diarie da
+  ricovero e da gesso, franchigie); svuotato, torna quello.
+
+- **Le polizze prova si rileggono da sole, alle 14 e alle 19.** I lavori
+  automatici rileggono dal portale federale quante polizze prova restano,
+  dopo pranzo e alla sera (ora di Roma), in orario d'ufficio della segreteria
+  federale. Una lettura fatta a mano dopo quell'ora vale anche per quella
+  automatica; se il portale non risponde si riprova ogni mezz'ora.
+- **Avviso quando arrivano polizze.** Se una lettura — automatica, a mano o
+  dopo un'attivazione — trova più polizze di prima, chi segue i nuovi (admin,
+  amministrazione, segreteria) riceve «Sono arrivate N polizze prova».
+
 ## 3.32.1 — 7 ottobre 2026
 
 ### Cambiato
@@ -57,19 +77,6 @@ accanto a ZERO DARK.
   lo copre (un rinnovo appena fatto) il portale si rilegge da solo.
 - Automazione Rilascio, modo **`test-azzera`**: porta il test al ramo scelto
   e lo svuota, database e allegati, per provare il primo accesso.
-
-## 3.31.0 — 7 ottobre 2026
-
-### Aggiunto
-
-- **Le polizze prova si rileggono da sole, alle 14 e alle 19.** I lavori
-  automatici rileggono dal portale federale quante polizze prova restano,
-  dopo pranzo e alla sera (ora di Roma), in orario d'ufficio della segreteria
-  federale. Una lettura fatta a mano dopo quell'ora vale anche per quella
-  automatica; se il portale non risponde si riprova ogni mezz'ora.
-- **Avviso quando arrivano polizze.** Se una lettura — automatica, a mano o
-  dopo un'attivazione — trova più polizze di prima, chi segue i nuovi (admin,
-  amministrazione, segreteria) riceve «Sono arrivate N polizze prova».
 
 ## 3.30.0 — 7 ottobre 2026
 

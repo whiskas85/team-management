@@ -2491,6 +2491,10 @@ model LetturaDebriefing {
 
 model Impostazioni {
   id                  String   @id @default("app")
+  /// Massimali e franchigie della polizza prova, in Markdown: li scrive l'admin
+  /// (Comando → Info polizza) e si leggono dentro ogni polizza. Vuoto: il
+  /// testo di serie (TESTO_INFO_POLIZZA in lib/info-polizza.ts).
+  infoPolizzaProva    String?
   /// Se chi non è ancora in squadra può mettere annunci. Vedere lo può sempre.
   nuoviPossonoVendere Boolean  @default(false)
   /// Le polizze giornaliere si attivano da sole poco prima dell'attività.

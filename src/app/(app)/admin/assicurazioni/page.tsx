@@ -4,6 +4,9 @@ import { puoAmministrare } from '@/lib/domain';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { Badge, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { elencoAssicurazioni } from '@/lib/elenco-assicurazioni';
+import { infoPolizza } from '@/lib/info-polizza';
+import { BottoneModale } from '@/components/Modale';
+import { Markdown } from '@/components/Markdown';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +17,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function AssicurazioniPage() {
   await requirePermesso(puoAmministrare);
-  const tutte = await elencoAssicurazioni({}, true, 500);
+  const [tutte, info] = await Promise.all([elencoAssicurazioni({}, true, 500), infoPolizza()]);
   const valide = tutte.filter((a) => a.valida).length;
   return (
     <>
@@ -22,9 +25,21 @@ export default async function AssicurazioniPage() {
         titolo="Assicurazioni"
         sottotitolo="Le polizze giornaliere emesse: chi è coperto, chi le ha stipulate e quando"
         azioni={
-          <Link href="/admin/polizze" className="btn-ghost btn-sm">
-            Polizze da fare
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <BottoneModale
+              etichetta="Cosa copre"
+              icona="scudo"
+              titolo="Cosa copre la polizza"
+              className="btn-ghost btn-sm"
+            >
+              <div className="text-left">
+                <Markdown testo={info} />
+              </div>
+            </BottoneModale>
+            <Link href="/admin/polizze" className="btn-ghost btn-sm">
+              Polizze da fare
+            </Link>
+          </div>
         }
       />
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">

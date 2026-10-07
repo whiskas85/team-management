@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { Badge } from './ui';
 import { Icona } from './Icona';
+import { BottoneModale } from './Modale';
+import { Markdown } from './Markdown';
 
 export type Assicurazione = {
   id: string;
@@ -40,7 +42,7 @@ function Riga({ etichetta, valore, num = false }: { etichetta: string; valore: s
  * della polizza (i numeri da dare se succede qualcosa, e fino a quando vale),
  * sotto quelli dell'assicurato. Quella valida è evidenziata.
  */
-export function CardAssicurazione({ a }: { a: Assicurazione }) {
+export function CardAssicurazione({ a, info }: { a: Assicurazione; info?: string }) {
   const vale = a.valeIl
     ? `fino al ${fmtDateTime(a.valeIl)}`
     : `${fmtDate(a.giorno)}, fino alle 24:00`;
@@ -96,6 +98,22 @@ export function CardAssicurazione({ a }: { a: Assicurazione }) {
           <Riga etichetta="Codice fiscale" valore={a.assicurato.codiceFiscale} num />
         </dl>
       </div>
+
+      {/* cosa copre: massimali e franchigie, come li ha scritti l'admin */}
+      {info && (
+        <div className="border-t border-line pt-3">
+          <BottoneModale
+            etichetta="Cosa copre"
+            icona="scudo"
+            titolo="Cosa copre la polizza"
+            className="btn-ghost btn-sm"
+          >
+            <div className="text-left">
+              <Markdown testo={info} />
+            </div>
+          </BottoneModale>
+        </div>
+      )}
     </div>
   );
 }

@@ -732,6 +732,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/tariffe', label: 'Tariffario', icona: 'pagamenti', gruppo: 'comando' },
       { href: '/admin/tipologie', label: 'Tipologie attività', icona: 'bozza', gruppo: 'comando' },
       { href: '/admin/metodi', label: 'Metodi di pagamento', icona: 'incassa', gruppo: 'comando' },
+      // massimali e franchigie della polizza prova: si leggono dentro ogni polizza
+      { href: '/admin/info-polizza', label: 'Info polizza', icona: 'scudo', gruppo: 'comando' },
       { href: '/admin/statistiche', label: 'Statistiche', icona: 'grafici', gruppo: 'comando' },
       { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },
       {

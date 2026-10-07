@@ -5,7 +5,7 @@ import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { inRipiego, puoAmministrare, puoGestirePagamenti } from '@/lib/domain';
+import { inRipiego, isAdmin, puoAmministrare, puoGestirePagamenti } from '@/lib/domain';
 import { bool, intOpt, str, strOpt, type StatoForm } from '@/lib/form';
 import { decifra } from '@/lib/segreti';
 import { attivaPolizzaProva, eta } from '@/lib/figt';
@@ -569,4 +569,24 @@ export async function impostaPolizzeEvento(_prev: StatoForm, fd: FormData): Prom
           ? `«${evento.titolo}»: le polizze partono da sole, poco prima.`
           : `«${evento.titolo}»: polizze solo a mano.`,
   };
+}
+
+/**
+ * Massimali e franchigie della polizza prova: li scrive l'admin, e li legge
+ * chi è assicurato dentro la sua polizza. Vuoto torna al testo di serie.
+ */
+export async function salvaInfoPolizza(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Le informazioni della polizza le scrive l’admin.' };
+  const testo = (fd.get('testo')?.toString() ?? '').trim();
+  if (testo.length > 20000) return { errore: 'Il testo è troppo lungo.' };
+  await prisma.impostazioni.upsert({
+    where: { id: 'app' },
+    create: { id: 'app', infoPolizzaProva: testo || null },
+    update: { infoPolizzaProva: testo || null },
+  });
+  revalidatePath('/admin/info-polizza');
+  revalidatePath('/assicurazioni');
+  revalidatePath('/admin/assicurazioni');
+  return { ok: testo ? 'Informazioni della polizza salvate.' : 'Tornato al testo di serie.' };
 }

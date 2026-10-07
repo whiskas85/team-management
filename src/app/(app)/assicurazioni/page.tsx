@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth';
 import { Intestazione, Vuoto } from '@/components/ui';
 import { CardAssicurazione } from '@/components/CardAssicurazione';
 import { elencoAssicurazioni } from '@/lib/elenco-assicurazioni';
+import { infoPolizza } from '@/lib/info-polizza';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function MieAssicurazioniPage() {
   const me = await requireUser();
-  const tutte = await elencoAssicurazioni({ userId: me.id });
+  const [tutte, info] = await Promise.all([elencoAssicurazioni({ userId: me.id }), infoPolizza()]);
   const valide = tutte.filter((a) => a.valida).reverse();
   const storico = tutte.filter((a) => !a.valida);
   return (
@@ -30,7 +31,7 @@ export default async function MieAssicurazioniPage() {
             {valide.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {valide.map((a) => (
-                  <CardAssicurazione key={a.id} a={a} />
+                  <CardAssicurazione key={a.id} a={a} info={info} />
                 ))}
               </div>
             ) : (
@@ -42,7 +43,7 @@ export default async function MieAssicurazioniPage() {
               <p className="titolo-sezione mb-3">Storico</p>
               <div className="grid gap-4 md:grid-cols-2">
                 {storico.map((a) => (
-                  <CardAssicurazione key={a.id} a={a} />
+                  <CardAssicurazione key={a.id} a={a} info={info} />
                 ))}
               </div>
             </section>
