@@ -165,6 +165,9 @@ export function CardEvento({
    * area cliccabile, perché il corpo è tutto un link all'attività.
    */
   const striscia = puoNavigare;
+  // «Paga» va in fila ai pulsanti di presenza, quando ci sono
+  const pagaQui = pagata ? null : paga;
+  const conPresenza = e.adesioniAperte || (e.iscrizioniChiuse && e.mioStato !== 'ASSENTE');
   const piede = e.adesioniAperte || e.iscrizioniChiuse || azioni || quota;
 
   return (
@@ -271,6 +274,7 @@ export function CardEvento({
               nota={e.miaNota}
               pieno={!!e.maxPartecipanti && e.presenti >= e.maxPartecipanti}
               compatta
+              accanto={pagaQui}
             />
           )}
           {e.iscrizioniChiuse && <BadgeIscrizioniChiuse />}
@@ -283,9 +287,11 @@ export function CardEvento({
               pieno={false}
               compatta
               soloNo
+              accanto={pagaQui}
             />
           )}
-          {!pagata && paga}
+          {/* il «Paga» da solo, quando non ci sono pulsanti di presenza */}
+          {!conPresenza && pagaQui}
           {azioni}
         </div>
       )}

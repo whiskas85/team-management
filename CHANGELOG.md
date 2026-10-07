@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.37.1 — 7 ottobre 2026
+
+### Corretto
+
+- **«Paga» in fila a Sì, Forse, No, e il messaggio a capo.** Nella card
+  dell'attività il «Paga» sta sulla stessa riga dei tre pulsanti di
+  presenza, e il messaggio che arriva dopo una risposta va su una riga sua,
+  sotto: prima stava in mezzo alla riga e spingeva via i pulsanti.
+
 ## 3.37.0 — 7 ottobre 2026
 
 ### Cambiato

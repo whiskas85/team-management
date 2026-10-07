@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useRef } from 'react';
+import { useActionState, useRef, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Icona, type NomeIcona } from './Icona';
 import type { StatoForm } from '@/lib/form';
@@ -40,6 +40,7 @@ export function AdesioneEvento({
   compatta = false,
   kit,
   soloNo = false,
+  accanto,
 }: {
   eventId: string;
   scelta: string | null;
@@ -57,19 +58,18 @@ export function AdesioneEvento({
    * contrattempo lo deve poter dire. Resta solo quel pulsante.
    */
   soloNo?: boolean;
+  /**
+   * Nella versione compatta, un pulsante da mettere in fila ai tre (il «Paga»
+   * della card). Sta fuori dal modulo — ha un modulo suo — ma sulla stessa riga.
+   */
+  accanto?: ReactNode;
 }) {
   const [stato, azione] = useActionState(rispondiEvento, {} as StatoForm);
   const campoScelta = useRef<HTMLInputElement>(null);
   const modulo = useRef<HTMLFormElement>(null);
 
-  return (
-    <form ref={modulo} action={azione} className={compatta ? 'flex items-center gap-2' : 'space-y-3'}>
-      <input type="hidden" name="eventId" value={eventId} />
-      {/* scritto a mano al click: lo stato di React arriverebbe dopo l'invio */}
-      <input type="hidden" name="status" defaultValue={scelta ?? ''} ref={campoScelta} />
-      {/* in versione compatta la nota non è modificabile: la conserviamo */}
-      {compatta && <input type="hidden" name="note" defaultValue={nota ?? ''} />}
-
+  const esito = (
+    <>
       {stato.errore && (
         <div className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
           {stato.errore}
@@ -80,6 +80,19 @@ export function AdesioneEvento({
           {stato.ok}
         </div>
       )}
+    </>
+  );
+
+  const modulo_ = (
+    <form ref={modulo} action={azione} className={compatta ? 'flex items-center gap-2' : 'space-y-3'}>
+      <input type="hidden" name="eventId" value={eventId} />
+      {/* scritto a mano al click: lo stato di React arriverebbe dopo l'invio */}
+      <input type="hidden" name="status" defaultValue={scelta ?? ''} ref={campoScelta} />
+      {/* in versione compatta la nota non è modificabile: la conserviamo */}
+      {compatta && <input type="hidden" name="note" defaultValue={nota ?? ''} />}
+
+      {/* nella versione compatta il messaggio va a capo, sotto la riga */}
+      {!compatta && esito}
 
       <div
         className={compatta ? 'flex gap-1.5' : soloNo ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-3 gap-2'}
@@ -165,6 +178,20 @@ export function AdesioneEvento({
         </p>
       )}
     </form>
+  );
+
+  if (!compatta) return modulo_;
+  // La riga dei pulsanti — i tre, e accanto il «Paga» — e il messaggio
+  // dell'ultima risposta su una riga sua, sotto: in fila spingeva via i
+  // pulsanti.
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {modulo_}
+        {accanto}
+      </div>
+      {esito}
+    </div>
   );
 }
 
