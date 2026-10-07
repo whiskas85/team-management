@@ -59,8 +59,8 @@ export function AdesioneEvento({
    */
   soloNo?: boolean;
   /**
-   * Nella versione compatta, un pulsante da mettere in fila ai tre (il «Paga»
-   * della card). Sta fuori dal modulo — ha un modulo suo — ma sulla stessa riga.
+   * Nella versione compatta, un pulsante da mettere in fila ai tre, alla loro
+   * sinistra (il «Paga» della card). Sta fuori dal modulo — ha un modulo suo — ma sulla stessa riga.
    */
   accanto?: ReactNode;
 }) {
@@ -181,14 +181,14 @@ export function AdesioneEvento({
   );
 
   if (!compatta) return modulo_;
-  // La riga dei pulsanti — i tre, e accanto il «Paga» — e il messaggio
+  // La riga dei pulsanti — il «Paga», e alla sua destra i tre — e il messaggio
   // dell'ultima risposta su una riga sua, sotto: in fila spingeva via i
   // pulsanti.
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {modulo_}
         {accanto}
+        {modulo_}
       </div>
       {esito}
     </div>
