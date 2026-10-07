@@ -5,6 +5,26 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.32.0 — 7 ottobre 2026
+
+### Cambiato
+
+- **Una cassa è una cassa.** La cassa del club e le casse private funzionano
+  allo stesso modo: stesso registro (quote incassate, crediti, pagamenti
+  degli ospiti, movimenti a mano), stesso saldo, stessi pulsanti. In cima a
+  ognuna un selettore mette in fila «Cassa del club», la cassa di partenza, e
+  le casse private che si tengono. Nel menu: «Cassa del club» e «Casse
+  private».
+
+### Aggiunto
+
+- **Entrate e uscite a mano anche nelle casse private**, con il loro saldo:
+  un fondo iniziale (le tessere raccolte prima del gestionale), un
+  contributo, una spesa. Le registra e le corregge chi gestisce la cassa;
+  scontrini e fatture li vede solo lui. Il magazzino resta del club: le spese
+  delle casse private non ci entrano. Una cassa con dei movimenti si spegne
+  invece di cancellarsi.
+
 ## 3.31.0 — 7 ottobre 2026
 
 ### Aggiunto

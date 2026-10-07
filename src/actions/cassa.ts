@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdmin, puoGestirePagamenti, vedeAttivitaSquadra } from '@/lib/domain';
+import { isAdmin, vedeAttivitaSquadra } from '@/lib/domain';
+import { puoGestireCassa } from '@/lib/casse';
 import { bool, data, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 
@@ -11,6 +12,7 @@ const TIPI = ['ENTRATA', 'USCITA'] as const;
 
 function aggiorna() {
   revalidatePath('/admin/cassa');
+  revalidatePath('/cassa');
   revalidatePath('/admin/statistiche');
   revalidatePath('/admin/magazzino');
 }
@@ -59,20 +61,45 @@ async function allineaMagazzino(
 
 /**
  * Movimento di cassa inserito a mano: tutto ciò che non nasce dalle quote
- * delle attività (contributi, acquisti di materiale, affitto campo…).
+ * delle attività (contributi, acquisti di materiale, affitto campo, il fondo
+ * con cui una cassa parte…). Vale per ogni cassa: quella del club la muovono
+ * admin e segreteria, le altre chi le gestisce.
  */
 export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoGestirePagamenti(me.roles)) {
-    return { errore: 'Solo admin e segreteria possono muovere la cassa.' };
-  }
 
   const id = str(fd, 'id');
+  // un movimento non cambia cassa: modificandolo resta dov'è
+  const prima = id
+    ? await prisma.movimentoCassa.findUnique({
+        where: { id },
+        select: { cassaId: true, allegatoPath: true },
+      })
+    : null;
+  if (id && !prima) return { errore: 'Movimento non trovato.' };
+  const cassaId = prima ? prima.cassaId : strOpt(fd, 'cassaId');
+  if (!(await puoGestireCassa(me, cassaId))) {
+    return { errore: 'Muove questa cassa solo chi la gestisce.' };
+  }
+  // la cassa del club: modificare lo fa l'admin, come eliminare
+  if (id && !cassaId && !isAdmin(me.roles)) {
+    return { errore: 'Solo l’admin corregge un movimento della cassa del club.' };
+  }
+
   const descrizione = str(fd, 'descrizione');
   const importo = num(fd, 'importo');
 
   if (!descrizione) return { errore: 'La descrizione è obbligatoria.' };
   if (importo === null || importo <= 0) return { errore: 'Indica un importo maggiore di zero.' };
+
+  // il metodo deve essere di questa cassa: quelli del club non valgono altrove
+  const metodoScelto = strOpt(fd, 'metodoId');
+  const metodo = metodoScelto
+    ? await prisma.metodoPagamento.findFirst({
+        where: { id: metodoScelto, cassaId },
+        select: { id: true },
+      })
+    : null;
 
   const valori = {
     tipo: enumVal(fd, 'tipo', TIPI, 'USCITA'),
@@ -80,7 +107,7 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
     importo,
     data: data(fd, 'data') ?? new Date(),
     categoria: strOpt(fd, 'categoria'),
-    metodoId: strOpt(fd, 'metodoId'),
+    metodoId: metodo?.id ?? null,
     note: strOpt(fd, 'note'),
     // a quale operatore vanno i soldi di un'uscita: solo chi è in squadra
     beneficiarioId: null as string | null,
@@ -99,9 +126,6 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
 
   // Lo scontrino o la fattura: foto o PDF. Uno nuovo sostituisce il vecchio;
   // «togli» lo leva senza metterne un altro.
-  const prima = id
-    ? await prisma.movimentoCassa.findUnique({ where: { id }, select: { allegatoPath: true } })
-    : null;
   const file = fd.get('allegato');
   let allegato: { allegatoPath: string | null; allegatoNome: string | null; allegatoTipo: string | null } | null =
     null;
@@ -123,18 +147,20 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
 
   if (id) {
     await prisma.movimentoCassa.update({ where: { id }, data: { ...valori, ...(allegato ?? {}) } });
-    await allineaMagazzino(id, valori.tipo, importo, fd);
+    // il magazzino è del club: le spese delle altre casse non ci entrano
+    if (!cassaId) await allineaMagazzino(id, valori.tipo, importo, fd);
     aggiorna();
     return { ok: 'Movimento aggiornato.' };
   }
 
   const movimento = await prisma.movimentoCassa.create({
-    data: { ...valori, ...(allegato ?? {}), registratoById: me.id },
+    data: { ...valori, ...(allegato ?? {}), cassaId, registratoById: me.id },
   });
-  await allineaMagazzino(movimento.id, valori.tipo, importo, fd);
+  if (!cassaId) await allineaMagazzino(movimento.id, valori.tipo, importo, fd);
 
   const pezzi = intOpt(fd, 'quantita');
-  const inMagazzino = valori.tipo === 'USCITA' && strOpt(fd, 'articoloId') && pezzi && pezzi > 0;
+  const inMagazzino =
+    !cassaId && valori.tipo === 'USCITA' && strOpt(fd, 'articoloId') && pezzi && pezzi > 0;
 
   aggiorna();
   return {
@@ -148,11 +174,14 @@ export async function salvaMovimento(_prev: StatoForm, fd: FormData): Promise<St
 
 export async function eliminaMovimento(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!isAdmin(me.roles)) {
-    return { errore: 'Solo l’admin può eliminare un movimento di cassa.' };
-  }
+  const id = str(fd, 'id');
+  const quale = await prisma.movimentoCassa.findUnique({ where: { id }, select: { cassaId: true } });
+  if (!quale) return { errore: 'Movimento non trovato.' };
+  // del club: solo l'admin; di un'altra cassa: chi la gestisce
+  const puo = quale.cassaId ? await puoGestireCassa(me, quale.cassaId) : isAdmin(me.roles);
+  if (!puo) return { errore: 'Non puoi eliminare un movimento di questa cassa.' };
 
-  const movimento = await prisma.movimentoCassa.delete({ where: { id: str(fd, 'id') } });
+  const movimento = await prisma.movimentoCassa.delete({ where: { id } });
   if (movimento.allegatoPath) await eliminaAllegato(movimento.allegatoPath).catch(() => null);
   aggiorna();
   return { ok: 'Movimento eliminato.' };

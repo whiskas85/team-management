@@ -689,7 +689,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         gruppo: 'segreteria',
         badge: pagamentiDaConfermare + rimborsiDaErogare,
       },
-      { href: '/admin/cassa', label: 'Cassa', icona: 'incassa', gruppo: 'segreteria' },
+      { href: '/admin/cassa', label: 'Cassa del club', icona: 'incassa', gruppo: 'segreteria' },
       {
         href: '/admin/ordini',
         label: 'Ordini',
@@ -705,7 +705,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         badge: riordiniDaPagare,
       },
       // le casse che non sono del club: si configurano qui, si usano altrove
-      { href: '/admin/casse', label: 'Altre casse', icona: 'incassa', gruppo: 'segreteria' },
+      { href: '/admin/casse', label: 'Casse private', icona: 'incassa', gruppo: 'segreteria' },
     );
   }
 

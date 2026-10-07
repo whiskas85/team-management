@@ -38,7 +38,7 @@ export default async function MetodiPage() {
     <>
       <Intestazione
         titolo="Metodi di pagamento"
-        sottotitolo="Con cosa si incassano le quote del club, e cosa si può dichiarare da sé. Quelli delle altre casse stanno in Altre casse"
+        sottotitolo="Con cosa si incassano le quote del club, e cosa si può dichiarare da sé. Quelli delle casse private stanno in Casse private"
         azioni={
           <BottoneModale etichetta="Aggiungi metodo" icona="aggiungi" titolo="Nuovo metodo">
             <FormAzione azione={salvaMetodo}>

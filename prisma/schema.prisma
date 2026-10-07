@@ -1400,6 +1400,8 @@ model Cassa {
   vociAttivita  VoceAttivita[]
   /// Le attività i cui ospiti pagano in questa cassa.
   eventiOspiti  Event[]           @relation("CassaOspiti")
+  /// Entrate e uscite scritte a mano: un fondo iniziale, una spesa.
+  movimenti     MovimentoCassa[]
 }
 
 /// Una quota di un'attività che non va al club.
@@ -1564,7 +1566,13 @@ model MovimentoCassa {
   /// sola invece di dover ricopiare gli stessi numeri in due posti.
   carico   CaricoMagazzino?
 
+  /// In quale cassa: vuota è la cassa del club, come per pagamenti e crediti.
+  /// Le altre casse hanno i loro movimenti a mano, che vede solo chi le gestisce.
+  cassaId  String?
+  cassa    Cassa?   @relation(fields: [cassaId], references: [id], onDelete: Restrict)
+
   @@index([data])
+  @@index([cassaId])
 }
 
 // ---------------------------------------------------------------- note interne

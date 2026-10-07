@@ -27,6 +27,9 @@ import { MetodiCassa } from '@/components/MetodiCassa';
 import { CreditiCassa } from '@/components/CreditiCassa';
 import { creditiDellaCassa, creditoInCassa } from '@/lib/credito';
 import { elencoOperatori } from '@/lib/query';
+import { SelettoreCasse } from '@/components/SelettoreCasse';
+import { ORIGINI, PulsantiMovimento, RegistroCassa, type Origine } from '@/components/RegistroCassa';
+import { leggiRegistro, operatoriPerUscite } from '@/lib/registro-cassa';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +62,7 @@ const DA_GESTIRE: Prisma.PaymentWhereInput = {
 export default async function CassaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cassa?: string; filtro?: string }>;
+  searchParams: Promise<{ cassa?: string; filtro?: string; origine?: string }>;
 }) {
   const me = await requireUser();
   const casse = await casseGestite(me.id);
@@ -68,6 +71,14 @@ export default async function CassaPage({
   const sp = await searchParams;
   const cassa = casse.find((c) => c.id === sp.cassa) ?? casse[0];
   const dellaCassa = { cassaId: cassa.id };
+  const origine = (Object.keys(ORIGINI).includes(sp.origine ?? '') ? sp.origine : 'tutte') as Origine;
+
+  // il registro e il saldo, fatti come quelli della cassa del club
+  const [registro, operatori] = await Promise.all([leggiRegistro(cassa.id), operatoriPerUscite()]);
+  const voci = [
+    ...(origine === 'attivita' ? [] : registro.daMano),
+    ...(origine === 'mano' ? [] : registro.daAttivita),
+  ].sort((a, b) => b.data.getTime() - a.data.getTime());
 
   // si apre su quello che aspetta una conferma, se c'è
   const inSospeso = await prisma.payment.count({ where: { ...dellaCassa, ...DA_GESTIRE } });
@@ -188,23 +199,13 @@ export default async function CassaPage({
     <>
       <Intestazione
         titolo={cassa.nome}
-        sottotitolo="La tua cassa: solo i pagamenti che finiscono qui, niente di quelli del club"
+        sottotitolo="Cassa privata: i pagamenti che finiscono qui, le entrate e uscite a mano, il saldo. Quelli del club restano nella sua"
         azioni={
-          casse.length > 1 ? (
-            <div className="flex flex-wrap rounded-md border border-line p-0.5">
-              {casse.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/cassa?cassa=${c.id}`}
-                  className={`rounded px-3 py-1.5 text-xs ${
-                    c.id === cassa.id ? 'bg-nvg/15 text-nvg' : 'text-muted'
-                  }`}
-                >
-                  {c.nome}
-                </Link>
-              ))}
-            </div>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {/* la cassa del club e le altre, una accanto all'altra */}
+            <SelettoreCasse me={me} attuale={cassa.id} />
+            <PulsantiMovimento cassaId={cassa.id} metodi={registro.metodi} operatori={operatori} />
+          </div>
         }
       />
 
@@ -232,7 +233,12 @@ export default async function CassaPage({
           dettaglio="hanno detto di aver pagato"
           tono={daConfermare > 0 ? 'warn' : 'neutro'}
         />
-        <Statistica etichetta="Incassato" valore={fmtEuro(incassato)} tono="ok" />
+        <Statistica
+          etichetta="Saldo di cassa"
+          valore={fmtEuro(registro.conti.saldo)}
+          dettaglio={`${fmtEuro(incassato)} incassati · entrate e uscite a mano comprese`}
+          tono={registro.conti.saldo >= 0 ? 'ok' : 'danger'}
+        />
         <Statistica
           etichetta="Crediti"
           valore={fmtEuro(credito)}
@@ -349,6 +355,20 @@ export default async function CassaPage({
           ))}
         </div>
       )}
+
+      {/* il registro di questa cassa: quote incassate e movimenti a mano */}
+      <div className="mt-10">
+        <RegistroCassa
+          voci={voci}
+          origine={origine}
+          indirizzo={(o) =>
+            `/cassa?${new URLSearchParams({ cassa: cassa.id, ...(o === 'tutte' ? {} : { origine: o }) })}`
+          }
+          modificabile
+          metodi={registro.metodi}
+          operatori={operatori}
+        />
+      </div>
     </>
   );
 }

@@ -374,14 +374,15 @@ export const AIUTO: VoceAiuto[] = [
     chiave: 'mia-cassa',
     area: 'Soldi',
     titolo: 'La tua cassa',
-    cosa: 'Per chi gestisce una cassa diversa da quella del club (es. un corso): solo i pagamenti che finiscono lì.',
+    cosa: 'Una cassa privata (es. un corso): i pagamenti che finiscono lì, le entrate e uscite a mano, il saldo. Funziona come la cassa del club, e chi le tiene tutt’e due passa dall’una all’altra dal selettore in cima.',
     perChi: 'Chi gestisce una cassa',
     passi: [
       { titolo: 'Confermare', testo: 'Chi ha segnalato di aver pagato aspetta te: [[g:incassa|Incassa]] e poi [[p:incassa|Registra l’incasso]]. A chi è in ritardo [[g:whatsapp|Sollecita]] manda un promemoria su WhatsApp. Se i soldi non sono arrivati, [[g:annulla|Annulla]] toglie la segnalazione, con il motivo scritto: la quota torna da pagare e la persona viene avvisata con quel motivo.' },
       { titolo: 'Credito', testo: '[[p:incassa|Registra versamento]] tiene dei soldi come credito della persona; [[g:pagamenti|Restituisci]] glieli rende.' },
       { titolo: 'Come si paga', testo: 'I metodi della tua cassa: [[g:aggiungi|Aggiungi metodo]] o [[g:modifica|Modifica]], con IBAN, link, e se li usano anche le squadre esterne.' },
+      { titolo: 'Movimenti a mano', testo: '[[p:incassa|Registra entrata]] per i soldi che non hanno un pagante (un fondo iniziale, un contributo), [[g:pagamenti|Registra uscita]] per le spese. Entrano nel saldo e nel registro in fondo alla pagina, dove si correggono.' },
     ],
-    parole: 'cassa corso incassi gestore credito',
+    parole: 'cassa corso incassi gestore credito saldo entrata uscita fondo iniziale',
   },
   {
     percorso: '/admin/metodi',
@@ -414,8 +415,8 @@ export const AIUTO: VoceAiuto[] = [
     percorso: '/admin/casse',
     chiave: 'casse',
     area: 'Soldi',
-    titolo: 'Altre casse',
-    cosa: 'Le casse che non sono del club (es. un istruttore): chi le gestisce e come si paga.',
+    titolo: 'Casse private',
+    cosa: 'Le casse accanto a quella del club (es. un istruttore): chi le gestisce e come si paga.',
     perChi: 'Segreteria',
     passi: [
       { titolo: 'Creare', testo: '[[p:aggiungi|Nuova cassa]]; poi, sulla cassa, scegli la persona e [[g:aggiungi|Abilita]] per farne un gestore. Il gestore trova la cassa nel suo menu e conferma i pagamenti da lì. [[g:modifica|Modifica]] per nome e metodi.' },
