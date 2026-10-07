@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.34.0 — 7 ottobre 2026
+
+### Aggiunto
+
+- **I nostri campi in «La mia squadra».** Una scheda con i campi della
+  squadra (quelli che non gestisce un'altra squadra): tipologia, città,
+  se manca la posizione, e «Modifica» per ognuno, più «Aggiungi campo». Il
+  modulo è quello dei campi nostri, senza gestore e contatti; l'anagrafica di
+  tutti i campi resta in Campi.
+
+### Corretto
+
+- Salvare un campo dal modulo ridotto (primo accesso, La mia squadra) non
+  cancella più referente, telefono, sito e costo che aveva: si toccano solo
+  se il modulo li manda.
+
 ## 3.33.1 — 7 ottobre 2026
 
 ### Cambiato

@@ -25,13 +25,15 @@ export async function salvaCampo(_prev: StatoForm, fd: FormData): Promise<StatoF
     provincia: strOpt(fd, 'provincia'),
     lat: num(fd, 'lat'),
     lng: num(fd, 'lng'),
-    referente: strOpt(fd, 'referente'),
-    telefono: strOpt(fd, 'telefono'),
-    sito: strOpt(fd, 'sito'),
-    costo: num(fd, 'costo'),
+    // il modulo di un campo nostro (La mia squadra, primo accesso) non ha
+    // gestore e contatti: quello che non arriva resta com'era, non si cancella
+    referente: fd.has('referente') ? strOpt(fd, 'referente') : undefined,
+    telefono: fd.has('telefono') ? strOpt(fd, 'telefono') : undefined,
+    sito: fd.has('sito') ? strOpt(fd, 'sito') : undefined,
+    costo: fd.has('costo') ? num(fd, 'costo') : undefined,
     note: strOpt(fd, 'note'),
     attivo: bool(fd, 'attivo'),
-    squadraId: strOpt(fd, 'squadraId'),
+    squadraId: fd.has('squadraId') ? strOpt(fd, 'squadraId') : undefined,
   };
 
   if (id) {
@@ -42,6 +44,7 @@ export async function salvaCampo(_prev: StatoForm, fd: FormData): Promise<StatoF
 
   revalidatePath('/admin/campi');
   revalidatePath('/admin/squadre', 'layout');
+  revalidatePath('/admin/squadra');
   revalidatePath('/calendario');
   return { ok: id ? 'Campo aggiornato.' : 'Campo aggiunto.' };
 }

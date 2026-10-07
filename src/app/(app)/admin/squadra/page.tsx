@@ -4,7 +4,7 @@ import { requirePermesso } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isAdmin } from '@/lib/domain';
 import { leggiMiaSquadra, marchio, PARTENZA } from '@/lib/mia-squadra';
-import { Campo, Intestazione } from '@/components/ui';
+import { Badge, Campo, Intestazione } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
 import { RitagliaFoto } from '@/components/RitagliaFoto';
@@ -15,8 +15,19 @@ import { PortaleFigt } from '@/components/PortaleFigt';
 import { AffiliazioniFigt } from '@/components/AffiliazioniFigt';
 import { URL_ASNWG } from '@/lib/domain';
 import { temaSquadra } from '@/lib/tema-server';
+import { BottoneModale } from '@/components/Modale';
+import { FormCampo } from '@/components/FormCampo';
+import { salvaCampo } from '@/actions/campi';
 
 export const dynamic = 'force-dynamic';
+
+const TIPI_CAMPO: Record<string, string> = {
+  BOSCHIVO: 'Boschivo',
+  URBANO: 'Urbano',
+  CQB: 'CQB',
+  INDOOR: 'Indoor',
+  MISTO: 'Misto',
+};
 
 /**
  * La nostra squadra: come si chiama, com'è fatta, chi la rappresenta.
@@ -28,7 +39,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function MiaSquadraPage() {
   await requirePermesso(isAdmin);
-  const [s, m, tema, figt, collegate, richieste, whatsapp, referenti, persone] = await Promise.all([
+  const [s, m, tema, figt, collegate, richieste, whatsapp, referenti, persone, campi] = await Promise.all([
     leggiMiaSquadra(),
     marchio(),
     temaSquadra(),
@@ -41,6 +52,11 @@ export default async function MiaSquadraPage() {
       where: { stato: { in: ['SQUADRA', 'SOSPESO', 'DA_RICONFERMARE'] } },
       orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, cognome: true, callsign: true },
+    }),
+    // i campi nostri: quelli che non gestisce un'altra squadra
+    prisma.field.findMany({
+      where: { squadraId: null },
+      orderBy: [{ attivo: 'desc' }, { nome: 'asc' }],
     }),
   ]);
 
@@ -206,6 +222,70 @@ export default async function MiaSquadraPage() {
             </Link>
           </li>
         </ul>
+      </div>
+
+      {/* I campi dove giochiamo noi, gestiti dalla squadra: si correggono
+          qui senza passare dall'anagrafica di tutti i campi, che ha anche
+          quelli delle altre squadre */}
+      <div id="campi" className="card mt-6 scroll-mt-24">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="titolo-sezione">I nostri campi</p>
+            <p className="mt-1 text-xs text-muted">
+              Dove gioca la squadra. La posizione è il punto «P · Parcheggio» sulla mappa delle
+              attività.
+            </p>
+          </div>
+          <BottoneModale
+            etichetta="Aggiungi campo"
+            icona="aggiungi"
+            titolo="Nuovo campo"
+            className="btn-ghost btn-sm"
+            larga
+          >
+            <FormAzione azione={salvaCampo}>
+              <FormCampo squadre={[]} nostro />
+              <Invia icona="aggiungi">Aggiungi il campo</Invia>
+            </FormAzione>
+          </BottoneModale>
+        </div>
+        {campi.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">Nessun campo ancora: aggiungi quello dove giocate.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line border-t border-line">
+            {campi.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-3 py-2.5">
+                <Icona nome="campi" size={16} />
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-medium">
+                    {c.nome}{' '}
+                    {!c.attivo && <Badge tono="neutro">non attivo</Badge>}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {TIPI_CAMPO[c.tipo] ?? c.tipo}
+                    {c.citta || c.indirizzo ? ` · ${c.citta ?? c.indirizzo}` : ''}
+                    {c.lat === null || c.lng === null ? ' · posizione da segnare' : ''}
+                  </p>
+                </div>
+                <BottoneModale
+                  etichetta="Modifica"
+                  icona="modifica"
+                  titolo={`Modifica «${c.nome}»`}
+                  className="btn-ghost btn-sm"
+                  larga
+                >
+                  <FormAzione azione={salvaCampo}>
+                    <FormCampo campo={c} squadre={[]} nostro />
+                    <Invia icona="salva">Salva</Invia>
+                  </FormAzione>
+                </BottoneModale>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href="/admin/campi" className="mt-3 inline-block text-xs text-nvg hover:underline">
+          Tutti i campi, anche quelli delle altre squadre →
+        </Link>
       </div>
 
       <div className="card mt-6">
