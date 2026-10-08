@@ -5,6 +5,14 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.38.1 — 8 ottobre 2026
+
+### Cambiato
+
+- In «Come si compone» della quota le righe a zero non ci sono più, e una
+  cifra a zero (la squadra che non paga una cassa che paga solo chi viene da
+  fuori) è un trattino.
+
 ## 3.38.0 — 8 ottobre 2026
 
 ### Cambiato

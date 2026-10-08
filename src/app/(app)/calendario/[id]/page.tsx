@@ -1716,38 +1716,43 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                   </tr>
                                 </thead>
                                 <tbody className="num text-ink">
-                                  <tr className="border-t border-line">
-                                    <td className="py-1">Club · quota dell’attività</td>
-                                    <td className="py-1 text-right">{fmtEuro(costo)}</td>
-                                    <td className="py-1 text-right">
-                                      {fmtEuro(quotaEsterni === null ? costo : quotaEsterni)}
-                                    </td>
-                                  </tr>
-                                  {evento.quoteCasse.map((q) => (
-                                    <tr key={q.id} className="border-t border-line">
-                                      <td className="py-1">
-                                        {q.cassa.nome}
-                                        {q.descrizione ? ` · ${q.descrizione}` : ''}
-                                      </td>
-                                      <td className="py-1 text-right">
-                                        {fmtEuro(Number(q.importo))}
-                                      </td>
-                                      <td className="py-1 text-right">
-                                        {fmtEuro(
-                                          Number(
-                                            q.importoEsterni === null
-                                              ? q.importo
-                                              : q.importoEsterni,
-                                          ),
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
+                                  {/* le righe a zero non si scrivono, e una
+                                      cifra a zero è un trattino */}
+                                  {[
+                                    {
+                                      chiave: 'club',
+                                      nome: 'Club · quota dell’attività',
+                                      squadra: costo,
+                                      fuori: quotaEsterni === null ? costo : quotaEsterni,
+                                    },
+                                    ...evento.quoteCasse.map((q) => ({
+                                      chiave: q.id,
+                                      nome: `${q.cassa.nome}${q.descrizione ? ` · ${q.descrizione}` : ''}`,
+                                      squadra: Number(q.importo),
+                                      fuori: Number(
+                                        q.importoEsterni === null ? q.importo : q.importoEsterni,
+                                      ),
+                                    })),
+                                  ]
+                                    .filter((r) => r.squadra > 0 || r.fuori > 0)
+                                    .map((r) => (
+                                      <tr key={r.chiave} className="border-t border-line">
+                                        <td className="py-1">{r.nome}</td>
+                                        <td className="py-1 text-right">
+                                          {r.squadra > 0 ? fmtEuro(r.squadra) : '—'}
+                                        </td>
+                                        <td className="py-1 text-right">
+                                          {r.fuori > 0 ? fmtEuro(r.fuori) : '—'}
+                                        </td>
+                                      </tr>
+                                    ))}
                                   <tr className="border-t border-line font-semibold">
                                     <td className="py-1">Totale</td>
-                                    <td className="py-1 text-right">{fmtEuro(tariffaInterni)}</td>
+                                    <td className="py-1 text-right">
+                                      {tariffaInterni > 0 ? fmtEuro(tariffaInterni) : '—'}
+                                    </td>
                                     <td className="py-1 text-right text-warn">
-                                      {fmtEuro(tariffaEsterni)}
+                                      {tariffaEsterni > 0 ? fmtEuro(tariffaEsterni) : '—'}
                                     </td>
                                   </tr>
                                 </tbody>
