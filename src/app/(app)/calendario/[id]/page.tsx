@@ -590,8 +590,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const miaQuota = quotePerUtente.get(me.id) ?? null;
   // tutte le quote di una persona, club e altre casse: il posto si conferma
   // quando sono chiuse tutte
+  // (annullate escluse: passata ad altri o tenuta come credito, una quota
+  // annullata non la deve più nessuno — chi ha detto «no» non ha da saldare)
   const quoteDi = (userId: string) =>
-    evento.payments.filter((p) => p.tipo !== 'RIMBORSO' && p.userId === userId);
+    evento.payments.filter(
+      (p) => p.tipo !== 'RIMBORSO' && p.userId === userId && p.status !== 'ANNULLATO',
+    );
   const mieQuote = quoteDi(me.id);
 
   // Lo scambio di quota: chi ha pagato e non può venire la passa a un altro.
@@ -2061,15 +2065,34 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                         </Badge>
                                       );
                                     }
-                                    if (aperte.every((q) => q.dichiaratoIl)) {
-                                      return <Badge tono="info">pagamento dichiarato</Badge>;
-                                    }
+                                    // Polizza e quota separate: la polizza è quello che
+                                    // paga la copertura (le casse con le voci «paga la
+                                    // polizza», per chi viene da fuori; la cassa della
+                                    // polizza di ripiego, per chi è senza certificato),
+                                    // la quota tutto il resto. Chi è in squadra ha la
+                                    // tessera: per lui non c'è polizza.
+                                    const casseSue = inRipiegoR(r)
+                                      ? new Set([...cassePolizza, polizzaRipiego?.cassaId ?? ''])
+                                      : !diSquadra(r)
+                                        ? cassePolizza
+                                        : new Set<string>();
+                                    const polizza = quotePerPolizza(aperte, casseSue);
+                                    const quota = aperte.filter((q) => !polizza.includes(q));
+                                    const badge = (gruppo: typeof aperte, nome: 'polizza' | 'quota') =>
+                                      gruppo.length === 0 ? null : gruppo.every((q) => q.dichiaratoIl) ? (
+                                        <Badge key={nome} tono="info">
+                                          {nome} dichiarata
+                                        </Badge>
+                                      ) : (
+                                        <Badge key={nome} tono="warn">
+                                          {nome} da saldare
+                                        </Badge>
+                                      );
                                     return (
-                                      <Badge tono="warn">
-                                        {aperte.length > 1
-                                          ? `${aperte.length} quote da saldare`
-                                          : 'quota da saldare'}
-                                      </Badge>
+                                      <>
+                                        {badge(polizza, 'polizza')}
+                                        {badge(quota, 'quota')}
+                                      </>
                                     );
                                   })()}
 

@@ -58,7 +58,8 @@ export const quotaChiusa = (status: string) => status === 'PAGATO' || status ===
  */
 export async function quoteTutteSaldate(eventId: string, userId: string): Promise<boolean> {
   const quote = await prisma.payment.findMany({
-    where: { eventId, userId, tipo: { not: 'RIMBORSO' } },
+    // un'annullata non si deve più: non tiene aperto il posto
+    where: { eventId, userId, tipo: { not: 'RIMBORSO' }, status: { not: 'ANNULLATO' } },
     select: { status: true },
   });
   return quote.every((q) => quotaChiusa(q.status));

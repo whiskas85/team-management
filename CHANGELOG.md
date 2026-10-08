@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.38.0 — 8 ottobre 2026
+
+### Cambiato
+
+- **Polizza e quota separate.** Nella riga di ogni partecipante il badge «da
+  saldare» è diviso in due: «polizza da saldare» per quello che paga la
+  copertura — le casse con le voci «paga la polizza», per chi viene da
+  fuori; la polizza di ripiego, per chi è senza certificato — e «quota da
+  saldare» per tutto il resto. Chi è in squadra ha la tessera: per lui c'è
+  solo la quota. Lo stesso per «dichiarata».
+
+### Corretto
+
+- **Una quota passata o tenuta come credito non è più «da saldare».** Chi
+  dice «no» e passa la quota a un altro (o la tiene come credito) ha la
+  quota annullata: compariva ancora fra i «no» col badge «quota da
+  saldare». Ora una quota annullata non conta, né nel badge, né nella cifra
+  delle card, né per confermare il posto quando si saldano le altre.
+
 ## 3.37.2 — 7 ottobre 2026
 
 ### Cambiato

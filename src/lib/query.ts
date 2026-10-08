@@ -79,7 +79,8 @@ export async function eventiPerLista({
       // le mie quote di questa attività: quella del club e quelle delle altre
       // casse, che contano tutte per dire se ho saldato
       payments: {
-        where: { userId, tipo: { not: 'RIMBORSO' } },
+        // un'annullata (passata, tenuta come credito) non si deve più
+        where: { userId, tipo: { not: 'RIMBORSO' }, status: { not: 'ANNULLATO' } },
         select: { importo: true, pagato: true, status: true },
       },
       quoteCasse: { select: { importo: true, importoEsterni: true } },
