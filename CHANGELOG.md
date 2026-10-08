@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.38.2 — 8 ottobre 2026
+
+### Corretto
+
+- Sul telefono, tenendo premuto un preferito nel menu per riordinarlo, si
+  apriva il menu del browser (copia indirizzo, condividi, apri in Chrome)
+  invece di staccare la voce. Ora la pressione lunga stacca la voce, e mentre
+  la si trascina il pannello non scorre più sotto il dito.
+
 ## 3.38.1 — 8 ottobre 2026
 
 ### Cambiato

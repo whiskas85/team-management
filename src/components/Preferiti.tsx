@@ -103,6 +103,25 @@ export function ElencoPreferiti({
   // navigare: questa bandierina se lo mangia
   const spostato = useRef(false);
   const precedente = useRef(voci);
+  const elenco = useRef<HTMLUListElement>(null);
+  // la voce presa, leggibile anche dal gestore nativo qui sotto
+  const presaRef = useRef<string | null>(null);
+  presaRef.current = presa;
+
+  // Sul telefono, staccata la voce, il dito che si muove non deve far scorrere
+  // la pagina. Cambiare touch-action a gesto iniziato non serve (il browser
+  // l'ha già letto quando il dito è sceso) e il pannello scorrerebbe via
+  // interrompendo il trascinamento: si ferma lo scorrimento a mano, con un
+  // gestore non passivo, che React non sa mettere.
+  useEffect(() => {
+    const ul = elenco.current;
+    if (!ul) return;
+    const blocca = (e: TouchEvent) => {
+      if (presaRef.current && e.cancelable) e.preventDefault();
+    };
+    ul.addEventListener('touchmove', blocca, { passive: false });
+    return () => ul.removeEventListener('touchmove', blocca);
+  }, [ordine.length > 0]);
 
   // il menu si ricostruisce dopo ogni salvataggio: si riparte da quello che
   // dice il server, non da quello che è rimasto sullo schermo
@@ -176,7 +195,13 @@ export function ElencoPreferiti({
   if (ordine.length === 0) return null;
 
   return (
-    <ul className="space-y-0.5" onPointerMove={muovi} onPointerUp={lascia} onPointerCancel={lascia}>
+    <ul
+      ref={elenco}
+      className="space-y-0.5"
+      onPointerMove={muovi}
+      onPointerUp={lascia}
+      onPointerCancel={lascia}
+    >
       {ordine.map((v) => (
         <li
           key={v.href}
@@ -195,8 +220,12 @@ export function ElencoPreferiti({
               }
               onVai?.();
             }}
+            // la pressione lunga su un link, sul telefono, apre il menu del
+            // browser (copia indirizzo, condividi, apri in Chrome): qui la
+            // pressione lunga è nostra, e serve a staccare la voce
+            onContextMenu={(e) => e.preventDefault()}
             draggable={false}
-            className="block select-none"
+            className="block select-none [-webkit-touch-callout:none]"
           >
             {riga(v, { attivo: acceso === v.href, presa: presa === v.href })}
           </Link>
