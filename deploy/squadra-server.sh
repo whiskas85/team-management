@@ -107,11 +107,16 @@ valida_squadra() {
   fi
 }
 
-# I nomi che non sono gestionali ospitati: la produzione e i suoi dintorni.
+# I nomi che non sono gestionali ospitati: la produzione e i suoi dintorni, e
+# le altre app della macchina, che la console gestisce coi loro hook.
 # (I test, test…, li rifiuta già valida_squadra.)
 riservato() {
   case "$1" in
     ops | www | zd | gestionale) echo "«$1» e' un nome riservato, non un gestionale ospitato."; exit 1 ;;
+    tournament-app)
+      echo "«$1» e' l'app tornei (/opt/tournament-app), non un gestionale ospitato: ha i suoi hook."
+      exit 1
+      ;;
   esac
 }
 
@@ -134,8 +139,9 @@ valida_dominio() {
   # Un nostro sottodominio va bene (una demo: demo.zerodarkteam.it), ma non
   # quelli già presi: la produzione, gli ambienti di test, il sito.
   case "$dominio" in
-    ops.zerodarkteam.it | zerodarkteam.it | www.zerodarkteam.it | test*.zerodarkteam.it)
-      echo "$dominio e' gia' in uso (produzione, test o sito): scegline un altro."
+    ops.zerodarkteam.it | zerodarkteam.it | www.zerodarkteam.it | test*.zerodarkteam.it | \
+      tournament-app.zerodarkteam.it)
+      echo "$dominio e' gia' in uso (produzione, test, sito o app tornei): scegline un altro."
       exit 1
       ;;
   esac
@@ -399,6 +405,7 @@ EOF
 
 nuova() {
   prepara "${SQUADRA:-}"
+  riservato "$SQUADRA"
   local dominio=${DOMINIO:-} nome=${NOME:-} email=${EMAIL:-}
   valida_dominio "$dominio"
   [ -n "$nome" ] || nome=$SQUADRA
@@ -609,6 +616,7 @@ cambia_dominio() {
 # si cancellano solo a mano, sapendolo (vedi il messaggio alla fine).
 rimuovi() {
   prepara "$1"
+  riservato "$SQUADRA"
   protetta "$SQUADRA"
   if [ ! -f "$ENV" ]; then
     echo "La squadra $SQUADRA non c'e': niente da togliere."
