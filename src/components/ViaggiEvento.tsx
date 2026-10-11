@@ -51,8 +51,18 @@ export async function ViaggiEvento({
   me: { id: string; admin: boolean };
   miaRisposta: string | null;
 }) {
+  // Una macchina è privata finché chi guida non la rende visibile: qui si
+  // vedono solo quelle dove c'entro (guido, sono invitato, a bordo, ho
+  // chiesto) e quelle aperte a chi viene.
   const macchine = await prisma.macchina.findMany({
-    where: { eventId: evento.id },
+    where: {
+      eventId: evento.id,
+      OR: [
+        { pubblica: true },
+        { autistaId: me.id },
+        { passeggeri: { some: { userId: me.id, stato: { not: 'RIFIUTATO' } } } },
+      ],
+    },
     orderBy: { createdAt: 'asc' },
     include: {
       autista: { select: { id: true, nome: true, cognome: true, callsign: true } },
@@ -263,7 +273,8 @@ export async function ViaggiEvento({
 
       {macchine.length === 0 ? (
         <p className="text-sm text-muted">
-          Nessuna macchina ancora. Se porti la tua, mettila: poi inviti chi carichi.
+          Nessuna macchina da mostrarti. Se porti la tua, mettila: poi inviti chi carichi. Le
+          macchine degli altri le vedi quando ti invitano, o quando le rendono visibili.
         </p>
       ) : (
         <ul className="divide-y divide-line">
@@ -287,13 +298,13 @@ export async function ViaggiEvento({
                     {liberi > 0 ? `${liberi} ${liberi === 1 ? 'posto' : 'posti'}` : 'piena'}
                   </Badge>
                 )}
-                {(coinvolto || me.admin) && (
+                {(coinvolto || (me.admin && m.pubblica)) && (
                   <Link href={link(m.id)} className="text-xs text-nvg hover:underline">
                     Il viaggio ›
                   </Link>
                 )}
                 {/* un posto libero lo si chiede, senza aspettare l'invito */}
-                {possoChiedere && !coinvolto && (liberi == null || liberi > 0) && (
+                {possoChiedere && m.pubblica && !coinvolto && (liberi == null || liberi > 0) && (
                   <AzioneBottone
                     azione={chiediPassaggio}
                     valori={{ id: m.id }}

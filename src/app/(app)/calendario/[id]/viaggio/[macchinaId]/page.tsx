@@ -25,6 +25,7 @@ import {
   aggiungiTappa,
   cambiaModo,
   impostaAndataRitorno,
+  impostaVisibilita,
   rispondiRichiesta,
   eliminaMacchina,
   eliminaSpesaViaggio,
@@ -575,7 +576,41 @@ export default async function ViaggioPage({
       {scheda === 'bordo' && (
         <div className="space-y-4">
           <div className="card">
-            <p className="titolo-sezione mb-3">A bordo</p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="titolo-sezione">A bordo</p>
+              {/* privata è il solito: la vede solo chi è invitato */}
+              <div className="inline-flex rounded-lg border border-line p-0.5">
+                {(
+                  [
+                    [false, 'Privata'],
+                    [true, 'Visibile a chi viene'],
+                  ] as const
+                ).map(([v, testo]) =>
+                  v === m.pubblica ? (
+                    <span
+                      key={testo}
+                      className="rounded-md bg-nvg/15 px-3 py-1 text-xs font-medium text-nvg"
+                    >
+                      {testo}
+                    </span>
+                  ) : guida ? (
+                    <AzioneBottone
+                      key={testo}
+                      azione={impostaVisibilita}
+                      valori={{ id: m.id, pubblica: v ? '1' : '0' }}
+                      className="rounded-md px-3 py-1 text-xs text-muted hover:text-ink"
+                    >
+                      {testo}
+                    </AzioneBottone>
+                  ) : null,
+                )}
+              </div>
+            </div>
+            <p className="mb-3 text-xs text-muted">
+              {m.pubblica
+                ? 'La vede chi viene all’attività, e può chiederti un posto.'
+                : 'La vedono solo gli invitati e chi è a bordo.'}
+            </p>
             <ul className="divide-y divide-line">
               <li className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="flex-1">

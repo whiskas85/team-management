@@ -55,7 +55,7 @@ export type MacchinaCompleta = NonNullable<Awaited<ReturnType<typeof caricaMacch
 
 /** Chi sono io in questa macchina. Nullo: non c'entro, e non la vedo. */
 export function ruoloIn(
-  m: Pick<MacchinaCompleta, 'autistaId' | 'passeggeri'>,
+  m: Pick<MacchinaCompleta, 'autistaId' | 'passeggeri' | 'pubblica'>,
   me: { id: string; roles: Role[] },
 ): RuoloMacchina | null {
   if (m.autistaId === me.id) return 'autista';
@@ -63,7 +63,8 @@ export function ruoloIn(
   if (io?.stato === 'ACCETTATO') return 'passeggero';
   if (io?.stato === 'INVITATO') return 'invitato';
   if (io?.stato === 'RICHIESTO') return 'richiesto';
-  if (isAdmin(me.roles)) return 'admin';
+  // una macchina privata non la vede nemmeno l'admin: è un affare di chi ci sale
+  if (m.pubblica && isAdmin(me.roles)) return 'admin';
   return null;
 }
 
@@ -160,6 +161,7 @@ export async function propostePasseggeri(eventId: string, autistaId: string, mac
     prisma.macchina.findMany({
       where: { eventId, id: { not: macchinaId } },
       select: {
+        pubblica: true,
         autista: { select: { id: true, nome: true, cognome: true, callsign: true } },
         passeggeri: { where: { stato: 'ACCETTATO' }, select: { userId: true } },
       },
@@ -169,9 +171,15 @@ export async function propostePasseggeri(eventId: string, autistaId: string, mac
   const volte = new Map(portati.map((p) => [p.userId, p._count._all]));
   const stato = new Map(risposte.map((r) => [r.userId, r.status]));
   const giaCon = new Map<string, string>();
+  // di una macchina privata non si dice con chi: solo che il posto c'è già
   for (const m of occupati) {
-    giaCon.set(m.autista.id, 'guida la sua');
-    for (const p of m.passeggeri) giaCon.set(p.userId, `in macchina con ${nomeDi(m.autista)}`);
+    giaCon.set(m.autista.id, 'porta la sua macchina');
+    for (const p of m.passeggeri) {
+      giaCon.set(
+        p.userId,
+        m.pubblica ? `in macchina con ${nomeDi(m.autista)}` : 'ha già un passaggio',
+      );
+    }
   }
   const peso = (s: string | undefined) => (s === 'PRESENTE' ? 0 : s === 'FORSE' ? 1 : s ? 3 : 2);
 

@@ -639,6 +639,7 @@ export async function chiediPassaggio(_prev: StatoForm, fd: FormData): Promise<S
   if (!m) return { errore: 'Macchina non trovata.' };
   if (!viaggiAperti(m.event.status)) return { errore: 'L’attività non è più aperta.' };
   if (m.autistaId === me.id) return { errore: 'Questa macchina la guidi tu.' };
+  if (!m.pubblica) return { errore: 'Questa macchina è privata: si sale solo su invito.' };
 
   const [risposta, giaSu, guido] = await Promise.all([
     prisma.eventRsvp.findUnique({
@@ -808,4 +809,19 @@ export async function impostaAndataRitorno(_prev: StatoForm, fd: FormData): Prom
   await prisma.macchina.update({ where: { id: m.id }, data: { andataRitorno: si } });
   pagina(m.eventId, m.id);
   return { ok: si ? 'Andata e ritorno: i costi contano anche il ritorno.' : 'Sola andata.' };
+}
+
+/** Privata (solo chi è invitato) o visibile a chi viene all'attività. */
+export async function impostaVisibilita(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Lo decide chi guida.' };
+  const pubblica = str(fd, 'pubblica') === '1';
+  await prisma.macchina.update({ where: { id: m.id }, data: { pubblica } });
+  pagina(m.eventId, m.id);
+  return {
+    ok: pubblica
+      ? 'Visibile: chi viene all’attività la vede e può chiederti un posto.'
+      : 'Privata: la vedono solo gli invitati.',
+  };
 }

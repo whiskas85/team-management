@@ -5,6 +5,20 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.43.0 — 11 ottobre 2026
+
+### Cambiato
+
+- **Una macchina è privata**, se non si dice altro: la vedono solo chi guida,
+  gli invitati, chi è a bordo e chi ha chiesto un posto. Gli altri, nel
+  riquadro In macchina, non la vedono, e il link del viaggio per loro non
+  esiste; nemmeno l'admin la vede.
+- Chi guida può renderla **visibile a chi viene** (in cima alla scheda A
+  bordo): allora compare a tutti quelli dell'attività, che possono chiedere un
+  posto. «Chiedo un passaggio» c'è solo sulle macchine visibili.
+- Fra i passeggeri da invitare, di chi è già su una macchina privata si dice
+  solo «ha già un passaggio», senza con chi.
+
 ## 3.42.2 — 11 ottobre 2026
 
 ### Cambiato
