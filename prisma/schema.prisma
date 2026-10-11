@@ -234,6 +234,12 @@ model User {
   certificates          MedicalCertificate[]    @relation("CertOwner")
   reviewedCerts         MedicalCertificate[]    @relation("CertReviewer")
   rsvps                 EventRsvp[]
+  /// Le macchine messe per andare alle attività, da autista.
+  macchineGuidate       Macchina[]              @relation("MacchineGuidate")
+  /// I passaggi: offerti, accettati, rifiutati.
+  passaggi              PasseggeroMacchina[]
+  /// Quello che ha pagato in viaggio: carburante, caselli.
+  speseViaggio          SpesaViaggio[]
   payments              Payment[]               @relation("PaymentUser")
   recordedPays          Payment[]               @relation("PaymentRecorder")
   /// L'ultima volta che ha aperto Miei pagamenti: quello che è nato dopo
@@ -1125,6 +1131,8 @@ model Event {
   updatedAt             DateTime         @updatedAt
 
   rsvps       EventRsvp[]
+  /// Le macchine che ci vanno, ognuna col suo viaggio.
+  macchine    Macchina[]
   payments    Payment[]
   giornaliere TesseraGiornaliera[]
   messaggi    MessaggioInviato[]
@@ -2988,4 +2996,118 @@ model AllegatoSegnalazione {
   mimeType       String
   fileSize       Int
   creatoIl       DateTime           @default(now())
+}
+
+// ---------------------------------------------------------------- macchinate
+
+/// Come si caricano i passeggeri: passando a prenderli uno per uno, o
+/// trovandosi in uno o più punti di ritrovo.
+enum ModoMacchina {
+  PRENDO
+  RITROVO
+}
+
+enum StatoPasseggero {
+  INVITATO
+  ACCETTATO
+  RIFIUTATO
+}
+
+enum TipoSpesaViaggio {
+  CARBURANTE
+  CASELLO
+  ALTRO
+}
+
+/// Una macchina che va a un'attività: chi guida, da dove parte, dove arriva,
+/// chi carica e dove. Una per autista e per attività.
+///
+/// Partenza e arrivo sono **suggerimenti** riempiti alla nascita — casa
+/// dell'autista, il ritrovo o il parcheggio del campo — e si cambiano.
+/// La partenza la vede solo l'autista: è casa sua.
+model Macchina {
+  id          String       @id @default(cuid())
+  eventId     String
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  autistaId   String
+  autista     User         @relation("MacchineGuidate", fields: [autistaId], references: [id], onDelete: Cascade)
+  modo        ModoMacchina @default(RITROVO)
+  /// Quanti passeggeri ci stanno, autista escluso. Vuoto: non l'ha detto.
+  posti       Int?
+  partenza    String?
+  partenzaLat Float?
+  partenzaLng Float?
+  partenzaOra DateTime?
+  arrivo      String?
+  arrivoLat   Float?
+  arrivoLng   Float?
+  arrivoOra   DateTime?
+  note        String?
+  /// Per il costo vero del carburante: chilometri di tutto il viaggio
+  /// (andata e ritorno), consumo e prezzo al litro. Quello che uno dichiara di
+  /// aver messo nel serbatoio può essere di più: conta questo.
+  km          Int?
+  consumo     Float?
+  prezzoLitro Decimal?     @db.Decimal(6, 3)
+  /// Quanto sono costati davvero i caselli. Vuoto: la somma di quelli dichiarati.
+  caselli     Decimal?     @db.Decimal(10, 2)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  passeggeri PasseggeroMacchina[]
+  tappe      TappaMacchina[]
+  spese      SpesaViaggio[]
+
+  @@unique([eventId, autistaId])
+}
+
+/// Una fermata fra la partenza e l'arrivo: la casa di un passeggero (modo
+/// PRENDO, uno per tappa) o un punto di ritrovo (modo RITROVO, quanti si vuole).
+model TappaMacchina {
+  id         String               @id @default(cuid())
+  macchinaId String
+  macchina   Macchina             @relation(fields: [macchinaId], references: [id], onDelete: Cascade)
+  ordine     Int                  @default(0)
+  luogo      String
+  lat        Float?
+  lng        Float?
+  ora        DateTime?
+  passeggeri PasseggeroMacchina[]
+
+  @@index([macchinaId])
+}
+
+/// Un passeggero: invitato dall'autista, poi accetta o rifiuta. Il posto dove
+/// sale è una tappa; nel modo PRENDO l'indirizzo lo conferma lui accettando, e
+/// lo vede solo l'autista.
+model PasseggeroMacchina {
+  id         String          @id @default(cuid())
+  macchinaId String
+  macchina   Macchina        @relation(fields: [macchinaId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stato      StatoPasseggero @default(INVITATO)
+  tappaId    String?
+  tappa      TappaMacchina?  @relation(fields: [tappaId], references: [id], onDelete: SetNull)
+  invitatoIl DateTime        @default(now())
+  rispostoIl DateTime?
+
+  @@unique([macchinaId, userId])
+  @@index([userId])
+}
+
+/// Quello che uno ha pagato per il viaggio. Non è un movimento di cassa: serve
+/// solo a fare i conti di chi deve a chi, e lì si ferma.
+model SpesaViaggio {
+  id         String           @id @default(cuid())
+  macchinaId String
+  macchina   Macchina         @relation(fields: [macchinaId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo       TipoSpesaViaggio
+  importo    Decimal          @db.Decimal(10, 2)
+  note       String?
+  createdAt  DateTime         @default(now())
+
+  @@index([macchinaId])
 }

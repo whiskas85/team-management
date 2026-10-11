@@ -1,13 +1,29 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Naviga } from './Naviga';
+import { Naviga, linkNaviga } from './Naviga';
 import { Badge } from './ui';
 import { Icona } from './Icona';
 import { AdesioneEvento } from './AdesioneEvento';
-import { fmtDateTime, fmtEuro, umanizza } from '@/lib/format';
+import { fmtDateTime, fmtEuro, fmtTime, umanizza } from '@/lib/format';
 import { etichettaEvento, tonoEvento, tonoRsvp } from '@/lib/domain';
 import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
 import type { FaseAttivita } from '@/lib/giorni';
+
+/** La mia macchinata, detta nella card: guido, salgo con qualcuno, mi offrono un posto. */
+export type ViaggioInCard = {
+  ruolo: 'autista' | 'passeggero' | 'invitato';
+  /** Chi guida, se non sono io. */
+  con: string | null;
+  aBordo: number;
+  /** Il mio punto di salita (passeggero) o l'arrivo (autista). */
+  dove: string | null;
+  ora: Date | null;
+  /** Il link di Maps: l'itinerario intero per chi guida, il mio punto per chi sale. */
+  naviga: string | null;
+  pagina: string;
+  /** Passa a prendermi: senza punto vuol dire che non gli ho ancora detto dove. */
+  prendo?: boolean;
+};
 
 export type EventoLista = {
   id: string;
@@ -63,6 +79,12 @@ export type EventoLista = {
   quotaDovuta?: number | null;
   /** Saldata tutta: club e altre casse. */
   quotaSaldata?: boolean;
+  /** Il ritrovo dell'attività, con la sua ora e il punto per Maps. */
+  ritrovo?: string | null;
+  ritrovoMeta?: string | null;
+  oraRitrovo?: Date | null;
+  /** La mia macchinata, se ne ho una. */
+  viaggio?: ViaggioInCard | null;
 };
 
 /**
@@ -164,7 +186,8 @@ export function CardEvento({
    * fondo, e l'aria in più finisce sotto al testo — dove per giunta è ancora
    * area cliccabile, perché il corpo è tutto un link all'attività.
    */
-  const striscia = puoNavigare;
+  const v = e.viaggio;
+  const striscia = puoNavigare || !!v || !!e.ritrovo;
   // «Paga» va in fila ai pulsanti di presenza, quando ci sono
   const pagaQui = pagata ? null : paga;
   const conPresenza = e.adesioniAperte || (e.iscrizioniChiuse && e.mioStato !== 'ASSENTE');
@@ -248,8 +271,80 @@ export function CardEvento({
           domanda la fanno da soli, e quello scelto resta acceso: scriverlo
           anche a parole era dire due volte la stessa cosa. */}
       {striscia && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
-          <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
+        <div className="space-y-2 border-t border-line px-4 py-2.5">
+          {/* In macchina il punto che conta è dove si sale, non il ritrovo
+              dell'attività: chi guida ha l'itinerario intero. */}
+          {v ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="shrink-0 text-nvg">
+                <Icona nome="macchina" size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                {v.ruolo === 'autista' ? (
+                  <>
+                    <strong className="text-ink">Guidi tu</strong>
+                    <span className="text-muted"> · {v.aBordo} a bordo</span>
+                  </>
+                ) : v.ruolo === 'passeggero' ? (
+                  <>
+                    In macchina con <strong className="text-ink">{v.con}</strong>
+                    <span className="block text-muted">
+                      {v.dove
+                        ? `${v.prendo ? 'Ti prende a: ' : 'Ritrovo: '}${v.dove}${v.ora ? ` · ore ${fmtTime(v.ora)}` : ''}`
+                        : v.prendo
+                          ? 'Digli dove passare a prenderti'
+                          : 'Ritrovo da decidere'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-ink">{v.con}</strong>
+                    <span className="text-muted"> ti offre un passaggio</span>
+                  </>
+                )}
+              </span>
+              {v.naviga && (
+                <a
+                  href={v.naviga}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-nvg/40 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/10"
+                >
+                  <Icona nome="naviga" size={13} />
+                  {v.ruolo === 'autista' ? 'Itinerario' : 'Naviga'}
+                </a>
+              )}
+              <Link href={v.pagina} className="text-xs text-nvg hover:underline">
+                {v.ruolo === 'invitato' ? 'Rispondi ›' : 'Il viaggio ›'}
+              </Link>
+            </div>
+          ) : (
+            e.ritrovo && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="min-w-0 flex-1 text-muted">
+                  Ritrovo: <span className="text-ink">{e.ritrovo}</span>
+                  {e.oraRitrovo && ` · ore ${fmtTime(e.oraRitrovo)}`}
+                </span>
+                {e.ritrovoMeta && (
+                  <a
+                    href={linkNaviga(e.ritrovoMeta)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-nvg/40 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/10"
+                  >
+                    <Icona nome="naviga" size={13} />
+                    Ritrovo
+                  </a>
+                )}
+              </div>
+            )
+          )}
+          {/* il campo resta per chi non è in una macchina, e per chi guida */}
+          {puoNavigare && (!v || v.ruolo !== 'passeggero') && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
+            </div>
+          )}
         </div>
       )}
 

@@ -23,6 +23,16 @@ export async function GET() {
       annunci: { include: { voci: true } },
       ordini: { include: { righe: true } },
       rsvps: { include: { event: { select: { titolo: true, inizio: true, tipo: { select: { nome: true } } } } } },
+      // le macchinate: quelle guidate (con la partenza), i passaggi con il
+      // proprio punto di salita, e le spese segnate
+      macchineGuidate: { include: { event: { select: { titolo: true, inizio: true } } } },
+      passaggi: {
+        include: {
+          tappa: { select: { luogo: true, lat: true, lng: true, ora: true } },
+          macchina: { select: { event: { select: { titolo: true, inizio: true } } } },
+        },
+      },
+      speseViaggio: true,
     },
   });
   if (!u) return new NextResponse('Non trovato', { status: 404 });

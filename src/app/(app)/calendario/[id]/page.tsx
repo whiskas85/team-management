@@ -70,6 +70,7 @@ import { Mappa } from '@/components/Mappa';
 import { MappaPunti } from '@/components/MappaPunti';
 import { metaNaviga } from '@/components/Naviga';
 import { ComeArrivare, type Tappa } from '@/components/ComeArrivare';
+import { ViaggiEvento } from '@/components/ViaggiEvento';
 import { Quando } from '@/components/Quando';
 import { AzioneBottone } from '@/components/AzioneBottone';
 import { BadgeIscrizioniChiuse } from '@/components/CardEvento';
@@ -1895,6 +1896,17 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ------------------------------------------------ in macchina */}
+          {/* Chi porta la macchina e chi sale con chi: subito dopo il dove,
+              perché è la domanda che viene subito dopo «dove si va». */}
+          {!bozza && (
+            <ViaggiEvento
+              evento={evento}
+              me={{ id: me.id, admin }}
+              miaRisposta={mio?.status ?? null}
+            />
+          )}
 
           {/* ------------------------------------------------ squadre ospiti */}
           {/* Sta prima dei nostri partecipanti perché è la domanda che viene

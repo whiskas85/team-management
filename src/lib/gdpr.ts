@@ -32,6 +32,13 @@ export const FINALITA = [
     obbligatorio: false,
   },
   {
+    titolo: 'Macchinate',
+    testo:
+      'Quando accetti un passaggio in cui l’autista passa a prenderti, scegli tu dove: l’indirizzo del profilo è solo un suggerimento. Quel punto lo vede soltanto l’autista di quella macchina, per quel viaggio; gli altri passeggeri vedono solo il tuo nome. La partenza dell’autista la vede solo lui. Gli indirizzi dei viaggi si cancellano da soli una settimana dopo l’attività; restano i conti delle spese, che sono solo un promemoria fra chi era a bordo.',
+    base: 'Consenso, dato ogni volta che accetti un passaggio',
+    obbligatorio: false,
+  },
+  {
     titolo: 'Comunicazioni non operative',
     testo:
       'Inviti a eventi esterni, iniziative e comunicazioni non strettamente legate all’attività. Facoltativo e revocabile.',

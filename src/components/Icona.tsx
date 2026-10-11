@@ -4,6 +4,7 @@ export type NomeIcona =
   | 'calendario'
   | 'campi'
   | 'naviga'
+  | 'macchina'
   | 'stellaVita'
   | 'profilo'
   | 'certificato'
@@ -71,6 +72,9 @@ const PATHS: Record<NomeIcona, string> = {
     'M7 3v2M17 3v2M4 8h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
   campi: 'M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11Zm0-8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z',
   naviga: 'M21 3 3 10.5l7.5 3L14 21l7-18Z',
+  // un'auto vista di lato: il tetto, le due ruote
+  macchina:
+    'M3 16v-3.5L5 8h14l2 4.5V16h-2M5 16H3m4 0h10M7 18.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5 12.5h14',
   // Stella della vita: il simbolo standard del soccorso. Solo la stella, senza
   // scritte, perché a 18 pixel qualsiasi testo sarebbe illeggibile.
   stellaVita:

@@ -3,7 +3,9 @@ import { prisma } from './db';
 import { vedeAttivitaSquadra } from './domain';
 import { quotaPer } from './quote';
 import { faseAttivita } from './giorni';
-import type { EventoLista } from '@/components/CardEvento';
+import type { EventoLista, ViaggioInCard } from '@/components/CardEvento';
+import { linkNaviga, metaNaviga } from '@/components/Naviga';
+import { linkViaggio } from './viaggio';
 import { datiOrigine, descriviCosto, organizzatoreDi } from './eventi-condivisi';
 
 /**
@@ -53,6 +55,77 @@ type Opzioni = {
   limite?: number;
 };
 
+type MacchinaInLista = {
+  id: string;
+  autistaId: string;
+  modo: 'PRENDO' | 'RITROVO';
+  partenza: string | null;
+  partenzaLat: number | null;
+  partenzaLng: number | null;
+  arrivo: string | null;
+  arrivoLat: number | null;
+  arrivoLng: number | null;
+  arrivoOra: Date | null;
+  autista: { nome: string; cognome: string; callsign: string | null };
+  tappe: { id: string; luogo: string; lat: number | null; lng: number | null; ora: Date | null }[];
+  passeggeri: { userId: string; stato: string; tappaId: string | null }[];
+};
+
+/**
+ * La mia macchinata per la card: chi guida l'itinerario intero, chi sale il
+ * suo punto di salita (al posto del ritrovo dell'attività), chi è invitato
+ * l'offerta da guardare.
+ */
+function viaggioDi(macchine: MacchinaInLista[], userId: string, eventId: string): ViaggioInCard | null {
+  const guido = macchine.find((m) => m.autistaId === userId);
+  const link = (id: string) => `/calendario/${eventId}/viaggio/${id}`;
+  if (guido) {
+    const punti = [
+      metaNaviga(guido.partenzaLat, guido.partenzaLng, guido.partenza),
+      ...guido.tappe.map((t) => metaNaviga(t.lat, t.lng, t.luogo)),
+      metaNaviga(guido.arrivoLat, guido.arrivoLng, guido.arrivo),
+    ].filter((p): p is string => !!p);
+    return {
+      ruolo: 'autista',
+      con: null,
+      aBordo: guido.passeggeri.filter((p) => p.stato === 'ACCETTATO').length,
+      dove: guido.arrivo,
+      ora: guido.arrivoOra,
+      naviga: linkViaggio(punti),
+      pagina: link(guido.id),
+    };
+  }
+  const salito = macchine.find((m) =>
+    m.passeggeri.some((p) => p.userId === userId && p.stato === 'ACCETTATO'),
+  );
+  if (salito) {
+    const io = salito.passeggeri.find((p) => p.userId === userId)!;
+    const t = salito.tappe.find((x) => x.id === io.tappaId);
+    const punto = t ? metaNaviga(t.lat, t.lng, t.luogo) : null;
+    return {
+      ruolo: 'passeggero',
+      con: salito.autista.callsign || `${salito.autista.nome} ${salito.autista.cognome}`,
+      aBordo: salito.passeggeri.filter((p) => p.stato === 'ACCETTATO').length,
+      dove: t?.luogo ?? null,
+      ora: t?.ora ?? null,
+      naviga: punto ? linkNaviga(punto) : null,
+      pagina: link(salito.id),
+      prendo: salito.modo === 'PRENDO',
+    };
+  }
+  const offerta = macchine[0];
+  if (!offerta) return null;
+  return {
+    ruolo: 'invitato',
+    con: offerta.autista.callsign || `${offerta.autista.nome} ${offerta.autista.cognome}`,
+    aBordo: 0,
+    dove: null,
+    ora: null,
+    naviga: null,
+    pagina: link(offerta.id),
+  };
+}
+
 /** Eventi già appiattiti per le liste: include il conteggio presenti e la mia risposta. */
 export async function eventiPerLista({
   stato,
@@ -92,6 +165,33 @@ export async function eventiPerLista({
       },
       // il sondaggio «partecipiamo?» aperto su un invito
       sondaggio: { select: { id: true } },
+      // la mia macchinata: quella che guido, quella su cui salgo o mi offrono
+      macchine: {
+        where: {
+          OR: [
+            { autistaId: userId },
+            { passeggeri: { some: { userId, stato: { in: ['ACCETTATO', 'INVITATO'] } } } },
+          ],
+        },
+        select: {
+          id: true,
+          autistaId: true,
+          modo: true,
+          partenza: true,
+          partenzaLat: true,
+          partenzaLng: true,
+          arrivo: true,
+          arrivoLat: true,
+          arrivoLng: true,
+          arrivoOra: true,
+          autista: { select: { nome: true, cognome: true, callsign: true } },
+          tappe: { orderBy: { ordine: 'asc' }, select: { id: true, luogo: true, lat: true, lng: true, ora: true } },
+          passeggeri: {
+            where: { stato: { in: ['ACCETTATO', 'INVITATO'] } },
+            select: { userId: true, stato: true, tappaId: true },
+          },
+        },
+      },
     },
   });
 
@@ -127,6 +227,10 @@ export async function eventiPerLista({
     // la cifra serve solo all'admin che accetta l'invito
     costoChiesto: admin && e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
     sondaggioId: e.sondaggio?.id ?? null,
+    ritrovo: e.ritrovo,
+    ritrovoMeta: metaNaviga(e.ritrovoLat, e.ritrovoLng, e.ritrovo),
+    oraRitrovo: e.oraRitrovo,
+    viaggio: viaggioDi(e.macchine, userId, e.id),
     propostaDa: e.origineCollegamento ? (datiOrigine(e.origineDati).propostaDa ?? null) : null,
     id: e.id,
     titolo: e.titolo,

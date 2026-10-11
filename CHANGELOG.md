@@ -5,6 +5,40 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.40.0 — 11 ottobre 2026
+
+### Nuovo
+
+- **Macchinate.** Nella pagina di un'attività il riquadro **In macchina** dice
+  chi porta la macchina e con chi. Chi viene mette la sua con «Metto la
+  macchina»: la partenza arriva da casa sua (dal profilo) e l'arrivo dal
+  ritrovo dell'attività con la sua ora, o dal parcheggio del campo con l'ora
+  d'inizio; sono suggerimenti, si cambiano.
+- Ogni macchina ha la sua pagina **Il viaggio**, in tre schede:
+  - **Itinerario**: partenza, tappe e arrivo, ognuno con «Naviga»; chi guida
+    ha anche tutto il viaggio in Maps con le tappe in fila, e le riordina
+    trascinandole. Due modi: **punto di ritrovo** (uno o più posti; il primo
+    prende tutti, i successivi chi resta) o **passo a prenderli** (una tappa
+    per passeggero, dove dice lui).
+  - **A bordo**: chi guida invita i compagni. In cima chi porta più spesso,
+    poi chi all'attività viene. Chi è invitato riceve l'avviso e risponde;
+    accettato un passaggio, gli altri inviti per la stessa attività decadono.
+  - **Costi**: chilometri, consumo e prezzo al litro danno il costo vero del
+    carburante (un pieno da 150 € su un viaggio che ne consuma 10 vale 10 €),
+    i caselli quello che sono costati. Ognuno segna quello che ha pagato;
+    quello che nessuno segna l'ha pagato chi guida. Il conto divide in parti
+    uguali e dice chi deve quanto a chi. È solo un conto: niente passa dalle
+    casse.
+- La **card dell'attività** dice il ritrovo con la sua ora e «Naviga». Chi è
+  in una macchina legge invece con chi va e dove sale, col «Naviga» al suo
+  punto; chi guida ha l'itinerario intero.
+- **Privacy.** Il punto dove ti passano a prendere lo scegli tu accettando (casa
+  dal profilo è solo un suggerimento) e confermi di farlo sapere all'autista:
+  lo vede solo lui, per quel viaggio. La partenza dell'autista la vede solo
+  lui. Gli indirizzi dei viaggi si cancellano da soli una settimana dopo
+  l'attività. L'informativa ha la voce «Macchinate», e l'esportazione dei dati
+  comprende i viaggi.
+
 ## 3.39.0 — 11 ottobre 2026
 
 ### Cambiato
