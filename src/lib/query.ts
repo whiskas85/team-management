@@ -143,13 +143,17 @@ export async function eventiPerLista({
     fine: e.fine,
     costo: quotaDi(e),
     maxPartecipanti: e.maxPartecipanti,
-    campo: e.field ? `${e.field.nome}${e.field.citta ? ` · ${e.field.citta}` : ''}` : null,
+    // senza un campo in anagrafica vale il luogo scritto a mano: è quello delle
+    // riunioni, e delle attività in un posto che non è un campo
+    campo: e.field
+      ? `${e.field.nome}${e.field.citta ? ` · ${e.field.citta}` : ''}`
+      : e.luogo?.trim() || null,
     // per il pulsante "Naviga": si parte dalle coordinate, l'indirizzo è la riserva
-    lat: e.field?.lat ?? null,
-    lng: e.field?.lng ?? null,
+    lat: e.field ? e.field.lat : e.luogoLat,
+    lng: e.field ? e.field.lng : e.luogoLng,
     indirizzo: e.field
       ? [e.field.indirizzo, e.field.citta].filter(Boolean).join(', ') || e.field.nome
-      : null,
+      : e.luogo?.trim() || null,
     presenti: e.rsvps.filter((r) => r.status === 'PRESENTE').length,
     // quanti sono già schierati: con un limite di posti, sapere quanti ne
     // mancano alla formazione conta più di sapere quanti si sono proposti

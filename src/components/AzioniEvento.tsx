@@ -149,19 +149,12 @@ export function AzioniEvento({
               Blocca iscrizioni
             </AzioneBottone>
           )}
-          <AzioneBottone
-            azione={cambiaStatoEvento}
-            valori={{ id, status: 'CONCLUSA' }}
-            conferma={
-              appelloFatto
-                ? `Concludere "${titolo}"? Le presenze restano quelle salvate con l'appello.`
-                : `Concludere "${titolo}" senza fare l'appello? Le presenze non vengono registrate.`
-            }
-            icona="concludi"
+          <ConcludiEvento
+            id={id}
+            titolo={titolo}
+            appelloFatto={appelloFatto}
             className={`btn-ghost ${dim}`}
-          >
-            Concludi
-          </AzioneBottone>
+          />
           {/* l'unico cambio di stato che non basta confermare: chiede anche
               perché, e quel perché resta nello storico */}
           <AnnullaEvento id={id} titolo={titolo} compatto={compatto} />
@@ -200,6 +193,38 @@ export function AzioniEvento({
       )}
 
     </div>
+  );
+}
+
+/**
+ * Concludere l'attività: fra i cambi di stato in fondo alla pagina, e dentro
+ * la fascia «Terminata», dove è la cosa che manca da fare.
+ */
+export function ConcludiEvento({
+  id,
+  titolo,
+  appelloFatto = false,
+  className = 'btn-ghost btn-sm',
+}: {
+  id: string;
+  titolo: string;
+  appelloFatto?: boolean;
+  className?: string;
+}) {
+  return (
+    <AzioneBottone
+      azione={cambiaStatoEvento}
+      valori={{ id, status: 'CONCLUSA' }}
+      conferma={
+        appelloFatto
+          ? `Concludere "${titolo}"? Le presenze restano quelle salvate con l'appello.`
+          : `Concludere "${titolo}" senza fare l'appello? Le presenze non vengono registrate.`
+      }
+      icona="concludi"
+      className={className}
+    >
+      Concludi
+    </AzioneBottone>
   );
 }
 

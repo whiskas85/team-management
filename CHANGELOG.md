@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.39.0 — 11 ottobre 2026
+
+### Cambiato
+
+- Un'attività **terminata** ha il pulsante «Concludi» dentro la fascia
+  arancione che lo chiede, a destra.
+- Un'attività **in bozza** ha i pulsanti di rilascio (alla squadra, su invito,
+  a tutti) dentro la fascia «Bozza», in cima; in fondo alla pagina non ci sono
+  più. Anche la modifica di una bozza ha una scheda **Rilascio**: «Salva e
+  rilascia» salva le modifiche e la rilascia in un colpo solo.
+- **La mappa non si prende più la pagina**: scorrendo, col dito o con la
+  rotellina, la pagina va avanti e la mappa resta ferma. Toccandola (o
+  cliccandola) si sposta e si ingrandisce; toccando fuori, o uscendo col
+  mouse, torna ferma.
+
+### Corretto
+
+- Le card di una **riunione** (o di un'attività in un luogo che non è un campo
+  in anagrafica) non avevano il pulsante «Naviga», né il nome del posto: ora
+  usano il luogo scritto nell'attività.
+
 ## 3.38.2 — 8 ottobre 2026
 
 ### Corretto

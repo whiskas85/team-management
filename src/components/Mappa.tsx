@@ -1,4 +1,5 @@
 import { Icona } from './Icona';
+import { MappaFerma } from './MappaFerma';
 
 /**
  * Mappa con il segnaposto. Usa OpenStreetMap: nessuna chiave da gestire e
@@ -25,14 +26,17 @@ export function Mappa({
 
   return (
     <div className="overflow-hidden rounded-lg border border-line">
-      <iframe
-        title={nome ? `Mappa di ${nome}` : 'Mappa'}
-        src={embed}
-        height={altezza}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="w-full border-0 bg-surface2"
-      />
+      {/* ferma finché non la si tocca: scorrendo la pagina non deve zoomare */}
+      <MappaFerma>
+        <iframe
+          title={nome ? `Mappa di ${nome}` : 'Mappa'}
+          src={embed}
+          height={altezza}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="block w-full border-0 bg-surface2"
+        />
+      </MappaFerma>
       <div className="flex flex-wrap items-center gap-3 border-t border-line bg-surface px-3 py-2">
         <span className="num text-[11px] text-muted">
           {lat.toFixed(5)}, {lng.toFixed(5)}

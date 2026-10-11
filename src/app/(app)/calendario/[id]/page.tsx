@@ -65,7 +65,7 @@ import { ReferentiEvento } from '@/components/ReferentiEvento';
 import { ContaRisposte } from '@/components/ContaRisposte';
 import { BottoneModale } from '@/components/Modale';
 import { CediQuota, type Cedente, type Ricevente } from '@/components/CediQuota';
-import { AzioniEvento } from '@/components/AzioniEvento';
+import { AzioniEvento, ConcludiEvento } from '@/components/AzioniEvento';
 import { Mappa } from '@/components/Mappa';
 import { MappaPunti } from '@/components/MappaPunti';
 import { metaNaviga } from '@/components/Naviga';
@@ -1312,6 +1312,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                     casse={casseAttive}
                     collegabili={collegabili}
                     soloLogistica={!admin}
+                    soloInterno={evento.tipo?.soloInterno ?? false}
                     condivisaDa={organizzatore && !gestita ? organizzatore.nome : undefined}
                     gestitaCon={organizzatore && gestita ? organizzatore.nome : undefined}
                     // un nuovo forzato su un'attività di squadra ha bisogno del
@@ -1442,13 +1443,22 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       {/* finita ma non chiusa: resta in cima al programma finché qualcuno non
           fa l'appello, o non la conclude */}
       {terminata && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-warn">
+        <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-warn">
           <span className="text-base font-semibold">TERMINATA</span>
-          <span className="text-sm">
+          <span className="min-w-0 flex-1 text-sm">
             {tl
               ? 'La giornata è finita: fai l’appello per chiuderla.'
               : 'La giornata è finita: manca solo che venga chiusa.'}
           </span>
+          {/* il gesto che manca, dentro al messaggio che lo chiede */}
+          {admin && evento.status === 'RILASCIATA' && (
+            <ConcludiEvento
+              id={evento.id}
+              titolo={evento.titolo}
+              appelloFatto={evento.rsvps.some((r) => r.presente !== null)}
+              className="btn-ghost btn-sm ml-auto border-warn/50 text-warn"
+            />
+          )}
         </div>
       )}
 
@@ -1465,7 +1475,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           <span className="text-base font-semibold">
             {etichettaEvento[evento.status].toUpperCase()}
           </span>
-          <span className="text-sm">
+          <span className="min-w-0 flex-1 text-sm">
             {evento.status === 'INVITATA'
               ? 'Invito di un’altra squadra: accettalo o rifiutalo qui sopra. Nessuno lo vede ancora.'
               : bozza
@@ -1474,6 +1484,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 ? 'Attività annullata: le adesioni sono chiuse.'
                 : 'Attività conclusa: restano solo le presenze registrate.'}
           </span>
+          {/* Il rilascio sta dentro al messaggio che dice che è una bozza: è
+              la prima cosa che si legge aprendola, ed è lì che viene da farlo.
+              In fondo alla pagina, dove stava, non c'è più. */}
+          {admin && evento.status === 'CREATA' && (
+            <div className="ml-auto">
+              <AzioniEvento
+                id={evento.id}
+                titolo={evento.titolo}
+                status={evento.status}
+                visibilita={evento.visibilita}
+                soloInterno={evento.tipo?.soloInterno ?? false}
+                compatto
+              />
+            </div>
+          )}
           {/* Il motivo va a capo, tutto intero: è la prima cosa che cerca chi
               si era segnato e trova l'attività saltata. */}
           {evento.motivoAnnullamento && (
@@ -1831,13 +1856,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 {/* Una bozza non si condivide: chi riceve il link non vedrebbe niente, e
                 mandare un indirizzo che si apre solo per chi gestisce il calendario
                 è un modo per farsi richiamare. Da rilasciata in poi sì, anche a
-                cose fatte — di una giocata finita si manda volentieri il racconto. */}
-            {(!bozza || admin) && (
+                cose fatte — di una giocata finita si manda volentieri il racconto.
+                E il rilascio di una bozza sta nella fascia in cima. */}
+            {!bozza && (
               <div className="piede mt-5 justify-between">
                 <p className="text-[11px] text-muted">
-                  {bozza
-                    ? 'Bozza: finché non la rilasci non la vede nessuno.'
-                    : evento.status === 'RILASCIATA'
+                  {evento.status === 'RILASCIATA'
                       ? 'Manda l’attività a qualcuno: il link apre questa pagina, sempre aggiornata.'
                       : 'Il link apre questa pagina: quello che c’è scritto resta.'}
                 </p>

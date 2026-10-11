@@ -7,6 +7,7 @@ import { SceltaReferenti } from './SceltaReferenti';
 import { InizioFine } from './InizioFine';
 import { OraRitrovo } from './OraRitrovo';
 import { SchedeModulo } from './SchedeModulo';
+import { RilascioNelModulo } from './RilascioNelModulo';
 import type { VoceListino } from './CampiRichiesta';
 
 type CampoGioco = { id: string; nome: string; citta: string | null; attivo?: boolean };
@@ -14,6 +15,8 @@ type Tipologia = { id: string; nome: string; attivo?: boolean };
 
 type Evento = {
   id: string;
+  /** In bozza (CREATA) il modulo ha la scheda per rilasciarla. */
+  status?: string;
   titolo: string;
   descrizione: string | null;
   tipoId: string | null;
@@ -128,7 +131,10 @@ export function FormEvento({
   collegabili = [],
   condivisaDa,
   gestitaCon,
+  soloInterno = false,
 }: {
+  /** Tipologia riservata alla squadra: fra i rilasci manca «a tutti». */
+  soloInterno?: boolean;
   campi: CampoGioco[];
   tipologie: Tipologia[];
   /**
@@ -639,6 +645,17 @@ export function FormEvento({
                   ]
                 : []),
               { chiave: 'note', titolo: 'Note', contenuto: note },
+              // una bozza si rilascia anche da qui, salvando quello che si è
+              // appena cambiato
+              ...(evento?.status === 'CREATA'
+                ? [
+                    {
+                      chiave: 'rilascio',
+                      titolo: 'Rilascio',
+                      contenuto: <RilascioNelModulo soloInterno={soloInterno} />,
+                    },
+                  ]
+                : []),
             ]}
           />
         )}

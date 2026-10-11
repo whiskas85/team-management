@@ -318,6 +318,19 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     revalidatePath('/pagamenti');
     revalidatePath('/admin/pagamenti');
     revalidatePath('/cassa');
+
+    // «Salva e rilascia», dalla scheda Rilascio di una bozza: le modifiche
+    // sono salvate, ora la si rilascia come dai pulsanti della pagina
+    const rilascia = str(fd, 'rilascia');
+    if (rilascia && !soloLogistica) {
+      const passo = new FormData();
+      passo.set('id', id);
+      passo.set('visibilita', rilascia);
+      const esito = await rilasciaEvento({}, passo);
+      return esito.errore
+        ? { errore: `Modifiche salvate, ma non rilasciata: ${esito.errore}` }
+        : { ok: `Modifiche salvate. ${esito.ok ?? ''}`.trim() };
+    }
     return { ok: 'Evento aggiornato.' };
   }
 
