@@ -24,6 +24,7 @@ import {
   aggiungiSpesaViaggio,
   aggiungiTappa,
   cambiaModo,
+  impostaAndataRitorno,
   rispondiRichiesta,
   eliminaMacchina,
   eliminaSpesaViaggio,
@@ -152,7 +153,11 @@ export default async function ViaggioPage({
   // i chilometri dal percorso, ricalcolati quando l'itinerario cambia; quelli
   // scritti a mano, se ci sono, vincono
   const percorso = await aggiornaKm(m);
-  const kmUsati = m.km ?? percorso.km;
+  // andata e ritorno (il solito) conta doppio: chilometri, carburante, caselli
+  const volte = m.andataRitorno ? 2 : 1;
+  const kmAndata = m.km ?? percorso.km;
+  const kmUsati = kmAndata != null ? kmAndata * volte : null;
+  const kmAutostrada = percorso.autostrada != null ? percorso.autostrada * volte : null;
   const giornoViaggio = giornoDi(m.event.oraRitrovo ?? m.event.inizio);
 
   // Il carburante: alimentazione e consumo dell'autista (ricordati dalla volta
@@ -165,7 +170,7 @@ export default async function ViaggioPage({
   const prezzoUsato = m.prezzoLitro != null ? Number(m.prezzoLitro) : prezzoTrovato.prezzo;
   // i caselli: lo scontrino se c'è, se no la stima dall'autostrada del percorso
   const caselliStimati =
-    percorso.autostrada != null ? Math.round(percorso.autostrada * TARIFFA_AUTOSTRADA * 100) / 100 : null;
+    kmAutostrada != null ? Math.round(kmAutostrada * TARIFFA_AUTOSTRADA * 100) / 100 : null;
   const caselliUsati = m.caselli != null ? Number(m.caselli) : caselliStimati;
 
   const conti = contiViaggio({
@@ -710,11 +715,46 @@ export default async function ViaggioPage({
               mette nel serbatoio.
             </p>
 
+            {/* andata e ritorno è il solito, e si vede già scelto */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted">Il viaggio:</span>
+              <div className="inline-flex rounded-lg border border-line p-0.5">
+                {(
+                  [
+                    [true, 'Andata e ritorno'],
+                    [false, 'Solo andata'],
+                  ] as const
+                ).map(([v, testo]) =>
+                  v === m.andataRitorno ? (
+                    <span
+                      key={testo}
+                      className="rounded-md bg-nvg/15 px-3 py-1 text-xs font-medium text-nvg"
+                    >
+                      {testo}
+                    </span>
+                  ) : guida ? (
+                    <AzioneBottone
+                      key={testo}
+                      azione={impostaAndataRitorno}
+                      valori={{ id: m.id, andataRitorno: v ? '1' : '0' }}
+                      className="rounded-md px-3 py-1 text-xs text-muted hover:text-ink"
+                    >
+                      {testo}
+                    </AzioneBottone>
+                  ) : (
+                    <span key={testo} className="px-3 py-1 text-xs text-muted">
+                      {testo}
+                    </span>
+                  ),
+                )}
+              </div>
+            </div>
+
             {/* i tre numeri che fanno il conto, ognuno con da dove viene */}
             <ul className="mb-4 space-y-2 text-sm">
               <li className="flex flex-wrap justify-between gap-2">
                 <span>
-                  Chilometri, andata e ritorno
+                  Chilometri{m.andataRitorno ? ', andata e ritorno' : ', solo andata'}
                   <span className="block text-xs text-muted">
                     {m.km != null
                       ? 'scritti a mano'
@@ -727,7 +767,13 @@ export default async function ViaggioPage({
                           : 'servono partenza e arrivo'}
                   </span>
                 </span>
-                <strong className="num">{kmUsati != null ? `${kmUsati} km` : '—'}</strong>
+                <strong className="num">
+                  {kmUsati != null
+                    ? m.andataRitorno
+                      ? `${kmAndata} × 2 = ${kmUsati} km`
+                      : `${kmUsati} km`
+                    : '—'}
+                </strong>
               </li>
               <li className="flex flex-wrap justify-between gap-2">
                 <span>
@@ -753,13 +799,15 @@ export default async function ViaggioPage({
                     {m.caselli != null
                       ? 'scritti a mano'
                       : caselliStimati != null
-                        ? percorso.autostrada
-                          ? `stima: ${percorso.autostrada} km di autostrada a pagamento × ${TARIFFA_AUTOSTRADA.toFixed(2).replace('.', ',')} €/km`
+                        ? kmAutostrada
+                          ? `stima: ${kmAutostrada} km di autostrada a pagamento × ${TARIFFA_AUTOSTRADA.toFixed(2).replace('.', ',')} €/km`
                           : 'niente autostrada a pagamento sul percorso'
                         : 'dalle spese segnate'}
                   </span>
                 </span>
-                <strong className="num">{caselliUsati != null ? fmtEuro(caselliUsati) : '—'}</strong>
+                <strong className="num">
+                  {caselliUsati != null ? fmtEuro(caselliUsati) : '—'}
+                </strong>
               </li>
               {carburante != null && (
                 <li className="flex justify-between gap-2 border-t border-line pt-2">
@@ -804,7 +852,7 @@ export default async function ViaggioPage({
                   </p>
                   <p className="label mt-2">Correzioni (vuote: si calcolano da sole)</p>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <Campo label="Km andata e ritorno">
+                    <Campo label="Km di sola andata">
                       <input
                         type="number"
                         name="km"
@@ -927,8 +975,8 @@ export default async function ViaggioPage({
             <p className="titolo-sezione mb-3">Come si divide</p>
             {conti.totale === 0 ? (
               <p className="text-sm text-muted">
-                Ancora niente da dividere: servono partenza e arrivo per i chilometri, o una
-                spesa segnata.
+                Ancora niente da dividere: servono partenza e arrivo per i chilometri, o una spesa
+                segnata.
               </p>
             ) : (
               <>
@@ -1106,9 +1154,7 @@ function RigaTappa({
           {ritrovo ? 'Ritrovo' : chi.length > 0 ? `Casa di ${chi.join(', ')}` : 'Tappa'}
         </span>
         {/* il nome del posto, se c'è, e sotto l'indirizzo */}
-        <span className="break-words">
-          {vede ? (tappa.nome ?? tappa.luogo) : 'Casa sua'}
-        </span>
+        <span className="break-words">{vede ? (tappa.nome ?? tappa.luogo) : 'Casa sua'}</span>
         {tappa.ora && <span className="num ml-2 text-nvg">{fmtTime(tappa.ora)}</span>}
         {vede && tappa.nome && tappa.nome !== tappa.luogo && (
           <span className="block break-words text-xs text-muted">{tappa.luogo}</span>
@@ -1162,7 +1208,9 @@ function ModificaTappa({
           lat={tappa.lat}
           lng={tappa.lng}
           nomePosto={
-            ritrovo ? { nome: 'nome', valore: tappa.nome, segnaposto: 'es. Bar Puccini' } : undefined
+            ritrovo
+              ? { nome: 'nome', valore: tappa.nome, segnaposto: 'es. Bar Puccini' }
+              : undefined
           }
         />
         <Campo label="A che ora">
@@ -1227,8 +1275,8 @@ function DoveTiPrendo({ casa, consenso }: { casa: string; consenso: boolean }) {
       />
       {consenso ? (
         <p className="text-xs text-muted">
-          Hai già detto che chi ti porta può sapere dove passare a prenderti: lo vede solo
-          l’autista di questo viaggio. Lo togli dal profilo, in «Privacy e consensi».
+          Hai già detto che chi ti porta può sapere dove passare a prenderti: lo vede solo l’autista
+          di questo viaggio. Lo togli dal profilo, in «Privacy e consensi».
         </p>
       ) : (
         <label className="flex items-start gap-2 text-xs">

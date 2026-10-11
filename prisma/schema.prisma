@@ -3056,9 +3056,9 @@ model Macchina {
   /// (andata e ritorno), consumo e prezzo al litro. Quello che uno dichiara di
   /// aver messo nel serbatoio può essere di più: conta questo.
   km          Int?
-  /// I chilometri calcolati dal percorso (partenza, tappe, arrivo, e ritorno),
+  /// I chilometri calcolati dal percorso (partenza, tappe, arrivo: la sola andata),
   /// e i punti da cui sono stati calcolati: cambiati i punti, si ricalcola.
-  /// `km`, se c'è, è la correzione a mano e vince.
+  /// `km`, se c'è, è la correzione a mano (anche lei di sola andata) e vince.
   kmCalcolati Int?
   kmFirma     String?
   /// Calcolati in linea d'aria, perché il servizio dei percorsi non ha risposto.
@@ -3073,9 +3073,12 @@ model Macchina {
   prezzoAuto  Decimal?     @db.Decimal(6, 3)
   prezzoFonte String?
   prezzoFirma String?
-  /// Chilometri di autostrada a pagamento sul percorso (andata e ritorno):
+  /// Chilometri di autostrada a pagamento sul percorso (solo andata):
   /// danno la stima dei caselli.
   kmAutostrada Int?
+  /// Si torna anche indietro insieme (il solito): chilometri, carburante e
+  /// caselli contano doppi. Spento, si conta la sola andata.
+  andataRitorno Boolean     @default(true)
   /// Quanto sono costati davvero i caselli. Vuoto: la somma di quelli dichiarati.
   caselli     Decimal?     @db.Decimal(10, 2)
   createdAt   DateTime     @default(now())

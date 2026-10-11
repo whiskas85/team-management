@@ -798,3 +798,14 @@ export async function spostaPasseggero(_prev: StatoForm, fd: FormData): Promise<
   pagina(m.eventId, m.id);
   return {};
 }
+
+/** Andata e ritorno, o sola andata: cambia i chilometri, e con loro i costi. */
+export async function impostaAndataRitorno(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Lo decide chi guida.' };
+  const si = str(fd, 'andataRitorno') === '1';
+  await prisma.macchina.update({ where: { id: m.id }, data: { andataRitorno: si } });
+  pagina(m.eventId, m.id);
+  return { ok: si ? 'Andata e ritorno: i costi contano anche il ritorno.' : 'Sola andata.' };
+}

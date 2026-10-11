@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.42.1 — 11 ottobre 2026
+
+### Cambiato
+
+- Nella scheda **Costi** del viaggio si sceglie **andata e ritorno** (già
+  selezionato) o **solo andata**. Chilometri, carburante e caselli seguono la
+  scelta: con andata e ritorno si legge «61 × 2 = 122 km». I km corretti a mano
+  sono ora quelli della sola andata; quelli già scritti sono stati dimezzati.
+
 ## 3.42.0 — 11 ottobre 2026
 
 ### Nuovo

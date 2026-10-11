@@ -5,8 +5,9 @@ import { meta } from './macchine';
  * I chilometri di una macchinata, calcolati dal percorso vero.
  *
  * I punti sono quelli dell'itinerario — partenza, tappe nell'ordine, arrivo —
- * e il viaggio si conta **andata e ritorno**: chi guida torna indietro per la
- * stessa strada, riportando ognuno dove l'ha preso.
+ * e qui si conta la **sola andata**. Il ritorno, quando c'è (il solito: chi
+ * guida riporta ognuno dove l'ha preso, per la stessa strada), lo raddoppia
+ * chi fa i conti, secondo `andataRitorno` della macchina.
  *
  * Il percorso lo dà OSRM, il navigatore libero di OpenStreetMap (nessuna
  * chiave). I punti senza coordinate si cercano prima su OpenStreetMap. Se il
@@ -96,7 +97,7 @@ export const firmaPunti = (punti: PuntoTesto[]) =>
 
 /**
  * Ricalcola i chilometri della macchina se l'itinerario è cambiato da
- * l'ultima volta. Restituisce i chilometri (andata e ritorno) e se sono una
+ * l'ultima volta. Restituisce i chilometri (sola andata) e se sono una
  * stima.
  */
 export async function aggiornaKm(m: {
@@ -150,10 +151,10 @@ export async function aggiornaKm(m: {
     metri = coord.slice(1).reduce((t, p, i) => t + aria(coord[i], p), 0) * 1.3;
     stimati = true;
   }
-  // andata e ritorno
-  const km = Math.round((metri * 2) / 1000);
+  // la sola andata: il ritorno lo conta chi legge, se c'è (andataRitorno)
+  const km = Math.round(metri / 1000);
   // in linea d'aria l'autostrada non si sa: i caselli restano da scrivere
-  const autostrada = via ? Math.round((via.autostrada * 2) / 1000) : null;
+  const autostrada = via ? Math.round(via.autostrada / 1000) : null;
 
   await prisma.macchina.update({
     where: { id: m.id },
