@@ -427,8 +427,10 @@ export default async function ViaggioPage({
                 <input type="hidden" name="id" value={m.id} />
                 <CercaLuogo
                   nome="luogo"
-                  etichetta="Dove"
-                  segnaposto="es. parcheggio del casello di Agrate"
+                  etichetta="Indirizzo"
+                  segnaposto="Scrivi l'indirizzo o incolla il link di Maps"
+                  aiuto="Incollando il link di Maps il nome del posto si scrive da solo."
+                  nomePosto={{ nome: 'nome', segnaposto: 'es. Bar Puccini' }}
                 />
                 <Campo label="A che ora">
                   <input type="datetime-local" name="ora" className="input" />
@@ -851,6 +853,7 @@ function Punto({
 
 type Tappa = {
   id: string;
+  nome: string | null;
   luogo: string;
   lat: number | null;
   lng: number | null;
@@ -881,8 +884,14 @@ function RigaTappa({
         <span className="block text-[11px] uppercase tracking-wide text-muted">
           {chi.length > 0 ? chi.join(', ') : 'Tappa'}
         </span>
-        <span className="break-words">{vede ? tappa.luogo : 'Casa sua'}</span>
+        {/* il nome del posto, se c'è, e sotto l'indirizzo */}
+        <span className="break-words">
+          {vede ? (tappa.nome ?? tappa.luogo) : 'Casa sua'}
+        </span>
         {tappa.ora && <span className="num ml-2 text-nvg">{fmtTime(tappa.ora)}</span>}
+        {vede && tappa.nome && tappa.nome !== tappa.luogo && (
+          <span className="block break-words text-xs text-muted">{tappa.luogo}</span>
+        )}
       </span>
       {vede && dove && (
         <a
@@ -924,10 +933,13 @@ function ModificaTappa({
         <input type="hidden" name="tappaId" value={tappa.id} />
         <CercaLuogo
           nome="luogo"
-          etichetta="Dove"
+          etichetta={ritrovo ? 'Indirizzo' : 'Dove'}
           valore={tappa.luogo}
           lat={tappa.lat}
           lng={tappa.lng}
+          nomePosto={
+            ritrovo ? { nome: 'nome', valore: tappa.nome, segnaposto: 'es. Bar Puccini' } : undefined
+          }
         />
         <Campo label="A che ora">
           <input

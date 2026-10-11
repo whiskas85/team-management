@@ -152,7 +152,7 @@ export async function ViaggiEvento({
             {mio.tappa ? (
               <span className="block text-xs text-muted">
                 {salito.modo === 'PRENDO' ? 'Ti passa a prendere: ' : 'Ritrovo: '}
-                {mio.tappa.luogo}
+                {mio.tappa.nome ?? mio.tappa.luogo}
                 {mio.tappa.ora && ` · ore ${fmtTime(mio.tappa.ora)}`}
               </span>
             ) : (

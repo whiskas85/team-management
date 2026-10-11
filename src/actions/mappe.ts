@@ -10,6 +10,8 @@ export type LuogoRisolto = {
   nome?: string;
   citta?: string;
   provincia?: string;
+  /** Il testo intero che il link dice del posto: «Bar Puccini, Via Puccini 12, Lainate». */
+  indirizzo?: string;
   /** Come sono state ottenute le coordinate, da spiegare all'utente. */
   fonte?: 'link' | 'pluscode' | 'ricerca';
   errore?: string;
@@ -148,6 +150,7 @@ export async function risolviLuogo(testo: string): Promise<LuogoRisolto> {
       citta: parti?.citta,
       provincia: parti?.provincia,
       fonte: 'link',
+      indirizzo: luogo.nome,
     };
   }
 
@@ -170,6 +173,7 @@ export async function risolviLuogo(testo: string): Promise<LuogoRisolto> {
           citta: parti.citta,
           provincia: parti.provincia,
           fonte: 'pluscode',
+          indirizzo: luogo.nome,
         };
       }
     }
@@ -185,6 +189,7 @@ export async function risolviLuogo(testo: string): Promise<LuogoRisolto> {
       citta: parti.citta,
       provincia: parti.provincia,
       fonte: 'ricerca',
+      indirizzo: luogo.nome,
     };
   }
 

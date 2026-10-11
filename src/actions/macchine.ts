@@ -447,7 +447,8 @@ export async function aggiungiTappa(_prev: StatoForm, fd: FormData): Promise<Sta
   if (!guida) return { errore: 'Le tappe le decide chi guida.' };
   if (m.modo !== 'RITROVO')
     return { errore: 'Nel modo «passo a prenderli» le tappe sono le case dei passeggeri.' };
-  const luogo = str(fd, 'luogo');
+  // basta il nome («Bar Puccini»): Maps lo cerca anche così
+  const luogo = str(fd, 'luogo') || str(fd, 'nome');
   if (!luogo) return { errore: 'Scrivi dov’è il ritrovo.' };
 
   await prisma.$transaction(async (tx) => {
@@ -459,6 +460,7 @@ export async function aggiungiTappa(_prev: StatoForm, fd: FormData): Promise<Sta
       data: {
         macchinaId: m.id,
         ordine: (ultima._max.ordine ?? -1) + 1,
+        nome: strOpt(fd, 'nome'),
         luogo,
         lat: num(fd, 'luogoLat'),
         lng: num(fd, 'luogoLng'),
@@ -478,13 +480,19 @@ export async function modificaTappa(_prev: StatoForm, fd: FormData): Promise<Sta
   if (!guida) return { errore: 'Le tappe le decide chi guida.' };
   const t = m.tappe.find((x) => x.id === str(fd, 'tappaId'));
   if (!t) return { errore: 'Tappa non trovata.' };
-  const luogo = str(fd, 'luogo');
+  const luogo = str(fd, 'luogo') || str(fd, 'nome');
   if (!luogo) return { errore: 'Scrivi dov’è la tappa.' };
 
   await prisma.$transaction(async (tx) => {
     await tx.tappaMacchina.update({
       where: { id: t.id },
-      data: { luogo, lat: num(fd, 'luogoLat'), lng: num(fd, 'luogoLng'), ora: data(fd, 'ora') },
+      data: {
+        nome: strOpt(fd, 'nome'),
+        luogo,
+        lat: num(fd, 'luogoLat'),
+        lng: num(fd, 'luogoLng'),
+        ora: data(fd, 'ora'),
+      },
     });
     if (m.modo === 'RITROVO') await assegna(tx, m.id, t.id, fd.getAll('userId').map(String));
   });

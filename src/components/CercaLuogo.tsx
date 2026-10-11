@@ -27,7 +27,14 @@ export function CercaLuogo({
   lng,
   segnaposto,
   aiuto,
+  nomePosto,
 }: {
+  /**
+   * Un campo in più, sopra, per il nome del posto («Bar Puccini»): si riempie
+   * da solo quando si incolla un link di Maps che il nome lo dice, e si scrive
+   * a mano altrimenti.
+   */
+  nomePosto?: { nome: string; valore?: string | null; etichetta?: string; segnaposto?: string };
   /** Nome del campo di testo; le coordinate viaggiano come <nome>Lat e <nome>Lng. */
   nome: string;
   etichetta: string;
@@ -38,6 +45,7 @@ export function CercaLuogo({
   aiuto?: string;
 }) {
   const [testo, setTesto] = useState(valore ?? '');
+  const [nomeDato, setNomeDato] = useState(nomePosto?.valore ?? '');
   const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(
     lat != null && lng != null ? { lat, lng } : null,
   );
@@ -54,7 +62,19 @@ export function CercaLuogo({
         setPunto({ lat: trovato.lat, lng: trovato.lng });
         // se il testo era un link, al suo posto resta il nome del posto: un
         // link lungo cinquanta caratteri non è una cosa da leggere in pagina
-        if (trovato.nome && /^https?:\/\//i.test(query)) setTesto(trovato.nome);
+        const daLink = /^https?:\/\//i.test(query) || query.includes('maps.app.goo.gl');
+        if (trovato.nome && daLink) {
+          // col campo del nome a parte, qui va l'indirizzo per intero: il link
+          // lo dice tutto, nome in testa («Bar Puccini, Via Puccini 12, …»)
+          const pieno = trovato.indirizzo?.trim();
+          const via =
+            nomePosto && pieno && pieno.startsWith(`${trovato.nome},`)
+              ? pieno.slice(trovato.nome.length + 1).trim()
+              : null;
+          setTesto(via || [trovato.nome, trovato.citta].filter(Boolean).join(', '));
+          // e il nome, se c'è il campo e non l'ha già scritto lui
+          if (nomePosto && !nomeDato.trim()) setNomeDato(trovato.nome);
+        }
         setEsito({ ok: true, testo: 'Trovato: guarda se è il posto giusto.' });
       } else {
         setEsito({
@@ -67,6 +87,19 @@ export function CercaLuogo({
 
   return (
     <div className="sm:col-span-2">
+      {nomePosto && (
+        <div className="mb-3">
+          <Campo label={nomePosto.etichetta ?? 'Nome del posto'}>
+            <input
+              name={nomePosto.nome}
+              value={nomeDato}
+              onChange={(e) => setNomeDato(e.target.value)}
+              className="input"
+              placeholder={nomePosto.segnaposto ?? 'es. Bar Puccini'}
+            />
+          </Campo>
+        </div>
+      )}
       <Campo label={etichetta}>
         <div className="flex gap-2">
           <input

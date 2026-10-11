@@ -3068,6 +3068,8 @@ model TappaMacchina {
   macchinaId String
   macchina   Macchina             @relation(fields: [macchinaId], references: [id], onDelete: Cascade)
   ordine     Int                  @default(0)
+  /// Come si chiama il posto: «Bar Puccini». L'indirizzo sta in `luogo`.
+  nome       String?
   luogo      String
   lat        Float?
   lng        Float?

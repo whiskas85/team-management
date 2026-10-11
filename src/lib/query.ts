@@ -67,7 +67,7 @@ type MacchinaInLista = {
   arrivoLng: number | null;
   arrivoOra: Date | null;
   autista: { nome: string; cognome: string; callsign: string | null };
-  tappe: { id: string; luogo: string; lat: number | null; lng: number | null; ora: Date | null }[];
+  tappe: { id: string; nome: string | null; luogo: string; lat: number | null; lng: number | null; ora: Date | null }[];
   passeggeri: { userId: string; stato: string; tappaId: string | null }[];
 };
 
@@ -106,7 +106,7 @@ function viaggioDi(macchine: MacchinaInLista[], userId: string, eventId: string)
       ruolo: 'passeggero',
       con: salito.autista.callsign || `${salito.autista.nome} ${salito.autista.cognome}`,
       aBordo: salito.passeggeri.filter((p) => p.stato === 'ACCETTATO').length,
-      dove: t?.luogo ?? null,
+      dove: t ? (t.nome ?? t.luogo) : null,
       ora: t?.ora ?? null,
       naviga: punto ? linkNaviga(punto) : null,
       pagina: link(salito.id),
@@ -185,7 +185,7 @@ export async function eventiPerLista({
           arrivoLng: true,
           arrivoOra: true,
           autista: { select: { nome: true, cognome: true, callsign: true } },
-          tappe: { orderBy: { ordine: 'asc' }, select: { id: true, luogo: true, lat: true, lng: true, ora: true } },
+          tappe: { orderBy: { ordine: 'asc' }, select: { id: true, nome: true, luogo: true, lat: true, lng: true, ora: true } },
           passeggeri: {
             where: { stato: { in: ['ACCETTATO', 'INVITATO'] } },
             select: { userId: true, stato: true, tappaId: true },
