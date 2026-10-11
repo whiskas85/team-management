@@ -8,7 +8,8 @@ import { requireUser } from '@/lib/auth';
 import { avvisaPersona } from '@/lib/avvisi';
 import { fmtDateTime, fmtEuro, nomeCompleto } from '@/lib/format';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
-import { caricaMacchina, nomeDi, ruoloIn } from '@/lib/macchine';
+import { caricaMacchina, casaDi, nomeDi, ruoloIn } from '@/lib/macchine';
+import { ALIMENTAZIONI } from '@/lib/percorso';
 import { marchio } from '@/lib/mia-squadra';
 
 /**
@@ -82,6 +83,16 @@ export async function creaMacchina(_prev: StatoForm, fd: FormData): Promise<Stat
         eventId,
         autistaId: me.id,
         modo: enumVal(fd, 'modo', MODI, 'RITROVO'),
+        // la macchina di sempre: alimentazione e consumo dell'ultima volta
+        ...(await prisma.user
+          .findUnique({
+            where: { id: me.id },
+            select: { autoAlimentazione: true, autoConsumo: true },
+          })
+          .then((u) => ({
+            alimentazione: u?.autoAlimentazione ?? null,
+            consumo: u?.autoConsumo ?? null,
+          }))),
         posti: intOpt(fd, 'posti'),
         partenza: strOpt(fd, 'partenza'),
         partenzaLat: num(fd, 'partenzaLat'),
@@ -343,12 +354,23 @@ export async function rispondiPassaggio(_prev: StatoForm, fd: FormData): Promise
   // dove sale: nel modo PRENDO lo dice lui, con il suo consenso
   let tappa: { luogo: string; lat: number | null; lng: number | null } | null = null;
   if (m.modo === 'PRENDO') {
-    const luogo = str(fd, 'dove');
-    if (!luogo) return { errore: 'Scrivi dove passare a prenderti.' };
-    if (str(fd, 'consenso') !== 'on') {
+    // il consenso, una volta dato, vale per i passaggi che vengono: si chiede
+    // solo a chi non l'ha mai dato (o l'ha tolto dal profilo)
+    const io2 = await prisma.user.findUnique({
+      where: { id: me.id },
+      select: { consensoIndirizzoIl: true, indirizzo: true, cap: true, citta: true },
+    });
+    const consenso = !!io2?.consensoIndirizzoIl || str(fd, 'consenso') === 'on';
+    if (!consenso) {
       return {
         errore: 'Per farti passare a prendere, l’autista deve sapere dove: spunta la conferma.',
       };
+    }
+    // senza un posto scritto, con il consenso, si passa da casa
+    const luogo = str(fd, 'dove') || (io2 ? casaDi(io2) : '');
+    if (!luogo) return { errore: 'Scrivi dove passare a prenderti.' };
+    if (!io2?.consensoIndirizzoIl) {
+      await prisma.user.update({ where: { id: me.id }, data: { consensoIndirizzoIl: new Date() } });
     }
     tappa = { luogo, lat: num(fd, 'doveLat'), lng: num(fd, 'doveLng') };
   }
@@ -549,12 +571,21 @@ export async function salvaCostiViaggio(_prev: StatoForm, fd: FormData): Promise
   const consumo = num(fd, 'consumo');
   const prezzo = num(fd, 'prezzoLitro');
   const caselli = num(fd, 'caselli');
+  const alimentazione = enumOpt(fd, 'alimentazione', ALIMENTAZIONI);
   if ([km, consumo, prezzo, caselli].some((v) => v !== null && v < 0)) {
     return { errore: 'Niente numeri negativi.' };
   }
   await prisma.macchina.update({
     where: { id: m.id },
-    data: { km, consumo, prezzoLitro: prezzo, caselli },
+    data: { km, consumo, prezzoLitro: prezzo, caselli, alimentazione },
+  });
+  // la macchina dell'autista si ricorda per la prossima volta
+  await prisma.user.update({
+    where: { id: m.autistaId },
+    data: {
+      ...(alimentazione ? { autoAlimentazione: alimentazione } : {}),
+      ...(consumo ? { autoConsumo: consumo } : {}),
+    },
   });
   pagina(m.eventId, m.id);
   return { ok: 'Costi del viaggio aggiornati.' };

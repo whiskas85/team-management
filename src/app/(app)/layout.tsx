@@ -191,6 +191,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
   // e, per chi gestisce il calendario, gli inviti delle squadre collegate che
   // aspettano una risposta: contano nello stesso pallino
+  // i passaggi in macchina che aspettano me: un invito a cui rispondere, o
+  // (se guido) qualcuno che mi chiede un posto. Anche questi sul calendario.
+  const passaggiInAttesa = await prisma.passeggeroMacchina.count({
+    where: {
+      OR: [
+        { userId: utente.id, stato: 'INVITATO' },
+        { stato: 'RICHIESTO', macchina: { autistaId: utente.id } },
+      ],
+      macchina: { event: { status: 'RILASCIATA', inizio: { gte: inizioDiOggi } } },
+    },
+  });
   const invitiInAttesa = isAdmin(utente.roles)
     ? await prisma.event.count({
         where: { status: 'INVITATA', origineNascosta: false, inizio: { gte: inizioDiOggi } },
@@ -352,7 +363,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: 'Calendario',
       icona: 'calendario',
       gruppo: 'principale',
-      badge: attivitaNuove + invitiInAttesa,
+      badge: attivitaNuove + invitiInAttesa + passaggiInAttesa,
       // le viste del calendario: si cercano col loro nome, «storico», «mese»
       sotto: [
         { label: 'Mese', href: '/calendario?vista=mese' },

@@ -578,6 +578,7 @@ export async function aggiornaConsensi(_prev: StatoForm, fd: FormData): Promise<
   const me = await requireUser();
   const immagini = bool(fd, 'consensoImmagini');
   const comunicaz = bool(fd, 'consensoComunicaz');
+  const indirizzo = bool(fd, 'consensoIndirizzo');
 
   const attuale = await prisma.user.findUniqueOrThrow({ where: { id: me.id } });
 
@@ -590,6 +591,7 @@ export async function aggiornaConsensi(_prev: StatoForm, fd: FormData): Promise<
         : null,
       consensoComunicaz: comunicaz,
       consensoComunicazIl: comunicaz ? (attuale.consensoComunicazIl ?? new Date()) : null,
+      consensoIndirizzoIl: indirizzo ? (attuale.consensoIndirizzoIl ?? new Date()) : null,
       privacyAccettataIl: attuale.privacyAccettataIl ?? new Date(),
       privacyVersione: attuale.privacyVersione ?? VERSIONE_PRIVACY,
     },

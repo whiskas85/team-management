@@ -568,6 +568,25 @@ export default async function ProfiloPage() {
             <span>Comunicazioni non operative (iniziative, eventi esterni)</span>
           </label>
 
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="consensoIndirizzo"
+              defaultChecked={!!utente.consensoIndirizzoIl}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+            />
+            <span className="min-w-0">
+              Chi mi dà un passaggio può sapere dove passare a prendermi
+              <span className="block text-xs text-muted">
+                Solo l’autista di quel viaggio, e solo per quello. Togliendolo, la prossima volta ti
+                verrà chiesto di nuovo.
+                {utente.consensoIndirizzoIl && (
+                  <span className="num"> Prestato il {fmtDate(utente.consensoIndirizzoIl)}.</span>
+                )}
+              </span>
+            </span>
+          </label>
+
           <Invia icona="salva">
             Salva consensi
           </Invia>

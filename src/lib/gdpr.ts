@@ -34,8 +34,8 @@ export const FINALITA = [
   {
     titolo: 'Macchinate',
     testo:
-      'Quando accetti un passaggio in cui l’autista passa a prenderti, scegli tu dove: l’indirizzo del profilo è solo un suggerimento. Quel punto lo vede soltanto l’autista di quella macchina, per quel viaggio; gli altri passeggeri vedono solo il tuo nome. La partenza dell’autista la vede solo lui. Gli indirizzi dei viaggi si cancellano da soli una settimana dopo l’attività; restano i conti delle spese, che sono solo un promemoria fra chi era a bordo.',
-    base: 'Consenso, dato ogni volta che accetti un passaggio',
+      'Quando accetti un passaggio in cui l’autista passa a prenderti, scegli tu dove: l’indirizzo del profilo è solo un suggerimento. Quel punto lo vede soltanto l’autista di quella macchina, per quel viaggio; gli altri passeggeri vedono solo il tuo nome. Il consenso lo dai la prima volta e vale per i passaggi successivi, finché non lo togli dalla tua pagina personale. La partenza dell’autista la vede solo lui. Gli indirizzi dei viaggi si cancellano da soli una settimana dopo l’attività; restano i conti delle spese, che sono solo un promemoria fra chi era a bordo.',
+    base: 'Consenso, revocabile in ogni momento dalla pagina personale',
     obbligatorio: false,
   },
   {

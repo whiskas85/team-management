@@ -51,7 +51,16 @@ import { ScegliPersone } from '@/components/ScegliPersone';
 import { ChipsTappa } from '@/components/ChipsTappa';
 import { GiornoOra } from '@/components/GiornoOra';
 import { giornoDi } from '@/lib/giorni';
-import { aggiornaKm } from '@/lib/percorso';
+import {
+  ALIMENTAZIONI,
+  TARIFFA_AUTOSTRADA,
+  aggiornaKm,
+  aggiornaPrezzo,
+  consumoTipico,
+  etichettaAlimentazione,
+  unitaPrezzo,
+  type Alimentazione,
+} from '@/lib/percorso';
 
 const SCHEDE = [
   { chiave: 'itinerario', titolo: 'Itinerario' },
@@ -129,12 +138,16 @@ export default async function ViaggioPage({
   const miaMeta = miaTappa ? meta(miaTappa.luogo, miaTappa.lat, miaTappa.lng) : null;
 
   // per rispondere nel modo «passo a prenderti»: casa dal profilo, come suggerimento
-  const casa =
+  const mieiDati =
     (ruolo === 'invitato' || (ruolo === 'passeggero' && m.modo === 'PRENDO')) && !miaTappa
-      ? await prisma.user
-          .findUnique({ where: { id: me.id }, select: { indirizzo: true, cap: true, citta: true } })
-          .then((u) => (u ? casaDi(u) : ''))
-      : '';
+      ? await prisma.user.findUnique({
+          where: { id: me.id },
+          select: { indirizzo: true, cap: true, citta: true, consensoIndirizzoIl: true },
+        })
+      : null;
+  const casa = mieiDati ? casaDi(mieiDati) : '';
+  // il consenso dato una volta vale finché non lo si toglie dal profilo
+  const giaConsenso = !!mieiDati?.consensoIndirizzoIl;
 
   // i chilometri dal percorso, ricalcolati quando l'itinerario cambia; quelli
   // scritti a mano, se ci sono, vincono
@@ -142,20 +155,29 @@ export default async function ViaggioPage({
   const kmUsati = m.km ?? percorso.km;
   const giornoViaggio = giornoDi(m.event.oraRitrovo ?? m.event.inizio);
 
+  // Il carburante: alimentazione e consumo dell'autista (ricordati dalla volta
+  // prima, o una macchina media), e il prezzo trovato fuori se non è scritto.
+  const alimentazione = (ALIMENTAZIONI as readonly string[]).includes(m.alimentazione ?? '')
+    ? (m.alimentazione as Alimentazione)
+    : 'BENZINA';
+  const consumoUsato = m.consumo ?? consumoTipico[alimentazione];
+  const prezzoTrovato = await aggiornaPrezzo({ ...m, alimentazione });
+  const prezzoUsato = m.prezzoLitro != null ? Number(m.prezzoLitro) : prezzoTrovato.prezzo;
+  // i caselli: lo scontrino se c'è, se no la stima dall'autostrada del percorso
+  const caselliStimati =
+    percorso.autostrada != null ? Math.round(percorso.autostrada * TARIFFA_AUTOSTRADA * 100) / 100 : null;
+  const caselliUsati = m.caselli != null ? Number(m.caselli) : caselliStimati;
+
   const conti = contiViaggio({
     autistaId: m.autistaId,
     persone: [m.autistaId, ...saliti.map((p) => p.userId)],
     km: kmUsati,
-    consumo: m.consumo,
-    prezzoLitro: m.prezzoLitro != null ? Number(m.prezzoLitro) : null,
-    caselli: m.caselli != null ? Number(m.caselli) : null,
+    consumo: consumoUsato,
+    prezzoLitro: prezzoUsato,
+    caselli: caselliUsati,
     spese: m.spese.map((s) => ({ userId: s.userId, tipo: s.tipo, importo: Number(s.importo) })),
   });
-  const carburante = costoCarburante(
-    kmUsati,
-    m.consumo,
-    m.prezzoLitro != null ? Number(m.prezzoLitro) : null,
-  );
+  const carburante = costoCarburante(kmUsati, consumoUsato, prezzoUsato);
 
   const proposte =
     guida && scheda === 'bordo' && aperta ? await propostePasseggeri(id, m.autistaId, m.id) : [];
@@ -245,7 +267,7 @@ export default async function ViaggioPage({
                 <FormAzione azione={rispondiPassaggio}>
                   <input type="hidden" name="id" value={m.id} />
                   <input type="hidden" name="accetta" value="1" />
-                  {m.modo === 'PRENDO' && <DoveTiPrendo casa={casa} />}
+                  {m.modo === 'PRENDO' && <DoveTiPrendo casa={casa} consenso={giaConsenso} />}
                   <Invia icona="approva">Salgo</Invia>
                 </FormAzione>
                 <AzioneBottone
@@ -288,7 +310,7 @@ export default async function ViaggioPage({
             <FormAzione azione={rispondiPassaggio}>
               <input type="hidden" name="id" value={m.id} />
               <input type="hidden" name="accetta" value="1" />
-              <DoveTiPrendo casa={casa} />
+              <DoveTiPrendo casa={casa} consenso={giaConsenso} />
               <Invia icona="salva">Conferma</Invia>
             </FormAzione>
           </div>
@@ -682,77 +704,146 @@ export default async function ViaggioPage({
         <div className="space-y-4">
           <div className="card">
             <p className="titolo-sezione mb-1">Quanto è costato</p>
-            <p className="mb-3 text-xs text-muted">
-              Il carburante si conta dai chilometri, non da quanto si è messo nel serbatoio: un
-              pieno da 150 € su un viaggio che ne consuma 10 vale 10 €. Se nessuno dichiara niente,
-              ha pagato tutto chi guida.
+            <p className="mb-4 text-xs text-muted">
+              Si calcola da solo: i chilometri dal percorso, il prezzo dai distributori, i caselli
+              dall’autostrada che fate. Il carburante conta per i chilometri, non per quanto si
+              mette nel serbatoio.
             </p>
-            {guida ? (
-              <FormAzione azione={salvaCostiViaggio}>
-                <input type="hidden" name="id" value={m.id} />
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <Campo label="Km (andata e ritorno)">
-                    <input
-                      type="number"
-                      name="km"
-                      min={0}
-                      defaultValue={m.km ?? ''}
-                      className="input"
-                      placeholder={percorso.km != null ? `${percorso.km} dal percorso` : 'es. 180'}
-                    />
-                  </Campo>
-                  <Campo label="Consumo (l/100 km)">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      name="consumo"
-                      defaultValue={m.consumo ?? ''}
-                      className="input"
-                      placeholder="es. 6,5"
-                    />
-                  </Campo>
-                  <Campo label="Prezzo al litro (€)">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      name="prezzoLitro"
-                      defaultValue={m.prezzoLitro != null ? Number(m.prezzoLitro) : ''}
-                      className="input"
-                      placeholder="es. 1,85"
-                    />
-                  </Campo>
-                  <Campo label="Caselli in tutto (€)">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      name="caselli"
-                      defaultValue={m.caselli != null ? Number(m.caselli) : ''}
-                      className="input"
-                      placeholder="vuoto: quelli segnati"
-                    />
-                  </Campo>
-                </div>
-                <Invia icona="salva">Salva</Invia>
-              </FormAzione>
-            ) : (
-              <p className="text-sm">
-                {kmUsati ? `${kmUsati} km` : 'Chilometri non ancora calcolati'}
-                {m.consumo ? ` · ${m.consumo} l/100 km` : ''}
-                {m.prezzoLitro != null ? ` · ${Number(m.prezzoLitro).toFixed(3)} €/l` : ''}
-                {m.caselli != null ? ` · caselli ${fmtEuro(Number(m.caselli))}` : ''}
-              </p>
-            )}
-            <p className="mt-2 text-xs text-muted">
-              {percorso.km != null
-                ? `Dal percorso: ${percorso.km} km, andata e ritorno${
-                    percorso.stimati ? ' (stima in linea d’aria: il servizio dei percorsi non ha risposto)' : ''
-                  }.${m.km != null ? ` Vale la correzione a mano: ${m.km} km.` : ' Si aggiornano da soli quando cambi le tappe.'}`
-                : 'I km si calcolano dal percorso quando ci sono partenza e arrivo.'}
-            </p>
-            {carburante != null && (
-              <p className="mt-2 text-sm">
-                Carburante del viaggio: <strong className="num">{fmtEuro(carburante)}</strong>
-              </p>
+
+            {/* i tre numeri che fanno il conto, ognuno con da dove viene */}
+            <ul className="mb-4 space-y-2 text-sm">
+              <li className="flex flex-wrap justify-between gap-2">
+                <span>
+                  Chilometri, andata e ritorno
+                  <span className="block text-xs text-muted">
+                    {m.km != null
+                      ? 'scritti a mano'
+                      : percorso.km != null
+                        ? percorso.stimati
+                          ? 'stima in linea d’aria: il servizio dei percorsi non ha risposto'
+                          : 'dal percorso, si aggiornano quando cambi le tappe'
+                        : m.partenza && m.arrivo
+                          ? 'non trovo i punti sulla mappa: usa «Cerca» sugli indirizzi, o scrivili tu'
+                          : 'servono partenza e arrivo'}
+                  </span>
+                </span>
+                <strong className="num">{kmUsati != null ? `${kmUsati} km` : '—'}</strong>
+              </li>
+              <li className="flex flex-wrap justify-between gap-2">
+                <span>
+                  {etichettaAlimentazione[alimentazione]}, {String(consumoUsato).replace('.', ',')}{' '}
+                  {alimentazione === 'METANO' ? 'kg' : 'l'}/100 km
+                  <span className="block text-xs text-muted">
+                    {m.prezzoLitro != null
+                      ? 'prezzo scritto a mano'
+                      : (prezzoTrovato.fonte ?? 'prezzo non trovato: scrivilo tu')}
+                    {m.consumo == null && ' · consumo di una macchina media'}
+                  </span>
+                </span>
+                <strong className="num">
+                  {prezzoUsato != null
+                    ? `${prezzoUsato.toFixed(3).replace('.', ',')} ${unitaPrezzo(alimentazione)}`
+                    : '—'}
+                </strong>
+              </li>
+              <li className="flex flex-wrap justify-between gap-2">
+                <span>
+                  Caselli
+                  <span className="block text-xs text-muted">
+                    {m.caselli != null
+                      ? 'scritti a mano'
+                      : caselliStimati != null
+                        ? percorso.autostrada
+                          ? `stima: ${percorso.autostrada} km di autostrada a pagamento × ${TARIFFA_AUTOSTRADA.toFixed(2).replace('.', ',')} €/km`
+                          : 'niente autostrada a pagamento sul percorso'
+                        : 'dalle spese segnate'}
+                  </span>
+                </span>
+                <strong className="num">{caselliUsati != null ? fmtEuro(caselliUsati) : '—'}</strong>
+              </li>
+              {carburante != null && (
+                <li className="flex justify-between gap-2 border-t border-line pt-2">
+                  <span>Carburante del viaggio</span>
+                  <strong className="num">{fmtEuro(carburante)}</strong>
+                </li>
+              )}
+            </ul>
+
+            {guida && (
+              <BottoneModale
+                etichetta="La macchina e le correzioni"
+                icona="modifica"
+                titolo="Carburante e costi"
+                className="btn-ghost btn-sm"
+              >
+                <FormAzione azione={salvaCostiViaggio}>
+                  <input type="hidden" name="id" value={m.id} />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Campo label="Alimentazione">
+                      <select name="alimentazione" defaultValue={alimentazione} className="input">
+                        {ALIMENTAZIONI.map((a) => (
+                          <option key={a} value={a}>
+                            {etichettaAlimentazione[a]}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                    <Campo label={`Consumo (${alimentazione === 'METANO' ? 'kg' : 'l'}/100 km)`}>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        name="consumo"
+                        defaultValue={m.consumo ?? ''}
+                        className="input"
+                        placeholder={`es. ${String(consumoTipico[alimentazione]).replace('.', ',')}`}
+                      />
+                    </Campo>
+                  </div>
+                  <p className="text-xs text-muted">
+                    Alimentazione e consumo si ricordano per le tue prossime macchinate.
+                  </p>
+                  <p className="label mt-2">Correzioni (vuote: si calcolano da sole)</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Campo label="Km andata e ritorno">
+                      <input
+                        type="number"
+                        name="km"
+                        min={0}
+                        defaultValue={m.km ?? ''}
+                        className="input"
+                        placeholder={percorso.km != null ? String(percorso.km) : ''}
+                      />
+                    </Campo>
+                    <Campo label={`Prezzo (${unitaPrezzo(alimentazione)})`}>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        name="prezzoLitro"
+                        defaultValue={m.prezzoLitro != null ? Number(m.prezzoLitro) : ''}
+                        className="input"
+                        placeholder={
+                          prezzoTrovato.prezzo != null
+                            ? prezzoTrovato.prezzo.toFixed(3).replace('.', ',')
+                            : ''
+                        }
+                      />
+                    </Campo>
+                    <Campo label="Caselli in tutto (€)">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        name="caselli"
+                        defaultValue={m.caselli != null ? Number(m.caselli) : ''}
+                        className="input"
+                        placeholder={
+                          caselliStimati != null ? String(caselliStimati).replace('.', ',') : ''
+                        }
+                      />
+                    </Campo>
+                  </div>
+                  <Invia icona="salva">Salva</Invia>
+                </FormAzione>
+              </BottoneModale>
             )}
           </div>
 
@@ -836,8 +927,8 @@ export default async function ViaggioPage({
             <p className="titolo-sezione mb-3">Come si divide</p>
             {conti.totale === 0 ? (
               <p className="text-sm text-muted">
-                Ancora niente da dividere: scrivi i chilometri, il consumo e il prezzo, o segna una
-                spesa.
+                Ancora niente da dividere: servono partenza e arrivo per i chilometri, o una
+                spesa segnata.
               </p>
             ) : (
               <>
@@ -1124,7 +1215,7 @@ function Spunte({ persone }: { persone: { id: string; nome: string; scelto: bool
  * Dove passare a prendermi: casa dal profilo come suggerimento, e la conferma
  * esplicita di farlo sapere all'autista — a lui solo, per questo viaggio.
  */
-function DoveTiPrendo({ casa }: { casa: string }) {
+function DoveTiPrendo({ casa, consenso }: { casa: string; consenso: boolean }) {
   return (
     <>
       <CercaLuogo
@@ -1134,13 +1225,21 @@ function DoveTiPrendo({ casa }: { casa: string }) {
         segnaposto="es. sotto casa, o il bar all'angolo"
         aiuto="Dal profilo arriva casa tua: puoi scrivere un altro posto."
       />
-      <label className="flex items-start gap-2 text-xs">
-        <input type="checkbox" name="consenso" required className="mt-0.5 h-4 w-4 accent-nvg" />
-        <span>
-          Faccio sapere questo indirizzo all’autista, solo per questo viaggio. Gli altri passeggeri
-          vedono solo il mio nome; si cancella da solo una settimana dopo l’attività.
-        </span>
-      </label>
+      {consenso ? (
+        <p className="text-xs text-muted">
+          Hai già detto che chi ti porta può sapere dove passare a prenderti: lo vede solo
+          l’autista di questo viaggio. Lo togli dal profilo, in «Privacy e consensi».
+        </p>
+      ) : (
+        <label className="flex items-start gap-2 text-xs">
+          <input type="checkbox" name="consenso" required className="mt-0.5 h-4 w-4 accent-nvg" />
+          <span>
+            Chi mi dà un passaggio può sapere dove passare a prendermi: solo l’autista di quel
+            viaggio, e solo per quello. Vale anche per le prossime volte; lo tolgo quando voglio dal
+            profilo.
+          </span>
+        </label>
+      )}
     </>
   );
 }

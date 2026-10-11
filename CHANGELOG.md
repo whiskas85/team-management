@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.42.0 — 11 ottobre 2026
+
+### Nuovo
+
+- **I passaggi accendono il Calendario.** Un invito a cui rispondere, o (per
+  chi guida) qualcuno che chiede un posto, fa salire il numero sul
+  Calendario, nel menu e sull'icona dell'app.
+- **Il consenso all'indirizzo si dà una volta.** Accettando il primo
+  passaggio in cui ti passano a prendere dici che chi ti porta può sapere
+  dove; da lì in poi non lo si richiede, e nella pagina dell'attività basta
+  «Salgo, da casa». Si toglie dal profilo, in «Privacy e consensi».
+- **Il costo del viaggio si calcola da solo.**
+  - Il **prezzo del carburante** viene dai distributori vicino alla partenza
+    (osservatorio prezzi del Ministero, i self entro 10 km), o dalla media
+    nazionale della settimana se lì non c'è niente.
+  - L'**alimentazione** (benzina, diesel, GPL, metano) e il **consumo** si
+    scelgono una volta e si ricordano per le macchinate dopo; finché non li
+    dici, vale una macchina media.
+  - I **caselli** si stimano dai chilometri di autostrada a pagamento del
+    percorso (tariffa media per auto); chi ha lo scontrino scrive il vero.
+  - Km, prezzo e caselli si correggono a mano in «La macchina e le
+    correzioni»; vuoti, si calcolano.
+
 ## 3.41.0 — 11 ottobre 2026
 
 ### Nuovo

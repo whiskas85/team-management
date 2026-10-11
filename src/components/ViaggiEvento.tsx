@@ -86,6 +86,15 @@ export async function ViaggiEvento({
   if (macchine.length === 0 && !(aperta && vengo)) return null;
 
   const link = (id: string) => `/calendario/${evento.id}/viaggio/${id}`;
+  // per accettare un «passo a prenderti» con un tocco: consenso già dato e
+  // casa nel profilo
+  const mieiDati = offerte.some((m) => m.modo === 'PRENDO')
+    ? await prisma.user.findUnique({
+        where: { id: me.id },
+        select: { consensoIndirizzoIl: true, indirizzo: true, cap: true, citta: true },
+      })
+    : null;
+  const daCasa = !!mieiDati?.consensoIndirizzoIl && !!casaDi(mieiDati);
   const mio = salito?.passeggeri.find((p) => p.userId === me.id);
 
   // i suggerimenti per una macchina nuova: casa mia, e il ritrovo o il campo
@@ -206,14 +215,14 @@ export async function ViaggiEvento({
             </span>
             {/* si risponde qui: col ritrovo basta un sì; per farsi prendere
                 serve dire dove, e quello si fa nella pagina del viaggio */}
-            {m.modo === 'RITROVO' ? (
+            {m.modo === 'RITROVO' || daCasa ? (
               <AzioneBottone
                 azione={rispondiPassaggio}
                 valori={{ id: m.id, accetta: '1' }}
                 icona="approva"
                 className="btn-primary btn-sm"
               >
-                Salgo
+                {m.modo === 'PRENDO' ? 'Salgo, da casa' : 'Salgo'}
               </AzioneBottone>
             ) : (
               <Link href={link(m.id)} className="btn-primary btn-sm">

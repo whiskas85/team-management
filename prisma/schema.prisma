@@ -236,6 +236,13 @@ model User {
   rsvps                 EventRsvp[]
   /// Le macchine messe per andare alle attività, da autista.
   macchineGuidate       Macchina[]              @relation("MacchineGuidate")
+  /// Quando ha detto «chi mi porta può sapere dove abito». Vale per tutti i
+  /// passaggi da lì in poi, finché non lo toglie dal profilo.
+  consensoIndirizzoIl   DateTime?
+  /// La sua macchina, ricordata per la volta dopo: alimentazione
+  /// (BENZINA, GASOLIO, GPL, METANO) e consumo ogni 100 km.
+  autoAlimentazione     String?
+  autoConsumo           Float?
   /// I passaggi: offerti, accettati, rifiutati.
   passaggi              PasseggeroMacchina[]
   /// Quello che ha pagato in viaggio: carburante, caselli.
@@ -3057,7 +3064,18 @@ model Macchina {
   /// Calcolati in linea d'aria, perché il servizio dei percorsi non ha risposto.
   kmStimati   Boolean      @default(false)
   consumo     Float?
+  /// BENZINA, GASOLIO, GPL o METANO: decide il prezzo che si va a cercare.
+  alimentazione String?
+  /// Il prezzo scritto a mano: vince su quello trovato.
   prezzoLitro Decimal?     @db.Decimal(6, 3)
+  /// Il prezzo trovato fuori (distributori vicino alla partenza, o la media
+  /// nazionale), da dove viene, e per cosa è stato cercato.
+  prezzoAuto  Decimal?     @db.Decimal(6, 3)
+  prezzoFonte String?
+  prezzoFirma String?
+  /// Chilometri di autostrada a pagamento sul percorso (andata e ritorno):
+  /// danno la stima dei caselli.
+  kmAutostrada Int?
   /// Quanto sono costati davvero i caselli. Vuoto: la somma di quelli dichiarati.
   caselli     Decimal?     @db.Decimal(10, 2)
   createdAt   DateTime     @default(now())
