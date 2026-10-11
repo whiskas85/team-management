@@ -186,9 +186,9 @@ jobs:
           # i servizi esterni delle macchinate: percorso (con i tratti a
           # pedaggio) e prezzi dei carburanti. Solo letture, niente di nostro.
           echo "== Servizi esterni per i viaggi"
-          R=$(curl -s -m 15 "https://router.project-osrm.org/route/v1/driving/9.0381,45.6127;9.1900,45.4642?overview=false&steps=true" || true)
+          R=$(curl -s -m 15 "https://router.project-osrm.org/route/v1/driving/9.1900,45.4642;11.3426,44.4949?overview=false&steps=true" || true)
           echo "osrm: $(printf '%s' "$R" | head -c 120)"
-          echo "osrm tratti a pedaggio: $(printf '%s' "$R" | grep -o '"toll"' | wc -l)"
+          echo "osrm classi: $(printf '%s' "$R" | grep -o '"classes":\[[^]]*\]' | sort | uniq -c | head)"
           echo "mimit prezzi:"; curl -s -m 25 https://www.mimit.gov.it/images/exportCSV/prezzo_alle_8.csv | head -3 || true
           echo "mase settimanali:"; curl -s -m 25 -L "https://sisen.mase.gov.it/dgsaie/api/v1/weekly-prices/report/export?format=CSV&lang=it" | head -5 || true
           echo "ospzApi:"; curl -s -m 20 -X POST -H 'Content-Type: application/json' -d '{"points":[{"lat":45.6127,"lng":9.0381}],"fuelType":"1-x","priceOrder":"asc","radius":5}' https://carburanti.mise.gov.it/ospzApi/search/zone | head -c 400 || true
