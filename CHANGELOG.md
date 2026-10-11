@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.44.0 — 11 ottobre 2026
+
+### Nuovo
+
+- **Pianifica gli orari**, nell'itinerario della macchina: dall'ora d'arrivo
+  calcola a ritroso l'orario di ogni tappa e della partenza, coi tempi di
+  strada del percorso e un **margine per tappa** che si sceglie lì accanto
+  (5 minuti se non si dice altro). Gli orari si arrotondano ai 5 minuti
+  prima: 7.47 diventa 7.45, 7.44 diventa 7.40.
+- Gli **orari dell'itinerario si cambiano direttamente lì**, e si salvano da
+  soli: la pianificazione è un suggerimento.
+
+### Cambiato
+
+- Il **punto di ritrovo di un'attività** ha il suo nome («Bar Puccini»), sopra
+  l'indirizzo. Incollando il link di Maps il nome si scrive da solo; nella
+  pagina dell'attività e nella card si legge il nome, con l'indirizzo sotto.
+
 ## 3.43.0 — 11 ottobre 2026
 
 ### Cambiato

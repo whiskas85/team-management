@@ -25,6 +25,7 @@ type Evento = {
   inizio: Date;
   fine: Date | null;
   ritrovo: string | null;
+  ritrovoNome?: string | null;
   ritrovoLat: number | null;
   ritrovoLng: number | null;
   oraRitrovo: Date | null;
@@ -257,12 +258,18 @@ export function FormEvento({
         <>
           <CercaLuogo
             nome="ritrovo"
-            etichetta="Punto di ritrovo"
+            etichetta="Indirizzo del ritrovo"
             valore={evento?.ritrovo}
             lat={evento?.ritrovoLat}
             lng={evento?.ritrovoLng}
             segnaposto="es. Autogrill A4 uscita Bergamo"
-            aiuto="Scrivi il posto e premi Cerca, oppure incolla un link di Google Maps."
+            aiuto="Scrivi l’indirizzo e premi Cerca, oppure incolla un link di Google Maps: il nome del posto si scrive da solo."
+            nomePosto={{
+              nome: 'ritrovoNome',
+              valore: evento?.ritrovoNome,
+              etichetta: 'Punto di ritrovo',
+              segnaposto: 'es. Bar Puccini',
+            }}
           />
 
           <OraRitrovo

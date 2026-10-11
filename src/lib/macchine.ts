@@ -24,6 +24,7 @@ export const includeMacchina = {
       inizio: true,
       fine: true,
       ritrovo: true,
+      ritrovoNome: true,
       ritrovoLat: true,
       ritrovoLng: true,
       oraRitrovo: true,

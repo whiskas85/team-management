@@ -247,7 +247,7 @@ export async function eventiPerLista({
     // la cifra serve solo all'admin che accetta l'invito
     costoChiesto: admin && e.origineCollegamento ? datiOrigine(e.origineDati).costo : null,
     sondaggioId: e.sondaggio?.id ?? null,
-    ritrovo: e.ritrovo,
+    ritrovo: e.ritrovoNome ?? e.ritrovo,
     ritrovoMeta: metaNaviga(e.ritrovoLat, e.ritrovoLng, e.ritrovo),
     oraRitrovo: e.oraRitrovo,
     viaggio: viaggioDi(e.macchine, userId, e.id),

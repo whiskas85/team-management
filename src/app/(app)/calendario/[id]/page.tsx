@@ -1006,7 +1006,13 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   const tappe: Tappa[] = [
     ...(metaRitrovo && evento.ritrovo
-      ? [{ etichetta: 'Luogo di ritrovo', testo: evento.ritrovo, meta: metaRitrovo }]
+      ? [
+          {
+            etichetta: 'Luogo di ritrovo',
+            testo: evento.ritrovoNome ?? evento.ritrovo,
+            meta: metaRitrovo,
+          },
+        ]
       : []),
     ...(campo?.meta ? [{ etichetta: 'Campo', testo: campo.testo, meta: campo.meta }] : []),
   ];
@@ -1565,8 +1571,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                 <Blocco
                   className="mt-4"
                   etichetta="Ritrovo"
-                  valore={evento.ritrovo ?? 'Sul posto'}
+                  valore={evento.ritrovoNome ?? evento.ritrovo ?? 'Sul posto'}
                   sotto={evento.oraRitrovo ? `ore ${fmtTime(evento.oraRitrovo)}` : undefined}
+                  // col nome del posto, l'indirizzo va sotto, piccolo
+                  nota={evento.ritrovoNome && evento.ritrovo ? evento.ritrovo : undefined}
                 />
               )}
 

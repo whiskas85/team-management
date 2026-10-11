@@ -1101,6 +1101,8 @@ model Event {
   /// per il pulsante "Naviga". Un ritrovo scritto a mano — "autogrill A4" —
   /// non porta nessuno da nessuna parte.
   ritrovo               String?
+  /// Come si chiama il posto del ritrovo: «Bar Puccini». `ritrovo` è l'indirizzo.
+  ritrovoNome           String?
   ritrovoLat            Float?
   ritrovoLng            Float?
   oraRitrovo            DateTime?
@@ -3083,6 +3085,9 @@ model Macchina {
   /// bordo. Visibile: compare a tutti quelli dell'attività, che possono
   /// chiedere un posto.
   pubblica      Boolean     @default(false)
+  /// I minuti di margine per ogni tappa quando si pianificano gli orari:
+  /// il tempo di salire, di aspettare chi è in ritardo.
+  minutiTappa   Int         @default(5)
   /// Quanto sono costati davvero i caselli. Vuoto: la somma di quelli dichiarati.
   caselli     Decimal?     @db.Decimal(10, 2)
   createdAt   DateTime     @default(now())

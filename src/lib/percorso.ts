@@ -363,3 +363,70 @@ export async function aggiornaPrezzo(m: {
  * dice. Chi ha lo scontrino scrive il vero.
  */
 export const TARIFFA_AUTOSTRADA = 0.08;
+
+// ------------------------------------------------------------ orari
+
+/**
+ * Quanto ci vuole per ogni tratto, in secondi, nell'ordine dei punti: dalla
+ * partenza alla prima tappa, dalla prima alla seconda, …, dall'ultima
+ * all'arrivo. Un punto che non si trova sulla mappa fa saltare il calcolo
+ * (nullo): un orario sbagliato è peggio di nessun orario.
+ *
+ * Senza il servizio dei percorsi si stima: linea d'aria più un terzo, a 60 km
+ * all'ora.
+ */
+export async function durateTratti(punti: PuntoTesto[]): Promise<number[] | null> {
+  const coord: Punto[] = [];
+  for (const p of punti) {
+    if (p.lat != null && p.lng != null) coord.push({ lat: p.lat, lng: p.lng });
+    else if (p.luogo?.trim()) {
+      const trovato = await cerca(p.luogo);
+      if (!trovato) return null;
+      coord.push(trovato);
+    } else return null;
+  }
+  if (coord.length < 2) return null;
+
+  try {
+    const r = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coord.map((p) => `${p.lng},${p.lat}`).join(';')}?overview=false`,
+      { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) },
+    );
+    if (r.ok) {
+      const v = (await r.json()) as { code: string; routes?: { legs: { duration: number }[] }[] };
+      if (v.code === 'Ok' && v.routes?.length) return v.routes[0].legs.map((l) => l.duration);
+    }
+  } catch {
+    // si stima qui sotto
+  }
+  return coord.slice(1).map((p, i) => ((aria(coord[i], p) * 1.3) / 1000 / 60) * 3600);
+}
+
+/** Arrotonda all'indietro ai 5 minuti: 7.47 diventa 7.45, 7.44 diventa 7.40. */
+export function giuAiCinque(d: Date) {
+  const x = new Date(d);
+  x.setSeconds(0, 0);
+  x.setMinutes(x.getMinutes() - (x.getMinutes() % 5));
+  return x;
+}
+
+/**
+ * Gli orari a ritroso dall'arrivo: a ogni tappa si toglie il tratto di strada
+ * che la separa dalla successiva e il margine per tappa, e si arrotonda
+ * all'indietro ai 5 minuti. La partenza è l'orario della prima tappa meno il
+ * primo tratto (senza margine: lì non sale nessuno).
+ *
+ * `durate` ha un tratto in più delle tappe: partenza → tappe → arrivo.
+ */
+export function orariAritroso(arrivo: Date, durate: number[], minutiTappa: number) {
+  const tappe = durate.length - 1;
+  const orari: Date[] = new Array(tappe);
+  let dopo = arrivo;
+  for (let i = tappe - 1; i >= 0; i--) {
+    const secondi = durate[i + 1] + minutiTappa * 60;
+    orari[i] = giuAiCinque(new Date(dopo.getTime() - secondi * 1000));
+    dopo = orari[i];
+  }
+  const partenza = giuAiCinque(new Date(dopo.getTime() - durate[0] * 1000));
+  return { tappe: orari, partenza };
+}

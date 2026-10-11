@@ -51,6 +51,8 @@ import { Icona } from '@/components/Icona';
 import { linkNaviga } from '@/components/Naviga';
 import { ScegliPersone } from '@/components/ScegliPersone';
 import { ChipsTappa } from '@/components/ChipsTappa';
+import { OraItinerario } from '@/components/OraItinerario';
+import { PianificaOrari } from '@/components/PianificaOrari';
 import { GiornoOra } from '@/components/GiornoOra';
 import { giornoDi } from '@/lib/giorni';
 import {
@@ -115,6 +117,17 @@ export default async function ViaggioPage({
     m.modo === 'RITROVO' || guida || saliti.some((p) => p.userId === me.id && p.tappaId === t.id);
   const chiInTappa = (tid: string) => saliti.filter((p) => p.tappaId === tid);
   const daAssegnare = saliti.filter((p) => !p.tappaId);
+  /** L'orario di un punto: per chi guida si cambia lì, e si salva da solo. */
+  const giornoBase = giornoDi(m.arrivoOra ?? m.event.oraRitrovo ?? m.event.inizio);
+  const campoOra = (dove: string, ora: Date | null) =>
+    guida ? (
+      <OraItinerario
+        macchinaId={m.id}
+        dove={dove}
+        giorno={ora ? giornoDi(ora) : giornoBase}
+        valore={ora ? fmtTime(ora) : ''}
+      />
+    ) : undefined;
   /** Chi sale a una tappa, come chips; chi guida aggiunge e toglie (solo nei ritrovi). */
   const chipsDi = (tid: string) => (
     <ChipsTappa
@@ -413,6 +426,16 @@ export default async function ViaggioPage({
               <p className="mb-4 text-xs text-muted">{etichettaModo[m.modo]}</p>
             )}
 
+            {guida && (
+              <div className="mb-4">
+                <PianificaOrari
+                  macchinaId={m.id}
+                  minuti={m.minutiTappa}
+                  senzaArrivo={!m.arrivoOra}
+                />
+              </div>
+            )}
+
             <ol className="space-y-3">
               {/* la partenza è casa dell'autista: la vede solo lui */}
               {guida && (
@@ -423,6 +446,7 @@ export default async function ViaggioPage({
                   ora={m.partenzaOra}
                   naviga={partenzaMeta}
                   sotto="La vedi solo tu."
+                  oraCampo={campoOra('partenza', m.partenzaOra)}
                 />
               )}
 
@@ -441,6 +465,7 @@ export default async function ViaggioPage({
                             vede
                             chi={chiInTappa(t.id).map((p) => nomeDi(p.user))}
                             chips={chipsDi(t.id)}
+                            oraCampo={campoOra(t.id, t.ora)}
                             ritrovo={m.modo === 'RITROVO'}
                             modifica={
                               <ModificaTappa
@@ -469,6 +494,7 @@ export default async function ViaggioPage({
                         vede={vedeTappa(t)}
                         chi={chiInTappa(t.id).map((p) => nomeDi(p.user))}
                         chips={chipsDi(t.id)}
+                        oraCampo={campoOra(t.id, t.ora)}
                         ritrovo={m.modo === 'RITROVO'}
                         modifica={
                           guida ? (
@@ -496,6 +522,7 @@ export default async function ViaggioPage({
                 luogo={m.arrivo ?? 'Da decidere'}
                 ora={m.arrivoOra}
                 naviga={arrivoMeta}
+                oraCampo={campoOra('arrivo', m.arrivoOra)}
               />
             </ol>
 
@@ -1122,7 +1149,10 @@ function Punto({
   ora,
   naviga,
   sotto,
+  oraCampo,
 }: {
+  /** Chi guida: l'orario si cambia qui, e si salva da solo. */
+  oraCampo?: React.ReactNode;
   lettera: string;
   etichetta: string;
   luogo: string;
@@ -1138,7 +1168,11 @@ function Punto({
       <span className="min-w-0 flex-1 text-sm">
         <span className="block text-[11px] uppercase tracking-wide text-muted">{etichetta}</span>
         <span className="break-words">{luogo}</span>
-        {ora && <span className="num ml-2 text-nvg">{fmtTime(ora)}</span>}
+        {oraCampo ? (
+          <span className="mt-1 block">{oraCampo}</span>
+        ) : (
+          ora && <span className="num ml-2 text-nvg">{fmtTime(ora)}</span>
+        )}
         {sotto && <span className="block text-[11px] text-muted">{sotto}</span>}
       </span>
       {naviga && (
@@ -1172,7 +1206,9 @@ function RigaTappa({
   chips,
   ritrovo,
   modifica,
+  oraCampo,
 }: {
+  oraCampo?: React.ReactNode;
   numero: number;
   tappa: Tappa;
   /** Può leggere l'indirizzo: se è la casa di un altro passeggero, no. */
@@ -1195,7 +1231,11 @@ function RigaTappa({
         </span>
         {/* il nome del posto, se c'è, e sotto l'indirizzo */}
         <span className="break-words">{vede ? (tappa.nome ?? tappa.luogo) : 'Casa sua'}</span>
-        {tappa.ora && <span className="num ml-2 text-nvg">{fmtTime(tappa.ora)}</span>}
+        {oraCampo ? (
+          <span className="mt-1 block">{oraCampo}</span>
+        ) : (
+          tappa.ora && <span className="num ml-2 text-nvg">{fmtTime(tappa.ora)}</span>
+        )}
         {vede && tappa.nome && tappa.nome !== tappa.luogo && (
           <span className="block break-words text-xs text-muted">{tappa.luogo}</span>
         )}

@@ -9,7 +9,7 @@ import { avvisaPersona } from '@/lib/avvisi';
 import { fmtDateTime, fmtEuro, nomeCompleto } from '@/lib/format';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 import { caricaMacchina, casaDi, nomeDi, ruoloIn } from '@/lib/macchine';
-import { ALIMENTAZIONI } from '@/lib/percorso';
+import { ALIMENTAZIONI, durateTratti, orariAritroso } from '@/lib/percorso';
 import { marchio } from '@/lib/mia-squadra';
 
 /**
@@ -763,7 +763,10 @@ export async function cambiaModo(_prev: StatoForm, fd: FormData): Promise<StatoF
   if (!modo || modo === m.modo) return {};
 
   await prisma.$transaction(async (tx) => {
-    await tx.passeggeroMacchina.updateMany({ where: { macchinaId: m.id }, data: { tappaId: null } });
+    await tx.passeggeroMacchina.updateMany({
+      where: { macchinaId: m.id },
+      data: { tappaId: null },
+    });
     await tx.tappaMacchina.deleteMany({ where: { macchinaId: m.id } });
     await tx.macchina.update({ where: { id: m.id }, data: { modo } });
   });
@@ -781,7 +784,10 @@ export async function cambiaModo(_prev: StatoForm, fd: FormData): Promise<StatoF
   }
   pagina(m.eventId, m.id);
   return {
-    ok: modo === 'PRENDO' ? 'Passi a prenderli: ognuno ti dirà dove.' : 'Punto di ritrovo: aggiungi i ritrovi.',
+    ok:
+      modo === 'PRENDO'
+        ? 'Passi a prenderli: ognuno ti dirà dove.'
+        : 'Punto di ritrovo: aggiungi i ritrovi.',
   };
 }
 
@@ -824,4 +830,69 @@ export async function impostaVisibilita(_prev: StatoForm, fd: FormData): Promise
       ? 'Visibile: chi viene all’attività la vede e può chiederti un posto.'
       : 'Privata: la vedono solo gli invitati.',
   };
+}
+
+/**
+ * Pianifica gli orari: a ritroso dall'arrivo, coi tempi di strada del percorso
+ * e i minuti di margine per tappa, arrotondati ai 5 minuti. È un suggerimento:
+ * ogni orario poi si cambia a mano.
+ */
+export async function pianificaOrari(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Gli orari li decide chi guida.' };
+  if (!m.arrivoOra) return { errore: 'Prima scrivi a che ora arrivate.' };
+  const minuti = Math.max(0, Math.min(60, intOpt(fd, 'minutiTappa') ?? m.minutiTappa));
+
+  const durate = await durateTratti([
+    { luogo: m.partenza, lat: m.partenzaLat, lng: m.partenzaLng },
+    ...m.tappe,
+    { luogo: m.arrivo, lat: m.arrivoLat, lng: m.arrivoLng },
+  ]);
+  if (!durate) {
+    // il margine scelto si tiene comunque
+    await prisma.macchina.update({ where: { id: m.id }, data: { minutiTappa: minuti } });
+    return {
+      errore:
+        'Non trovo tutti i punti sulla mappa: controlla partenza, tappe e arrivo (usa «Cerca»), poi riprova.',
+    };
+  }
+  const orari = orariAritroso(m.arrivoOra, durate, minuti);
+  await prisma.$transaction([
+    prisma.macchina.update({
+      where: { id: m.id },
+      data: { minutiTappa: minuti, partenzaOra: orari.partenza },
+    }),
+    ...m.tappe.map((t, i) =>
+      prisma.tappaMacchina.update({ where: { id: t.id }, data: { ora: orari.tappe[i] } }),
+    ),
+  ]);
+  pagina(m.eventId, m.id);
+  return { ok: 'Orari pianificati: cambiali pure a mano dove serve.' };
+}
+
+/** Un orario dell'itinerario cambiato a mano: si salva da solo. */
+export async function salvaOraViaggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Gli orari li decide chi guida.' };
+  const dove = str(fd, 'dove');
+  const ora = str(fd, 'ora');
+  const giorno = str(fd, 'giorno');
+  const valore =
+    /^\d{2}:\d{2}$/.test(ora) && /^\d{4}-\d{2}-\d{2}$/.test(giorno)
+      ? new Date(`${giorno}T${ora}`)
+      : null;
+  if (ora && !valore) return { errore: 'Orario non valido.' };
+
+  if (dove === 'partenza') {
+    await prisma.macchina.update({ where: { id: m.id }, data: { partenzaOra: valore } });
+  } else if (dove === 'arrivo') {
+    await prisma.macchina.update({ where: { id: m.id }, data: { arrivoOra: valore } });
+  } else {
+    if (!m.tappe.some((t) => t.id === dove)) return { errore: 'Tappa non trovata.' };
+    await prisma.tappaMacchina.update({ where: { id: dove }, data: { ora: valore } });
+  }
+  pagina(m.eventId, m.id);
+  return {};
 }

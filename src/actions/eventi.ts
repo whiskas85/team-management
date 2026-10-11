@@ -231,6 +231,7 @@ export async function salvaEvento(_prev: StatoForm, fd: FormData): Promise<Stato
     luogoLat: num(fd, 'luogoLat'),
     luogoLng: num(fd, 'luogoLng'),
     ritrovo: strOpt(fd, 'ritrovo'),
+    ritrovoNome: strOpt(fd, 'ritrovoNome'),
     ritrovoLat: num(fd, 'ritrovoLat'),
     ritrovoLng: num(fd, 'ritrovoLng'),
     oraRitrovo: data(fd, 'oraRitrovo'),
