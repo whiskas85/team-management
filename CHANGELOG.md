@@ -5,6 +5,15 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.42.2 — 11 ottobre 2026
+
+### Cambiato
+
+- Fra le alimentazioni della macchina c'è anche **elettrica**: il consumo in
+  kWh ogni 100 km (17 per una macchina media) e la corrente a 0,40 €/kWh, una
+  via di mezzo fra la ricarica di casa e le colonnine; chi guida scrive il suo
+  prezzo. Le spese si segnano come «Carburante o ricarica».
+
 ## 3.42.1 — 11 ottobre 2026
 
 ### Cambiato

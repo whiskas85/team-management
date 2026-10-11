@@ -59,6 +59,7 @@ import {
   aggiornaPrezzo,
   consumoTipico,
   etichettaAlimentazione,
+  unitaConsumo,
   unitaPrezzo,
   type Alimentazione,
 } from '@/lib/percorso';
@@ -778,7 +779,7 @@ export default async function ViaggioPage({
               <li className="flex flex-wrap justify-between gap-2">
                 <span>
                   {etichettaAlimentazione[alimentazione]}, {String(consumoUsato).replace('.', ',')}{' '}
-                  {alimentazione === 'METANO' ? 'kg' : 'l'}/100 km
+                  {unitaConsumo(alimentazione)}/100 km
                   <span className="block text-xs text-muted">
                     {m.prezzoLitro != null
                       ? 'prezzo scritto a mano'
@@ -811,7 +812,11 @@ export default async function ViaggioPage({
               </li>
               {carburante != null && (
                 <li className="flex justify-between gap-2 border-t border-line pt-2">
-                  <span>Carburante del viaggio</span>
+                  <span>
+                    {alimentazione === 'ELETTRICA'
+                      ? 'Ricarica del viaggio'
+                      : 'Carburante del viaggio'}
+                  </span>
                   <strong className="num">{fmtEuro(carburante)}</strong>
                 </li>
               )}
@@ -836,7 +841,7 @@ export default async function ViaggioPage({
                         ))}
                       </select>
                     </Campo>
-                    <Campo label={`Consumo (${alimentazione === 'METANO' ? 'kg' : 'l'}/100 km)`}>
+                    <Campo label={`Consumo (${unitaConsumo(alimentazione)}/100 km)`}>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -920,7 +925,7 @@ export default async function ViaggioPage({
                     )}
                     <Campo label="Cosa">
                       <select name="tipo" defaultValue="CARBURANTE" className="input">
-                        <option value="CARBURANTE">Carburante</option>
+                        <option value="CARBURANTE">Carburante o ricarica</option>
                         <option value="CASELLO">Casello</option>
                         <option value="ALTRO">Altro (parcheggio, …)</option>
                       </select>

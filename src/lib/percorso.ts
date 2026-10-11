@@ -165,7 +165,7 @@ export async function aggiornaKm(m: {
 
 // ------------------------------------------------------------ carburante
 
-export const ALIMENTAZIONI = ['BENZINA', 'GASOLIO', 'GPL', 'METANO'] as const;
+export const ALIMENTAZIONI = ['BENZINA', 'GASOLIO', 'GPL', 'METANO', 'ELETTRICA'] as const;
 export type Alimentazione = (typeof ALIMENTAZIONI)[number];
 
 export const etichettaAlimentazione: Record<Alimentazione, string> = {
@@ -173,6 +173,7 @@ export const etichettaAlimentazione: Record<Alimentazione, string> = {
   GASOLIO: 'Diesel',
   GPL: 'GPL',
   METANO: 'Metano',
+  ELETTRICA: 'Elettrica',
 };
 
 /** Il consumo proposto se l'autista non l'ha mai detto: una macchina media. */
@@ -181,10 +182,25 @@ export const consumoTipico: Record<Alimentazione, number> = {
   GASOLIO: 5.5,
   GPL: 8.5,
   METANO: 4.5,
+  // kWh ogni 100 km
+  ELETTRICA: 17,
 };
 
-/** L'unità del prezzo: il metano si vende a chili. */
-export const unitaPrezzo = (a: Alimentazione) => (a === 'METANO' ? '€/kg' : '€/l');
+/** Cosa si consuma: litri, chili di metano, kWh di corrente. */
+export const unitaConsumo = (a: Alimentazione) =>
+  a === 'METANO' ? 'kg' : a === 'ELETTRICA' ? 'kWh' : 'l';
+
+/** L'unità del prezzo, di conseguenza. */
+export const unitaPrezzo = (a: Alimentazione) => `€/${unitaConsumo(a)}`;
+
+/**
+ * La corrente non ha un osservatorio dei prezzi come i carburanti: si ricarica
+ * a casa a 25-30 centesimi, alle colonnine a 50-80. Si propone una via di
+ * mezzo, e chi guida scrive la sua.
+ */
+export const PREZZO_KWH = 0.4;
+
+type Carburante = Exclude<Alimentazione, 'ELETTRICA'>;
 
 /**
  * Quanto costa un pieno al chilometro dove si parte.
@@ -195,19 +211,19 @@ export const unitaPrezzo = (a: Alimentazione) => (a === 'METANO' ? '€/kg' : '�
  * della settimana del Ministero dell'Ambiente. Nessuna chiave in nessuno dei
  * due: sono dati pubblici.
  */
-const CODICE_MIMIT: Record<Alimentazione, string> = {
+const CODICE_MIMIT: Record<Carburante, string> = {
   BENZINA: '1-x',
   GASOLIO: '2-x',
   METANO: '3-x',
   GPL: '4-x',
 };
-const NOME_MIMIT: Record<Alimentazione, RegExp> = {
+const NOME_MIMIT: Record<Carburante, RegExp> = {
   BENZINA: /^benzina$/i,
   GASOLIO: /^gasolio$/i,
   METANO: /^metano$/i,
   GPL: /^gpl$/i,
 };
-const COLONNA_MASE: Record<Alimentazione, string> = {
+const COLONNA_MASE: Record<Carburante, string> = {
   BENZINA: 'BENZINA',
   GASOLIO: 'GASOLIO_AUTO',
   GPL: 'GPL',
@@ -220,7 +236,7 @@ const mediana = (v: number[]) => {
   return o.length % 2 ? o[m] : (o[m - 1] + o[m]) / 2;
 };
 
-async function prezzoVicino(a: Alimentazione, p: Punto): Promise<number[] | null> {
+async function prezzoVicino(a: Carburante, p: Punto): Promise<number[] | null> {
   try {
     const r = await fetch('https://carburanti.mise.gov.it/ospzApi/search/zone', {
       method: 'POST',
@@ -248,9 +264,7 @@ async function prezzoVicino(a: Alimentazione, p: Punto): Promise<number[] | null
   }
 }
 
-async function prezzoNazionale(
-  a: Alimentazione,
-): Promise<{ prezzo: number; giorno: string } | null> {
+async function prezzoNazionale(a: Carburante): Promise<{ prezzo: number; giorno: string } | null> {
   try {
     const r = await fetch(
       'https://sisen.mase.gov.it/dgsaie/api/v1/weekly-prices/report/export?format=CSV&lang=it',
@@ -300,6 +314,12 @@ export async function aggiornaPrezzo(m: {
   const dove =
     meta(m.partenza, m.partenzaLat, m.partenzaLng) ?? meta(m.arrivo, m.arrivoLat, m.arrivoLng);
   const firma = `${a}|${dove ?? ''}|${oggi}`;
+  if (a === 'ELETTRICA') {
+    return {
+      prezzo: PREZZO_KWH,
+      fonte: 'prezzo medio di una ricarica, fra casa e colonnine: correggilo col tuo',
+    };
+  }
   if (firma === m.prezzoFirma) {
     return { prezzo: m.prezzoAuto != null ? Number(m.prezzoAuto) : null, fonte: m.prezzoFonte };
   }
