@@ -3,7 +3,9 @@ import { prisma } from '@/lib/db';
 import { fmtTime } from '@/lib/format';
 import { arrivoSuggerito, casaDi, meta, nomeDi } from '@/lib/macchine';
 import { etichettaModo } from '@/lib/viaggio';
-import { creaMacchina } from '@/actions/macchine';
+import { chiediPassaggio, creaMacchina, rispondiPassaggio } from '@/actions/macchine';
+import { AzioneBottone } from './AzioneBottone';
+import { giornoDi } from '@/lib/giorni';
 import { BottoneModale } from './Modale';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
@@ -73,7 +75,12 @@ export async function ViaggiEvento({
   const offerte = macchine.filter((m) =>
     m.passeggeri.some((p) => p.userId === me.id && p.stato === 'INVITATO'),
   );
+  const richieste = macchine.filter((m) =>
+    m.passeggeri.some((p) => p.userId === me.id && p.stato === 'RICHIESTO'),
+  );
   const vengo = miaRisposta === 'PRESENTE' || miaRisposta === 'FORSE';
+  // posso chiedere un passaggio: vengo, non guido, non ho già un posto
+  const possoChiedere = aperta && vengo && !guido && !salito;
 
   // niente macchine, e non posso metterne: la sezione non serve
   if (macchine.length === 0 && !(aperta && vengo)) return null;
@@ -91,6 +98,7 @@ export async function ViaggiEvento({
     const arrivo = arrivoSuggerito(evento);
     suggeriti = {
       arrivoDa: arrivo.cosa,
+      giorno: giornoDi(evento.oraRitrovo ?? evento.inizio),
       valori: {
         modo: 'RITROVO',
         posti: null,
@@ -139,6 +147,13 @@ export async function ViaggiEvento({
             {guido.posti != null && ` su ${guido.posti}`}
             {guido.passeggeri.some((p) => p.stato === 'INVITATO') &&
               ` · ${guido.passeggeri.filter((p) => p.stato === 'INVITATO').length} da rispondere`}
+            {guido.passeggeri.some((p) => p.stato === 'RICHIESTO') && (
+              <strong className="text-warn">
+                {' '}
+                · {guido.passeggeri.filter((p) => p.stato === 'RICHIESTO').length} chiedono un
+                passaggio
+              </strong>
+            )}
           </span>
           <Link href={link(guido.id)} className="btn-primary btn-sm">
             Il viaggio
@@ -189,9 +204,51 @@ export async function ViaggiEvento({
               <strong>{nomeDi(m.autista)}</strong> ti offre un passaggio
               <span className="block text-xs text-muted">{etichettaModo[m.modo]}</span>
             </span>
-            <Link href={link(m.id)} className="btn-primary btn-sm">
-              Rispondi
-            </Link>
+            {/* si risponde qui: col ritrovo basta un sì; per farsi prendere
+                serve dire dove, e quello si fa nella pagina del viaggio */}
+            {m.modo === 'RITROVO' ? (
+              <AzioneBottone
+                azione={rispondiPassaggio}
+                valori={{ id: m.id, accetta: '1' }}
+                icona="approva"
+                className="btn-primary btn-sm"
+              >
+                Salgo
+              </AzioneBottone>
+            ) : (
+              <Link href={link(m.id)} className="btn-primary btn-sm">
+                Salgo: digli dove
+              </Link>
+            )}
+            <AzioneBottone
+              azione={rispondiPassaggio}
+              valori={{ id: m.id, accetta: '0' }}
+              icona="rifiuta"
+              className="btn-ghost btn-sm"
+            >
+              No, grazie
+            </AzioneBottone>
+          </div>
+        ))}
+      {!salito &&
+        !guido &&
+        richieste.map((m) => (
+          <div
+            key={m.id}
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface2 px-3 py-2.5 text-sm"
+          >
+            <span className="flex-1">
+              Hai chiesto un passaggio a <strong>{nomeDi(m.autista)}</strong>
+              <span className="block text-xs text-muted">Aspetta che ti risponda.</span>
+            </span>
+            <AzioneBottone
+              azione={rispondiPassaggio}
+              valori={{ id: m.id, accetta: '0' }}
+              icona="annulla"
+              className="btn-ghost btn-sm"
+            >
+              Ritira
+            </AzioneBottone>
           </div>
         ))}
 
@@ -225,6 +282,17 @@ export async function ViaggiEvento({
                   <Link href={link(m.id)} className="text-xs text-nvg hover:underline">
                     Il viaggio ›
                   </Link>
+                )}
+                {/* un posto libero lo si chiede, senza aspettare l'invito */}
+                {possoChiedere && !coinvolto && (liberi == null || liberi > 0) && (
+                  <AzioneBottone
+                    azione={chiediPassaggio}
+                    valori={{ id: m.id }}
+                    icona="macchina"
+                    className="btn-ghost btn-sm"
+                  >
+                    Chiedo un passaggio
+                  </AzioneBottone>
                 )}
               </li>
             );

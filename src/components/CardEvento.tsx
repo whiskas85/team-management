@@ -11,7 +11,7 @@ import type { FaseAttivita } from '@/lib/giorni';
 
 /** La mia macchinata, detta nella card: guido, salgo con qualcuno, mi offrono un posto. */
 export type ViaggioInCard = {
-  ruolo: 'autista' | 'passeggero' | 'invitato';
+  ruolo: 'autista' | 'passeggero' | 'invitato' | 'richiesto';
   /** Chi guida, se non sono io. */
   con: string | null;
   aBordo: number;
@@ -296,6 +296,10 @@ export function CardEvento({
                           : 'Ritrovo da decidere'}
                     </span>
                   </>
+                ) : v.ruolo === 'richiesto' ? (
+                  <span className="text-muted">
+                    Hai chiesto un passaggio a <strong className="text-ink">{v.con}</strong>
+                  </span>
                 ) : (
                   <>
                     <strong className="text-ink">{v.con}</strong>

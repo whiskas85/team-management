@@ -128,3 +128,11 @@ export function giorniDi(inizio: Date, fine: Date | null): string[] {
   }
   return giorni;
 }
+
+/** Il giorno di una data come lo vuole una casella data: «aaaa-mm-gg», in ora locale. */
+export const giornoDi = (d?: Date | string | null) => {
+  if (!d) return '';
+  const x = new Date(d);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+};

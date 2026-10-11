@@ -5,6 +5,37 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.41.0 — 11 ottobre 2026
+
+### Nuovo
+
+- **Chiedo un passaggio.** Chi viene all'attività e non ha un posto preme
+  «Chiedo un passaggio» su una macchina con posti liberi; chi guida riceve
+  l'avviso e risponde «Lo porto» o «No» dalla scheda A bordo. La richiesta si
+  può ritirare.
+- **Rispondere a un invito** si fa anche dalla pagina dell'attività: «Salgo»
+  e «No, grazie» stanno nel riquadro In macchina (per farsi prendere a casa
+  si va al viaggio a dire dove).
+- **I km si calcolano da soli** dal percorso stradale (partenza, tappe,
+  arrivo, e ritorno) e si aggiornano quando cambiano le tappe. Se il servizio
+  dei percorsi non risponde si stima in linea d'aria, e lo si dice. Chi guida
+  può sempre correggerli a mano.
+
+### Cambiato
+
+- Il modo della macchinata — punto di ritrovo o passo a prenderli — si
+  sceglie in cima all'**itinerario**, non più nella modifica della macchina.
+- Sotto ogni ritrovo **chi ci sale, come chips**: la crocetta lo toglie,
+  «+ aggiungi» ci porta un altro di quelli a bordo. Chi è senza ritrovo sta in
+  un riquadro a parte.
+- **Date divise in giorno e ora**, in tutto il gestionale (inizio e fine
+  delle attività, ritrovo, chiusura adesioni, sondaggi, macchinate). Le date
+  nascono già sul giorno giusto — quello dell'attività o del ritrovo — e di
+  solito si sceglie solo l'ora.
+- Su desktop una **finestra tiene l'altezza** con cui si apre: una mappa che
+  compare o una scheda più lunga non la fanno crescere, il contenuto in più
+  scorre dentro.
+
 ## 3.40.1 — 11 ottobre 2026
 
 ### Cambiato

@@ -113,7 +113,23 @@ function viaggioDi(macchine: MacchinaInLista[], userId: string, eventId: string)
       prendo: salito.modo === 'PRENDO',
     };
   }
-  const offerta = macchine[0];
+  const offerta = macchine.find((m) =>
+    m.passeggeri.some((p) => p.userId === userId && p.stato === 'INVITATO'),
+  );
+  const chiesta = macchine.find((m) =>
+    m.passeggeri.some((p) => p.userId === userId && p.stato === 'RICHIESTO'),
+  );
+  if (!offerta && chiesta) {
+    return {
+      ruolo: 'richiesto',
+      con: chiesta.autista.callsign || `${chiesta.autista.nome} ${chiesta.autista.cognome}`,
+      aBordo: 0,
+      dove: null,
+      ora: null,
+      naviga: null,
+      pagina: link(chiesta.id),
+    };
+  }
   if (!offerta) return null;
   return {
     ruolo: 'invitato',
@@ -170,7 +186,11 @@ export async function eventiPerLista({
         where: {
           OR: [
             { autistaId: userId },
-            { passeggeri: { some: { userId, stato: { in: ['ACCETTATO', 'INVITATO'] } } } },
+            {
+              passeggeri: {
+                some: { userId, stato: { in: ['ACCETTATO', 'INVITATO', 'RICHIESTO'] } },
+              },
+            },
           ],
         },
         select: {
@@ -187,7 +207,7 @@ export async function eventiPerLista({
           autista: { select: { nome: true, cognome: true, callsign: true } },
           tappe: { orderBy: { ordine: 'asc' }, select: { id: true, nome: true, luogo: true, lat: true, lng: true, ora: true } },
           passeggeri: {
-            where: { stato: { in: ['ACCETTATO', 'INVITATO'] } },
+            where: { stato: { in: ['ACCETTATO', 'INVITATO', 'RICHIESTO'] } },
             select: { userId: true, stato: true, tappaId: true },
           },
         },

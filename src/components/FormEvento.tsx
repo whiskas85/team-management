@@ -5,6 +5,7 @@ import { QuoteEvento } from './QuoteEvento';
 import { CercaLuogo } from './CercaLuogo';
 import { SceltaReferenti } from './SceltaReferenti';
 import { InizioFine } from './InizioFine';
+import { GiornoOra } from './GiornoOra';
 import { OraRitrovo } from './OraRitrovo';
 import { SchedeModulo } from './SchedeModulo';
 import { RilascioNelModulo } from './RilascioNelModulo';
@@ -264,7 +265,10 @@ export function FormEvento({
             aiuto="Scrivi il posto e premi Cerca, oppure incolla un link di Google Maps."
           />
 
-          <OraRitrovo valore={inputDateTime(evento?.oraRitrovo)} />
+          <OraRitrovo
+            valore={inputDateTime(evento?.oraRitrovo)}
+            giorno={inputDateTime(evento?.inizio).slice(0, 10)}
+          />
         </>
       )}
         </>
@@ -425,11 +429,11 @@ export function FormEvento({
               </Campo>
 
               <Campo label="Chiusura adesioni">
-                <input
-                  type="datetime-local"
+                <GiornoOra
                   name="chiusuraIscrizioni"
-                  defaultValue={inputDateTime(evento?.chiusuraIscrizioni)}
-                  className="input"
+                  valore={inputDateTime(evento?.chiusuraIscrizioni)}
+                  giornoDa="inizio"
+                  oraPredefinita="20:00"
                 />
               </Campo>
 

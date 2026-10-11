@@ -4,6 +4,7 @@ import {
   nascondiInvitoEvento,
   rifiutaInvitoEvento,
 } from '@/actions/eventi-condivisi';
+import { GiornoOra } from './GiornoOra';
 import { FormAzione } from './Form';
 import { Invia } from './Bottone';
 import { BottoneModale } from './Modale';
@@ -121,7 +122,7 @@ export function RispostaInvito({
               forse.
             </p>
             <Campo label="Si chiude il">
-              <input type="datetime-local" name="scadeIl" className="input" />
+              <GiornoOra name="scadeIl" oraPredefinita="20:00" />
             </Campo>
             <Campo label="Una riga in più (facoltativa)" span>
               <input name="nota" maxLength={300} className="input" placeholder="es. decidiamo entro venerdì" />

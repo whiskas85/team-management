@@ -103,7 +103,7 @@ export async function creaMacchina(_prev: StatoForm, fd: FormData): Promise<Stat
   }
   // gli inviti per cui ero in attesa su altre macchine non hanno più senso
   await prisma.passeggeroMacchina.updateMany({
-    where: { userId: me.id, stato: 'INVITATO', macchina: { eventId } },
+    where: { userId: me.id, stato: { in: ['INVITATO', 'RICHIESTO'] }, macchina: { eventId } },
     data: { stato: 'RIFIUTATO', rispostoIl: new Date() },
   });
   pagina(eventId, id);
@@ -280,6 +280,17 @@ export async function rispondiPassaggio(_prev: StatoForm, fd: FormData): Promise
   const accetta = str(fd, 'accetta') === '1';
   const nome = nomeCompleto(io.user);
 
+  // una richiesta la accetta l'autista; chi l'ha fatta può solo ritirarla
+  if (io.stato === 'RICHIESTO') {
+    if (accetta) return { errore: 'Hai già chiesto: aspetta che risponda chi guida.' };
+    await prisma.passeggeroMacchina.update({
+      where: { id: io.id },
+      data: { stato: 'RIFIUTATO', rispostoIl: new Date() },
+    });
+    pagina(m.eventId, m.id);
+    return { ok: 'Richiesta ritirata.' };
+  }
+
   if (!accetta) {
     await prisma.$transaction(async (tx) => {
       await tx.passeggeroMacchina.update({
@@ -370,7 +381,7 @@ export async function rispondiPassaggio(_prev: StatoForm, fd: FormData): Promise
       await tx.passeggeroMacchina.updateMany({
         where: {
           userId: me.id,
-          stato: 'INVITATO',
+          stato: { in: ['INVITATO', 'RICHIESTO'] },
           macchina: { eventId: m.eventId, id: { not: m.id } },
         },
         data: { stato: 'RIFIUTATO', rispostoIl: new Date() },
@@ -584,4 +595,175 @@ export async function eliminaSpesaViaggio(_prev: StatoForm, fd: FormData): Promi
   await prisma.spesaViaggio.delete({ where: { id: s.id } });
   pagina(m.eventId, m.id);
   return { ok: 'Spesa tolta.' };
+}
+
+// ------------------------------------------------------------ le richieste
+
+/**
+ * Chiedo un passaggio: su una macchina con posto, per un'attività a cui vengo.
+ * L'autista riceve l'avviso e dice sì o no.
+ */
+export async function chiediPassaggio(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { me, m } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!viaggiAperti(m.event.status)) return { errore: 'L’attività non è più aperta.' };
+  if (m.autistaId === me.id) return { errore: 'Questa macchina la guidi tu.' };
+
+  const [risposta, giaSu, guido] = await Promise.all([
+    prisma.eventRsvp.findUnique({
+      where: { eventId_userId: { eventId: m.eventId, userId: me.id } },
+      select: { status: true },
+    }),
+    prisma.passeggeroMacchina.findFirst({
+      where: { userId: me.id, stato: 'ACCETTATO', macchina: { eventId: m.eventId } },
+    }),
+    prisma.macchina.findFirst({ where: { eventId: m.eventId, autistaId: me.id } }),
+  ]);
+  if (risposta?.status !== 'PRESENTE' && risposta?.status !== 'FORSE') {
+    return { errore: 'Prima segnati all’attività.' };
+  }
+  if (giaSu) return { errore: 'Hai già un passaggio per questa attività.' };
+  if (guido) return { errore: 'Per questa attività guidi tu.' };
+  const saliti = m.passeggeri.filter((p) => p.stato === 'ACCETTATO').length;
+  if (m.posti !== null && saliti >= m.posti) return { errore: 'La macchina è piena.' };
+
+  const io = m.passeggeri.find((p) => p.userId === me.id);
+  if (io?.stato === 'INVITATO') {
+    return { errore: 'Ti ha già invitato: rispondi all’invito.' };
+  }
+  if (io?.stato === 'RICHIESTO') return { errore: 'L’hai già chiesto.' };
+
+  await prisma.passeggeroMacchina.upsert({
+    where: { macchinaId_userId: { macchinaId: m.id, userId: me.id } },
+    create: { macchinaId: m.id, userId: me.id, stato: 'RICHIESTO' },
+    update: { stato: 'RICHIESTO', invitatoIl: new Date(), rispostoIl: null, tappaId: null },
+  });
+  const chi = await prisma.user.findUnique({
+    where: { id: me.id },
+    select: { nome: true, cognome: true, callsign: true },
+  });
+  await avvisaPersona(m.autistaId, {
+    titolo: `Passaggio per ${m.event.titolo}`,
+    testo: `${chi ? nomeCompleto(chi) : 'Qualcuno'} ti chiede un posto in macchina.`,
+    url: `${linkViaggio(m.eventId, m.id)}?scheda=bordo`,
+    tag: `viaggio-${m.id}`,
+  }).catch(() => null);
+  pagina(m.eventId, m.id);
+  return { ok: `Chiesto a ${nomeDi(m.autista)}: ti avvisiamo quando risponde.` };
+}
+
+/** L'autista risponde a chi gli ha chiesto un passaggio. */
+export async function rispondiRichiesta(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Risponde chi guida.' };
+  const p = m.passeggeri.find((x) => x.userId === str(fd, 'userId') && x.stato === 'RICHIESTO');
+  if (!p) return { errore: 'Questa richiesta non c’è più.' };
+  const accetta = str(fd, 'accetta') === '1';
+  const nome = nomeDi(m.autista);
+
+  if (!accetta) {
+    await prisma.passeggeroMacchina.update({
+      where: { id: p.id },
+      data: { stato: 'RIFIUTATO', rispostoIl: new Date() },
+    });
+    await avvisaPersona(p.userId, {
+      titolo: `Passaggio per ${m.event.titolo}`,
+      testo: `${nome} non ha posto per te: cerca un altro passaggio.`,
+      url: `/calendario/${m.eventId}`,
+      tag: `viaggio-${m.id}`,
+    }).catch(() => null);
+    pagina(m.eventId, m.id);
+    return { ok: 'Risposta mandata.' };
+  }
+
+  const saliti = m.passeggeri.filter((x) => x.stato === 'ACCETTATO').length;
+  if (m.posti !== null && saliti >= m.posti) return { errore: 'La macchina è già piena.' };
+  const altrove = await prisma.passeggeroMacchina.findFirst({
+    where: { userId: p.userId, stato: 'ACCETTATO', macchina: { eventId: m.eventId } },
+  });
+  if (altrove) return { errore: 'Nel frattempo ha trovato un altro passaggio.' };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.passeggeroMacchina.update({
+      where: { id: p.id },
+      data: {
+        stato: 'ACCETTATO',
+        rispostoIl: new Date(),
+        // un ritrovo solo: si va lì
+        tappaId: m.modo === 'RITROVO' && m.tappe.length === 1 ? m.tappe[0].id : null,
+      },
+    });
+    await tx.passeggeroMacchina.updateMany({
+      where: {
+        userId: p.userId,
+        stato: { in: ['INVITATO', 'RICHIESTO'] },
+        macchina: { eventId: m.eventId, id: { not: m.id } },
+      },
+      data: { stato: 'RIFIUTATO', rispostoIl: new Date() },
+    });
+  });
+  await avvisaPersona(p.userId, {
+    titolo: `Passaggio per ${m.event.titolo}`,
+    testo:
+      m.modo === 'PRENDO'
+        ? `${nome} ti porta: digli dove passare a prenderti.`
+        : `${nome} ti porta.`,
+    url: linkViaggio(m.eventId, m.id),
+    tag: `viaggio-${m.id}`,
+  }).catch(() => null);
+  pagina(m.eventId, m.id);
+  return { ok: `${nomeCompleto(p.user)} è a bordo.` };
+}
+
+// ------------------------------------------------------------ itinerario
+
+/**
+ * Il modo, scelto dall'itinerario: punto di ritrovo o passo a prenderli.
+ * Cambiando, le tappe di prima non valgono più — in uno sono case, nell'altro
+ * ritrovi — e si riparte da zero.
+ */
+export async function cambiaModo(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Il modo lo decide chi guida.' };
+  const modo = enumOpt(fd, 'modo', MODI);
+  if (!modo || modo === m.modo) return {};
+
+  await prisma.$transaction(async (tx) => {
+    await tx.passeggeroMacchina.updateMany({ where: { macchinaId: m.id }, data: { tappaId: null } });
+    await tx.tappaMacchina.deleteMany({ where: { macchinaId: m.id } });
+    await tx.macchina.update({ where: { id: m.id }, data: { modo } });
+  });
+  const nome = nomeDi(m.autista);
+  for (const p of m.passeggeri.filter((p) => p.stato === 'ACCETTATO')) {
+    await avvisaPersona(p.userId, {
+      titolo: `Viaggio per ${m.event.titolo}`,
+      testo:
+        modo === 'PRENDO'
+          ? `${nome} passa a prenderti: digli dove.`
+          : `${nome} ha cambiato: ci si trova a un punto di ritrovo.`,
+      url: linkViaggio(m.eventId, m.id),
+      tag: `viaggio-${m.id}`,
+    }).catch(() => null);
+  }
+  pagina(m.eventId, m.id);
+  return {
+    ok: modo === 'PRENDO' ? 'Passi a prenderli: ognuno ti dirà dove.' : 'Punto di ritrovo: aggiungi i ritrovi.',
+  };
+}
+
+/** Un passeggero su una tappa (o su nessuna, con tappaId vuoto). */
+export async function spostaPasseggero(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const { m, guida } = await miaMacchina(str(fd, 'id'));
+  if (!m) return { errore: 'Macchina non trovata.' };
+  if (!guida) return { errore: 'Le tappe le decide chi guida.' };
+  if (m.modo !== 'RITROVO') return { errore: 'Nel modo «passo a prenderli» la tappa è casa sua.' };
+  const p = m.passeggeri.find((x) => x.userId === str(fd, 'userId') && x.stato === 'ACCETTATO');
+  if (!p) return { errore: 'Non è a bordo.' };
+  const tappaId = str(fd, 'tappaId') || null;
+  if (tappaId && !m.tappe.some((t) => t.id === tappaId)) return { errore: 'Tappa non trovata.' };
+  await prisma.passeggeroMacchina.update({ where: { id: p.id }, data: { tappaId } });
+  pagina(m.eventId, m.id);
+  return {};
 }

@@ -1,15 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Campo } from './ui';
-import { limitiCampoData } from '@/lib/giorni';
+import { GiornoOra } from './GiornoOra';
 
-/** Il giorno di oggi come lo vuole un datetime-local: aaaa-mm-gg, in ora locale. */
-export function oggi() {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+// oggi() sta con GiornoOra; resta esportata anche da qui per chi la cercava qui
+export { oggi } from './GiornoOra';
 
 /** Quanti giorni di calendario separano due date aaaa-mm-gg. In UTC apposta:
  *  il giorno del cambio d'ora dura 23 o 25 ore, e non deve contare mezzo. */
@@ -40,79 +36,66 @@ function spostaGiorno(g: string, n: number) {
  * la 24 ore dal venerdì alla domenica — spostando l'inizio si sposta anche lei
  * degli stessi giorni, e l'ora scritta resta quella. Una fine riportata allo
  * stesso giorno senza dirlo accorcerebbe l'attività di nascosto.
+ *
+ * Giorno e ora stanno in due caselle (GiornoOra): la fine nasce già sul giorno
+ * dell'inizio, e di solito si sceglie solo l'ora.
  */
 export function InizioFine({
   inizio,
   fine,
   etichettaInizio = 'Inizio *',
 }: {
-  /** Valori di partenza, già nel formato del datetime-local. */
+  /** Valori di partenza, nel formato «aaaa-mm-ggThh:mm». */
   inizio?: string;
   fine?: string;
   etichettaInizio?: string;
 }) {
-  const campoFine = useRef<HTMLInputElement>(null);
+  const [valFine, setValFine] = useState(fine ?? '');
   // l'inizio com'era prima di questa modifica: serve a sapere di quanti
   // giorni spostare la fine
   const prima = useRef(inizio ?? '');
+  const [giornoInizio, setGiornoInizio] = useState((inizio ?? '').slice(0, 10));
 
   const seguiInizio = (nuovo: string) => {
     const vecchio = prima.current;
-    prima.current = nuovo;
-    const f = campoFine.current;
     // a metà scrittura il valore è vuoto: si aspetta che la data sia intera
-    if (!f || !nuovo) return;
+    if (!nuovo) return;
+    prima.current = nuovo;
+    setGiornoInizio(nuovo.slice(0, 10));
 
     const giornoNuovo = nuovo.slice(0, 10);
     let valore: string;
-    if (!f.value) {
+    if (!valFine) {
       // nessuna fine ancora: lo stesso giorno, a un'ora che venga dopo l'inizio
       valore = `${giornoNuovo}T${nuovo.slice(11, 16) < '18:00' ? '18:00' : '23:59'}`;
     } else {
-      const scarto = vecchio ? giorniFra(vecchio.slice(0, 10), f.value.slice(0, 10)) : 0;
-      valore = `${spostaGiorno(giornoNuovo, Math.max(scarto, 0))}T${f.value.slice(11, 16)}`;
+      const scarto = vecchio ? giorniFra(vecchio.slice(0, 10), valFine.slice(0, 10)) : 0;
+      valore = `${spostaGiorno(giornoNuovo, Math.max(scarto, 0))}T${valFine.slice(11, 16)}`;
     }
     // una fine prima dell'inizio il salvataggio la rifiuterebbe: meglio
     // mettere le due uguali e lasciar correggere l'ora
-    f.value = valore < nuovo ? nuovo : valore;
+    setValFine(valore < nuovo ? nuovo : valore);
   };
-
-  // un anno a tre cifre — 206 invece di 2026 — il campo lo prende: con i
-  // limiti il browser lo segnala prima ancora di inviare
-  const limiti = limitiCampoData();
 
   return (
     <>
       <Campo label={etichettaInizio}>
-        <input
-          type="datetime-local"
+        <GiornoOra
           name="inizio"
+          valore={inizio}
           required
-          min={limiti.min}
-          max={limiti.max}
-          defaultValue={inizio}
-          className="input"
-          onFocus={(e) => {
-            if (!e.currentTarget.value) e.currentTarget.value = `${oggi()}T09:00`;
-          }}
-          onChange={(e) => seguiInizio(e.currentTarget.value)}
+          oraPredefinita="09:00"
+          onChange={seguiInizio}
         />
       </Campo>
 
       <Campo label="Fine">
-        <input
-          ref={campoFine}
-          type="datetime-local"
+        <GiornoOra
           name="fine"
-          min={limiti.min}
-          max={limiti.max}
-          defaultValue={fine}
-          className="input"
-          onFocus={(e) => {
-            // vuota, parte dal giorno dell'inizio invece che da gg/mm/aaaa
-            const da = prima.current;
-            if (!e.currentTarget.value && da) e.currentTarget.value = da;
-          }}
+          valore={valFine}
+          giorno={giornoInizio}
+          giornoDa="inizio"
+          onChange={setValFine}
         />
       </Campo>
     </>

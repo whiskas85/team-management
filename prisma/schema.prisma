@@ -3009,6 +3009,8 @@ enum ModoMacchina {
 
 enum StatoPasseggero {
   INVITATO
+  /// L'ha chiesto lui: aspetta che l'autista dica di sì.
+  RICHIESTO
   ACCETTATO
   RIFIUTATO
 }
@@ -3047,6 +3049,13 @@ model Macchina {
   /// (andata e ritorno), consumo e prezzo al litro. Quello che uno dichiara di
   /// aver messo nel serbatoio può essere di più: conta questo.
   km          Int?
+  /// I chilometri calcolati dal percorso (partenza, tappe, arrivo, e ritorno),
+  /// e i punti da cui sono stati calcolati: cambiati i punti, si ricalcola.
+  /// `km`, se c'è, è la correzione a mano e vince.
+  kmCalcolati Int?
+  kmFirma     String?
+  /// Calcolati in linea d'aria, perché il servizio dei percorsi non ha risposto.
+  kmStimati   Boolean      @default(false)
   consumo     Float?
   prezzoLitro Decimal?     @db.Decimal(6, 3)
   /// Quanto sono costati davvero i caselli. Vuoto: la somma di quelli dichiarati.

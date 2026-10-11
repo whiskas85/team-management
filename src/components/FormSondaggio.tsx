@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { GiornoOra } from './GiornoOra';
 import { Campo } from './ui';
 import { CampoFile } from './CampoFile';
 import { Icona, type NomeIcona } from './Icona';
@@ -122,7 +123,9 @@ export function FormSondaggio({
   const [daRiempire, setDaRiempire] = useState(0);
   useEffect(() => {
     if (!daRiempire) return;
-    const caselle = elenco.current?.querySelectorAll<HTMLInputElement>('input:not([type=hidden])');
+    const caselle = elenco.current?.querySelectorAll<HTMLInputElement>(
+      forma === 'DATA' ? 'input[type=date]' : 'input:not([type=hidden])',
+    );
     caselle?.[caselle.length - 1]?.focus();
   }, [daRiempire]);
 
@@ -212,14 +215,14 @@ export function FormSondaggio({
             {date.map((r, i) => (
               <div key={r.id || `nuova-${i}`} className="flex gap-2">
                 <input type="hidden" name="opzioneId" value={r.id} />
-                <input
-                  type="datetime-local"
+                <GiornoOra
                   name="opzioneQuando"
-                  className="input"
-                  value={r.valore}
-                  onChange={(e) => {
+                  className="min-w-0 flex-1"
+                  valore={r.valore}
+                  oraPredefinita="09:00"
+                  onChange={(v) => {
                     const copia = [...date];
-                    copia[i] = { ...r, valore: e.target.value };
+                    copia[i] = { ...r, valore: v };
                     setDate(copia);
                   }}
                 />
@@ -387,12 +390,7 @@ export function FormSondaggio({
       </Campo>
 
       <Campo label="Entro quando" span>
-        <input
-          type="datetime-local"
-          name="scadeIl"
-          className="input"
-          defaultValue={sondaggio?.scadeIl ?? ''}
-        />
+        <GiornoOra name="scadeIl" valore={sondaggio?.scadeIl ?? ''} oraPredefinita="20:00" />
         <p className="mt-1 text-xs text-muted">
           Passata la scadenza il sondaggio si chiude da solo e scende nello storico. La notifica
           dice quanto manca.

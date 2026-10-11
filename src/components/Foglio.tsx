@@ -164,6 +164,29 @@ export function Foglio({
 
   const telefono = () =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches;
+
+  // Dal tablet in su la finestra tiene l'altezza con cui si è aperta: una
+  // mappa che compare, una scheda più lunga dell'altra, e la finestra non
+  // cresce né si accorcia sotto il mouse. Quello che non ci sta scorre dentro.
+  // Cambiando la grandezza dello schermo si rimisura.
+  const [altezza, setAltezza] = useState<number | null>(null);
+  useEffect(() => {
+    let f = 0;
+    const misura = () => {
+      setAltezza(null);
+      cancelAnimationFrame(f);
+      f = requestAnimationFrame(() => {
+        const el = foglioRef.current;
+        if (el && !telefono()) setAltezza(Math.round(el.getBoundingClientRect().height));
+      });
+    };
+    misura();
+    window.addEventListener('resize', misura);
+    return () => {
+      cancelAnimationFrame(f);
+      window.removeEventListener('resize', misura);
+    };
+  }, []);
   const giu = scendendo || !salito;
 
   return (
@@ -189,6 +212,7 @@ export function Foglio({
         className={`foglio relative flex max-h-[92dvh] w-full flex-col overflow-hidden whitespace-normal rounded-t-2xl border border-line bg-surface shadow-2xl sm:rounded-2xl ${foglio}`}
         data-giu={giu ? '' : undefined}
         style={{
+          ...(altezza ? { height: altezza } : {}),
           ...(tirato && !scendendo ? { transform: `translateY(${tirato}px)` } : {}),
           transition: tirato && !scendendo ? 'none' : undefined,
         }}

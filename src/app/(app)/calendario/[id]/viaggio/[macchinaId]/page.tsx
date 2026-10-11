@@ -23,6 +23,8 @@ import {
 import {
   aggiungiSpesaViaggio,
   aggiungiTappa,
+  cambiaModo,
+  rispondiRichiesta,
   eliminaMacchina,
   eliminaSpesaViaggio,
   eliminaTappa,
@@ -46,6 +48,10 @@ import { FormMacchina } from '@/components/FormMacchina';
 import { Icona } from '@/components/Icona';
 import { linkNaviga } from '@/components/Naviga';
 import { ScegliPersone } from '@/components/ScegliPersone';
+import { ChipsTappa } from '@/components/ChipsTappa';
+import { GiornoOra } from '@/components/GiornoOra';
+import { giornoDi } from '@/lib/giorni';
+import { aggiornaKm } from '@/lib/percorso';
 
 const SCHEDE = [
   { chiave: 'itinerario', titolo: 'Itinerario' },
@@ -83,6 +89,7 @@ export default async function ViaggioPage({
 
   const saliti = m.passeggeri.filter((p) => p.stato === 'ACCETTATO');
   const invitati = m.passeggeri.filter((p) => p.stato === 'INVITATO');
+  const richieste = m.passeggeri.filter((p) => p.stato === 'RICHIESTO');
   const rifiutati = m.passeggeri.filter((p) => p.stato === 'RIFIUTATO');
   const io = m.passeggeri.find((p) => p.userId === me.id);
   const nomi = new Map([
@@ -96,6 +103,18 @@ export default async function ViaggioPage({
     m.modo === 'RITROVO' || guida || saliti.some((p) => p.userId === me.id && p.tappaId === t.id);
   const chiInTappa = (tid: string) => saliti.filter((p) => p.tappaId === tid);
   const daAssegnare = saliti.filter((p) => !p.tappaId);
+  /** Chi sale a una tappa, come chips; chi guida aggiunge e toglie (solo nei ritrovi). */
+  const chipsDi = (tid: string) => (
+    <ChipsTappa
+      macchinaId={m.id}
+      tappaId={tid}
+      qui={chiInTappa(tid).map((p) => ({ id: p.userId, nome: nomeDi(p.user) }))}
+      altri={saliti
+        .filter((p) => p.tappaId !== tid)
+        .map((p) => ({ id: p.userId, nome: nomeDi(p.user) }))}
+      modifica={guida && m.modo === 'RITROVO'}
+    />
+  );
 
   const arrivoMeta = meta(m.arrivo, m.arrivoLat, m.arrivoLng);
   const partenzaMeta = meta(m.partenza, m.partenzaLat, m.partenzaLng);
@@ -117,17 +136,23 @@ export default async function ViaggioPage({
           .then((u) => (u ? casaDi(u) : ''))
       : '';
 
+  // i chilometri dal percorso, ricalcolati quando l'itinerario cambia; quelli
+  // scritti a mano, se ci sono, vincono
+  const percorso = await aggiornaKm(m);
+  const kmUsati = m.km ?? percorso.km;
+  const giornoViaggio = giornoDi(m.event.oraRitrovo ?? m.event.inizio);
+
   const conti = contiViaggio({
     autistaId: m.autistaId,
     persone: [m.autistaId, ...saliti.map((p) => p.userId)],
-    km: m.km,
+    km: kmUsati,
     consumo: m.consumo,
     prezzoLitro: m.prezzoLitro != null ? Number(m.prezzoLitro) : null,
     caselli: m.caselli != null ? Number(m.caselli) : null,
     spese: m.spese.map((s) => ({ userId: s.userId, tipo: s.tipo, importo: Number(s.importo) })),
   });
   const carburante = costoCarburante(
-    m.km,
+    kmUsati,
     m.consumo,
     m.prezzoLitro != null ? Number(m.prezzoLitro) : null,
   );
@@ -163,13 +188,7 @@ export default async function ViaggioPage({
               >
                 <FormAzione azione={salvaMacchina}>
                   <input type="hidden" name="id" value={m.id} />
-                  <FormMacchina valori={m} arrivoDa={arrivo.cosa} />
-                  {saliti.length > 0 && (
-                    <p className="text-xs text-warn">
-                      Cambiando modo le tappe ripartono da zero: nel modo «passo a prenderli» ogni
-                      passeggero ti dirà di nuovo dove.
-                    </p>
-                  )}
+                  <FormMacchina valori={m} arrivoDa={arrivo.cosa} giorno={giornoViaggio} />
                   <Invia icona="salva">Salva</Invia>
                 </FormAzione>
                 <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-4">
@@ -244,6 +263,23 @@ export default async function ViaggioPage({
           </div>
         )}
 
+        {ruolo === 'richiesto' && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface2 p-3 text-sm">
+            <span className="flex-1">
+              Hai chiesto un passaggio a <strong>{nomeDi(m.autista)}</strong>: aspetta che ti
+              risponda.
+            </span>
+            <AzioneBottone
+              azione={rispondiPassaggio}
+              valori={{ id: m.id, accetta: '0' }}
+              icona="annulla"
+              className="btn-ghost btn-sm"
+            >
+              Ritira
+            </AzioneBottone>
+          </div>
+        )}
+
         {ruolo === 'passeggero' && m.modo === 'PRENDO' && !miaTappa && (
           <div className="mt-4 space-y-3 rounded-lg border border-warn/40 bg-warn/10 p-3">
             <p className="text-sm">
@@ -278,8 +314,10 @@ export default async function ViaggioPage({
             }`}
           >
             {s.titolo}
-            {s.chiave === 'bordo' && invitati.length > 0 && guida && (
-              <span className="num ml-1.5 text-xs text-warn">{invitati.length}</span>
+            {s.chiave === 'bordo' && richieste.length + invitati.length > 0 && guida && (
+              <span className="num ml-1.5 text-xs text-warn">
+                {richieste.length + invitati.length}
+              </span>
             )}
             {s.chiave === 'costi' && conti.totale > 0 && (
               <span className="num ml-1.5 text-xs text-muted">{fmtEuro(conti.totale)}</span>
@@ -311,6 +349,41 @@ export default async function ViaggioPage({
               )}
             </div>
 
+            {/* Il modo si sceglie qui, dove si vedono le tappe e chi ci sale. */}
+            {guida ? (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted">Come carichi:</span>
+                <div className="inline-flex rounded-lg border border-line p-0.5">
+                  {(['RITROVO', 'PRENDO'] as const).map((modo) =>
+                    modo === m.modo ? (
+                      <span
+                        key={modo}
+                        className="rounded-md bg-nvg/15 px-3 py-1 text-xs font-medium text-nvg"
+                      >
+                        {etichettaModo[modo]}
+                      </span>
+                    ) : (
+                      <AzioneBottone
+                        key={modo}
+                        azione={cambiaModo}
+                        valori={{ id: m.id, modo }}
+                        conferma={
+                          m.tappe.length > 0
+                            ? `Passare a «${etichettaModo[modo]}»? Le tappe di adesso si tolgono.`
+                            : undefined
+                        }
+                        className="rounded-md px-3 py-1 text-xs text-muted hover:text-ink"
+                      >
+                        {etichettaModo[modo]}
+                      </AzioneBottone>
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="mb-4 text-xs text-muted">{etichettaModo[m.modo]}</p>
+            )}
+
             <ol className="space-y-3">
               {/* la partenza è casa dell'autista: la vede solo lui */}
               {guida && (
@@ -338,11 +411,14 @@ export default async function ViaggioPage({
                             tappa={t}
                             vede
                             chi={chiInTappa(t.id).map((p) => nomeDi(p.user))}
+                            chips={chipsDi(t.id)}
+                            ritrovo={m.modo === 'RITROVO'}
                             modifica={
                               <ModificaTappa
                                 macchinaId={m.id}
                                 tappa={t}
                                 ritrovo={m.modo === 'RITROVO'}
+                                giorno={giornoViaggio}
                                 saliti={saliti.map((p) => ({
                                   id: p.userId,
                                   nome: nomeCompleto(p.user),
@@ -363,12 +439,15 @@ export default async function ViaggioPage({
                         tappa={t}
                         vede={vedeTappa(t)}
                         chi={chiInTappa(t.id).map((p) => nomeDi(p.user))}
+                        chips={chipsDi(t.id)}
+                        ritrovo={m.modo === 'RITROVO'}
                         modifica={
                           guida ? (
                             <ModificaTappa
                               macchinaId={m.id}
                               tappa={t}
                               ritrovo={m.modo === 'RITROVO'}
+                              giorno={giornoViaggio}
                               saliti={saliti.map((p) => ({
                                 id: p.userId,
                                 nome: nomeCompleto(p.user),
@@ -404,9 +483,18 @@ export default async function ViaggioPage({
               </p>
             )}
             {m.modo === 'RITROVO' && daAssegnare.length > 0 && (
-              <p className="mt-3 text-sm text-warn">
-                Senza ritrovo: {daAssegnare.map((p) => nomeDi(p.user)).join(', ')}.
-              </p>
+              <div className="mt-4 rounded-lg border border-warn/40 bg-warn/5 p-3">
+                <p className="text-xs text-warn">
+                  Senza ritrovo{guida ? ': aggiungili a un ritrovo col «+ aggiungi»' : ''}
+                </p>
+                <ChipsTappa
+                  macchinaId={m.id}
+                  tappaId=""
+                  qui={daAssegnare.map((p) => ({ id: p.userId, nome: nomeDi(p.user) }))}
+                  altri={[]}
+                  modifica={false}
+                />
+              </div>
             )}
             {m.modo === 'PRENDO' && guida && daAssegnare.length > 0 && (
               <p className="mt-3 text-sm text-warn">
@@ -433,7 +521,7 @@ export default async function ViaggioPage({
                   nomePosto={{ nome: 'nome', segnaposto: 'es. Bar Puccini' }}
                 />
                 <Campo label="A che ora">
-                  <input type="datetime-local" name="ora" className="input" />
+                  <GiornoOra name="ora" giorno={giornoViaggio} />
                 </Campo>
                 {saliti.length > 0 && (
                   <fieldset>
@@ -492,6 +580,35 @@ export default async function ViaggioPage({
               ))}
             </ul>
             {saliti.length === 0 && <p className="mt-2 text-sm text-muted">Ancora nessuno.</p>}
+
+            {guida && richieste.length > 0 && (
+              <>
+                <p className="label mt-4 text-warn">Chiedono un passaggio</p>
+                <ul className="divide-y divide-line">
+                  {richieste.map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                      <span className="flex-1">{nomeCompleto(p.user)}</span>
+                      <AzioneBottone
+                        azione={rispondiRichiesta}
+                        valori={{ id: m.id, userId: p.userId, accetta: '1' }}
+                        icona="approva"
+                        className="btn-primary btn-sm"
+                      >
+                        Lo porto
+                      </AzioneBottone>
+                      <AzioneBottone
+                        azione={rispondiRichiesta}
+                        valori={{ id: m.id, userId: p.userId, accetta: '0' }}
+                        icona="rifiuta"
+                        className="btn-ghost btn-sm"
+                      >
+                        No
+                      </AzioneBottone>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
 
             {invitati.length > 0 && (
               <>
@@ -581,6 +698,7 @@ export default async function ViaggioPage({
                       min={0}
                       defaultValue={m.km ?? ''}
                       className="input"
+                      placeholder={percorso.km != null ? `${percorso.km} dal percorso` : 'es. 180'}
                     />
                   </Campo>
                   <Campo label="Consumo (l/100 km)">
@@ -618,12 +736,19 @@ export default async function ViaggioPage({
               </FormAzione>
             ) : (
               <p className="text-sm">
-                {m.km ? `${m.km} km` : 'Chilometri non scritti'}
+                {kmUsati ? `${kmUsati} km` : 'Chilometri non ancora calcolati'}
                 {m.consumo ? ` · ${m.consumo} l/100 km` : ''}
                 {m.prezzoLitro != null ? ` · ${Number(m.prezzoLitro).toFixed(3)} €/l` : ''}
                 {m.caselli != null ? ` · caselli ${fmtEuro(Number(m.caselli))}` : ''}
               </p>
             )}
+            <p className="mt-2 text-xs text-muted">
+              {percorso.km != null
+                ? `Dal percorso: ${percorso.km} km, andata e ritorno${
+                    percorso.stimati ? ' (stima in linea d’aria: il servizio dei percorsi non ha risposto)' : ''
+                  }.${m.km != null ? ` Vale la correzione a mano: ${m.km} km.` : ' Si aggiornano da soli quando cambi le tappe.'}`
+                : 'I km si calcolano dal percorso quando ci sono partenza e arrivo.'}
+            </p>
             {carburante != null && (
               <p className="mt-2 text-sm">
                 Carburante del viaggio: <strong className="num">{fmtEuro(carburante)}</strong>
@@ -865,6 +990,8 @@ function RigaTappa({
   tappa,
   vede,
   chi,
+  chips,
+  ritrovo,
   modifica,
 }: {
   numero: number;
@@ -872,6 +999,9 @@ function RigaTappa({
   /** Può leggere l'indirizzo: se è la casa di un altro passeggero, no. */
   vede: boolean;
   chi: string[];
+  /** Chi sale qui, come chips. */
+  chips?: React.ReactNode;
+  ritrovo: boolean;
   modifica?: React.ReactNode;
 }) {
   const dove = meta(tappa.luogo, tappa.lat, tappa.lng);
@@ -882,7 +1012,7 @@ function RigaTappa({
       </span>
       <span className="min-w-0 flex-1 text-sm">
         <span className="block text-[11px] uppercase tracking-wide text-muted">
-          {chi.length > 0 ? chi.join(', ') : 'Tappa'}
+          {ritrovo ? 'Ritrovo' : chi.length > 0 ? `Casa di ${chi.join(', ')}` : 'Tappa'}
         </span>
         {/* il nome del posto, se c'è, e sotto l'indirizzo */}
         <span className="break-words">
@@ -892,6 +1022,7 @@ function RigaTappa({
         {vede && tappa.nome && tappa.nome !== tappa.luogo && (
           <span className="block break-words text-xs text-muted">{tappa.luogo}</span>
         )}
+        {ritrovo && chips}
       </span>
       {vede && dove && (
         <a
@@ -913,11 +1044,13 @@ function ModificaTappa({
   macchinaId,
   tappa,
   ritrovo,
+  giorno,
   saliti,
 }: {
   macchinaId: string;
   tappa: Tappa;
   ritrovo: boolean;
+  giorno: string;
   saliti: { id: string; nome: string; qui: boolean }[];
 }) {
   return (
@@ -942,12 +1075,7 @@ function ModificaTappa({
           }
         />
         <Campo label="A che ora">
-          <input
-            type="datetime-local"
-            name="ora"
-            defaultValue={inputDateTime(tappa.ora)}
-            className="input"
-          />
+          <GiornoOra name="ora" valore={inputDateTime(tappa.ora)} giorno={giorno} />
         </Campo>
         {ritrovo && saliti.length > 0 && (
           <fieldset>

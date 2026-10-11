@@ -1,5 +1,6 @@
 import { Campo } from './ui';
 import { CercaLuogo } from './CercaLuogo';
+import { GiornoOra } from './GiornoOra';
 import { inputDateTime } from '@/lib/format';
 
 export type DatiMacchina = {
@@ -20,6 +21,9 @@ export type DatiMacchina = {
  * I dati di una macchina: come si caricano i passeggeri, quanti posti, da dove
  * si parte e dove si arriva.
  *
+ * Come si caricano i passeggeri (ritrovo o passo a prenderli) non si sceglie
+ * qui ma nell'itinerario, dove si vedono le tappe e chi ci sale.
+ *
  * Partenza e arrivo arrivano già scritti — casa dal profilo, il ritrovo o il
  * campo dall'attività — e sono **solo suggerimenti**: non è detto che si parta
  * da casa, né che si vada al ritrovo invece che dritti al campo.
@@ -27,50 +31,16 @@ export type DatiMacchina = {
 export function FormMacchina({
   valori,
   arrivoDa,
+  giorno,
 }: {
   valori: DatiMacchina;
+  /** Il giorno dell'attività (o del ritrovo): le date nascono lì, si sceglie l'ora. */
+  giorno?: string;
   /** Da dove viene l'arrivo suggerito: «il ritrovo dell'attività». */
   arrivoDa?: string | null;
 }) {
   return (
     <div className="space-y-4">
-      <fieldset className="space-y-2">
-        <legend className="label">Come carichi i passeggeri</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {(
-            [
-              [
-                'RITROVO',
-                'Punto di ritrovo',
-                'Ci si trova in uno o più posti: un parcheggio, un casello, un bar.',
-              ],
-              [
-                'PRENDO',
-                'Passo a prenderli',
-                'Una tappa per ognuno, dove ti dice lui: le metti in fila tu.',
-              ],
-            ] as const
-          ).map(([v, titolo, testo]) => (
-            <label
-              key={v}
-              className="flex cursor-pointer gap-2.5 rounded-lg border border-line p-3 has-[:checked]:border-nvg has-[:checked]:bg-nvg/10"
-            >
-              <input
-                type="radio"
-                name="modo"
-                value={v}
-                defaultChecked={valori.modo === v}
-                className="mt-0.5 accent-nvg"
-              />
-              <span>
-                <span className="block text-sm font-medium">{titolo}</span>
-                <span className="block text-xs text-muted">{testo}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
       <Campo label="Posti per i passeggeri">
         <input
           type="number"
@@ -83,7 +53,7 @@ export function FormMacchina({
         />
       </Campo>
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+      <div className="space-y-3">
         <CercaLuogo
           nome="partenza"
           etichetta="Partenza"
@@ -94,16 +64,11 @@ export function FormMacchina({
           aiuto="La vedi solo tu. Dal profilo arriva casa tua: cambiala se parti da un'altra parte."
         />
         <Campo label="Parto alle">
-          <input
-            type="datetime-local"
-            name="partenzaOra"
-            defaultValue={inputDateTime(valori.partenzaOra)}
-            className="input"
-          />
+          <GiornoOra name="partenzaOra" valore={inputDateTime(valori.partenzaOra)} giorno={giorno} />
         </Campo>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+      <div className="space-y-3">
         <CercaLuogo
           nome="arrivo"
           etichetta="Arrivo"
@@ -118,12 +83,7 @@ export function FormMacchina({
           }
         />
         <Campo label="Arrivo alle">
-          <input
-            type="datetime-local"
-            name="arrivoOra"
-            defaultValue={inputDateTime(valori.arrivoOra)}
-            className="input"
-          />
+          <GiornoOra name="arrivoOra" valore={inputDateTime(valori.arrivoOra)} giorno={giorno} />
         </Campo>
       </div>
 

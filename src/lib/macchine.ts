@@ -13,7 +13,7 @@ import type { Role } from '@prisma/client';
  * bordo, perché sono posti dove ci si trova.
  */
 
-export type RuoloMacchina = 'autista' | 'passeggero' | 'invitato' | 'admin';
+export type RuoloMacchina = 'autista' | 'passeggero' | 'invitato' | 'richiesto' | 'admin';
 
 export const includeMacchina = {
   event: {
@@ -62,6 +62,7 @@ export function ruoloIn(
   const io = m.passeggeri.find((p) => p.userId === me.id);
   if (io?.stato === 'ACCETTATO') return 'passeggero';
   if (io?.stato === 'INVITATO') return 'invitato';
+  if (io?.stato === 'RICHIESTO') return 'richiesto';
   if (isAdmin(me.roles)) return 'admin';
   return null;
 }
