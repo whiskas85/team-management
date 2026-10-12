@@ -9,7 +9,12 @@ import { VERSIONE_PRIVACY } from '@/lib/gdpr';
 // letta come mezzanotte UTC, a est di Greenwich, diventa il giorno prima
 import { data } from '@/lib/form';
 
-export type StatoForm = { errore?: string; ok?: string };
+export type StatoForm = {
+  errore?: string;
+  ok?: string;
+  /** Registrazione fermata: la persona c'è già, e l'errore porta all'accesso. */
+  giaRegistrato?: boolean;
+};
 
 const testo = (fd: FormData, k: string) => (fd.get(k)?.toString() ?? '').trim();
 const flag = (fd: FormData, k: string) => {
@@ -133,7 +138,25 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
   }
 
   const esistente = await prisma.user.findUnique({ where: { email } });
-  if (esistente) return { errore: 'Esiste già un account con questa email.' };
+  if (esistente) {
+    return {
+      errore: 'Esiste già un account con questa email: accedi con quello.',
+      giaRegistrato: true,
+    };
+  }
+
+  // Stesso nome e stesso cognome: è quasi sempre la stessa persona che si
+  // registra una seconda volta (un'altra email, il telefono nuovo), e due
+  // account vogliono dire risposte, quote e certificati divisi a metà. Si
+  // ferma qui e la si manda ad accedere col suo. Un omonimo vero lo crea chi
+  // gestisce i nuovi, a mano.
+  const omonimo = await stessaPersona(nome, cognome);
+  if (omonimo) {
+    return {
+      errore: `Risulti già registrato come ${omonimo}: accedi con il tuo account invece di crearne un altro. Se non ricordi la password, chiedi a chi segue la squadra un link di accesso.`,
+      giaRegistrato: true,
+    };
+  }
 
   // il callsign serve anche per entrare: due uguali e l'accesso diventa ambiguo
   if (callsign) {
@@ -228,4 +251,32 @@ export async function entraConGettone(fd: FormData): Promise<void> {
 export async function esci() {
   await destroySession();
   redirect('/login');
+}
+
+/** Nome e cognome confrontati come li scriverebbe una persona: senza maiuscole, accenti, spazi doppi. */
+const normale = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[’']/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+/** C'è già qualcuno con questo nome e cognome? Ne restituisce il nome com'è scritto. */
+async function stessaPersona(nome: string, cognome: string): Promise<string | null> {
+  const candidati = await prisma.user.findMany({
+    where: {
+      cognome: { equals: cognome.trim(), mode: 'insensitive' },
+    },
+    select: { nome: true, cognome: true },
+  });
+  // il filtro del database non conosce gli accenti: il confronto vero si fa qui
+  const n = normale(nome);
+  const c = normale(cognome);
+  const tutti = candidati.length
+    ? candidati
+    : await prisma.user.findMany({ select: { nome: true, cognome: true } });
+  const trovato = tutti.find((u) => normale(u.nome) === n && normale(u.cognome) === c);
+  return trovato ? `${trovato.nome} ${trovato.cognome}` : null;
 }

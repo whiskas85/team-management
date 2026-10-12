@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.45.0 — 12 ottobre 2026
+
+### Nuovo
+
+- **Posta** (Comando → Posta): si collega il server da cui il gestionale
+  manda le email. Per una casella **Aruba** bastano indirizzo e password
+  (smtps.aruba.it, porta 465 con SSL, già scritti); va bene anche un altro
+  fornitore SMTP. Salvando si prova subito il collegamento, e «Mandami
+  un'email di prova» dice se arriva davvero. La password si tiene cifrata.
+
+### Cambiato
+
+- **Registrazione:** chi si registra con un nome e cognome che esistono già
+  (senza badare a maiuscole, accenti e spazi) viene fermato e mandato ad
+  accedere con il suo account, invece di crearne un secondo. Lo stesso per
+  un'email già usata. Un omonimo vero lo crea a mano chi segue i nuovi.
+
 ## 3.44.0 — 11 ottobre 2026
 
 ### Nuovo

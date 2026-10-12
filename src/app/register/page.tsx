@@ -28,6 +28,11 @@ export default function RegisterPage() {
           {stato.errore && (
             <div className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
               {stato.errore}
+              {stato.giaRegistrato && (
+                <Link href="/login" className="mt-2 block font-medium underline">
+                  Vai all’accesso →
+                </Link>
+              )}
             </div>
           )}
 

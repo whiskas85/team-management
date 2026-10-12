@@ -745,6 +745,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/metodi', label: 'Metodi di pagamento', icona: 'incassa', gruppo: 'comando' },
       // massimali e franchigie della polizza prova: si leggono dentro ogni polizza
       { href: '/admin/info-polizza', label: 'Info polizza', icona: 'scudo', gruppo: 'comando' },
+      // la casella da cui partono le email (Aruba o altro server SMTP)
+      { href: '/admin/posta', label: 'Posta', icona: 'email', gruppo: 'comando' },
       { href: '/admin/statistiche', label: 'Statistiche', icona: 'grafici', gruppo: 'comando' },
       // cosa è cambiato in ogni versione: il registro delle modifiche, formattato
       { href: '/admin/novita', label: 'Novità', icona: 'avvisi', gruppo: 'comando' },

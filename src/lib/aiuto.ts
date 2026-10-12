@@ -289,6 +289,20 @@ export const AIUTO: VoceAiuto[] = [
     parole: 'interessati lead rubrica sito',
   },
   {
+    percorso: '/admin/posta',
+    chiave: 'posta',
+    area: 'Comando',
+    titolo: 'Posta',
+    cosa: 'Il server da cui il gestionale manda le email: la casella della squadra, per esempio su Aruba.',
+    perChi: 'Admin',
+    passi: [
+      { titolo: 'Collegare Aruba', testo: 'Scrivi la casella (l’indirizzo intero, es. info@tuodominio.it) e la sua password: server smtps.aruba.it, porta 465 e SSL sono già scritti. [[p:salva|Salva e prova il collegamento]] controlla subito che il server accetti utente e password, e se no dice perché.' },
+      { titolo: 'Altri fornitori', testo: 'Cerca «SMTP» nelle istruzioni del tuo fornitore: server, porta (465 con SSL, o 587 senza) e le credenziali della casella. Mittente e nome del mittente sono quelli che vede chi riceve.' },
+      { titolo: 'Prova e scollega', testo: '[[p:email|Mandami un’email di prova]] manda un’email al tuo indirizzo: se arriva (guarda anche nello spam), è tutto a posto. [[g:elimina|Scollega]] toglie il server e cancella le credenziali. La password si salva cifrata e non si rimostra.' },
+    ],
+    parole: 'email mail smtp aruba posta server casella mittente',
+  },
+  {
     percorso: '/admin/squadra',
     chiave: 'mia-squadra',
     area: 'Squadra',

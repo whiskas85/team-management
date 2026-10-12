@@ -3152,3 +3152,24 @@ model SpesaViaggio {
 
   @@index([macchinaId])
 }
+
+/// Il server di posta da cui il gestionale manda le email: uno solo, quello
+/// della squadra (per esempio la casella su Aruba). La password torna in
+/// chiaro solo per collegarsi: si tiene cifrata (lib/segreti).
+model ServerPosta {
+  id              String    @id @default("unico")
+  host            String
+  porta           Int       @default(465)
+  /// SSL dall'inizio (porta 465). Spento: STARTTLS sulla 587.
+  sicuro          Boolean   @default(true)
+  utente          String
+  passwordCifrata String
+  /// L'indirizzo che compare come mittente: di solito la casella stessa.
+  mittente        String
+  nomeMittente    String?
+  attivo          Boolean   @default(true)
+  /// L'ultima prova di collegamento, e com'è andata (vuoto: bene).
+  provatoIl       DateTime?
+  erroreProva     String?
+  aggiornatoIl    DateTime  @updatedAt
+}
