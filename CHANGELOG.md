@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.46.0 — 12 ottobre 2026
+
+### Nuovo
+
+- **Password dimenticata?** Dalla pagina di accesso si scrive email, callsign
+  o telefono e arriva un'email con un link che fa entrare una volta sola e
+  vale un'ora: appena dentro si sceglie una password nuova. La risposta è la
+  stessa che l'account esista o no (la pagina non dice chi è iscritto), e una
+  richiesta ogni due minuti basta. Serve un server di posta collegato.
+
+### Cambiato
+
+- **Posta per qualsiasi fornitore:** si sceglie il fornitore della casella —
+  Aruba, Gmail / Google Workspace, Outlook / Microsoft 365, Libero, Yahoo,
+  iCloud — e server, porta e SSL si scrivono da soli, con la nota di quello
+  che si sbaglia sempre (la «password per le app» di Gmail e Yahoo). Con
+  «Altro» si scrive tutto a mano: va bene qualsiasi server SMTP.
+
 ## 3.45.0 — 12 ottobre 2026
 
 ### Nuovo

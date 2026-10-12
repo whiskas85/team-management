@@ -113,6 +113,16 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
         </Link>
       </div>
 
+      {/* la password dimenticata: un link per entrare, per email */}
+      <p className="login-terminale mt-3 text-center text-[0.85rem] tracking-[0.1em] sm:text-[0.95rem]">
+        <Link
+          href="/recupera"
+          className="text-nvg/75 underline-offset-4 hover:text-nvg hover:underline"
+        >
+          &gt; PASSWORD DIMENTICATA?
+        </Link>
+      </p>
+
       {/* si accendono una alla volta, come un terminale che si collega; chi ha
           chiesto meno animazioni le trova già accese */}
       <div className="login-terminale mt-[clamp(0.5rem,1.5dvh,1.5rem)] space-y-0.5 text-center text-[clamp(0.7rem,2.3vw,1.02rem)] tracking-[0.08em] text-nvg/45 sm:space-y-2 sm:tracking-[0.12em]">

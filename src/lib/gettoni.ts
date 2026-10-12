@@ -29,11 +29,17 @@ function chiave(): string {
 const impronta = (gettone: string) => createHmac('sha256', chiave()).update(gettone).digest('hex');
 
 /** Genera un gettone, ne salva l'impronta e restituisce quello in chiaro: è l'unica volta che si vede. */
-export async function creaGettone(userId: string, creatoDaId?: string): Promise<string> {
+export async function creaGettone(
+  userId: string,
+  creatoDaId?: string,
+  /** Quanto vale, in minuti; senza, i giorni di sempre. Il recupero via email vale un'ora. */
+  minuti?: number,
+): Promise<string> {
   const gettone = randomBytes(24).toString('base64url');
 
   const scadeIl = new Date();
-  scadeIl.setDate(scadeIl.getDate() + GIORNI_VALIDI);
+  if (minuti) scadeIl.setMinutes(scadeIl.getMinutes() + minuti);
+  else scadeIl.setDate(scadeIl.getDate() + GIORNI_VALIDI);
 
   // I gettoni vecchi di questa persona non valgono più: chi riceve il link
   // nuovo è l'unico che deve poter entrare, e un reset fatto due volte non

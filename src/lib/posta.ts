@@ -24,8 +24,64 @@ export type DatiServer = {
   nomeMittente: string | null;
 };
 
-/** I dati di Aruba, già pronti: manca solo la casella. */
-export const ARUBA = { host: 'smtps.aruba.it', porta: 465, sicuro: true } as const;
+/**
+ * I fornitori più comuni, coi dati del loro server già pronti: manca solo la
+ * casella. Per gli altri si scrivono a mano, dalle istruzioni «SMTP» del
+ * fornitore. La nota dice quello che si sbaglia sempre.
+ */
+export const FORNITORI = [
+  {
+    id: 'aruba',
+    nome: 'Aruba',
+    host: 'smtps.aruba.it',
+    porta: 465,
+    sicuro: true,
+    nota: 'Utente: l’indirizzo email intero. Password: quella della casella.',
+  },
+  {
+    id: 'gmail',
+    nome: 'Gmail / Google Workspace',
+    host: 'smtp.gmail.com',
+    porta: 465,
+    sicuro: true,
+    nota: 'Serve una «password per le app» (account Google → Sicurezza, con la verifica in due passaggi attiva): la password normale non funziona.',
+  },
+  {
+    id: 'microsoft',
+    nome: 'Outlook / Microsoft 365',
+    host: 'smtp.office365.com',
+    porta: 587,
+    sicuro: false,
+    nota: 'Porta 587 senza SSL (passa a TLS da sola). Microsoft sta spegnendo l’accesso con utente e password: su molti account va riattivato «SMTP autenticato» dall’amministratore, o non funziona.',
+  },
+  {
+    id: 'libero',
+    nome: 'Libero',
+    host: 'smtp.libero.it',
+    porta: 465,
+    sicuro: true,
+    nota: 'Utente: l’indirizzo email intero.',
+  },
+  {
+    id: 'yahoo',
+    nome: 'Yahoo',
+    host: 'smtp.mail.yahoo.com',
+    porta: 465,
+    sicuro: true,
+    nota: 'Serve una «password per le app» generata dalle impostazioni di sicurezza di Yahoo.',
+  },
+  {
+    id: 'icloud',
+    nome: 'iCloud',
+    host: 'smtp.mail.me.com',
+    porta: 587,
+    sicuro: false,
+    nota: 'Serve una «password specifica per le app» dal sito dell’Apple ID.',
+  },
+] as const;
+
+/** I dati di Aruba: quelli proposti finché non si sceglie altro. */
+export const ARUBA = FORNITORI[0];
 
 const trasporto = (s: DatiServer) =>
   nodemailer.createTransport({

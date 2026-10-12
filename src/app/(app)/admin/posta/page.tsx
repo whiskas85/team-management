@@ -2,7 +2,8 @@ import { requirePermesso } from '@/lib/auth';
 import { isAdmin } from '@/lib/domain';
 import { prisma } from '@/lib/db';
 import { fmtDateTime } from '@/lib/format';
-import { ARUBA } from '@/lib/posta';
+import { ARUBA, FORNITORI } from '@/lib/posta';
+import { SceltaFornitorePosta } from '@/components/SceltaFornitorePosta';
 import { Badge, Campo, Intestazione } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { Invia } from '@/components/Bottone';
@@ -26,7 +27,7 @@ export default async function PostaPage() {
     <>
       <Intestazione
         titolo="Posta"
-        sottotitolo="Il server da cui il gestionale manda le email: la casella della squadra"
+        sottotitolo="Il server da cui il gestionale manda le email (il recupero della password, per ora): la casella della squadra"
       />
 
       {s && (
@@ -73,11 +74,16 @@ export default async function PostaPage() {
       <div className="card">
         <p className="titolo-sezione mb-1">{s ? 'Cambia i dati' : 'Collega il server'}</p>
         <p className="mb-4 text-xs text-muted">
-          Per una casella Aruba bastano indirizzo e password: server, porta e SSL sono già scritti.
-          Per un altro fornitore cerca «SMTP» nelle sue istruzioni.
+          Scegli il fornitore della casella: server, porta e SSL si scrivono da soli, e bastano
+          indirizzo e password. Va bene qualsiasi fornitore che offra l’invio SMTP: con «Altro» i
+          dati si scrivono a mano.
         </p>
         <FormAzione azione={salvaServerPosta} restaAperto>
           <div className="grid gap-4 sm:grid-cols-2">
+            <SceltaFornitorePosta
+              fornitori={FORNITORI}
+              iniziale={s ? (FORNITORI.find((f) => f.host === s.host)?.id ?? 'altro') : ARUBA.id}
+            />
             <Campo label="Casella (utente) *">
               <input
                 name="utente"
