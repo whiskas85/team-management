@@ -34,6 +34,9 @@ import {
 } from '@/lib/certificato';
 
 const FILTRI = {
+  // La vista d'ingresso: quello che chiede di fare qualcosa — da vagliare,
+  // scaduti, in scadenza. Se non c'è niente, i prossimi a scadere.
+  nota: 'Da guardare',
   attesa: 'Da vagliare',
   scadenza: 'In scadenza',
   scaduti: 'Scaduti',
@@ -53,6 +56,13 @@ function condizione(filtro: Filtro) {
   const ora = new Date();
   const limite = new Date(Date.now() + GIORNI_PREAVVISO_SCADENZA * 86400000);
   switch (filtro) {
+    case 'nota':
+      return {
+        OR: [
+          { status: 'IN_ATTESA' as const },
+          { status: { in: ['VALIDO' as const, 'SCADUTO' as const] }, scadeIl: { lte: limite } },
+        ],
+      };
     case 'attesa':
       return { status: 'IN_ATTESA' as const };
     case 'scadenza':
@@ -115,7 +125,7 @@ export default async function CertificatiPage({
     );
   }
 
-  const filtro = (Object.keys(FILTRI).includes(sp.filtro ?? '') ? sp.filtro : 'attesa') as Filtro;
+  const filtro = (Object.keys(FILTRI).includes(sp.filtro ?? '') ? sp.filtro : 'nota') as Filtro;
 
   // Chi in rosa non ha **nessun** certificato caricato. Si conta sempre, anche
   // guardando un'altra vista: è il numero che nessuno andrebbe a cercare, e
@@ -128,7 +138,7 @@ export default async function CertificatiPage({
     certificates: { none: {} },
   };
 
-  const [certificati, mancanti, operatori, inAttesa] = await Promise.all([
+  const [trovati, mancanti, operatori, inAttesa, ultimeScadenze] = await Promise.all([
     filtro === 'mancanti'
       ? []
       : prisma.medicalCertificate.findMany({
@@ -145,7 +155,47 @@ export default async function CertificatiPage({
     }),
     elencoOperatori(true),
     prisma.medicalCertificate.count({ where: { status: 'IN_ATTESA' } }),
+    // la scadenza più lontana fra i validi di ognuno: dice chi ha già rinnovato
+    filtro === 'nota'
+      ? prisma.medicalCertificate.groupBy({
+          by: ['userId'],
+          where: { status: 'VALIDO' },
+          _max: { scadeIl: true },
+        })
+      : [],
   ]);
+
+  /*
+   * «Da guardare»: uno scaduto o in scadenza di chi ha già il nuovo non è
+   * degno di nota — è storia. Restano quelli da vagliare e, per ognuno,
+   * l'ultimo certificato se è scaduto o sta per scadere. I da vagliare in
+   * cima, poi per scadenza.
+   */
+  let certificati = trovati;
+  let prossimi = false;
+  if (filtro === 'nota') {
+    const ultima = new Map(ultimeScadenze.map((u) => [u.userId, u._max.scadeIl?.getTime() ?? 0]));
+    certificati = trovati
+      .filter(
+        (c) =>
+          c.status === 'IN_ATTESA' || !c.scadeIl || (ultima.get(c.userId) ?? 0) <= c.scadeIl.getTime(),
+      )
+      .sort(
+        (a, b) =>
+          Number(b.status === 'IN_ATTESA') - Number(a.status === 'IN_ATTESA') ||
+          (a.scadeIl?.getTime() ?? 0) - (b.scadeIl?.getTime() ?? 0),
+      );
+    // niente da sistemare: si guarda avanti, ai prossimi a scadere
+    if (certificati.length === 0) {
+      prossimi = true;
+      certificati = await prisma.medicalCertificate.findMany({
+        where: { status: 'VALIDO', scadeIl: { gte: new Date() } },
+        orderBy: { scadeIl: 'asc' },
+        take: 15,
+        include: { user: { select: { id: true, nome: true, cognome: true, callsign: true } } },
+      });
+    }
+  }
 
   return (
     <>
@@ -205,6 +255,11 @@ export default async function CertificatiPage({
             {FILTRI[f]}
             {/* quanti sono si legge senza entrarci: un elenco che non si apre
                 non avvisa nessuno */}
+            {f === 'nota' && filtro === 'nota' && !prossimi && certificati.length > 0 && (
+              <span className="num ml-1.5 rounded-full bg-warn/20 px-1.5 text-[10px] text-warn">
+                {certificati.length}
+              </span>
+            )}
             {f === 'mancanti' && mancanti.length > 0 && (
               <span className="num ml-1.5 rounded-full bg-danger/20 px-1.5 text-[10px] text-danger">
                 {mancanti.length}
@@ -217,7 +272,7 @@ export default async function CertificatiPage({
             la fa con i filtri qui accanto, e il pulsante porta via esattamente
             quello che sta guardando. Sui «senza certificato» non compare: non
             c'è niente da portare via, è un elenco di persone, non di file. */}
-        {filtro !== 'mancanti' && certificati.length > 0 && (
+        {filtro !== 'mancanti' && filtro !== 'nota' && certificati.length > 0 && (
           <a
             href={`/api/certificati/zip?filtro=${filtro}`}
             className="btn-ghost btn-sm ml-auto"
@@ -303,6 +358,19 @@ export default async function CertificatiPage({
       ) : certificati.length === 0 ? (
         <Vuoto testo="Nessun certificato in questa vista." />
       ) : (
+        <>
+        {filtro === 'nota' &&
+          (prossimi ? (
+            <div className="mb-4 rounded-md border border-nvg/40 bg-nvg/10 px-4 py-3 text-sm text-nvg">
+              Tutto a posto: niente da vagliare, nessuno scaduto o in scadenza nei prossimi{' '}
+              {GIORNI_PREAVVISO_SCADENZA} giorni. Questi sono i prossimi a scadere.
+            </div>
+          ) : (
+            <p className="mb-3 text-xs text-muted">
+              Da vagliare, scaduti e in scadenza nei prossimi {GIORNI_PREAVVISO_SCADENZA} giorni.
+              Chi ha già rinnovato non compare.
+            </p>
+          ))}
         <Elenco
           cards={certificati.map((c) => {
             const stato = statoEffettivo(c);
@@ -356,8 +424,12 @@ export default async function CertificatiPage({
                       <td className="whitespace-nowrap text-muted num">{fmtDate(c.rilasciatoIl)}</td>
                       <td className="whitespace-nowrap num">
                         {fmtDate(c.scadeIl)}
-                        {stato === 'VALIDO' && g !== null && g <= GIORNI_PREAVVISO_SCADENZA && (
-                          <span className="block text-[11px] text-warn">fra {g} giorni</span>
+                        {stato === 'VALIDO' && g !== null && (prossimi || g <= GIORNI_PREAVVISO_SCADENZA) && (
+                          <span
+                            className={`block text-[11px] ${g <= GIORNI_PREAVVISO_SCADENZA ? 'text-warn' : 'text-muted'}`}
+                          >
+                            fra {g} giorni
+                          </span>
                         )}
                       </td>
                       <td>
@@ -373,6 +445,7 @@ export default async function CertificatiPage({
             </table>
           }
         />
+        </>
       )}
     </>
   );

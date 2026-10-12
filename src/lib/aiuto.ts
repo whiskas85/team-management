@@ -572,7 +572,7 @@ export const AIUTO: VoceAiuto[] = [
     cosa: 'I certificati di tutti: da vagliare, in scadenza, scaduti, e chi non l’ha mai caricato.',
     perChi: 'Amministrazione',
     passi: [
-      { titolo: 'I filtri', testo: 'Da vagliare, In scadenza, Scaduti, Senza certificato, Validi, Tutti.' },
+      { titolo: 'I filtri', testo: 'Si apre su **Da guardare**: i certificati da vagliare, gli scaduti e quelli in scadenza, senza chi ha già rinnovato. Se non c’è niente, lo dice e mostra i prossimi a scadere. Poi Da vagliare, In scadenza, Scaduti, Senza certificato, Validi, Tutti.' },
       { titolo: 'Vagliare', testo: '[[g:apri|Apri allegato]] per guardarlo, poi [[p:approva|Approva]] o [[d:rifiuta|Rifiuta]] col motivo.' },
       { titolo: 'Caricare per qualcuno', testo: '[[p:carica|Carica per un operatore]] se il certificato te l’hanno dato a mano. [[g:scarica|Scarica tutti]] prende i file in un archivio solo.' },
       { titolo: 'Le schede', testo: 'In cima: **Certificati** (l’elenco), **Mail** (le email automatiche), per l’admin **WhatsApp** (i messaggi del certificato in scadenza) e **Log**.' },

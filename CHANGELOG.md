@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.50.0 — 12 ottobre 2026
+
+### Cambiato
+
+- **Certificati medici si apre su «Da guardare»:** i certificati da
+  vagliare, gli scaduti e quelli in scadenza, in un solo elenco (prima i da
+  vagliare, poi per scadenza). Chi ha già caricato e fatto approvare il nuovo
+  non compare. Se non c'è niente da sistemare la pagina lo dice e mostra i
+  prossimi certificati a scadere.
+
 ## 3.49.0 — 12 ottobre 2026
 
 ### Nuovo
