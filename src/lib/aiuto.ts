@@ -291,7 +291,7 @@ export const AIUTO: VoceAiuto[] = [
   {
     percorso: '/admin/posta',
     chiave: 'posta',
-    area: 'Comando',
+    area: 'Comunicazione',
     titolo: 'Posta',
     cosa: 'Il server da cui il gestionale manda le email: la casella della squadra, per esempio su Aruba.',
     perChi: 'Admin',
