@@ -2,6 +2,8 @@ import { prisma } from './db';
 import { avvisa, type Avviso } from './push';
 import { perWhatsapp } from './telefono';
 import { inviaWhatsapp } from './whatsapp';
+import { esc, indirizzoPubblico, inviaEmail, pulsanteEmail } from './posta';
+import { emailVerificata } from './verifica-email';
 
 /**
  * Come si avvisa una persona: **una porta sola, e la sceglie il gestionale**.
@@ -22,9 +24,14 @@ import { inviaWhatsapp } from './whatsapp';
  * gestionale, portano dove serve con un tocco, e non dipendono da un ponte che
  * qualcuno deve tenere collegato. WhatsApp è la rete di sicurezza, non la
  * prima scelta.
+ *
+ * **L'email è l'ultima rete**: per chi non ha le notifiche e non è raggiungibile
+ * su WhatsApp (niente numero, ponte scollegato, messaggio non partito). Solo a
+ * un indirizzo verificato (lib/verifica-email), e solo se la squadra ha
+ * collegato un server di posta.
  */
 
-export type EsitoAvviso = 'push' | 'whatsapp' | 'niente';
+export type EsitoAvviso = 'push' | 'whatsapp' | 'email' | 'niente';
 
 export async function avvisaPersona(
   userId: string,
@@ -45,6 +52,8 @@ export async function avvisaPersona(
     where: { id: userId },
     select: {
       telefono: true,
+      email: true,
+      emailVerificata: true,
       // basta una sola iscrizione: chi ha il telefono e il computer di casa
       // riceve su tutti e due, ed è quello che si aspetta
       _count: { select: { iscrizioniPush: true } },
@@ -68,19 +77,44 @@ export async function avvisaPersona(
   }
 
   const numero = perWhatsapp(persona.telefono);
-  if (!numero || !avviso.whatsapp) return 'niente';
+  if (numero && avviso.whatsapp) {
+    // Il ponte può essere scollegato, il numero può non avere WhatsApp: un
+    // avviso è un di più, e non deve far fallire il gesto che l'ha generato.
+    const esito = await inviaWhatsapp(numero, avviso.whatsapp).catch(
+      () => ({ ok: false }) as const,
+    );
+    if (esito.ok) return 'whatsapp';
+  }
 
-  // Il ponte può essere scollegato, il numero può non avere WhatsApp: un
-  // avviso è un di più, e non deve far fallire il gesto che l'ha generato.
-  const esito = await inviaWhatsapp(numero, avviso.whatsapp).catch(
-    () => ({ ok: false }) as const,
-  );
-  return esito.ok ? 'whatsapp' : 'niente';
+  if (!emailVerificata(persona)) return 'niente';
+  return (await perEmail(persona.email!, avviso)) ? 'email' : 'niente';
+}
+
+/**
+ * L'avviso per email: il testo lungo, quello scritto per WhatsApp, se c'è
+ * (un'email come un messaggio deve bastare a sé stessa); se no titolo e testo
+ * della notifica. In fondo il link a dove porterebbe il tocco.
+ */
+async function perEmail(a: string, avviso: Avviso & { whatsapp?: string }) {
+  const corpo = avviso.whatsapp ?? avviso.testo;
+  const base = await indirizzoPubblico();
+  const link = base && avviso.url.startsWith('/') ? base + avviso.url : null;
+  const esito = await inviaEmail({
+    a,
+    oggetto: avviso.titolo,
+    testo: link ? `${corpo}\n\nApri nel gestionale: ${link}` : corpo,
+    html:
+      `<p style="white-space:pre-wrap">${esc(corpo)}</p>` +
+      (link ? pulsanteEmail(link, 'Apri nel gestionale') : ''),
+  }).catch((e) => ({ errore: String(e) }));
+  if (esito.errore) console.error('[avvisi] email non partita:', esito.errore);
+  return !esito.errore;
 }
 
 /** Come si racconta a voce dove è finito l'avviso: «gliel'ho detto su…». */
 export const doveArrivato: Record<EsitoAvviso, string | null> = {
   push: 'Gli è arrivata la notifica.',
   whatsapp: 'Gli ho mandato i dati su WhatsApp.',
+  email: 'Gli ho mandato un’email.',
   niente: null,
 };

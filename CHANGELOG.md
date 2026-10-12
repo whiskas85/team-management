@@ -5,6 +5,28 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.47.0 — 12 ottobre 2026
+
+### Nuovo
+
+- **Verifica dell'email:** chi si iscrive riceve un'email con un link per
+  confermare la sua casella (si conferma con un pulsante, così i filtri
+  antispam che aprono i link non la danno per buona da soli). Nel profilo,
+  **La mia email** dice se è verificata e se serve rimanda il link, che vale
+  un giorno ed è legato a quell'indirizzo.
+- **Gli avvisi anche per email:** chi non ha le notifiche e non è
+  raggiungibile su WhatsApp (niente numero, ponte scollegato, messaggio non
+  partito) riceve l'avviso per email, con il link a dove porta. Solo agli
+  indirizzi verificati.
+- **Link di accesso per email** dalla scheda di una persona (admin): la fa
+  entrare una volta, vale un giorno, e appena dentro sceglie una password
+  nuova. La password attuale non cambia.
+
+### Corretto
+
+- L'attivazione della polizza diceva «Gli ho mandato i dati su WhatsApp»
+  anche quando non era partito niente.
+
 ## 3.46.0 — 12 ottobre 2026
 
 ### Nuovo

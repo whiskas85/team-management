@@ -194,10 +194,11 @@ export const AIUTO: VoceAiuto[] = [
       { titolo: 'I dati', testo: 'Ogni sezione si apre toccandone il titolo e ha il suo pulsante: [[p:salva|Salva anagrafica]], [[p:salva|Salva recapiti]], [[p:salva|Salva dati di emergenza]]. Quelle ancora incomplete si aprono da sole.' },
       { titolo: 'Emergenze e dati sanitari', testo: 'Chi avvisare, il suo telefono, gruppo sanguigno, allergie e terapie: li legge solo chi deve soccorrerti.' },
       { titolo: 'Notifiche', testo: '**Notifiche sul dispositivo**: [[p|Attiva le notifiche qui]] le accende su questo telefono o computer, [[g:whatsapp|Mandami una prova]] verifica che arrivino, [[g|Disattiva]] le spegne.' },
+      { titolo: 'La mia email', testo: 'Dice se la tua email è [[b:ok|verificata]]. Se non lo è, [[p:email|Mandami l’email di verifica]] ti manda un link: aprilo e premi «Confermo». Con l’email verificata, se non hai le notifiche né WhatsApp, gli avvisi importanti ti arrivano lì; e se dimentichi la password, il link per entrare arriva comunque all’email dell’account.' },
       { titolo: 'Aspetto, privacy, password', testo: '**Aspetto e accessibilità** sceglie il tema (vedi «Chiaro, scuro e accessibilità»). **Privacy e consensi** per rileggere l’informativa e cambiare i consensi; **Cambia password** chiede quella attuale.' },
       { titolo: 'Partecipazioni', testo: 'In fondo, le attività dell’anno a cui hai partecipato.' },
     ],
-    parole: 'account dati personali password foto tema accessibilità notifiche consensi privacy anagrafica recapiti',
+    parole: 'account dati personali email verifica password foto tema accessibilità notifiche consensi privacy anagrafica recapiti',
   },
   {
     chiave: 'tema',
@@ -298,7 +299,7 @@ export const AIUTO: VoceAiuto[] = [
     passi: [
       { titolo: 'Collegare la casella', testo: 'Scegli il **fornitore** (Aruba, Gmail, Outlook, Libero, Yahoo, iCloud): server, porta e SSL si scrivono da soli, e sotto c’è quello che con lui si sbaglia sempre — Gmail e Yahoo vogliono una «password per le app», non quella normale. Poi scrivi la casella (l’indirizzo intero) e la sua password. [[p:salva|Salva e prova il collegamento]] controlla subito che il server accetti utente e password, e se no dice perché.' },
       { titolo: 'Altri fornitori', testo: 'Con **Altro** scrivi tu server e porta: cerca «SMTP» nelle istruzioni del tuo fornitore (porta 465 con SSL, o 587 senza). Mittente e nome del mittente sono quelli che vede chi riceve.' },
-      { titolo: 'A cosa serve', testo: 'Per ora al **recupero della password**: dalla pagina di accesso, «Password dimenticata?» manda un’email con un link che vale un’ora e fa scegliere una password nuova. Senza un server collegato, quella pagina dice di chiedere un link a chi segue la squadra.' },
+      { titolo: 'A cosa serve', testo: 'Al **recupero della password**: dalla pagina di accesso, «Password dimenticata?» manda un’email con un link che vale un’ora e fa scegliere una password nuova (senza server, quella pagina dice di chiedere un link a chi segue la squadra). Alla **verifica dell’email**: chi si iscrive riceve un link per confermare la sua casella, e dal profilo se lo può far rimandare. Agli **avvisi**: chi non ha le notifiche e non è raggiungibile su WhatsApp li riceve per email, se l’ha verificata. Dalla scheda di una persona l’admin può anche [[g:email|Mandare il link di accesso per email]].' },
       { titolo: 'Prova e scollega', testo: '[[p:email|Mandami un’email di prova]] manda un’email al tuo indirizzo: se arriva (guarda anche nello spam), è tutto a posto. [[g:elimina|Scollega]] toglie il server e cancella le credenziali. La password si salva cifrata e non si rimostra.' },
     ],
     parole: 'email mail smtp aruba posta server casella mittente',

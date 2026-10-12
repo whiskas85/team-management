@@ -282,7 +282,7 @@ export async function emettiGiornaliera(_prev: StatoForm, fd: FormData): Promise
   return {
     ok:
       `${utente.nome} ${utente.cognome} è coperto per ${etichettaGiorno(giorno.chiave)}: giornaliera ${codice}.` +
-      (avvisato ? ' Gli ho mandato i dati su WhatsApp.' : ''),
+      (doveArrivato[avvisato] ? ` ${doveArrivato[avvisato]}` : ''),
   };
 }
 

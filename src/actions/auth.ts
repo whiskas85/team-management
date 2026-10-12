@@ -207,6 +207,18 @@ export async function registrati(_prev: StatoForm, fd: FormData): Promise<StatoF
       /* un avviso mancato non deve far fallire una registrazione riuscita */
     });
 
+  // L'email di verifica parte da sola, se la squadra ha un server di posta:
+  // senza aspettarla, perché un server lento non deve fermare l'iscrizione.
+  // L'indirizzo si prende adesso, finché c'è la richiesta a dirlo.
+  const posta = await import('@/lib/posta');
+  if (await posta.serverPosta()) {
+    const base = await posta.indirizzoPubblico();
+    const { mandaVerifica } = await import('@/lib/verifica-email');
+    void mandaVerifica(user.id, base)
+      .then((e) => e.errore && console.error('[registrazione] verifica non partita:', e.errore))
+      .catch(() => {});
+  }
+
   await createSession(user.id, flag(fd, 'ricordami'));
   redirect('/in-attesa');
 }

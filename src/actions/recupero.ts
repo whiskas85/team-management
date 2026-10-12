@@ -1,9 +1,8 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { creaGettone } from '@/lib/gettoni';
-import { inviaEmail, serverPosta } from '@/lib/posta';
+import { esc, indirizzoPubblico, inviaEmail, pulsanteEmail, serverPosta } from '@/lib/posta';
 import { marchio } from '@/lib/mia-squadra';
 
 export type StatoRecupero = { errore?: string; ok?: string };
@@ -51,7 +50,7 @@ export async function chiediRecupero(_prev: StatoRecupero, fd: FormData): Promis
   if (recente) return fatto;
 
   const gettone = await creaGettone(user.id, undefined, MINUTI);
-  const link = `${await indirizzo()}/accesso/${gettone}`;
+  const link = `${await indirizzoPubblico()}/accesso/${gettone}`;
   const { nomeGestionale } = await marchio();
 
   const esito = await inviaEmail({
@@ -68,25 +67,11 @@ Appena dentro ti chiederà di scegliere una password nuova.
 Se non sei stato tu, ignora questa email: senza il link non entra nessuno, e la tua password resta quella di prima.`,
     html: `<p>Ciao ${esc(user.nome)},</p>
 <p>hai chiesto di entrare nel gestionale <strong>${esc(nomeGestionale)}</strong> senza la password. Questo link ti fa entrare una volta sola e vale un'ora:</p>
-<p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#39ff14;color:#000;text-decoration:none;border-radius:6px;font-weight:bold">Entra e scegli una password nuova</a></p>
-<p style="font-size:12px;color:#666">Se il pulsante non si apre, copia questo indirizzo nel browser:<br>${link}</p>
+${pulsanteEmail(link, 'Entra e scegli una password nuova')}
 <p style="font-size:12px;color:#666">Se non sei stato tu, ignora questa email: senza il link non entra nessuno, e la tua password resta quella di prima.</p>`,
   });
   if (esito.errore) console.error('[recupero password] email non partita:', esito.errore);
   return fatto;
-}
-
-const esc = (t: string) =>
-  t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-
-/** L'indirizzo pubblico del gestionale: dall'ambiente, o da chi sta chiedendo. */
-async function indirizzo() {
-  const env = process.env.INDIRIZZO_PUBBLICO?.replace(/\/+$/, '');
-  if (env) return env;
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  const protocollo = h.get('x-forwarded-proto') ?? 'https';
-  return `${protocollo}://${host}`;
 }
 
 /** L'account da email, callsign o telefono: come all'accesso. */

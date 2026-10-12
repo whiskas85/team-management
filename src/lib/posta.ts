@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { headers } from 'next/headers';
 import { prisma } from './db';
 import { decifra } from './segreti';
 
@@ -158,3 +159,30 @@ export async function inviaEmail(m: {
     return { errore: spiega(e) };
   }
 }
+
+/** Un testo messo dentro l'html di un'email senza rompere niente. */
+export const esc = (t: string) =>
+  t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+/**
+ * L'indirizzo pubblico del gestionale, per i link nelle email: dall'ambiente,
+ * o da chi sta chiedendo. Vuoto se non si sa (un lavoro notturno, fuori da una
+ * richiesta, senza INDIRIZZO_PUBBLICO).
+ */
+export async function indirizzoPubblico() {
+  const env = process.env.INDIRIZZO_PUBBLICO?.replace(/\/+$/, '');
+  if (env) return env;
+  try {
+    const h = await headers();
+    const host = h.get('x-forwarded-host') ?? h.get('host');
+    if (!host) return '';
+    return `${h.get('x-forwarded-proto') ?? 'https'}://${host}`;
+  } catch {
+    return '';
+  }
+}
+
+/** Un pulsante per le email: i client di posta capiscono solo gli stili in linea. */
+export const pulsanteEmail = (link: string, etichetta: string) =>
+  `<p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#39ff14;color:#000;text-decoration:none;border-radius:6px;font-weight:bold">${esc(etichetta)}</a></p>
+<p style="font-size:12px;color:#666">Se il pulsante non si apre, copia questo indirizzo nel browser:<br>${link}</p>`;

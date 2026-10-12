@@ -29,6 +29,8 @@ import { SceltaAspetto } from '@/components/SceltaAspetto';
 import { MetodiPersonali } from '@/components/MetodiPersonali';
 import { temaSquadra } from '@/lib/tema-server';
 import { eTemaPersonale } from '@/lib/tema';
+import { emailVerificata } from '@/lib/verifica-email';
+import { chiediVerifica } from '@/actions/verifica-email';
 
 function Dato({
   etichetta,
@@ -162,6 +164,12 @@ export default async function ProfiloPage() {
       })
     )._sum.importo ?? 0,
   );
+
+  const verificata = emailVerificata(utente);
+  const postaAttiva = !!(await prisma.serverPosta.findFirst({
+    where: { attivo: true },
+    select: { id: true },
+  }));
 
   return (
     <>
@@ -599,6 +607,37 @@ export default async function ProfiloPage() {
             .
           </p>
         </FormAzione>
+      </Fisarmonica>
+
+      <Fisarmonica
+        titolo={
+          utente.email ? `La mia email · ${verificata ? 'verificata' : 'da verificare'}` : 'La mia email'
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <p>
+            <span className="num">{utente.email ?? 'Nessuna email'}</span>
+            {verificata && utente.emailVerificataIl && (
+              <span className="block text-xs text-muted">
+                Verificata il {fmtDate(utente.emailVerificataIl)}.
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-muted">
+            Un’email verificata serve a due cose: se dimentichi la password ti arriva lì il link per
+            entrare, e se non hai le notifiche né WhatsApp gli avvisi importanti arrivano per email.
+          </p>
+          {utente.email && !verificata && postaAttiva && (
+            <FormAzione azione={chiediVerifica}>
+              <Invia icona="email">Mandami l’email di verifica</Invia>
+            </FormAzione>
+          )}
+          {utente.email && !verificata && !postaAttiva && (
+            <p className="text-xs text-muted">
+              La verifica si potrà fare quando la squadra avrà collegato un server di posta.
+            </p>
+          )}
+        </div>
       </Fisarmonica>
 
       <Fisarmonica titolo="Cambia password">

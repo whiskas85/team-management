@@ -413,6 +413,53 @@ export async function aggiornaAccesso(_prev: StatoForm, fd: FormData): Promise<S
  * Alfabeto senza caratteri che si confondono a voce o a occhio: niente 0/O,
  * 1/l/I, 5/S. La password si detta al telefono, quindi deve essere dettabile.
  */
+/**
+ * Il link di accesso mandato per email, dall'admin: per chi ha perso la
+ * password e non ha WhatsApp. Non tocca la password: il link fa entrare una
+ * volta, vale un giorno, e appena dentro si sceglie una password nuova.
+ */
+export async function mandaAccessoEmail(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!isAdmin(me.roles)) return { errore: 'Solo l’admin può mandare un link di accesso.' };
+
+  const userId = str(fd, 'userId');
+  const utente = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { nome: true, cognome: true, email: true, stato: true },
+  });
+  if (!utente) return { errore: 'Operatore non trovato.' };
+  if (!utente.email) return { errore: 'Non ha un’email.' };
+  if (utente.stato === 'DISABILITATO') return { errore: 'L’account è disabilitato.' };
+
+  const posta = await import('@/lib/posta');
+  if (!(await posta.serverPosta())) return { errore: 'Non c’è un server di posta collegato.' };
+
+  const { creaGettone } = await import('@/lib/gettoni');
+  const { marchio } = await import('@/lib/mia-squadra');
+  const gettone = await creaGettone(userId, me.id, 24 * 60);
+  const link = `${await posta.indirizzoPubblico()}/accesso/${gettone}`;
+  const { nomeGestionale } = await marchio();
+
+  const esito = await posta.inviaEmail({
+    a: utente.email,
+    oggetto: `${nomeGestionale}: il tuo link per entrare`,
+    testo: `Ciao ${utente.nome},
+
+ecco un link per entrare nel gestionale ${nomeGestionale}: ti fa entrare una volta sola e vale un giorno.
+
+${link}
+
+Appena dentro ti chiederà di scegliere una password nuova.`,
+    html: `<p>Ciao ${posta.esc(utente.nome)},</p>
+<p>ecco un link per entrare nel gestionale <strong>${posta.esc(nomeGestionale)}</strong>: ti fa entrare una volta sola e vale un giorno.</p>
+${posta.pulsanteEmail(link, 'Entra e scegli una password')}`,
+  });
+  if (esito.errore) return { errore: `Email non partita: ${esito.errore}` };
+
+  aggiorna(userId);
+  return { ok: `Link mandato a ${utente.email}: vale un giorno e si usa una volta sola.` };
+}
+
 const ALFABETO = 'ABCDEFGHJKLMNPQRTUVWXYZ2346789';
 
 function generaPassword(): string {

@@ -236,6 +236,10 @@ model User {
   rsvps                 EventRsvp[]
   /// Le macchine messe per andare alle attività, da autista.
   macchineGuidate       Macchina[]              @relation("MacchineGuidate")
+  /// L'email che ha confermato aprendo il link di verifica, e quando. Vale
+  /// finché è uguale a `email`: un indirizzo nuovo va verificato di nuovo.
+  emailVerificata       String?
+  emailVerificataIl     DateTime?
   /// Quando ha detto «chi mi porta può sapere dove abito». Vale per tutti i
   /// passaggi da lì in poi, finché non lo toglie dal profilo.
   consensoIndirizzoIl   DateTime?

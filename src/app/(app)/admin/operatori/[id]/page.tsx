@@ -33,8 +33,10 @@ import {
   aggiornaAccesso,
   aggiornaProfilo,
   eliminaOperatore,
+  mandaAccessoEmail,
   resettaPassword,
 } from '@/actions/operatori';
+import { emailVerificata } from '@/lib/verifica-email';
 import { haIncarichi } from '@/lib/domain';
 import { citabili } from '@/lib/note';
 import { BloccoNote, type NotaLetta } from '@/components/Note';
@@ -45,6 +47,9 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
   const me = await requirePermesso(puoVedereOperatori);
   const { id } = await params;
   const admin = isAdmin(me.roles);
+  const postaAttiva =
+    admin &&
+    !!(await prisma.serverPosta.findFirst({ where: { attivo: true }, select: { id: true } }));
   // I soldi di una persona — quanto deve, quanto ha versato, i suoi
   // movimenti — li vede chi tiene la cassa. La scheda la aprono anche
   // amministrazione e team leader, per il certificato e l'iscrizione: i conti
@@ -449,6 +454,20 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
                     Genera una nuova password
                   </Conferma>
                 </FormAzione>
+
+                {utente.email && postaAttiva && (
+                  <FormAzione azione={mandaAccessoEmail}>
+                    <input type="hidden" name="userId" value={utente.id} />
+                    <p className="mb-2 text-xs text-muted">
+                      Oppure gli mandi per email un link che lo fa entrare una volta (vale un
+                      giorno): la password non cambia finché non ne sceglie una lui. Email{' '}
+                      {emailVerificata(utente) ? 'verificata' : 'non ancora verificata'}.
+                    </p>
+                    <Invia icona="email" className="btn-ghost btn-sm">
+                      Manda il link di accesso per email
+                    </Invia>
+                  </FormAzione>
+                )}
 
                 {/* La cancellazione resta qui, in fondo a una sezione chiusa:
                     è l'ultima cosa che si fa a una persona. Il cestino è quello
