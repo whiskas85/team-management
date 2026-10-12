@@ -176,7 +176,15 @@ async function mandaUnaVolta(r: EmailCertificato, c: Certificato) {
   if (a.length === 0) return false;
   try {
     await prisma.invioEmailCertificato.create({
-      data: { regolaId: r.id, certificatoId: c.id, aChi: a.join(', ') },
+      data: {
+        regolaId: r.id,
+        certificatoId: c.id,
+        aChi: a.join(', '),
+        // l'oggetto come l'ha letto chi l'ha ricevuto, per il registro
+        oggetto: riempi(r.oggetto, await valori(c))
+          .replace(/\s+/g, ' ')
+          .trim(),
+      },
     });
   } catch {
     return false; // già mandata

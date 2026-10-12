@@ -24,7 +24,7 @@ import {
   rifiutaCertificato,
 } from '@/actions/certificati';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
-import { BarraSchede, SchedaMail, SchedaWhatsapp } from './schede';
+import { BarraSchede, SchedaLog, SchedaMail, SchedaWhatsapp } from './schede';
 import { CampoFile } from '@/components/CampoFile';
 import {
   ACCETTA_CERTIFICATO,
@@ -71,7 +71,7 @@ function condizione(filtro: Filtro) {
 export default async function CertificatiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtro?: string; scheda?: string }>;
+  searchParams: Promise<{ filtro?: string; scheda?: string; canale?: string; q?: string }>;
 }) {
   const me = await requirePermesso(puoAmministrare);
   const sp = await searchParams;
@@ -82,6 +82,7 @@ export default async function CertificatiPage({
     { chiave: 'certificati', titolo: 'Certificati' },
     { chiave: 'mail', titolo: 'Mail' },
     ...(isAdmin(me.roles) ? [{ chiave: 'whatsapp', titolo: 'WhatsApp' }] : []),
+    { chiave: 'log', titolo: 'Log' },
   ];
   const scheda = schede.some((x) => x.chiave === sp.scheda) ? sp.scheda! : 'certificati';
   const barra = <BarraSchede schede={schede} attiva={scheda} />;
@@ -92,6 +93,15 @@ export default async function CertificatiPage({
         <Intestazione titolo="Certificati medici" sottotitolo="Le email automatiche" />
         {barra}
         <SchedaMail />
+      </>
+    );
+  }
+  if (scheda === 'log') {
+    return (
+      <>
+        <Intestazione titolo="Certificati medici" sottotitolo="Cosa è partito, e a chi" />
+        {barra}
+        <SchedaLog canale={sp.canale} cerca={sp.q} />
       </>
     );
   }

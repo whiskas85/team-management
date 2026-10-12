@@ -5,6 +5,19 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.49.0 — 12 ottobre 2026
+
+### Nuovo
+
+- **Certificati medici → Log:** tutto quello che è partito per i
+  certificati, dal più recente — le email automatiche, i messaggi WhatsApp e
+  gli avvisi di scadenza mandati alla persona, con la porta da cui sono
+  usciti (notifica, WhatsApp, email). Per ognuno quando, di chi è il
+  certificato, a chi è andato, cosa diceva e, se non è partito, perché. Si
+  filtra per tipo e si cerca per persona.
+- Il registro delle email salva l'oggetto così come è arrivato, coi dati
+  della persona al posto dei segnaposto.
+
 ## 3.48.0 — 12 ottobre 2026
 
 ### Nuovo

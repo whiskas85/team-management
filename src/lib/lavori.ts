@@ -229,13 +229,14 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
         ? ` A ${nomi(ripiegate)} partecipi solo con la polizza giornaliera, che si aggiunge alla quota.`
         : '');
 
-    await avvisaPersona(cert.userId, {
-      titolo:
-        tappa === TAPPA_SCADUTO
-          ? 'Certificato medico scaduto'
-          : giorni === 0
-            ? 'Il certificato medico scade oggi'
-            : `Il certificato medico scade fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`,
+    const titolo =
+      tappa === TAPPA_SCADUTO
+        ? 'Certificato medico scaduto'
+        : giorni === 0
+          ? 'Il certificato medico scade oggi'
+          : `Il certificato medico scade fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`;
+    const canale = await avvisaPersona(cert.userId, {
+      titolo,
       testo:
         (tappa === TAPPA_SCADUTO
           ? 'Senza non si scende in campo: prenota la visita e carica il nuovo appena ce l’hai.'
@@ -262,6 +263,10 @@ Prenota la visita adesso: fra il medico e l'approvazione ci vuole qualche giorno
       where: { id: cert.id },
       data: { avvisoScadenzaA: tappa },
     });
+    // nel registro dei certificati: a chi, quando e da che porta
+    await prisma.avvisoCertificato
+      .create({ data: { certificatoId: cert.id, canale, titolo } })
+      .catch(() => null);
     avvisati += 1;
   }
 

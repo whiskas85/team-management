@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { fmtDateTime, nomeCompleto } from '@/lib/format';
 import { QUANDO, SEGNAPOSTO_CERTIFICATO, type Quando } from '@/lib/email-certificati';
 import { gruppiWhatsapp, statoPonte } from '@/lib/whatsapp';
-import { Badge } from '@/components/ui';
+import { Badge, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
 import { BottoneModale } from '@/components/Modale';
 import { AzioneBottone } from '@/components/AzioneBottone';
@@ -281,6 +281,209 @@ export async function SchedaWhatsapp({ meId }: { meId: string }) {
       </div>
 
       <ModelliWhatsapp modelli={modelli} gruppi={gruppi} ordine={['CERTIFICATO_IN_SCADENZA']} />
+    </>
+  );
+}
+
+const CANALI = {
+  tutti: 'Tutti',
+  email: 'Email',
+  whatsapp: 'WhatsApp',
+  notifiche: 'Avvisi automatici',
+} as const;
+type Canale = keyof typeof CANALI;
+
+/** Come si dice la porta da cui è uscito un avviso automatico. */
+const PORTA: Record<string, string> = {
+  push: 'notifica',
+  whatsapp: 'WhatsApp',
+  email: 'email',
+  niente: 'non raggiungibile',
+};
+
+/**
+ * Il registro: tutto quello che è partito per i certificati, a chi e quando.
+ *
+ * Tre fonti messe in fila per data: le email automatiche (approvazione e
+ * scadenza), i messaggi WhatsApp mandati dalla scheda WhatsApp, e gli avvisi
+ * di scadenza che il gestionale manda da solo alla persona — con la porta da
+ * cui sono usciti, notifica, WhatsApp o email.
+ */
+export async function SchedaLog({ canale, cerca }: { canale?: string; cerca?: string }) {
+  const filtro: Canale = canale && canale in CANALI ? (canale as Canale) : 'tutti';
+  const q = cerca?.trim() ?? '';
+  const perNome = q
+    ? {
+        OR: [
+          { nome: { contains: q, mode: 'insensitive' as const } },
+          { cognome: { contains: q, mode: 'insensitive' as const } },
+          { callsign: { contains: q, mode: 'insensitive' as const } },
+        ],
+      }
+    : {};
+  const QUANTI = 200;
+  const vuoto = Promise.resolve([]);
+
+  const [email, whatsapp, avvisi] = await Promise.all([
+    filtro === 'tutti' || filtro === 'email'
+      ? prisma.invioEmailCertificato.findMany({
+          where: q ? { certificato: { user: perNome } } : {},
+          orderBy: { inviatoIl: 'desc' },
+          take: QUANTI,
+          include: {
+            regola: { select: { quando: true, giorni: true, oggetto: true } },
+            certificato: { select: { user: { select: { id: true, nome: true, cognome: true } } } },
+          },
+        })
+      : vuoto,
+    filtro === 'tutti' || filtro === 'whatsapp'
+      ? prisma.messaggioInviato.findMany({
+          where: {
+            scatenante: 'CERTIFICATO_IN_SCADENZA',
+            stato: { not: 'DA_MANDARE' },
+            ...(q ? { user: perNome } : {}),
+          },
+          orderBy: { creatoIl: 'desc' },
+          take: QUANTI,
+          include: { user: { select: { id: true, nome: true, cognome: true } } },
+        })
+      : vuoto,
+    filtro === 'tutti' || filtro === 'notifiche'
+      ? prisma.avvisoCertificato.findMany({
+          where: q ? { certificato: { user: perNome } } : {},
+          orderBy: { inviatoIl: 'desc' },
+          take: QUANTI,
+          include: {
+            certificato: { select: { user: { select: { id: true, nome: true, cognome: true } } } },
+          },
+        })
+      : vuoto,
+  ]);
+
+  type Riga = {
+    id: string;
+    quando: Date;
+    canale: 'Email' | 'WhatsApp' | 'Avviso';
+    persona: { id: string; nome: string; cognome: string } | null;
+    aChi: string;
+    cosa: string;
+    errore: string | null;
+  };
+  const righe: Riga[] = [
+    ...email.map((i) => ({
+      id: `e${i.id}`,
+      quando: i.inviatoIl,
+      canale: 'Email' as const,
+      persona: i.certificato.user,
+      aChi: i.aChi,
+      cosa:
+        (i.regola.quando === 'SCADENZA'
+          ? `${i.regola.giorni} giorni prima della scadenza`
+          : 'all’approvazione') + ` · «${i.oggetto ?? i.regola.oggetto}»`,
+      errore: i.errore,
+    })),
+    ...whatsapp.map((m) => ({
+      id: `w${m.id}`,
+      quando: m.inviatoIl ?? m.creatoIl,
+      canale: 'WhatsApp' as const,
+      persona: m.user,
+      aChi: m.aChi,
+      cosa: m.testo,
+      errore: m.stato === 'ERRORE' ? (m.esito ?? 'non partito') : null,
+    })),
+    ...avvisi.map((a) => ({
+      id: `a${a.id}`,
+      quando: a.inviatoIl,
+      canale: 'Avviso' as const,
+      persona: a.certificato.user,
+      aChi: a.canale === 'niente' ? '—' : `alla persona, per ${PORTA[a.canale] ?? a.canale}`,
+      cosa: a.titolo,
+      errore:
+        a.canale === 'niente'
+          ? 'Né notifiche, né WhatsApp, né email verificata: non è arrivato.'
+          : null,
+    })),
+  ]
+    .sort((a, b) => b.quando.getTime() - a.quando.getTime())
+    .slice(0, QUANTI);
+
+  const link = (c: Canale) => {
+    const p = new URLSearchParams({ scheda: 'log' });
+    if (c !== 'tutti') p.set('canale', c);
+    if (q) p.set('q', q);
+    return `/admin/certificati?${p}`;
+  };
+
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {(Object.keys(CANALI) as Canale[]).map((c) => (
+          <Link
+            key={c}
+            href={link(c)}
+            className={`rounded-md border px-3 py-1.5 text-xs ${
+              filtro === c ? 'border-nvg/40 bg-nvg/10 text-nvg' : 'border-line text-muted'
+            }`}
+          >
+            {CANALI[c]}
+          </Link>
+        ))}
+        <form action="/admin/certificati" className="ml-auto flex gap-2">
+          <input type="hidden" name="scheda" value="log" />
+          {filtro !== 'tutti' && <input type="hidden" name="canale" value={filtro} />}
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Cerca una persona"
+            className="input h-8 w-44 py-1 text-xs"
+          />
+          <button type="submit" className="btn-ghost btn-sm">
+            Cerca
+          </button>
+        </form>
+      </div>
+
+      {righe.length === 0 ? (
+        <Vuoto testo="Ancora niente: qui compare tutto quello che parte per i certificati." />
+      ) : (
+        <>
+          <p className="mb-2 text-xs text-muted">
+            {righe.length === QUANTI ? `Gli ultimi ${QUANTI}` : `${righe.length} in tutto`}, dal più
+            recente.
+          </p>
+          <div className="space-y-2">
+            {righe.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3 py-2 text-xs"
+              >
+                <span className="num w-[7.5rem] shrink-0 text-muted">{fmtDateTime(r.quando)}</span>
+                <Badge
+                  tono={r.canale === 'Email' ? 'info' : r.canale === 'WhatsApp' ? 'ok' : 'neutro'}
+                >
+                  {r.canale}
+                </Badge>
+                {r.errore ? <Badge tono="danger">non partito</Badge> : null}
+                {r.persona ? (
+                  <Link
+                    href={`/admin/operatori/${r.persona.id}`}
+                    className="font-medium hover:text-nvg"
+                  >
+                    {nomeCompleto(r.persona)}
+                  </Link>
+                ) : (
+                  <span className="font-medium">—</span>
+                )}
+                <span className="min-w-0 break-all text-muted">a {r.aChi}</span>
+                <span className="w-full min-w-0 break-words text-ink/80 line-clamp-2 whitespace-pre-wrap">
+                  {r.cosa}
+                </span>
+                {r.errore && <span className="w-full break-words text-danger">{r.errore}</span>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }

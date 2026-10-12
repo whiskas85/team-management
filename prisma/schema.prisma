@@ -353,6 +353,7 @@ model MedicalCertificate {
   /// è più urgente». Meno zero è la scadenza passata, che si dice una volta.
   avvisoScadenzaA Int?
   emailInviate  InvioEmailCertificato[]
+  avvisi        AvvisoCertificato[]
   createdAt     DateTime   @default(now())
 
   @@index([userId, status])
@@ -392,11 +393,28 @@ model InvioEmailCertificato {
   certificatoId String
   certificato   MedicalCertificate @relation(fields: [certificatoId], references: [id], onDelete: Cascade)
   aChi          String             @default("")
+  /// L'oggetto con i segnaposto già riempiti.
+  oggetto       String?
   /// Vuoto se è partita; il motivo, se no.
   errore        String?
   inviatoIl     DateTime           @default(now())
 
   @@unique([regolaId, certificatoId])
+  @@index([inviatoIl])
+}
+
+/// L'avviso di scadenza mandato alla persona dal lavoro automatico, e da che
+/// porta è uscito: serve al registro dei certificati, per dire chi è stato
+/// avvisato e come.
+model AvvisoCertificato {
+  id            String             @id @default(cuid())
+  certificatoId String
+  certificato   MedicalCertificate @relation(fields: [certificatoId], references: [id], onDelete: Cascade)
+  /// push | whatsapp | email | niente
+  canale        String
+  titolo        String
+  inviatoIl     DateTime           @default(now())
+
   @@index([inviatoIl])
 }
 
