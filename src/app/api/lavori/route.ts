@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { assicuraInAnticipo, avvisaCertificatiInScadenza } from '@/lib/lavori';
+import { emailScadenzaCertificati } from '@/lib/email-certificati';
 import { avvisaSondaggiScaduti } from '@/lib/sondaggi-chiusura';
 import { leggiPolizzeProgrammata } from '@/lib/giacenza-polizze';
 import { dimenticaIndirizziViaggi } from '@/lib/macchine';
@@ -35,19 +36,22 @@ export async function POST(req: Request) {
      * non sarebbe un buon motivo per non avvisare nessuno della sua visita
      * medica.
      */
-    const [assicurazioni, certificati, sondaggi, polizze, viaggi] = await Promise.allSettled([
-      assicuraInAnticipo(),
-      avvisaCertificatiInScadenza(),
-      // i sondaggi scaduti: l'avviso con il risultato a chi li ha ricevuti
-      avvisaSondaggiScaduti(),
-      // le polizze prova rilette dal portale alle 14 e alle 19: se ne sono
-      // arrivate, l'avviso a chi segue i nuovi
-      leggiPolizzeProgrammata(),
-      // gli indirizzi delle macchinate, una settimana dopo l'attività
-      dimenticaIndirizziViaggi(),
-    ]);
+    const [assicurazioni, certificati, sondaggi, polizze, viaggi, emailCertificati] =
+      await Promise.allSettled([
+        assicuraInAnticipo(),
+        avvisaCertificatiInScadenza(),
+        // i sondaggi scaduti: l'avviso con il risultato a chi li ha ricevuti
+        avvisaSondaggiScaduti(),
+        // le polizze prova rilette dal portale alle 14 e alle 19: se ne sono
+        // arrivate, l'avviso a chi segue i nuovi
+        leggiPolizzeProgrammata(),
+        // gli indirizzi delle macchinate, una settimana dopo l'attività
+        dimenticaIndirizziViaggi(),
+        // le email prima della scadenza dei certificati, regola per regola
+        emailScadenzaCertificati(),
+      ]);
 
-    const letto = <T,>(r: PromiseSettledResult<T>) =>
+    const letto = <T>(r: PromiseSettledResult<T>) =>
       r.status === 'fulfilled' ? r.value : { errore: String(r.reason) };
 
     return NextResponse.json({
@@ -57,6 +61,7 @@ export async function POST(req: Request) {
       sondaggi: letto(sondaggi),
       polizze: letto(polizze),
       viaggi: letto(viaggi),
+      emailCertificati: letto(emailCertificati),
     });
   } catch (e) {
     // il cron non legge, ma il log della macchina sì: se qualcosa si rompe qui

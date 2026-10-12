@@ -533,7 +533,7 @@ export const AIUTO: VoceAiuto[] = [
     perChi: 'Admin',
     passi: [
       { titolo: 'Collegamento', testo: 'Collega il tuo WhatsApp; [[g:riapri|Aggiorna rubrica]] rilegge i contatti, [[d:esci|Scollega]] lo stacca.' },
-      { titolo: 'Preparare i messaggi', testo: '[[g:calendario|Prepara quelli di oggi]], [[g:pagamenti|Solleciti quote]], [[g:certificato|Certificati in scadenza]] mettono in coda i messaggi; [[p:rilascia|Manda tutti (5)]] li invia uno alla volta.' },
+      { titolo: 'Preparare i messaggi', testo: '[[g:calendario|Prepara quelli di oggi]], [[g:pagamenti|Solleciti quote]] mettono in coda i messaggi (quelli del certificato in scadenza sono in Certificati medici → WhatsApp); [[p:rilascia|Manda tutti (5)]] li invia uno alla volta.' },
       { titolo: 'Modelli', testo: '[[p:aggiungi|Nuovo modello]] per scrivere i testi che usa.' },
     ],
     parole: 'whatsapp messaggi automatici solleciti compleanni',
@@ -575,8 +575,13 @@ export const AIUTO: VoceAiuto[] = [
       { titolo: 'I filtri', testo: 'Da vagliare, In scadenza, Scaduti, Senza certificato, Validi, Tutti.' },
       { titolo: 'Vagliare', testo: '[[g:apri|Apri allegato]] per guardarlo, poi [[p:approva|Approva]] o [[d:rifiuta|Rifiuta]] col motivo.' },
       { titolo: 'Caricare per qualcuno', testo: '[[p:carica|Carica per un operatore]] se il certificato te l’hanno dato a mano. [[g:scarica|Scarica tutti]] prende i file in un archivio solo.' },
+      { titolo: 'Le schede', testo: 'In cima: **Certificati** (l’elenco), **Mail** (le email automatiche) e, per l’admin, **WhatsApp** (i messaggi del certificato in scadenza).' },
+      { titolo: 'Email all’approvazione', testo: 'In **Mail**, [[g:aggiungi|Nuova email]] con «Quando approvi il certificato»: parte appena premi Approva, ai destinatari che scegli (la persona, se ha verificato l’email, e altri indirizzi separati da virgola), col file del certificato in allegato se lo spunti.' },
+      { titolo: 'Email prima della scadenza', testo: 'Sempre in **Mail**, «Prima della scadenza» con i giorni: crea un’email per ogni tappa (per esempio 30, 10 e 0, il giorno stesso), ognuna col suo testo. Partono di giorno; con più tappe parte quella raggiunta, e chi ha già rinnovato non riceve niente.' },
+      { titolo: 'I segnaposto', testo: 'Nell’oggetto e nel testo tocca un segnaposto — {nome}, {cognome}, {codiceFiscale}, {scadenza}, {giorni}… — e si scrive dove sei: quando l’email parte diventa il dato vero. [[g|Mandami una prova]] la manda a te con l’ultimo certificato approvato come esempio. Sotto, **Ultime partite** dice a chi è andata e se qualcosa non è partito.' },
+      { titolo: 'WhatsApp', testo: 'I modelli dei messaggi per il certificato in scadenza, [[g:certificato|Prepara i certificati in scadenza]] per metterli in coda e [[p:rilascia|Manda tutti]] per mandarli. Il numero si collega in Messaggi.' },
     ],
-    parole: 'certificati approvare scadenza vagliare',
+    parole: 'certificati approvare scadenza vagliare email mail allegato segnaposto whatsapp promemoria',
   },
   {
     percorso: '/admin/tessere',

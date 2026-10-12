@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { elencoOperatori } from '@/lib/query';
 import {
   GIORNI_PREAVVISO_SCADENZA,
+  isAdmin,
   puoAmministrare,
   statoEffettivo,
   tonoCertificato,
@@ -23,6 +24,7 @@ import {
   rifiutaCertificato,
 } from '@/actions/certificati';
 import { BottoneElimina, CardRiga } from '@/components/CardRiga';
+import { BarraSchede, SchedaMail, SchedaWhatsapp } from './schede';
 import { CampoFile } from '@/components/CampoFile';
 import {
   ACCETTA_CERTIFICATO,
@@ -69,10 +71,40 @@ function condizione(filtro: Filtro) {
 export default async function CertificatiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtro?: string }>;
+  searchParams: Promise<{ filtro?: string; scheda?: string }>;
 }) {
-  await requirePermesso(puoAmministrare);
+  const me = await requirePermesso(puoAmministrare);
   const sp = await searchParams;
+
+  // tre schede: i certificati, le email automatiche, i messaggi WhatsApp
+  // (questi solo per l'admin, come la pagina Messaggi da cui vengono)
+  const schede = [
+    { chiave: 'certificati', titolo: 'Certificati' },
+    { chiave: 'mail', titolo: 'Mail' },
+    ...(isAdmin(me.roles) ? [{ chiave: 'whatsapp', titolo: 'WhatsApp' }] : []),
+  ];
+  const scheda = schede.some((x) => x.chiave === sp.scheda) ? sp.scheda! : 'certificati';
+  const barra = <BarraSchede schede={schede} attiva={scheda} />;
+
+  if (scheda === 'mail') {
+    return (
+      <>
+        <Intestazione titolo="Certificati medici" sottotitolo="Le email automatiche" />
+        {barra}
+        <SchedaMail />
+      </>
+    );
+  }
+  if (scheda === 'whatsapp') {
+    return (
+      <>
+        <Intestazione titolo="Certificati medici" sottotitolo="I messaggi WhatsApp" />
+        {barra}
+        <SchedaWhatsapp meId={me.id} />
+      </>
+    );
+  }
+
   const filtro = (Object.keys(FILTRI).includes(sp.filtro ?? '') ? sp.filtro : 'attesa') as Filtro;
 
   // Chi in rosa non ha **nessun** certificato caricato. Si conta sempre, anche
@@ -148,6 +180,8 @@ export default async function CertificatiPage({
           </BottoneModale>
         }
       />
+
+      {barra}
 
       <div className="mb-5 flex flex-wrap gap-2">
         {(Object.keys(FILTRI) as Filtro[]).map((f) => (

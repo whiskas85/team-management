@@ -30,6 +30,8 @@ const DOVE = ['GRUPPO', 'PERSONA'] as const;
 
 function aggiorna() {
   revalidatePath('/admin/messaggi');
+  // i messaggi del certificato in scadenza si gestiscono anche da lì
+  revalidatePath('/admin/certificati');
 }
 
 /**
@@ -421,7 +423,7 @@ export async function eliminaBozza(_prev: StatoForm, fd: FormData): Promise<Stat
  * raffica di messaggi identici nello stesso secondo è il modo più veloce per
  * far insospettire WhatsApp e perdere il numero.
  */
-export async function inviaMessaggiPronti(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
+export async function inviaMessaggiPronti(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!isAdmin(me.roles)) return { errore: 'Solo l’admin manda i messaggi.' };
 
@@ -432,7 +434,16 @@ export async function inviaMessaggiPronti(_prev: StatoForm, _fd: FormData): Prom
     };
   }
 
-  const pronti = await prisma.messaggioInviato.findMany({ where: { stato: 'DA_MANDARE' } });
+  // dalla pagina dei certificati partono solo i loro
+  const solo = fd.get('scatenante')?.toString();
+  const pronti = await prisma.messaggioInviato.findMany({
+    where: {
+      stato: 'DA_MANDARE',
+      ...(solo && (SCATENANTI as readonly string[]).includes(solo)
+        ? { scatenante: solo as (typeof SCATENANTI)[number] }
+        : {}),
+    },
+  });
   if (pronti.length === 0) return { errore: 'Non c’è niente da mandare.' };
 
   let inviati = 0;

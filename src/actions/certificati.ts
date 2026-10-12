@@ -91,6 +91,11 @@ export async function approvaCertificato(_prev: StatoForm, fd: FormData): Promis
   // la polizza di ripiego, se c'era, esce dalle quote ancora da pagare
   if (attuale) await riallineaQuoteDi(attuale.userId).catch(() => null);
 
+  // le email «quando lo approvi», senza aspettarle: un server di posta lento
+  // non deve tenere fermo il pulsante
+  const { emailCertificatoApprovato } = await import('@/lib/email-certificati');
+  void emailCertificatoApprovato(id).catch((e) => console.error('[email certificati]', e));
+
   aggiorna();
   return { ok: 'Certificato approvato.' };
 }

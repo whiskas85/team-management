@@ -352,10 +352,52 @@ model MedicalCertificate {
   /// distinguerebbe «già avvisato oggi» da «siamo passati alla tappa dopo, che
   /// è più urgente». Meno zero è la scadenza passata, che si dice una volta.
   avvisoScadenzaA Int?
+  emailInviate  InvioEmailCertificato[]
   createdAt     DateTime   @default(now())
 
   @@index([userId, status])
   @@index([scadeIl])
+}
+
+/// Un'email automatica dei certificati: quando parte, a chi, e cosa dice.
+///
+/// Ce ne possono essere quante si vuole, ognuna col suo testo: all'approvazione
+/// (con il certificato in allegato, per chi lo deve archiviare) e a qualche
+/// giorno dalla scadenza — trenta, dieci, zero.
+model EmailCertificato {
+  id             String   @id @default(cuid())
+  /// ACCETTATO: quando il certificato viene approvato. SCADENZA: `giorni`
+  /// giorni prima della scadenza (zero è il giorno stesso).
+  quando         String
+  giorni         Int?
+  /// Anche alla persona del certificato, se ha verificato la sua email.
+  allInteressato Boolean  @default(false)
+  /// Altri indirizzi, separati da virgola.
+  destinatari    String   @default("")
+  oggetto        String
+  testo          String
+  /// Il file del certificato in allegato.
+  allegato       Boolean  @default(true)
+  attivo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  invii          InvioEmailCertificato[]
+}
+
+/// Una email dei certificati partita (o tentata): una per regola e certificato,
+/// così il lavoro che gira ogni cinque minuti non la manda due volte.
+model InvioEmailCertificato {
+  id            String             @id @default(cuid())
+  regolaId      String
+  regola        EmailCertificato   @relation(fields: [regolaId], references: [id], onDelete: Cascade)
+  certificatoId String
+  certificato   MedicalCertificate @relation(fields: [certificatoId], references: [id], onDelete: Cascade)
+  aChi          String             @default("")
+  /// Vuoto se è partita; il motivo, se no.
+  errore        String?
+  inviatoIl     DateTime           @default(now())
+
+  @@unique([regolaId, certificatoId])
+  @@index([inviatoIl])
 }
 
 // ---------------------------------------------------------------- squadre esterne

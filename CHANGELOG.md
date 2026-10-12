@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.48.0 — 12 ottobre 2026
+
+### Nuovo
+
+- **Certificati medici a schede:** Certificati, Mail e (per l'admin)
+  WhatsApp.
+- **Email all'approvazione:** in Mail si creano le email che partono appena
+  si approva un certificato, ognuna coi suoi destinatari (la persona, se ha
+  verificato l'email, e altri indirizzi), il suo oggetto e il suo testo, col
+  file del certificato in allegato (nominato cognome-nome-scadenza).
+- **Email prima della scadenza:** quante tappe si vuole (per esempio 30, 10
+  e 0 giorni), ognuna col suo testo e i suoi destinatari. Partono di giorno,
+  una volta sola per certificato; parte quella della tappa raggiunta, e chi ha
+  già rinnovato non riceve niente.
+- **Segnaposto** nel testo e nell'oggetto: nome, cognome, callsign, email,
+  telefono, codice fiscale, data e luogo di nascita, indirizzo, tipo,
+  rilascio, scadenza, giorni, chi l'ha approvato, squadra. Si inseriscono
+  toccandoli. «Mandami una prova» manda l'email a te con un certificato vero
+  come esempio; «Ultime partite» dice a chi è andata e cosa non è partito.
+
+### Cambiato
+
+- I messaggi WhatsApp del certificato in scadenza (modelli, preparazione e
+  invio) si spostano da Messaggi alla scheda WhatsApp dei certificati. Il
+  numero si collega sempre in Messaggi.
+
 ## 3.47.0 — 12 ottobre 2026
 
 ### Nuovo

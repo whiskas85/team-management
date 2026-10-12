@@ -143,6 +143,7 @@ export async function inviaEmail(m: {
   oggetto: string;
   testo: string;
   html?: string;
+  allegati?: { nome: string; contenuto: Buffer; tipo?: string }[];
 }): Promise<{ errore?: string }> {
   const s = await serverPosta();
   if (!s) return { errore: 'Nessun server di posta collegato.' };
@@ -153,6 +154,11 @@ export async function inviaEmail(m: {
       subject: m.oggetto,
       text: m.testo,
       html: m.html,
+      attachments: m.allegati?.map((a) => ({
+        filename: a.nome,
+        content: a.contenuto,
+        contentType: a.tipo,
+      })),
     });
     return {};
   } catch (e) {
