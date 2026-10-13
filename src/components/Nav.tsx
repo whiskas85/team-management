@@ -26,7 +26,8 @@ export type VoceMenu = {
     | 'persone'
     | 'amministrazione'
     | 'segreteria'
-    | 'comando';
+    | 'comando'
+    | 'sistema';
   badge?: number;
   /**
    * Il pallino è la somma di altre voci del menu, come «Tutte le bacheche»
@@ -86,6 +87,7 @@ const ETICHETTA_GRUPPO: Record<string, string> = {
   amministrazione: 'Amministrazione',
   segreteria: 'Segreteria',
   comando: 'Comando',
+  sistema: 'Sistema',
 };
 
 /**
@@ -177,6 +179,7 @@ export function Nav({
     'amministrazione',
     'segreteria',
     'comando',
+    'sistema',
   ].filter(
     (g) => voci.some((v) => v.gruppo === g),
   );

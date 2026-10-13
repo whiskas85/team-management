@@ -725,6 +725,22 @@ export const AIUTO: VoceAiuto[] = [
     parole: 'permessi incarichi ruoli admin',
   },
   {
+    percorso: '/admin/sistema',
+    chiave: 'sistema',
+    area: 'Amministrazione',
+    titolo: 'Stato del sistema',
+    cosa: 'Come sta il gestionale e quanto disco usa: i controlli di salute, i grafici dello spazio, l’alleggerimento dei file e l’archivio degli anni passati.',
+    perChi: 'Admin',
+    passi: [
+      { titolo: 'I numeri in cima', testo: '**Disco usato** (verde fino all’80%, giallo fino al 90%, poi rosso), quanto pesano **allegati** e **database**, e quanto ha fatto **risparmiare** l’alleggerimento dei file.' },
+      { titolo: 'I controlli', testo: 'Database, disco, lavori automatici, alleggerimento dei PDF, posta, WhatsApp, guasti nelle pagine, memoria: ognuno con [[b:ok|✓ ok]], [[b:warn|! attenzione]] o [[b:danger|✕ guasto]] e il perché. Se i lavori automatici si fermano, avvisi e certificati sono fermi.' },
+      { titolo: 'I grafici', testo: 'Come è occupato il disco, come cresce negli ultimi 90 giorni (una misura al giorno), gli allegati per anno e per tipo, le tabelle più grandi del database. Passando sopra una linea si legge il valore di quel giorno. [[g:riapri|Misura adesso]] rifà la misura.' },
+      { titolo: 'Alleggerimento', testo: 'PDF e foto si alleggeriscono da soli quando si caricano. Per quelli caricati prima c’è [[p:scarica|Alleggerisci quelli già caricati]]: lavora per 40 secondi alla volta, e se ne restano si preme di nuovo.' },
+      { titolo: 'Archivio degli anni', testo: 'Per ogni anno: file, PDF, peso e quanti sono ancora da alleggerire. [[g:scarica|Scarica l’archivio]] dà uno zip con tutti gli allegati dell’anno e l’indice, da tenere fuori dal server.' },
+    ],
+    parole: 'sistema disco spazio salute health database allegati alleggerire pdf archivio anni grafici',
+  },
+  {
     percorso: '/admin/errori',
     chiave: 'guasti',
     area: 'Amministrazione',

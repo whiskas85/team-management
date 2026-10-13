@@ -751,11 +751,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       // cosa è cambiato in ogni versione: il registro delle modifiche, formattato
       { href: '/admin/novita', label: 'Novità', icona: 'avvisi', gruppo: 'comando' },
       { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },
+      // lo stato del server: salute, disco, alleggerimento, archivio
+      { href: '/admin/sistema', label: 'Stato del sistema', icona: 'grafici', gruppo: 'sistema' },
       {
         href: '/admin/errori',
         label: 'Guasti',
         icona: 'annulla',
-        gruppo: 'comando',
+        gruppo: 'sistema',
         badge: guastiDaGuardare,
       },
     );

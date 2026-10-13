@@ -1,4 +1,10 @@
-export type Punto = { etichetta: string; valore: number; nota?: string };
+export type Punto = {
+  etichetta: string;
+  valore: number;
+  nota?: string;
+  /** Il valore com'è scritto accanto alla barra («5,1 MB»), se non basta il numero. */
+  testo?: string;
+};
 
 /**
  * Istogramma costruito con dei div: si adatta alla larghezza senza viewBox da
@@ -121,9 +127,8 @@ export function BarreOrizzontali({ dati, unita = '' }: { dati: Punto[]; unita?: 
               style={{ width: `${(d.valore / massimo) * 100}%` }}
             />
           </div>
-          <span className="w-16 shrink-0 text-right num text-xs">
-            {d.valore}
-            {unita}
+          <span className="w-20 shrink-0 text-right num text-xs" title={d.etichetta}>
+            {d.testo ?? `${d.valore}${unita}`}
           </span>
         </div>
       ))}
@@ -272,4 +277,88 @@ export function mesiRecenti(date: Date[], quanti = 12): Punto[] {
     });
   }
   return mesi;
+}
+
+/**
+ * Linea nel tempo, una serie sola: l'area sotto in trasparenza, la linea
+ * sottile, l'ultimo punto acceso. Passando sopra (o toccando) ogni giorno dice
+ * il suo valore. La scala parte da zero: un disco al 51% non deve sembrare
+ * pieno perché ieri era al 50%.
+ */
+export function Linea({
+  dati,
+  formatta = (v) => String(v),
+  altezza = 160,
+}: {
+  dati: Punto[];
+  formatta?: (v: number) => string;
+  altezza?: number;
+}) {
+  if (dati.length === 0) return <p className="text-xs text-muted">Ancora nessuna misura.</p>;
+  const L = 600;
+  const H = altezza;
+  const massimo = Math.max(1, ...dati.map((d) => d.valore)) * 1.1;
+  const passo = dati.length > 1 ? L / (dati.length - 1) : 0;
+  const x = (i: number) => (dati.length > 1 ? i * passo : L / 2);
+  const y = (v: number) => H - (v / massimo) * H;
+  const linea = dati
+    .map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d.valore).toFixed(1)}`)
+    .join(' ');
+  const area = `${linea} L${x(dati.length - 1).toFixed(1)},${H} L${x(0).toFixed(1)},${H} Z`;
+  const ultimo = dati[dati.length - 1];
+
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-[10px] text-muted num">
+        <span>{formatta(massimo / 1.1)} max</span>
+        <span>
+          oggi <span className="text-ink">{formatta(ultimo.valore)}</span>
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${L} ${H}`}
+        preserveAspectRatio="none"
+        className="block w-full overflow-visible"
+        style={{ height: H }}
+        role="img"
+        aria-label={`Andamento: ${dati.map((d) => `${d.etichetta} ${formatta(d.valore)}`).join(', ')}`}
+      >
+        <line
+          x1="0"
+          y1={H}
+          x2={L}
+          y2={H}
+          stroke="var(--border)"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path d={area} fill="var(--nvg)" opacity="0.12" />
+        <path
+          d={linea}
+          fill="none"
+          stroke="var(--nvg)"
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+          strokeLinejoin="round"
+        />
+        {dati.map((d, i) => (
+          <rect
+            key={i}
+            x={Math.max(0, x(i) - passo / 2)}
+            y="0"
+            width={Math.max(passo, 8)}
+            height={H}
+            fill="transparent"
+            className="hover:fill-[color:var(--nvg)] hover:opacity-10"
+          >
+            <title>{`${d.etichetta}: ${formatta(d.valore)}${d.nota ? ` · ${d.nota}` : ''}`}</title>
+          </rect>
+        ))}
+      </svg>
+      <div className="mt-1 flex justify-between text-[10px] text-muted num">
+        <span>{dati[0].etichetta}</span>
+        {dati.length > 1 && <span>{ultimo.etichetta}</span>}
+      </div>
+    </div>
+  );
 }

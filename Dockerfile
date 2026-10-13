@@ -4,7 +4,9 @@ FROM node:22-alpine AS base
 # ricevute — escono indietro di due ore rispetto a quelle digitate.
 # fontconfig e un carattere: senza, l'icona dell'app di chi non ha un logo (le
 # iniziali della squadra, disegnate in SVG da sharp) uscirebbe senza lettere
-RUN apk add --no-cache libc6-compat openssl tzdata fontconfig font-dejavu
+# ghostscript: alleggerisce i PDF caricati (lib/alleggerisci) — un certificato
+# scansionato da 4 MB diventa poche centinaia di KB
+RUN apk add --no-cache libc6-compat openssl tzdata fontconfig font-dejavu ghostscript
 WORKDIR /app
 
 # ---------------------------------------------------------------- dipendenze

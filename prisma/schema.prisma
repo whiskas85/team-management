@@ -423,6 +423,35 @@ model AvvisoCertificato {
   @@index([inviatoIl])
 }
 
+/// Lo stato del sistema, in una riga sola: quanto ha fatto risparmiare
+/// l'alleggerimento dei file e quando sono girati l'ultima volta i lavori
+/// automatici (se si fermano, la pagina Sistema lo dice).
+model StatoSistema {
+  id              String    @id @default("unico")
+  byteRisparmiati BigInt    @default(0)
+  fileAlleggeriti Int       @default(0)
+  ultimiLavoriIl  DateTime?
+}
+
+/// Una misura dello spazio al giorno, per vedere come cresce.
+model MisuraSpazio {
+  /// aaaa-mm-gg
+  giorno      String   @id
+  discoTotale BigInt
+  discoLibero BigInt
+  allegati    BigInt
+  database    BigInt
+  misuratoIl  DateTime @default(now()) @updatedAt
+}
+
+/// I file già passati dall'alleggerimento: non si ripassano.
+model FileAlleggerito {
+  percorso String   @id
+  prima    Int
+  dopo     Int
+  il       DateTime @default(now())
+}
+
 // ---------------------------------------------------------------- squadre esterne
 
 /// Altri team: gestiscono campi, organizzano eventi, ci si gioca insieme.

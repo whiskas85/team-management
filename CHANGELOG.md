@@ -5,6 +5,37 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.55.0 — 13 ottobre 2026
+
+### Nuovo
+
+- **Gruppo «Sistema» nel menu**, con **Stato del sistema** (e lì ora sta
+  anche «Guasti»).
+- **Stato del sistema:** in cima disco usato (verde fino all'80%, giallo fino
+  al 90%, poi rosso), peso di allegati e database, quanto ha fatto
+  risparmiare l'alleggerimento. Sotto i **controlli di salute** — database,
+  disco, lavori automatici, alleggerimento dei PDF, posta, WhatsApp, guasti
+  nelle pagine, memoria — ognuno con ok / attenzione / guasto e il perché.
+- **Grafici:** come è occupato il disco, l'andamento degli ultimi 90 giorni
+  (disco e gestionale, una misura al giorno presa dai lavori automatici),
+  gli allegati per anno e per tipo, le tabelle più grandi del database.
+- **Alleggerimento dei file al caricamento:** i PDF passano da Ghostscript
+  con le immagini a 150 dpi (un certificato scansionato da qualche MB diventa
+  poche centinaia di KB, e si legge e si stampa uguale); le foto vengono
+  raddrizzate, ridotte a 2400 pixel sul lato lungo, ricompresse e ripulite
+  dai dati EXIF (posizione compresa). Si tiene il risultato solo se è più
+  piccolo davvero; se qualcosa va storto resta l'originale.
+- **«Alleggerisci quelli già caricati»** per i file di prima, 40 secondi alla
+  volta; le date dei file restano quelle del caricamento.
+- **Archivio degli anni:** per ogni anno file, PDF, peso e quanti sono da
+  alleggerire, con «Alleggerisci» e «Scarica l'archivio» (uno zip con tutti
+  gli allegati dell'anno e l'indice, da tenere fuori dal server).
+
+### Corretto
+
+- Le barre orizzontali scrivono il valore come si legge (5,1 MB, 840 KB)
+  invece di «0 GB» per le cifre piccole.
+
 ## 3.54.0 — 13 ottobre 2026
 
 ### Cambiato

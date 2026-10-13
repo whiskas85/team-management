@@ -84,15 +84,31 @@ export async function salvaAllegato(
   const nomeSuDisco = `${randomUUID()}${ext}`;
   const assoluto = path.join(dir, nomeSuDisco);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const mimeType = regole ? regole.tipoDa(estensione) : file.type;
+  const relativo = path.posix.join(cartella, nomeSuDisco);
+  let buffer: Buffer = Buffer.from(await file.arrayBuffer());
+
+  // PDF e foto si alleggeriscono prima di finire sul disco (lib/alleggerisci):
+  // se non conviene, o qualcosa va storto, resta il file com'era
+  const { alleggerisci, contaRisparmio, ALLEGGERIBILI } = await import('./alleggerisci');
+  if (ALLEGGERIBILI.has(mimeType)) {
+    const prima = buffer.length;
+    const esito = await alleggerisci(buffer, mimeType);
+    buffer = esito.buffer;
+    await contaRisparmio(esito.risparmiati);
+    const { prisma } = await import('./db');
+    await prisma.fileAlleggerito
+      .create({ data: { percorso: relativo, prima, dopo: buffer.length } })
+      .catch(() => null);
+  }
   await writeFile(assoluto, buffer);
 
   return {
     // memorizziamo il percorso relativo: il volume può cambiare mount point
-    filePath: path.posix.join(cartella, nomeSuDisco),
+    filePath: relativo,
     fileName: file.name.slice(0, 200),
-    mimeType: regole ? regole.tipoDa(estensione) : file.type,
-    fileSize: file.size,
+    mimeType,
+    fileSize: buffer.length,
   };
 }
 
