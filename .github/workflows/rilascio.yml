@@ -51,9 +51,9 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test'
+        description: 'prova = guarda soltanto · rilascio = produzione · test = ambiente di test · pulizia = libera il disco'
         type: choice
-        options: [prova, rilascio, test, test-copia-dati, test-azzera, prova-collegamento, squadra-nuova, squadra-dominio, squadre, console]
+        options: [prova, rilascio, test, test-copia-dati, test-azzera, prova-collegamento, squadra-nuova, squadra-dominio, squadre, console, pulizia]
         default: prova
       ramo:
         description: 'Per «test» e «test-azzera»: il ramo da mettere nel test'
@@ -328,6 +328,8 @@ jobs:
           # versioni di Docker, per questo la seconda riga
           docker builder prune -f --max-used-space 10gb 2>/dev/null \
             || docker builder prune -f --keep-storage 10gb
+          # e quella che non serve da tre giorni, qualunque sia il tetto
+          docker builder prune -f --filter until=72h > /dev/null || true
 
           echo "== Controllo"
           sleep 15
@@ -395,6 +397,28 @@ jobs:
           printf '%s' "$DOMINIO" | grep -Eq '^[a-z0-9.-]+$' || { echo "::error::Dominio non valido: $DOMINIO"; exit 1; }
           ssh -i ~/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519 \
             "$UTENTE@$HOST" "SQUADRA='$SQUADRA' DOMINIO='$DOMINIO' bash -s -- dominio" < deploy/squadra-server.sh
+
+      - name: Pulizia del disco
+        if: inputs.modo == 'pulizia'
+        env:
+          UTENTE: ${{ secrets.SERVER_USER }}
+        run: |
+          SSH="ssh -i $HOME/.ssh/rilascio -o StrictHostKeyChecking=yes -o BatchMode=yes -o HostKeyAlgorithms=ssh-ed25519"
+          # Toglie solo quello che si può riavere: le versioni vecchie del
+          # gestionale (restano le ultime 5 e quelle in uso, e sono comunque nel
+          # registro), le immagini senza nome e la cache delle build vecchia.
+          # Database, allegati e backup non si toccano.
+          $SSH "$UTENTE@$HOST" 'df -h / | tail -1; docker system df'
+          $SSH "$UTENTE@$HOST" 'bash -s -- pulisci-versioni' < deploy/squadra-server.sh
+          $SSH "$UTENTE@$HOST" 'bash -s' <<'SUL_SERVER'
+          docker image prune -f > /dev/null
+          docker builder prune -f --filter until=72h > /dev/null || true
+          docker builder prune -f --max-used-space 10gb > /dev/null 2>&1 \
+            || docker builder prune -f --keep-storage 10gb > /dev/null
+          echo "== Dopo"
+          df -h / | tail -1
+          docker system df
+          SUL_SERVER
 
       - name: Squadre ospitate, stato
         if: inputs.modo == 'squadre'

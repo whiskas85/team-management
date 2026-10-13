@@ -92,6 +92,9 @@ immagini_versione() {
     docker image inspect "$img:$v" > /dev/null 2>&1 && continue
     if [ -n "${REGISTRO:-}" ] && docker pull -q "$REGISTRO/$img:$v" > /dev/null 2>&1; then
       docker tag "$REGISTRO/$img:$v" "$img:$v"
+      # il nome del registro non serve più: resta solo il nostro, così la
+      # pulizia delle versioni vecchie, togliendolo, libera davvero il disco
+      docker image rm "$REGISTRO/$img:$v" > /dev/null 2>&1 || true
       continue
     fi
     echo "La versione $v non c'e' su questo server ($img:$v)${REGISTRO:+, nemmeno in $REGISTRO}."
@@ -889,13 +892,23 @@ versioni() {
 
 # Le immagini delle versioni vecchie: restano le ultime TENERE (5) e tutte
 # quelle che qualche squadra sta usando. Lo chiama il rilascio della produzione.
+#
+# Una versione può avere più nomi: il nostro (gestionale-app:3.50.0) e quello
+# del registro da cui è arrivata (ghcr.io/…/gestionale-app:3.50.0). Il disco si
+# libera solo quando se ne vanno tutti: prima si toglieva solo il nostro, e
+# ogni rilascio lasciava sul server più di un gigabyte per sempre.
 pulisci_versioni() {
-  local tenere=${TENERE:-5} usate v
+  local tenere=${TENERE:-5} usate v rif
   usate=$(grep -h '^VERSIONE=' /opt/squadra-*/.env.squadra 2>/dev/null | cut -d= -f2 | sort -u || true)
-  for v in $(docker image ls gestionale-app --format '{{.Tag}}' \
-    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1nr -k2,2nr -k3,3nr | uniq | tail -n +"$((tenere + 1))"); do
+  for v in $(docker image ls --format '{{.Repository}} {{.Tag}}' \
+    | awk '$1 ~ /(^|\/)gestionale-(app|whatsapp)$/ {print $2}' \
+    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u | sort -t. -k1,1nr -k2,2nr -k3,3nr \
+    | tail -n +"$((tenere + 1))"); do
     printf '%s\n' $usate | grep -qx "$v" && continue
-    docker image rm "gestionale-app:$v" "gestionale-whatsapp:$v" > /dev/null 2>&1 || true
+    for rif in $(docker image ls --format '{{.Repository}}:{{.Tag}}' \
+      | awk -v t=":$v" '$0 ~ /(^|\/)gestionale-(app|whatsapp):/ && substr($0, length($0) - length(t) + 1) == t'); do
+      docker image rm "$rif" > /dev/null 2>&1 || true
+    done
     echo "== versione $v tolta"
   done
 }
