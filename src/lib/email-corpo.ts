@@ -188,26 +188,46 @@ const pagina = (corpo: string) =>
     ? corpo
     : `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:24px;background:#ffffff;color:#1a1a1a;font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">${corpo}</body></html>`;
 
-/** L'email com'è da mandare: la versione HTML e quella di solo testo. */
+/**
+ * L'email com'è da mandare: la versione HTML e quella di solo testo.
+ *
+ * Con `stile` (lo stile della squadra) il testo Markdown o semplice si mette
+ * nella cornice **qui, mentre l'email si compone**: il testo salvato resta
+ * quello scritto, e la cornice non ci entra mai dentro. Riapplicarla cento
+ * volte dà sempre la stessa email.
+ */
 export function componiCorpo(
   formato: string,
   testo: string,
   valori: Record<string, string>,
+  stile?: StileSquadra | null,
 ): { html: string; testo: string } {
   const sicuri = Object.fromEntries(Object.entries(valori).map(([k, v]) => [k, esc(v)]));
   if (formato === 'HTML') {
     const html = pagina(riempi(testo, sicuri));
     return { html, testo: testoDaHtml(html) };
   }
+  if (stile) {
+    const corpo =
+      formato === 'MARKDOWN' ? markdownInHtml(testo, scura(stile.accento)) : semplice(testo);
+    return {
+      html: riempi(paginaSquadra(corpo, stile), sicuri),
+      testo: `${riempi(testo, valori)}\n\n-- \n${stile.nome}\n${stile.motto}\n\n${NON_RISPONDERE}`,
+    };
+  }
   if (formato === 'MARKDOWN') {
     return { html: pagina(riempi(markdownInHtml(testo), sicuri)), testo: riempi(testo, valori) };
   }
-  const semplice = riempi(testo, valori);
+  const piano = riempi(testo, valori);
   return {
-    html: pagina(`<div style="white-space:pre-wrap">${esc(semplice)}</div>`),
-    testo: semplice,
+    html: pagina(`<div style="white-space:pre-wrap">${esc(piano)}</div>`),
+    testo: piano,
   };
 }
+
+/** La riga in fondo alle email con lo stile della squadra. */
+export const NON_RISPONDERE =
+  'Questa email è generata automaticamente dal gestionale della squadra: per favore non rispondere a questo indirizzo.';
 
 export type StileSquadra = { accento: string; nome: string; motto: string };
 
@@ -247,7 +267,7 @@ ${corpo}
 <td style="vertical-align:middle;font:13px/1.5 ${font};color:#7f8a7f"><span style="font:bold 14px/1.4 ${mono};letter-spacing:2px;text-transform:uppercase;color:#e7ede7">${esc(s.nome)}</span><br>${esc(s.motto)}</td>
 </tr></table>
 </td></tr>
-<tr><td style="padding:18px 4px 0;font:11px/1.5 ${font};color:#7f8a7f">Questa email è generata automaticamente dal gestionale della squadra: per favore non rispondere a questo indirizzo.</td></tr>
+<tr><td style="padding:18px 4px 0;font:11px/1.5 ${font};color:#7f8a7f">${NON_RISPONDERE}</td></tr>
 </table>
 </td></tr></table>
 </body></html>`;
@@ -270,17 +290,98 @@ function semplice(testo: string) {
     .join('\n');
 }
 
+/** Le parole che erano della cornice, nelle versioni passate e in questa. */
+const paroleCornice = (s: StileSquadra) =>
+  new Set(
+    [s.nome, s.motto, NON_RISPONDERE, 'Email automatica del gestionale della squadra.'].map((t) =>
+      t.trim().toLowerCase(),
+    ),
+  );
+
+/** Il nostro HTML (quello che esce da markdownInHtml) riportato in Markdown. */
+function htmlInMarkdown(html: string): string {
+  const decodifica = (t: string) =>
+    t
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+  let t = html
+    // i pulsanti: una tabella con un link dentro
+    .replace(
+      /<table[^>]*>[\s\S]*?<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/table>/gi,
+      (_, u: string, x: string) => `\n\n[[${x.replace(/<[^>]+>/g, '')}]](${u})\n\n`,
+    )
+    .replace(
+      /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi,
+      (_, n: string, x: string) => `\n\n${'#'.repeat(+n)} ${x}\n\n`,
+    )
+    .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '\n\n> $1\n\n')
+    .replace(/<hr[^>]*>/gi, '\n\n---\n\n')
+    .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, x: string) => {
+      let i = 0;
+      return `\n\n${x.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m: string, v: string) => `${++i}. ${v}\n`)}\n`;
+    })
+    .replace(
+      /<ul[^>]*>([\s\S]*?)<\/ul>/gi,
+      (_, x: string) =>
+        `\n\n${x.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m: string, v: string) => `- ${v}\n`)}\n`,
+    )
+    .replace(/<(strong|b)>([\s\S]*?)<\/\1>/gi, '**$2**')
+    .replace(/<(em|i)>([\s\S]*?)<\/\1>/gi, '*$2*')
+    .replace(/<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '');
+  t = decodifica(t);
+  return t
+    .split(/\n\s*\n/)
+    .map((b) =>
+      b
+        .split('\n')
+        .map((r) => r.trim())
+        .join('\n')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 /**
- * Un testo trasformato in un'email HTML con lo stile della squadra.
- *
- * **Il testo resta quello**, parola per parola: cambia solo come si presenta.
- * Il Markdown diventa la sua impaginazione (grassetti, elenchi, pulsanti
- * scritti con [[…]](…)), il testo semplice resta testo, con i suoi a capo.
- * Il risultato è HTML normale: si può ritoccare a mano come qualunque altro.
+ * Un'email che ha la cornice **scritta dentro** il testo (le versioni di
+ * prima la trasformavano in HTML, e ripassandola a Markdown la cornice
+ * diventava testo e si accumulava) riportata al suo Markdown: il corpo della
+ * scheda, senza i pezzi di cornice — nome, motto, «non rispondere» — ovunque
+ * si fossero impilati. La cornice poi la rimette lo stile, al suo posto.
+ * Nullo se il testo non viene da lì.
  */
-export function inStileSquadra(testo: string, formato: string, s: StileSquadra) {
-  const corpo = formato === 'MARKDOWN' ? markdownInHtml(testo, scura(s.accento)) : semplice(testo);
-  return paginaSquadra(corpo, s);
+export function riparaCornice(testo: string, s: StileSquadra): string | null {
+  const html = testo.includes(SEGNO_STILE);
+  // il corpo: dentro la scheda, se è ancora HTML; tutto il testo, se no
+  let corpo = testo;
+  if (html) {
+    const inizio = testo.search(/<td bgcolor="#0e110e"[^>]*>/i);
+    const fine = testo.search(/<\/td><\/tr>\s*<tr><td style="padding:24px 4px 0">/i);
+    if (inizio < 0 || fine < inizio) return null;
+    corpo = htmlInMarkdown(testo.slice(testo.indexOf('>', inizio) + 1, fine));
+  }
+  const cornice = paroleCornice(s);
+  const blocchi = corpo
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  const tenuti = blocchi.filter(
+    (b) => !b.split('\n').every((r) => cornice.has(r.trim().toLowerCase())),
+  );
+  if (!html && tenuti.length === blocchi.length) return null;
+  // un pulsante passato per il testo semplice era diventato «Testo (link)», da
+  // solo sulla riga: torna pulsante
+  return tenuti
+    .map((b) => b.replace(/^([^()\n[\]]+) \((\{link\w+\}|https?:\/\/[^\s)]+)\)$/, '[[$1]]($2)'))
+    .join('\n\n');
 }
 
 /** Il pulsante per la pagina dei certificati, da inserire dove si vuole. */

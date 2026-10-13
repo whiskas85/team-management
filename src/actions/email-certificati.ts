@@ -7,7 +7,7 @@ import { puoAmministrare } from '@/lib/domain';
 import { bool, str, type StatoForm } from '@/lib/form';
 import { indirizzi, provaEmailCertificato } from '@/lib/email-certificati';
 import { serverPosta } from '@/lib/posta';
-import { inStileSquadra } from '@/lib/email-corpo';
+import { riparaCornice } from '@/lib/email-corpo';
 import { stileDellaSquadra } from '@/lib/email-stile';
 
 const aggiorna = () => revalidatePath('/admin/certificati');
@@ -44,6 +44,7 @@ export async function salvaEmailCertificato(_prev: StatoForm, fd: FormData): Pro
   const dati = {
     quando,
     formato,
+    stileSquadra: formato !== 'HTML' && bool(fd, 'stileSquadra'),
     giorni,
     allInteressato,
     destinatari: scritti.join(', '),
@@ -92,30 +93,38 @@ export async function provaEmailCertificatoAMe(_prev: StatoForm, fd: FormData): 
 }
 
 /**
- * Tutte le email non ancora in HTML trasformate nello stile della squadra:
- * il testo resta parola per parola quello, impaginato come il gestionale e
- * con il logo come firma. Quelle già in HTML restano come sono.
+ * Lo stile della squadra a tutte: la cornice si accende su ogni email in
+ * Markdown o testo semplice, **senza toccarne il testo**. Quelle che avevano
+ * la cornice scritta dentro (le versioni di prima) tornano al loro Markdown,
+ * col corpo ripulito dai pezzi di cornice impilati. Quelle in HTML scritte a
+ * mano restano come sono.
  */
 export async function stileSquadraTutte(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
   if (!puoAmministrare(me.roles)) return { errore: 'Non hai i permessi.' };
   const stile = await stileDellaSquadra();
-  const regole = await prisma.emailCertificato.findMany({ where: { formato: { not: 'HTML' } } });
-  if (regole.length === 0) return { ok: 'Sono già tutte in HTML.' };
+  const regole = await prisma.emailCertificato.findMany();
+  let accese = 0;
+  let riparate = 0;
   for (const r of regole) {
-    await prisma.emailCertificato.update({
-      where: { id: r.id },
-      data: {
-        formato: 'HTML',
-        testo: inStileSquadra(r.testo, r.formato, stile),
-      },
-    });
+    const pulito = riparaCornice(r.testo, stile);
+    if (pulito !== null) {
+      await prisma.emailCertificato.update({
+        where: { id: r.id },
+        data: { formato: 'MARKDOWN', testo: pulito, stileSquadra: true },
+      });
+      riparate++;
+    } else if (r.formato !== 'HTML' && !r.stileSquadra) {
+      await prisma.emailCertificato.update({ where: { id: r.id }, data: { stileSquadra: true } });
+      accese++;
+    }
   }
   aggiorna();
+  if (!accese && !riparate) return { ok: 'Hanno già tutte lo stile della squadra.' };
   return {
     ok:
-      regole.length === 1
-        ? 'Un’email trasformata: aprila per vedere l’anteprima.'
-        : `${regole.length} email trasformate: aprile per vedere l’anteprima.`,
+      `Stile della squadra acceso su ${accese + riparate} email` +
+      (riparate ? ` (${riparate} riportate al loro Markdown, senza la cornice scritta dentro)` : '') +
+      ': aprile per vedere l’anteprima.',
   };
 }

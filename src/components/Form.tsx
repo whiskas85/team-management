@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState, type ReactNode } from 'react';
+import { useActionState, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icona, type NomeIcona } from './Icona';
 import { useModale } from './Modale';
 import { Credenziali } from './Credenziali';
@@ -40,6 +40,14 @@ export function FormAzione({
   }, {} as StatoForm);
   const modale = useModale();
 
+  // L'errore si scrive in cima al modulo, ma il pulsante premuto sta in fondo:
+  // in una finestra lunga finiva fuori dallo schermo e sembrava che il
+  // salvataggio non facesse niente. Lo si porta in vista.
+  const riquadroErrore = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (stato.errore) riquadroErrore.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [stato]);
+
   // salvato: la finestra si chiude da sola sui dati ormai aggiornati
   useEffect(() => {
     const inLinea = stato.credenziali && !stato.credenziali.benvenuto;
@@ -51,7 +59,11 @@ export function FormAzione({
   return (
     <form action={action} className={className}>
       {stato.errore && (
-        <div className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <div
+          ref={riquadroErrore}
+          role="alert"
+          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+        >
           {stato.errore}
         </div>
       )}

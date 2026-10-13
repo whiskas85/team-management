@@ -379,6 +379,9 @@ model EmailCertificato {
   /// TESTO, MARKDOWN o HTML: come è scritto `testo` (lib/email-corpo).
   formato        String   @default("TESTO")
   testo          String
+  /// Nella cornice della squadra (nome, firma col logo, «non rispondere»):
+  /// la mette l'invio attorno al testo, che resta Markdown o testo semplice.
+  stileSquadra   Boolean  @default(false)
   /// Il file del certificato in allegato.
   allegato       Boolean  @default(true)
   attivo         Boolean  @default(true)

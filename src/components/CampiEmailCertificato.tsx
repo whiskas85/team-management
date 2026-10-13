@@ -8,8 +8,8 @@ import {
   VALORI_ESEMPIO,
   SEGNO_STILE,
   componiCorpo,
-  inStileSquadra,
   pulsanteNelFormato,
+  riparaCornice,
   markdownInHtml,
   riempi,
   testoDaHtml,
@@ -54,6 +54,7 @@ type Valori = {
   testo: string;
   allegato: boolean;
   attivo: boolean;
+  stileSquadra: boolean;
 };
 
 /**
@@ -84,6 +85,8 @@ export function CampiEmailCertificato({
     (valori?.formato as FormatoEmail | undefined) ?? 'MARKDOWN',
   );
   const [toccato, setToccato] = useState(!!valori);
+  // la cornice della squadra: accesa di partenza sulle email nuove
+  const [conStile, setConStile] = useState(valori ? valori.stileSquadra : true);
   const [allaPersona, setAllaPersona] = useState(valori?.allInteressato ?? false);
   const campoTesto = useRef<HTMLTextAreaElement>(null);
   const campoOggetto = useRef<HTMLInputElement>(null);
@@ -97,13 +100,21 @@ export function CampiEmailCertificato({
   const cambiaFormato = (f: FormatoEmail) => {
     if (f === formato) return;
     if (f === 'HTML') {
-      setTesto(
-        formato === 'MARKDOWN'
-          ? markdownInHtml(testo)
-          : `<div style="white-space:pre-wrap">${testo.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!)}</div>`,
-      );
+      // l'HTML com'è adesso, cornice compresa se accesa, coi segnaposto ancora da riempire
+      const segnaposto = Object.fromEntries(Object.keys(VALORI_ESEMPIO).map((k) => [k, `{${k}}`]));
+      const pagina = componiCorpo(formato, testo, segnaposto, conStile ? stile : null).html;
+      setTesto(conStile ? pagina : formato === 'MARKDOWN' ? markdownInHtml(testo) : pagina);
+      setConStile(false);
     } else if (formato === 'HTML') {
-      setTesto(testoDaHtml(testo));
+      // da una pagina con la cornice si torna al testo che c'era dentro, e la
+      // cornice si riaccende: non diventa mai testo
+      const pulito = riparaCornice(testo, stile);
+      if (pulito !== null) {
+        setTesto(pulito);
+        setConStile(true);
+      } else {
+        setTesto(testoDaHtml(testo));
+      }
     }
     setFormato(f);
   };
@@ -118,19 +129,18 @@ export function CampiEmailCertificato({
     [],
   );
   const anteprima = useMemo(
-    () => componiCorpo(formato, testo, esempio).html,
-    [formato, testo, esempio],
+    () => componiCorpo(formato, testo, esempio, conStile && formato !== 'HTML' ? stile : null).html,
+    [formato, testo, esempio, conStile, stile],
   );
 
-  /*
-   * Lo stile della squadra: il testo resta parola per parola quello, cambia
-   * solo come si presenta — impaginato come il gestionale, col logo come
-   * firma. Niente aggiunto, niente tolto.
-   */
-  const conStile = testo.includes(SEGNO_STILE);
-  const applicaStile = () => {
-    setTesto(inStileSquadra(testo, formato, stile));
-    setFormato('HTML');
+  // un'email salvata dalle versioni di prima, con la cornice scritta dentro
+  const corniceDentro = formato === 'HTML' && testo.includes(SEGNO_STILE);
+  const riporta = () => {
+    const pulito = riparaCornice(testo, stile);
+    if (pulito === null) return;
+    setTesto(pulito);
+    setFormato('MARKDOWN');
+    setConStile(true);
     setToccato(true);
   };
 
@@ -285,21 +295,36 @@ export function CampiEmailCertificato({
                 ))}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={applicaStile}
-              disabled={conStile || formato === 'HTML'}
-              title={
-                conStile
-                  ? 'Questa email ha già lo stile della squadra'
-                  : formato === 'HTML'
-                    ? 'Si applica a un testo in Markdown o semplice'
-                    : 'Il testo resta quello: diventa un’email HTML coi colori del gestionale e il logo come firma'
-              }
-              className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-nvg/40 bg-nvg/10 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/20 disabled:cursor-default disabled:opacity-50"
-            >
-              ✦ {conStile ? 'Ha lo stile della squadra' : 'Applica lo stile della squadra'}
-            </button>
+            <input type="hidden" name="stileSquadra" value={conStile ? 'on' : ''} />
+            {formato !== 'HTML' ? (
+              <label className="mb-2 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={conStile}
+                  onChange={(e) => setConStile(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
+                />
+                <span>
+                  ✦ Stile della squadra
+                  <span className="block text-[11px] text-muted">
+                    La cornice del gestionale attorno al testo — nome in cima, firma col logo, nome
+                    e motto, «non rispondere» — messa quando l’email parte. Il testo qui resta
+                    quello che scrivi.
+                  </span>
+                </span>
+              </label>
+            ) : (
+              corniceDentro && (
+                <div className="mb-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+                  Questa email ha la cornice della squadra scritta dentro il testo (dalle versioni
+                  di prima): riapplicandola si accumulava.{' '}
+                  <button type="button" onClick={riporta} className="font-medium underline">
+                    Riportala al suo Markdown
+                  </button>{' '}
+                  e la cornice la rimette lo stile, al suo posto.
+                </div>
+              )
+            )}
             {/* il Markdown con la sua barra degli strumenti, come in tutto il gestionale */}
             {formato === 'MARKDOWN' ? (
               <EditoreMarkdown

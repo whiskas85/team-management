@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { fmtDateTime, nomeCompleto } from '@/lib/format';
 import { QUANDO, SEGNAPOSTO_CERTIFICATO, type Quando } from '@/lib/email-certificati';
+import { SEGNO_STILE } from '@/lib/email-corpo';
 import { gruppiWhatsapp, statoPonte } from '@/lib/whatsapp';
 import { Badge, Vuoto } from '@/components/ui';
 import { FormAzione } from '@/components/Form';
@@ -104,12 +105,14 @@ export async function SchedaMail() {
       )}
 
       <div className="mb-4 flex flex-wrap justify-end gap-2">
-        {regole.some((r) => r.formato !== 'HTML') && (
+        {regole.some(
+          (r) => (r.formato !== 'HTML' && !r.stileSquadra) || r.testo.includes(SEGNO_STILE),
+        ) && (
           <AzioneBottone
             azione={stileSquadraTutte}
             valori={{}}
             className="btn-ghost"
-            conferma="Trasformare in HTML, con lo stile della squadra, tutte le email che non lo sono ancora? Il testo resta quello, impaginato come il gestionale, con la firma col logo e il pulsante per la pagina dei certificati."
+            conferma="Accendere lo stile della squadra su tutte le email in Markdown o testo semplice? Il testo non cambia: la cornice (nome, firma col logo, «non rispondere») si mette quando l’email parte. Quelle che hanno la cornice scritta dentro tornano al loro Markdown, senza i pezzi di cornice accumulati."
           >
             ✦ Stile della squadra a tutte
           </AzioneBottone>
@@ -150,6 +153,10 @@ export async function SchedaMail() {
                                 ? 'il giorno della scadenza'
                                 : `${r.giorni} ${r.giorni === 1 ? 'giorno' : 'giorni'} prima`}
                             </Badge>
+                          )}
+                          {r.stileSquadra && <Badge tono="ok">stile della squadra</Badge>}
+                          {r.testo.includes(SEGNO_STILE) && (
+                            <Badge tono="warn">cornice scritta dentro</Badge>
                           )}
                           {r.formato !== 'TESTO' && (
                             <Badge tono="neutro">

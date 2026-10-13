@@ -5,6 +5,32 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.54.0 — 13 ottobre 2026
+
+### Cambiato
+
+- **Lo stile della squadra è un'impostazione, non una trasformazione.**
+  Nell'email c'è la casella «✦ Stile della squadra»: il testo resta Markdown
+  (o testo semplice) com'è scritto, e la cornice — nome in cima, firma con
+  logo, nome e motto, «non rispondere» — si aggiunge solo nell'HTML, in
+  anteprima e all'invio. Accenderla e spegnerla cento volte dà sempre la
+  stessa email. È accesa di partenza sulle email nuove.
+- «✦ Stile della squadra a tutte» accende la casella su tutte, senza toccare
+  i testi.
+
+### Corretto
+
+- **Le intestazioni che si accumulavano:** le email che avevano la cornice
+  scritta dentro (passando avanti e indietro fra Markdown e HTML) hanno il
+  segno «cornice scritta dentro»; «Stile della squadra a tutte», o «Riportala
+  al suo Markdown» dentro l'email, le riporta al loro testo togliendo i pezzi
+  di cornice impilati, e accende lo stile. Il grassetto perso in quei
+  passaggi non si recupera; i pulsanti sì.
+- **«Non si salva»:** quando un modulo aveva un errore (per esempio un
+  destinatario mancante) il messaggio compariva in cima alla finestra, fuori
+  dallo schermo, e sembrava che il salvataggio non facesse niente. Ora
+  l'errore viene portato in vista, in tutti i moduli del gestionale.
+
 ## 3.53.2 — 13 ottobre 2026
 
 ### Corretto

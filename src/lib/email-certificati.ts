@@ -6,6 +6,7 @@ import { leggiMiaSquadra, marchio, PARTENZA } from './mia-squadra';
 import { nomeFileCertificato } from './nome-certificato';
 import { indirizzoPubblico, inviaEmail, serverPosta } from './posta';
 import { componiCorpo, riempi } from './email-corpo';
+import { stileDellaSquadra } from './email-stile';
 import { percorsoAssoluto } from './storage';
 import { emailVerificata } from './verifica-email';
 
@@ -147,13 +148,14 @@ function destinatariDi(r: EmailCertificato, c: Certificato) {
 
 /** Compone e manda un'email di una regola, per un certificato, a questi indirizzi. */
 async function componiEManda(
-  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato' | 'formato'>,
+  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato' | 'formato' | 'stileSquadra'>,
   c: Certificato,
   a: string[],
 ): Promise<string | null> {
   const v = await valori(c);
   const oggetto = riempi(r.oggetto, v).replace(/\s+/g, ' ').trim();
-  const corpo = componiCorpo(r.formato, r.testo, v);
+  const stile = r.stileSquadra && r.formato !== 'HTML' ? await stileDellaSquadra() : null;
+  const corpo = componiCorpo(r.formato, r.testo, v, stile);
 
   let allegati: { nome: string; contenuto: Buffer; tipo: string }[] | undefined;
   if (r.allegato) {
@@ -293,7 +295,7 @@ export async function emailScadenzaCertificati(): Promise<{ mandate: number }> {
  * approvato come esempio. Non va nel registro e non conta come mandata.
  */
 export async function provaEmailCertificato(
-  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato' | 'formato'>,
+  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato' | 'formato' | 'stileSquadra'>,
   a: string,
 ): Promise<string | null> {
   // l'ultimo approvato il cui file c'è ancora: senza, la prova dell'allegato non prova niente
