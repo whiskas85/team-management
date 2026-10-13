@@ -25,6 +25,31 @@ export function metaNaviga(
 export const linkNaviga = (meta: string) =>
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(meta)}&travelmode=driving`;
 
+/**
+ * Un giro da dove sei adesso: le tappe in ordine, poi la meta. Senza origine
+ * Maps parte dalla posizione del telefono, che è quello che si vuole.
+ */
+export const linkGiro = (tappe: string[], meta: string) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(meta)}` +
+  (tappe.length ? `&waypoints=${encodeURIComponent(tappe.join('|'))}` : '') +
+  '&travelmode=driving';
+
+/**
+ * Un itinerario con la sua partenza (la casa di chi guida): partenza, tappe,
+ * meta. Maps accetta al massimo nove tappe in mezzo.
+ */
+export const linkPercorso = (punti: string[]) => {
+  if (punti.length < 2) return punti[0] ? linkNaviga(punti[0]) : null;
+  const [origine, ...resto] = punti;
+  const meta = resto.pop()!;
+  return (
+    `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origine)}` +
+    `&destination=${encodeURIComponent(meta)}` +
+    (resto.length ? `&waypoints=${encodeURIComponent(resto.slice(0, 9).join('|'))}` : '') +
+    '&travelmode=driving'
+  );
+};
+
 /** Il viaggio intero: prima al ritrovo, poi al campo, in un itinerario solo. */
 export const linkItinerario = (da: string, a: string) =>
   `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(da)}&destination=${encodeURIComponent(a)}&travelmode=driving`;

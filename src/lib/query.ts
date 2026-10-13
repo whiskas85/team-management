@@ -92,6 +92,7 @@ function viaggioDi(macchine: MacchinaInLista[], userId: string, eventId: string)
       dove: guido.arrivo,
       ora: guido.arrivoOra,
       naviga: linkViaggio(punti),
+      punti,
       pagina: link(guido.id),
     };
   }

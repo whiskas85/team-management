@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.51.0 — 13 ottobre 2026
+
+### Cambiato
+
+- **Naviga nelle card, un pulsante solo a destra** (come i pulsanti di
+  risposta), al posto di «Ritrovo» e «Naviga» uno sotto l'altro. Il tocco
+  apre il giro che serve: dal ritrovo al campo in un percorso solo; per chi
+  guida l'itinerario con le tappe fino al campo; per chi sale il suo punto di
+  salita. La freccina accanto apre le altre mete — solo il ritrovo, dritto al
+  campo — in un menu che galleggia sopra la pagina (verso l'alto se sotto non
+  c'è posto) e non sposta niente.
+
 ## 3.50.0 — 12 ottobre 2026
 
 ### Cambiato

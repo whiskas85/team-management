@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Naviga, linkNaviga } from './Naviga';
+import { linkGiro, linkNaviga, linkPercorso, metaNaviga } from './Naviga';
+import { NavigaMenu, type MetaNaviga } from './NavigaMenu';
 import { Badge } from './ui';
 import { Icona } from './Icona';
 import { AdesioneEvento } from './AdesioneEvento';
@@ -20,6 +21,8 @@ export type ViaggioInCard = {
   ora: Date | null;
   /** Il link di Maps: l'itinerario intero per chi guida, il mio punto per chi sale. */
   naviga: string | null;
+  /** Chi guida: i punti del giro in ordine (casa, tappe, arrivo), per allungarlo fino al campo. */
+  punti?: string[];
   pagina: string;
   /** Passa a prendermi: senza punto vuol dire che non gli ho ancora detto dove. */
   prendo?: boolean;
@@ -86,6 +89,64 @@ export type EventoLista = {
   /** La mia macchinata, se ne ho una. */
   viaggio?: ViaggioInCard | null;
 };
+
+/**
+ * Dove porta il Naviga della card, e cosa c'è nel suo menu.
+ *
+ * La prima meta è quella del tocco, e cambia con chi guarda: chi guida ha
+ * l'itinerario intero fino al campo, chi sale va al suo punto di salita, gli
+ * altri passano dal ritrovo e arrivano al campo in un percorso solo. Le altre
+ * sono per chi vuole andare dritto al campo, o solo al ritrovo.
+ */
+function meteNaviga(e: EventoLista): { etichetta: string; mete: MetaNaviga[] } | null {
+  const campo = metaNaviga(e.lat, e.lng, e.indirizzo);
+  const nomeCampo = e.campo ?? e.indirizzo;
+  const ritrovo = e.ritrovoMeta ?? null;
+  const v = e.viaggio;
+  const mete: MetaNaviga[] = [];
+  const alCampo = campo && { etichetta: 'Dritto al campo', sotto: nomeCampo, href: linkNaviga(campo) };
+  const alRitrovo = ritrovo && { etichetta: 'Solo il ritrovo', sotto: e.ritrovo, href: linkNaviga(ritrovo) };
+
+  if (v?.ruolo === 'autista' && v.punti?.length) {
+    // il giro di chi guida finisce al campo, se l'arrivo non è già lì
+    const punti = campo && v.punti[v.punti.length - 1] !== campo ? [...v.punti, campo] : v.punti;
+    const tappe = Math.max(0, punti.length - 2);
+    const giro = linkPercorso(punti);
+    if (giro) {
+      mete.push({
+        etichetta: 'Itinerario',
+        sotto: `${tappe === 1 ? '1 tappa' : `${tappe} tappe`}${nomeCampo ? `, poi ${nomeCampo}` : ''}`,
+        href: giro,
+      });
+    }
+    if (alRitrovo) mete.push(alRitrovo);
+    if (alCampo) mete.push(alCampo);
+    return mete.length ? { etichetta: 'Itinerario', mete } : null;
+  }
+
+  if (v?.ruolo === 'passeggero' && v.naviga) {
+    mete.push({
+      etichetta: v.prendo ? 'Dove ti prende' : 'Al punto di salita',
+      sotto: v.dove,
+      href: v.naviga,
+    });
+    if (alCampo) mete.push(alCampo);
+    return { etichetta: 'Naviga', mete };
+  }
+
+  if (ritrovo && campo) {
+    mete.push({
+      etichetta: 'Ritrovo → campo',
+      sotto: `${e.ritrovo ?? 'Ritrovo'}, poi ${nomeCampo ?? 'il campo'}`,
+      href: linkGiro([ritrovo], campo),
+    });
+  }
+  if (alRitrovo) mete.push(alRitrovo);
+  if (alCampo) mete.push(alCampo);
+  if (mete.length === 0) return null;
+  // una meta sola: il pulsante dice qual è
+  return { etichetta: !campo && ritrovo ? 'Ritrovo' : 'Naviga', mete };
+}
 
 /**
  * Un'attività rilasciata che non hai ancora aperto. Sparisce la prima volta
@@ -162,7 +223,6 @@ export function CardEvento({
    */
   elimina?: ReactNode;
 }) {
-  const puoNavigare = (e.lat != null && e.lng != null) || !!e.indirizzo;
   // Una quota va vista **mentre si risponde**, non due righe più su in grigio:
   // uno preme "ci sono" e in quel momento deve sapere che sta prendendo un
   // impegno da dieci euro. Se le adesioni sono chiuse resta nel corpo, dove
@@ -187,7 +247,8 @@ export function CardEvento({
    * area cliccabile, perché il corpo è tutto un link all'attività.
    */
   const v = e.viaggio;
-  const striscia = puoNavigare || !!v || !!e.ritrovo;
+  const nav = meteNaviga(e);
+  const striscia = !!nav || !!v || !!e.ritrovo;
   // «Paga» va in fila ai pulsanti di presenza, quando ci sono
   const pagaQui = pagata ? null : paga;
   const conPresenza = e.adesioniAperte || (e.iscrizioniChiuse && e.mioStato !== 'ASSENTE');
@@ -271,84 +332,58 @@ export function CardEvento({
           domanda la fanno da soli, e quello scelto resta acceso: scriverlo
           anche a parole era dire due volte la stessa cosa. */}
       {striscia && (
-        <div className="space-y-2 border-t border-line px-4 py-2.5">
+        <div className="flex items-center gap-3 border-t border-line px-4 py-2.5">
           {/* In macchina il punto che conta è dove si sale, non il ritrovo
               dell'attività: chi guida ha l'itinerario intero. */}
-          {v ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="shrink-0 text-nvg">
-                <Icona nome="macchina" size={15} />
-              </span>
-              <span className="min-w-0 flex-1">
-                {v.ruolo === 'autista' ? (
-                  <>
-                    <strong className="text-ink">Guidi tu</strong>
-                    <span className="text-muted"> · {v.aBordo} a bordo</span>
-                  </>
-                ) : v.ruolo === 'passeggero' ? (
-                  <>
-                    In macchina con <strong className="text-ink">{v.con}</strong>
-                    <span className="block text-muted">
-                      {v.dove
-                        ? `${v.prendo ? 'Ti prende a: ' : 'Ritrovo: '}${v.dove}${v.ora ? ` · ore ${fmtTime(v.ora)}` : ''}`
-                        : v.prendo
-                          ? 'Digli dove passare a prenderti'
-                          : 'Ritrovo da decidere'}
+          <div className="min-w-0 flex-1 text-xs">
+            {v ? (
+              <div className="flex items-start gap-2">
+                <span className="mt-px shrink-0 text-nvg">
+                  <Icona nome="macchina" size={15} />
+                </span>
+                <span className="min-w-0">
+                  {v.ruolo === 'autista' ? (
+                    <>
+                      <strong className="text-ink">Guidi tu</strong>
+                      <span className="text-muted"> · {v.aBordo} a bordo</span>
+                    </>
+                  ) : v.ruolo === 'passeggero' ? (
+                    <>
+                      In macchina con <strong className="text-ink">{v.con}</strong>
+                      <span className="block text-muted">
+                        {v.dove
+                          ? `${v.prendo ? 'Ti prende a: ' : 'Ritrovo: '}${v.dove}${v.ora ? ` · ore ${fmtTime(v.ora)}` : ''}`
+                          : v.prendo
+                            ? 'Digli dove passare a prenderti'
+                            : 'Ritrovo da decidere'}
+                      </span>
+                    </>
+                  ) : v.ruolo === 'richiesto' ? (
+                    <span className="text-muted">
+                      Hai chiesto un passaggio a <strong className="text-ink">{v.con}</strong>
                     </span>
-                  </>
-                ) : v.ruolo === 'richiesto' ? (
-                  <span className="text-muted">
-                    Hai chiesto un passaggio a <strong className="text-ink">{v.con}</strong>
-                  </span>
-                ) : (
-                  <>
-                    <strong className="text-ink">{v.con}</strong>
-                    <span className="text-muted"> ti offre un passaggio</span>
-                  </>
-                )}
-              </span>
-              {v.naviga && (
-                <a
-                  href={v.naviga}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-nvg/40 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/10"
-                >
-                  <Icona nome="naviga" size={13} />
-                  {v.ruolo === 'autista' ? 'Itinerario' : 'Naviga'}
-                </a>
-              )}
-              <Link href={v.pagina} className="text-xs text-nvg hover:underline">
-                {v.ruolo === 'invitato' ? 'Rispondi ›' : 'Il viaggio ›'}
-              </Link>
-            </div>
-          ) : (
-            e.ritrovo && (
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="min-w-0 flex-1 text-muted">
+                  ) : (
+                    <>
+                      <strong className="text-ink">{v.con}</strong>
+                      <span className="text-muted"> ti offre un passaggio</span>
+                    </>
+                  )}
+                  <Link href={v.pagina} className="mt-0.5 block text-nvg hover:underline">
+                    {v.ruolo === 'invitato' ? 'Rispondi ›' : 'Il viaggio ›'}
+                  </Link>
+                </span>
+              </div>
+            ) : (
+              e.ritrovo && (
+                <p className="text-muted">
                   Ritrovo: <span className="text-ink">{e.ritrovo}</span>
                   {e.oraRitrovo && ` · ore ${fmtTime(e.oraRitrovo)}`}
-                </span>
-                {e.ritrovoMeta && (
-                  <a
-                    href={linkNaviga(e.ritrovoMeta)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-md border border-nvg/40 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/10"
-                  >
-                    <Icona nome="naviga" size={13} />
-                    Ritrovo
-                  </a>
-                )}
-              </div>
-            )
-          )}
-          {/* il campo resta per chi non è in una macchina, e per chi guida */}
-          {puoNavigare && (!v || v.ruolo !== 'passeggero') && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Naviga lat={e.lat} lng={e.lng} indirizzo={e.indirizzo} compatto />
-            </div>
-          )}
+                  {e.campo && <span className="block">poi {e.campo}</span>}
+                </p>
+              )
+            )}
+          </div>
+          {nav && <NavigaMenu etichetta={nav.etichetta} mete={nav.mete} />}
         </div>
       )}
 
