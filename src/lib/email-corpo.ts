@@ -215,9 +215,10 @@ export type StileSquadra = { accento: string; nome: string; motto: string };
 export const SEGNO_STILE = '<!-- stile-squadra -->';
 
 /**
- * L'email vestita come il gestionale: fondo scuro, la scheda col filo
- * dell'accento in cima, e sotto, come firma, il logo. **Nessuna parola in
- * più**: il testo è tutto e solo quello scritto da chi gestisce.
+ * L'email vestita come il gestionale: è la **cornice** attorno al testo.
+ * In cima il nome della squadra, la scheda col filo dell'accento, sotto la
+ * firma (logo, nome, motto) e la riga che dice che l'email è automatica e non
+ * va risposta. Dentro la scheda c'è il testo di chi scrive, tale e quale.
  *
  * Tutto in tabelle e stili in linea, perché è l'unica cosa che i client di
  * posta capiscono tutti; i colori anche come `bgcolor`, che Outlook rispetta.
@@ -226,6 +227,7 @@ export const SEGNO_STILE = '<!-- stile-squadra -->';
  */
 export function paginaSquadra(corpo: string, s: StileSquadra) {
   const font = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const mono = "'Courier New',Courier,monospace";
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
@@ -235,12 +237,17 @@ ${SEGNO_STILE}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#050605" style="background:#050605">
 <tr><td align="center" style="padding:28px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
+<tr><td style="padding:0 4px 14px;font:bold 13px/1.4 ${mono};letter-spacing:4px;text-transform:uppercase;color:${s.accento}">${esc(s.nome)}</td></tr>
 <tr><td bgcolor="#0e110e" style="background:#0e110e;border:1px solid #232a23;border-top:3px solid ${s.accento};border-radius:10px;padding:28px 26px;color:#e7ede7;font:15px/1.6 ${font}">
 ${corpo}
 </td></tr>
 <tr><td style="padding:24px 4px 0">
-<img src="{logoUrl}" width="64" height="64" alt="${esc(s.nome)}" style="display:block;width:64px;height:64px;border-radius:50%;border:1px solid #232a23">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="padding-right:14px;vertical-align:middle"><img src="{logoUrl}" width="56" height="56" alt="${esc(s.nome)}" style="display:block;width:56px;height:56px;border-radius:50%;border:1px solid #232a23"></td>
+<td style="vertical-align:middle;font:13px/1.5 ${font};color:#7f8a7f"><span style="font:bold 14px/1.4 ${mono};letter-spacing:2px;text-transform:uppercase;color:#e7ede7">${esc(s.nome)}</span><br>${esc(s.motto)}</td>
+</tr></table>
 </td></tr>
+<tr><td style="padding:18px 4px 0;font:11px/1.5 ${font};color:#7f8a7f">Questa email è generata automaticamente dal gestionale della squadra: per favore non rispondere a questo indirizzo.</td></tr>
 </table>
 </td></tr></table>
 </body></html>`;
@@ -282,9 +289,7 @@ export const PULSANTE_CERTIFICATI = { testo: 'Vai ai miei certificati', url: '{l
 /** Lo stesso pulsante scritto nel formato dell'email. */
 export function pulsanteNelFormato(formato: string, accento: string) {
   const { testo, url } = PULSANTE_CERTIFICATI;
-  return formato === 'HTML'
-    ? pulsante(esc(testo), url, accento)
-    : `[[${testo}]](${url})`;
+  return formato === 'HTML' ? pulsante(esc(testo), url, accento) : `[[${testo}]](${url})`;
 }
 
 /** Valori finti per l'anteprima: si vede com'è fatta, senza i dati di nessuno. */

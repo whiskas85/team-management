@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.53.2 — 13 ottobre 2026
+
+### Corretto
+
+- **Lo stile della squadra ha di nuovo la sua cornice completa:** il nome
+  della squadra in cima, la firma con logo, nome e motto, e in fondo la riga
+  «Questa email è generata automaticamente dal gestionale della squadra: per
+  favore non rispondere a questo indirizzo». Il testo dentro la scheda resta
+  quello scritto, parola per parola.
+
 ## 3.53.1 — 13 ottobre 2026
 
 ### Corretto
