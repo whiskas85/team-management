@@ -131,3 +131,13 @@ export const stagioneCorrente = (ref = new Date()) => {
   const y = ref.getFullYear();
   return ref.getMonth() >= 8 ? `${y}/${y + 1}` : `${y - 1}/${y}`;
 };
+
+/**
+ * Dove andare dopo l'accesso (?dopo=/certificati), se è una pagina nostra:
+ * solo percorsi interni, mai un altro sito — un link di accesso che rimanda
+ * fuori è il trucco più vecchio del phishing.
+ */
+export function percorsoDopo(v: unknown): string | null {
+  if (typeof v !== 'string' || v.length > 200) return null;
+  return /^\/(?![/\\])[\w\-./?=&%]*$/.test(v) ? v : null;
+}

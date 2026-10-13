@@ -16,7 +16,9 @@ import {
   eliminaEmailCertificato,
   provaEmailCertificatoAMe,
   salvaEmailCertificato,
+  stileSquadraTutte,
 } from '@/actions/email-certificati';
+import { stileDellaSquadra } from '@/lib/email-stile';
 import { preparaSollecito } from '@/actions/messaggi';
 
 /** Le schede in cima alla pagina dei certificati. */
@@ -61,7 +63,8 @@ export function BarraSchede({
  * suoi destinatari e il suo testo. Sotto, il registro di quelle partite.
  */
 export async function SchedaMail() {
-  const [posta, regole, invii] = await Promise.all([
+  const [stile, posta, regole, invii] = await Promise.all([
+    stileDellaSquadra(),
     prisma.serverPosta.findFirst({ where: { attivo: true }, select: { id: true } }),
     prisma.emailCertificato.findMany({ orderBy: [{ giorni: 'desc' }, { createdAt: 'asc' }] }),
     prisma.invioEmailCertificato.findMany({
@@ -100,10 +103,20 @@ export async function SchedaMail() {
         </div>
       )}
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap justify-end gap-2">
+        {regole.some((r) => r.formato !== 'HTML') && (
+          <AzioneBottone
+            azione={stileSquadraTutte}
+            valori={{}}
+            className="btn-ghost"
+            conferma="Trasformare in HTML, con lo stile della squadra, tutte le email che non lo sono ancora? Il testo resta quello, impaginato come il gestionale, con la firma col logo e il pulsante per la pagina dei certificati."
+          >
+            ✦ Stile della squadra a tutte
+          </AzioneBottone>
+        )}
         <BottoneModale etichetta="Nuova email" icona="aggiungi" titolo="Nuova email" larga="molto">
           <FormAzione azione={salvaEmailCertificato}>
-            <CampiEmailCertificato segnaposto={SEGNAPOSTO_CERTIFICATO} />
+            <CampiEmailCertificato segnaposto={SEGNAPOSTO_CERTIFICATO} stile={stile} />
             <Invia icona="salva">Crea</Invia>
           </FormAzione>
         </BottoneModale>
@@ -175,6 +188,7 @@ export async function SchedaMail() {
                               <CampiEmailCertificato
                                 valori={r}
                                 segnaposto={SEGNAPOSTO_CERTIFICATO}
+                                stile={stile}
                               />
                               <Invia icona="salva">Salva</Invia>
                             </FormAzione>

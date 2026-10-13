@@ -2,9 +2,9 @@ import { access, readFile } from 'fs/promises';
 import type { EmailCertificato } from '@prisma/client';
 import { prisma } from './db';
 import { fmtDate, giorniA, umanizza } from './format';
-import { marchio } from './mia-squadra';
+import { leggiMiaSquadra, marchio, PARTENZA } from './mia-squadra';
 import { nomeFileCertificato } from './nome-certificato';
-import { inviaEmail, serverPosta } from './posta';
+import { indirizzoPubblico, inviaEmail, serverPosta } from './posta';
 import { componiCorpo, riempi } from './email-corpo';
 import { percorsoAssoluto } from './storage';
 import { emailVerificata } from './verifica-email';
@@ -47,6 +47,9 @@ export const SEGNAPOSTO_CERTIFICATO: Record<string, string> = {
   giorni: 'i giorni che mancano alla scadenza',
   approvatoDa: 'chi l’ha approvato',
   squadra: 'il nome della squadra',
+  linkCertificati: 'il link alla pagina «Miei certificati»',
+  linkGestionale: 'il link al gestionale',
+  logoUrl: 'l’indirizzo del logo della squadra (per <img src="…">)',
 };
 
 const includeCertificato = {
@@ -99,7 +102,26 @@ async function valori(c: Certificato): Promise<Record<string, string>> {
     giorni: giorni === null ? '' : String(giorni),
     approvatoDa: c.reviewedBy ? `${c.reviewedBy.nome} ${c.reviewedBy.cognome}` : '',
     squadra: (await marchio()).nome,
+    ...(await linkPubblici()),
   };
+}
+
+/**
+ * I link assoluti che servono dentro un'email: la pagina dei certificati, il
+ * gestionale e il logo. Il logo punta al file vero (non al rinvio): alcuni
+ * client di posta non seguono i rinvii delle immagini.
+ */
+async function linkPubblici() {
+  const base = await indirizzoPubblico();
+  if (!base) return { linkCertificati: '', linkGestionale: '', logoUrl: '' };
+  const s = await leggiMiaSquadra();
+  const logoUrl = s?.logoPath
+    ? `${base}/api/squadra/logo?v=${s.aggiornatoIl.getTime()}`
+    : PARTENZA.logo
+      ? `${base}${PARTENZA.logo}`
+      : `${base}/api/squadra/logo`;
+  // dal login: chi è già dentro passa dritto, gli altri ci arrivano appena entrati
+  return { linkCertificati: `${base}/login?dopo=/certificati`, linkGestionale: base, logoUrl };
 }
 
 /** Gli indirizzi scritti a mano, separati da virgole, spazi o a capo. */

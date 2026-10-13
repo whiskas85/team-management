@@ -16,7 +16,7 @@ export const FORMATI: Record<FormatoEmail, { nome: string; spiega: string }> = {
   MARKDOWN: {
     nome: 'Markdown',
     spiega:
-      '**grassetto**, *corsivo*, # titolo, - elenco, [testo](https://link), --- per una riga.',
+      '**grassetto**, *corsivo*, # titolo, - elenco, [testo](https://link), [[Pulsante]](https://link), --- per una riga.',
   },
   HTML: {
     nome: 'HTML',
@@ -41,14 +41,42 @@ export function riempi(testo: string, v: Record<string, string>) {
 const linkSicuro = (u: string) =>
   /^(https?:|mailto:|tel:)/i.test(u.trim()) || /^\{\w+\}$/.test(u.trim()) ? u.trim() : '#';
 
+/** I colori del Markdown impaginato: chiaro di partenza, scuro per lo stile della squadra. */
+type Tavolozza = { link: string; linea: string; citazione: string; bordo: string; accento: string };
+
+const CHIARA: Tavolozza = {
+  link: '#2f7d12',
+  linea: '#dddddd',
+  citazione: '#555555',
+  bordo: '#cccccc',
+  accento: '#2f7d12',
+};
+
+/** Testo nero o bianco sopra un colore pieno: quello che si legge meglio. */
+function inchiostro(hex: string) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return '#000000';
+  const n = parseInt(m[1], 16);
+  const l = 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+  return l > 140 ? '#000000' : '#ffffff';
+}
+
+/**
+ * Un pulsante che regge in tutti i client di posta: una tabella col colore
+ * pieno nella cella (Outlook ignora lo sfondo dei link) e il link sopra.
+ */
+export function pulsante(testo: string, url: string, accento: string) {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px"><tr><td bgcolor="${accento}" style="background:${accento};border-radius:6px"><a href="${linkSicuro(url)}" style="display:inline-block;padding:12px 22px;font:bold 15px/1.2 Arial,Helvetica,sans-serif;color:${inchiostro(accento)};text-decoration:none;border-radius:6px">${testo}</a></td></tr></table>`;
+}
+
 /** Grassetto, corsivo, codice e link dentro una riga (già con l'HTML neutralizzato). */
-function inLinea(t: string) {
+function inLinea(t: string, c: Tavolozza = CHIARA) {
   return t
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(
       /\[([^\]]+)\]\(([^)\s]+)\)/g,
       (_, testo: string, url: string) =>
-        `<a href="${linkSicuro(url)}" style="color:#2f7d12">${testo}</a>`,
+        `<a href="${linkSicuro(url)}" style="color:${c.link}">${testo}</a>`,
     )
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/__([^_]+)__/g, '<strong>$1</strong>')
@@ -61,7 +89,7 @@ function inLinea(t: string) {
  * grassetto e corsivo, link, elenchi puntati e numerati, citazioni, righe. Chi
  * scrive HTML dentro il Markdown lo vede scritto, non eseguito.
  */
-export function markdownInHtml(md: string): string {
+export function markdownInHtml(md: string, c: Tavolozza = CHIARA): string {
   const righe = esc(md.replace(/\r\n?/g, '\n')).split('\n');
   const fuori: string[] = [];
   let paragrafo: string[] = [];
@@ -69,7 +97,9 @@ export function markdownInHtml(md: string): string {
 
   const chiudiParagrafo = () => {
     if (paragrafo.length) {
-      fuori.push(`<p style="margin:0 0 14px">${paragrafo.map(inLinea).join('<br>')}</p>`);
+      fuori.push(
+        `<p style="margin:0 0 14px">${paragrafo.map((r) => inLinea(r, c)).join('<br>')}</p>`,
+      );
       paragrafo = [];
     }
   };
@@ -77,7 +107,7 @@ export function markdownInHtml(md: string): string {
     if (elenco) {
       fuori.push(
         `<${elenco.tipo} style="margin:0 0 14px;padding-left:22px">${elenco.voci
-          .map((v) => `<li>${inLinea(v)}</li>`)
+          .map((v) => `<li>${inLinea(v, c)}</li>`)
           .join('')}</${elenco.tipo}>`,
       );
       elenco = null;
@@ -89,20 +119,26 @@ export function markdownInHtml(md: string): string {
     const puntata = /^\s*[-*+]\s+(.*)$/.exec(riga);
     const numerata = /^\s*\d+[.)]\s+(.*)$/.exec(riga);
     const citazione = /^&gt;\s?(.*)$/.exec(riga);
-    if (!riga.trim()) {
+    // [[Testo del pulsante]](link): un pulsante pieno, da solo sulla riga
+    const bottone = /^\s*\[\[([^\]]+)\]\]\(([^)\s]+)\)\s*$/.exec(riga);
+    if (bottone) {
+      chiudiParagrafo();
+      chiudiElenco();
+      fuori.push(pulsante(bottone[1], bottone[2], c.accento));
+    } else if (!riga.trim()) {
       chiudiParagrafo();
       chiudiElenco();
     } else if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(riga)) {
       chiudiParagrafo();
       chiudiElenco();
-      fuori.push('<hr style="border:0;border-top:1px solid #ddd;margin:18px 0">');
+      fuori.push(`<hr style="border:0;border-top:1px solid ${c.linea};margin:18px 0">`);
     } else if (titolo) {
       chiudiParagrafo();
       chiudiElenco();
       const n = titolo[1].length;
       const misura = n === 1 ? 22 : n === 2 ? 18 : 16;
       fuori.push(
-        `<h${n} style="margin:0 0 12px;font-size:${misura}px">${inLinea(titolo[2])}</h${n}>`,
+        `<h${n} style="margin:0 0 12px;font-size:${misura}px">${inLinea(titolo[2], c)}</h${n}>`,
       );
     } else if (puntata || numerata) {
       chiudiParagrafo();
@@ -114,7 +150,7 @@ export function markdownInHtml(md: string): string {
       chiudiParagrafo();
       chiudiElenco();
       fuori.push(
-        `<blockquote style="margin:0 0 14px;padding-left:12px;border-left:3px solid #ccc;color:#555">${inLinea(citazione[1])}</blockquote>`,
+        `<blockquote style="margin:0 0 14px;padding-left:12px;border-left:3px solid ${c.bordo};color:${c.citazione}">${inLinea(citazione[1], c)}</blockquote>`,
       );
     } else {
       chiudiElenco();
@@ -173,6 +209,89 @@ export function componiCorpo(
   };
 }
 
+export type StileSquadra = { accento: string; nome: string; motto: string };
+
+/** Il segno che una pagina è nata dallo stile della squadra. */
+export const SEGNO_STILE = '<!-- stile-squadra -->';
+
+/**
+ * L'email vestita come il gestionale: fondo scuro, la scheda col filo
+ * dell'accento in cima, il nome della squadra in maiuscolo spaziato, e in
+ * fondo la firma col logo.
+ *
+ * Tutto in tabelle e stili in linea, perché è l'unica cosa che i client di
+ * posta capiscono tutti; i colori anche come `bgcolor`, che Outlook rispetta.
+ * Il logo è {logoUrl}: lo riempie l'invio con l'indirizzo pubblico del
+ * gestionale, così l'immagine è sempre quella caricata in «La mia squadra».
+ */
+export function paginaSquadra(corpo: string, s: StileSquadra) {
+  const font = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const mono = "'Courier New',Courier,monospace";
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
+${SEGNO_STILE}
+</head>
+<body style="margin:0;padding:0;background:#050605">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#050605" style="background:#050605">
+<tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
+<tr><td style="padding:0 4px 14px;font:bold 13px/1.4 ${mono};letter-spacing:4px;text-transform:uppercase;color:${s.accento}">${esc(s.nome)}</td></tr>
+<tr><td bgcolor="#0e110e" style="background:#0e110e;border:1px solid #232a23;border-top:3px solid ${s.accento};border-radius:10px;padding:28px 26px;color:#e7ede7;font:15px/1.6 ${font}">
+${corpo}
+</td></tr>
+<tr><td style="padding:24px 4px 0">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="padding-right:14px;vertical-align:middle"><img src="{logoUrl}" width="56" height="56" alt="${esc(s.nome)}" style="display:block;width:56px;height:56px;border-radius:50%;border:1px solid #232a23"></td>
+<td style="vertical-align:middle;font:13px/1.5 ${font};color:#7f8a7f"><span style="font:bold 14px/1.4 ${mono};letter-spacing:2px;text-transform:uppercase;color:#e7ede7">${esc(s.nome)}</span><br>${esc(s.motto)}</td>
+</tr></table>
+</td></tr>
+<tr><td style="padding:18px 4px 0;font:11px/1.5 ${font};color:#7f8a7f">Email automatica del gestionale della squadra.</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+}
+
+/** I colori del Markdown dentro lo stile della squadra. */
+const scura = (accento: string): Tavolozza => ({
+  link: accento,
+  linea: '#232a23',
+  citazione: '#7f8a7f',
+  bordo: accento,
+  accento,
+});
+
+/**
+ * Un testo (Markdown o semplice) trasformato in un'email HTML con lo stile
+ * della squadra, col pulsante per la pagina in fondo se serve. Il risultato è
+ * HTML normale: si può ritoccare a mano come qualunque altro.
+ */
+export function inStileSquadra(
+  testo: string,
+  s: StileSquadra,
+  bottone?: { testo: string; url: string } | null,
+) {
+  const blocchi = testo
+    .replace(/\r\n?/g, '\n')
+    .trim()
+    .split(/\n\s*\n/);
+  // il nome della squadra da solo in fondo: c'è già la firma col logo
+  if (blocchi.length > 1 && blocchi[blocchi.length - 1].trim() === '{squadra}') blocchi.pop();
+  // un pulsante già scritto nel testo vale quello: non se ne aggiunge un altro
+  if (bottone && !/\[\[[^\]]+\]\]\(/.test(testo)) {
+    const riga = `[[${bottone.testo}]](${bottone.url})`;
+    const ultimo = blocchi[blocchi.length - 1] ?? '';
+    // prima dei saluti («Cordiali saluti, …»), se in fondo ci sono; se no in fondo
+    const saluti =
+      blocchi.length > 1 &&
+      ultimo.split('\n').length <= 2 &&
+      ultimo.length <= 80 &&
+      /salut|grazie|a presto|buona giornata|\{squadra\}/i.test(ultimo);
+    blocchi.splice(saluti ? blocchi.length - 1 : blocchi.length, 0, riga);
+  }
+  return paginaSquadra(markdownInHtml(blocchi.join('\n\n'), scura(s.accento)), s);
+}
+
 /** Valori finti per l'anteprima: si vede com'è fatta, senza i dati di nessuno. */
 export const VALORI_ESEMPIO: Record<string, string> = {
   nome: 'Mario',
@@ -190,4 +309,7 @@ export const VALORI_ESEMPIO: Record<string, string> = {
   giorni: '30',
   approvatoDa: 'Luca Bianchi',
   squadra: 'La squadra',
+  linkCertificati: 'https://gestionale.esempio.it/certificati',
+  linkGestionale: 'https://gestionale.esempio.it',
+  logoUrl: '/api/squadra/logo',
 };

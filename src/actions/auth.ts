@@ -8,6 +8,7 @@ import { VERSIONE_PRIVACY } from '@/lib/gdpr';
 // la data si legge con l'aiuto di sempre e non con `new Date`: "2004-05-15"
 // letta come mezzanotte UTC, a est di Greenwich, diventa il giorno prima
 import { data } from '@/lib/form';
+import { percorsoDopo } from '@/lib/format';
 
 export type StatoForm = {
   errore?: string;
@@ -78,7 +79,8 @@ export async function accedi(_prev: StatoForm, fd: FormData): Promise<StatoForm>
 
   await prisma.user.update({ where: { id: user.id }, data: { ultimoAccesso: new Date() } });
   await createSession(user.id, flag(fd, 'ricordami'));
-  redirect('/dashboard');
+  // arrivato da un link verso una pagina precisa: si va lì
+  redirect(percorsoDopo(fd.get('dopo')) ?? '/dashboard');
 }
 
 /**

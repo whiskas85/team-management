@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.53.0 — 13 ottobre 2026
+
+### Nuovo
+
+- **Email dei certificati con lo stile della squadra.** «✦ Applica lo stile
+  della squadra» trasforma il testo in un'email HTML vestita come il
+  gestionale: fondo scuro, il colore della squadra, il nome in maiuscolo
+  spaziato, la scheda col filo colorato e **la firma col logo**. A quelle che
+  vanno alla persona aggiunge il pulsante **Vai ai miei certificati** (prima
+  dei saluti, se ci sono). «✦ Stile della squadra a tutte», nella scheda Mail,
+  lo fa in un colpo su tutte quelle non ancora in HTML. Il risultato è HTML
+  normale: si ritocca e si vede nell'anteprima.
+- **Pulsanti e link diretti nelle email:** nel Markdown un pulsante si scrive
+  `[[Testo]](link)`; i segnaposto nuovi sono {linkCertificati} (la pagina dei
+  certificati), {linkGestionale} e {logoUrl}.
+- **Dal link alla pagina giusta:** un link del gestionale verso una pagina
+  (`/login?dopo=/certificati`) porta lì chi è già dentro e, dopo l'accesso,
+  chi non lo è; solo pagine del gestionale, mai altri siti.
+
 ## 3.52.0 — 13 ottobre 2026
 
 ### Nuovo

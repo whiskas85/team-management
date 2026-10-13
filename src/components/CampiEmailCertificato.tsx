@@ -5,11 +5,14 @@ import { Campo } from './ui';
 import {
   FORMATI,
   VALORI_ESEMPIO,
+  SEGNO_STILE,
   componiCorpo,
+  inStileSquadra,
   markdownInHtml,
   riempi,
   testoDaHtml,
   type FormatoEmail,
+  type StileSquadra,
 } from '@/lib/email-corpo';
 
 /** I testi proposti per un'email nuova, secondo il momento. */
@@ -34,6 +37,8 @@ Cordiali saluti,
 il tuo certificato medico scade il **{scadenza}**: mancano {giorni} giorni.
 
 Prenota la visita: fra il medico e l'approvazione ci vuole qualche giorno. Il nuovo si carica dal gestionale, in «Miei certificati».
+
+[[Vai ai miei certificati]]({linkCertificati})
 
 {squadra}`,
   },
@@ -61,9 +66,12 @@ type Valori = {
 export function CampiEmailCertificato({
   valori,
   segnaposto,
+  stile,
 }: {
   valori?: Valori;
   segnaposto: Record<string, string>;
+  /** I colori e il nome della squadra, per «Stile della squadra». */
+  stile: StileSquadra;
 }) {
   const [quando, setQuando] = useState<'ACCETTATO' | 'SCADENZA'>(
     valori?.quando === 'SCADENZA' ? 'SCADENZA' : 'ACCETTATO',
@@ -76,6 +84,7 @@ export function CampiEmailCertificato({
     (valori?.formato as FormatoEmail | undefined) ?? 'MARKDOWN',
   );
   const [toccato, setToccato] = useState(!!valori);
+  const [allaPersona, setAllaPersona] = useState(valori?.allInteressato ?? false);
   const campoTesto = useRef<HTMLTextAreaElement>(null);
   const campoOggetto = useRef<HTMLInputElement>(null);
   const ultimo = useRef<'oggetto' | 'testo'>('testo');
@@ -100,10 +109,39 @@ export function CampiEmailCertificato({
   };
 
   // l'anteprima: com'è fatta coi dati di una persona d'esempio
-  const anteprima = useMemo(
-    () => componiCorpo(formato, testo, VALORI_ESEMPIO).html,
-    [formato, testo],
+  // il logo vero, dal gestionale stesso: l'anteprima mostra la firma com'è
+  const esempio = useMemo(
+    () => ({
+      ...VALORI_ESEMPIO,
+      logoUrl: typeof window === 'undefined' ? '' : `${window.location.origin}/api/squadra/logo`,
+    }),
+    [],
   );
+  const anteprima = useMemo(
+    () => componiCorpo(formato, testo, esempio).html,
+    [formato, testo, esempio],
+  );
+
+  /*
+   * Lo stile della squadra: il testo di adesso (Markdown o semplice) diventa
+   * un'email HTML vestita come il gestionale, con la firma col logo e — se va
+   * alla persona — il pulsante per la sua pagina dei certificati.
+   */
+  const conStile = testo.includes(SEGNO_STILE);
+  const applicaStile = () => {
+    const sorgente = formato === 'HTML' ? testoDaHtml(testo) : testo;
+    setTesto(
+      inStileSquadra(
+        sorgente,
+        stile,
+        quando === 'SCADENZA' || allaPersona
+          ? { testo: 'Vai ai miei certificati', url: '{linkCertificati}' }
+          : null,
+      ),
+    );
+    setFormato('HTML');
+    setToccato(true);
+  };
 
   const cambiaQuando = (q: 'ACCETTATO' | 'SCADENZA') => {
     setQuando(q);
@@ -112,6 +150,7 @@ export function CampiEmailCertificato({
       setTesto(PROPOSTE[q].testo);
       // l'allegato serve a chi archivia; all'avviso di scadenza di solito no
       setAllegato(q === 'ACCETTATO');
+      if (!valori) setAllaPersona(q === 'SCADENZA');
     }
   };
 
@@ -170,7 +209,8 @@ export function CampiEmailCertificato({
           <input
             type="checkbox"
             name="allInteressato"
-            defaultChecked={valori?.allInteressato ?? quando === 'SCADENZA'}
+            checked={allaPersona}
+            onChange={(e) => setAllaPersona(e.target.checked)}
             className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
           />
           <span>
@@ -236,6 +276,19 @@ export function CampiEmailCertificato({
                 ))}
               </div>
             </div>
+            <button
+              type="button"
+              onClick={applicaStile}
+              disabled={conStile}
+              title={
+                conStile
+                  ? 'Questa email ha già lo stile della squadra'
+                  : 'Il testo diventa un’email HTML con i colori del gestionale, la firma col logo e il pulsante per la pagina'
+              }
+              className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-nvg/40 bg-nvg/10 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/20 disabled:cursor-default disabled:opacity-50"
+            >
+              ✦ {conStile ? 'Ha lo stile della squadra' : 'Applica lo stile della squadra'}
+            </button>
             <textarea
               ref={campoTesto}
               name="testo"
@@ -282,7 +335,7 @@ export function CampiEmailCertificato({
           <div className="overflow-hidden rounded-lg border border-line bg-white">
             <div className="border-b border-black/10 bg-[#f4f4f4] px-3 py-2 text-xs text-[#333]">
               <span className="text-[#888]">Oggetto: </span>
-              <strong>{riempi(oggetto, VALORI_ESEMPIO)}</strong>
+              <strong>{riempi(oggetto, esempio)}</strong>
               {allegato && (
                 <span className="block text-[#888]">
                   📎 rossi-mario-certificato-scade-2027-10-12.pdf

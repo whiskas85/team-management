@@ -22,7 +22,7 @@ export type RigaTerminale = {
  * apre il gestionale dal telefono della squadra non vuole riscrivere la
  * password ogni sabato.
  */
-export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
+export function FormLogin({ righe, dopo }: { righe: RigaTerminale[]; dopo?: string | null }) {
   const [stato, azione] = useActionState(accedi, {} as StatoForm);
 
   return (
@@ -37,6 +37,7 @@ export function FormLogin({ righe }: { righe: RigaTerminale[] }) {
       </div>
 
       <form action={azione} className="space-y-[clamp(0.75rem,2dvh,1.5rem)]">
+        {dopo && <input type="hidden" name="dopo" value={dopo} />}
         <div>
           <label
             htmlFor="email"

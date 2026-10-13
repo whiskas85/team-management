@@ -7,6 +7,8 @@ import { puoAmministrare } from '@/lib/domain';
 import { bool, str, type StatoForm } from '@/lib/form';
 import { indirizzi, provaEmailCertificato } from '@/lib/email-certificati';
 import { serverPosta } from '@/lib/posta';
+import { inStileSquadra } from '@/lib/email-corpo';
+import { bottonePer, stileDellaSquadra } from '@/lib/email-stile';
 
 const aggiorna = () => revalidatePath('/admin/certificati');
 
@@ -87,4 +89,34 @@ export async function provaEmailCertificatoAMe(_prev: StatoForm, fd: FormData): 
   if (!io?.email) return { errore: 'Il tuo account non ha un’email.' };
   const errore = await provaEmailCertificato(r, io.email);
   return errore ? { errore } : { ok: `Prova mandata a ${io.email}.` };
+}
+
+/**
+ * Tutte le email non ancora in HTML trasformate nello stile della squadra:
+ * il testo (Markdown o semplice) impaginato come il gestionale, la firma col
+ * logo, e — per quelle che vanno alla persona — il pulsante per la sua pagina
+ * dei certificati. Quelle già in HTML restano come sono.
+ */
+export async function stileSquadraTutte(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
+  const me = await requireUser();
+  if (!puoAmministrare(me.roles)) return { errore: 'Non hai i permessi.' };
+  const stile = await stileDellaSquadra();
+  const regole = await prisma.emailCertificato.findMany({ where: { formato: { not: 'HTML' } } });
+  if (regole.length === 0) return { ok: 'Sono già tutte in HTML.' };
+  for (const r of regole) {
+    await prisma.emailCertificato.update({
+      where: { id: r.id },
+      data: {
+        formato: 'HTML',
+        testo: inStileSquadra(r.testo, stile, bottonePer(r)),
+      },
+    });
+  }
+  aggiorna();
+  return {
+    ok:
+      regole.length === 1
+        ? 'Un’email trasformata: aprila per vedere l’anteprima.'
+        : `${regole.length} email trasformate: aprile per vedere l’anteprima.`,
+  };
 }

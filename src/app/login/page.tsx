@@ -5,6 +5,9 @@ import { FormLogin, type RigaTerminale } from '@/components/FormLogin';
 import { AccessoRapido, type Figura } from '@/components/AccessoRapido';
 import { VERSIONE } from '@/lib/versione';
 import { inTest } from '@/lib/ambiente';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
+import { percorsoDopo } from '@/lib/format';
 
 // Tre caratteri, e solo qui. Il resto del gestionale il monospazio non ce l'ha,
 // ed è voluto: si legge per ore e deve stancare poco. La porta d'ingresso
@@ -91,7 +94,7 @@ export const dynamic = 'force-dynamic';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ accesso?: string }>;
+  searchParams: Promise<{ accesso?: string; dopo?: string }>;
 }) {
   const m = await marchio();
   // il titolo grande è il nome senza «Team» o «Softair»: ZERO DARK, non ZERO DARK TEAM
@@ -105,7 +108,12 @@ export default async function LoginPage({
 
   // chi arriva da un link di accesso che non vale più: si dice cosa è
   // successo, invece di lasciarlo davanti a un modulo che non aspettava
-  const { accesso } = await searchParams;
+  const { accesso, dopo: chiesto } = await searchParams;
+
+  // arrivato da un link (un'email, un avviso) verso una pagina precisa: chi è
+  // già dentro ci va dritto, gli altri ci arrivano appena entrati
+  const dopo = percorsoDopo(chiesto);
+  if (dopo && (await getCurrentUser().catch(() => null))) redirect(dopo);
   const avvisoLink = {
     usato: 'Quel link era già stato usato: vale una volta sola. Entra con la tua password, o fattene mandare un altro.',
     scaduto: 'Quel link è scaduto. Entra con la tua password, o fattene mandare un altro.',
@@ -175,7 +183,7 @@ export default async function LoginPage({
               : 'mx-auto max-w-xl'
           }
         >
-          <FormLogin righe={righe} />
+          <FormLogin righe={righe} dopo={dopo} />
           {debug && <AccessoRapido figure={FIGURE} />}
         </div>
       </div>
