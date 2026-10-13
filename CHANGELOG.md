@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.53.1 — 13 ottobre 2026
+
+### Corretto
+
+- **«Applica lo stile della squadra» non tocca più il testo:** cambia solo
+  come si presenta (fondo scuro, colore della squadra, logo come firma). Prima
+  aggiungeva il nome della squadra in cima, nome e motto nella firma, una riga
+  in fondo e il pulsante, e toglieva il «{squadra}» finale. Lo stesso per
+  «Stile della squadra a tutte».
+- Il pulsante **Vai ai miei certificati** si mette solo se lo si vuole, dove
+  si vuole: «+ Pulsante «Vai ai miei certificati» dove sei», sotto il testo.
+
+### Cambiato
+
+- **La casella del Markdown delle email ha la barra degli strumenti**, come
+  tutte le altre del gestionale: grassetto, corsivo, titoli, citazione,
+  elenchi, link, riga e pulsante.
+
 ## 3.53.0 — 13 ottobre 2026
 
 ### Nuovo

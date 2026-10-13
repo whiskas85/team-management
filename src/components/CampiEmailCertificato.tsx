@@ -2,12 +2,14 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { Campo } from './ui';
+import { EditoreMarkdown, STRUMENTI_EMAIL } from './EditoreMarkdown';
 import {
   FORMATI,
   VALORI_ESEMPIO,
   SEGNO_STILE,
   componiCorpo,
   inStileSquadra,
+  pulsanteNelFormato,
   markdownInHtml,
   riempi,
   testoDaHtml,
@@ -37,8 +39,6 @@ Cordiali saluti,
 il tuo certificato medico scade il **{scadenza}**: mancano {giorni} giorni.
 
 Prenota la visita: fra il medico e l'approvazione ci vuole qualche giorno. Il nuovo si carica dal gestionale, in «Miei certificati».
-
-[[Vai ai miei certificati]]({linkCertificati})
 
 {squadra}`,
   },
@@ -123,24 +123,33 @@ export function CampiEmailCertificato({
   );
 
   /*
-   * Lo stile della squadra: il testo di adesso (Markdown o semplice) diventa
-   * un'email HTML vestita come il gestionale, con la firma col logo e — se va
-   * alla persona — il pulsante per la sua pagina dei certificati.
+   * Lo stile della squadra: il testo resta parola per parola quello, cambia
+   * solo come si presenta — impaginato come il gestionale, col logo come
+   * firma. Niente aggiunto, niente tolto.
    */
   const conStile = testo.includes(SEGNO_STILE);
   const applicaStile = () => {
-    const sorgente = formato === 'HTML' ? testoDaHtml(testo) : testo;
-    setTesto(
-      inStileSquadra(
-        sorgente,
-        stile,
-        quando === 'SCADENZA' || allaPersona
-          ? { testo: 'Vai ai miei certificati', url: '{linkCertificati}' }
-          : null,
-      ),
-    );
+    setTesto(inStileSquadra(testo, formato, stile));
     setFormato('HTML');
     setToccato(true);
+  };
+
+  /** Il pulsante per la pagina dei certificati, dove c'è il cursore: solo se lo si vuole. */
+  const mettiPulsante = () => {
+    const pezzo = pulsanteNelFormato(formato, stile.accento);
+    const el = campoTesto.current;
+    const da = el?.selectionStart ?? testo.length;
+    const a = el?.selectionEnd ?? testo.length;
+    const capo = formato === 'HTML' ? '\n' : '\n\n';
+    const prima = da > 0 && testo[da - 1] !== '\n' ? capo : '';
+    const dopo = a < testo.length && testo[a] !== '\n' ? capo : '';
+    setTesto(testo.slice(0, da) + prima + pezzo + dopo + testo.slice(a));
+    setToccato(true);
+    const fine = da + prima.length + pezzo.length;
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(fine, fine);
+    });
   };
 
   const cambiaQuando = (q: 'ACCETTATO' | 'SCADENZA') => {
@@ -279,31 +288,71 @@ export function CampiEmailCertificato({
             <button
               type="button"
               onClick={applicaStile}
-              disabled={conStile}
+              disabled={conStile || formato === 'HTML'}
               title={
                 conStile
                   ? 'Questa email ha già lo stile della squadra'
-                  : 'Il testo diventa un’email HTML con i colori del gestionale, la firma col logo e il pulsante per la pagina'
+                  : formato === 'HTML'
+                    ? 'Si applica a un testo in Markdown o semplice'
+                    : 'Il testo resta quello: diventa un’email HTML coi colori del gestionale e il logo come firma'
               }
               className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-nvg/40 bg-nvg/10 px-2.5 py-1 text-xs font-medium text-nvg hover:bg-nvg/20 disabled:cursor-default disabled:opacity-50"
             >
               ✦ {conStile ? 'Ha lo stile della squadra' : 'Applica lo stile della squadra'}
             </button>
-            <textarea
-              ref={campoTesto}
-              name="testo"
-              required
-              rows={formato === 'HTML' ? 18 : 12}
-              spellCheck={formato !== 'HTML'}
-              value={testo}
-              onFocus={() => (ultimo.current = 'testo')}
-              onChange={(e) => {
-                setTesto(e.target.value);
-                setToccato(true);
-              }}
-              className={`input ${formato === 'HTML' ? 'num text-xs leading-relaxed' : ''}`}
-            />
+            {/* il Markdown con la sua barra degli strumenti, come in tutto il gestionale */}
+            {formato === 'MARKDOWN' ? (
+              <EditoreMarkdown
+                nome="testo"
+                righe={12}
+                aiuto={false}
+                senzaAnteprima
+                strumenti={STRUMENTI_EMAIL}
+                altri={[
+                  {
+                    etichetta: 'Pulsante',
+                    titolo: 'Pulsante',
+                    prima: '[[',
+                    dopo: ']](https://)',
+                    blocco: true,
+                  },
+                ]}
+                controllato={{
+                  valore: testo,
+                  onChange: (v) => {
+                    setTesto(v);
+                    setToccato(true);
+                  },
+                }}
+                areaRef={campoTesto}
+                onFocus={() => (ultimo.current = 'testo')}
+              />
+            ) : (
+              <textarea
+                ref={campoTesto}
+                name="testo"
+                required
+                rows={formato === 'HTML' ? 18 : 12}
+                spellCheck={formato !== 'HTML'}
+                value={testo}
+                onFocus={() => (ultimo.current = 'testo')}
+                onChange={(e) => {
+                  setTesto(e.target.value);
+                  setToccato(true);
+                }}
+                className={`input ${formato === 'HTML' ? 'num text-xs leading-relaxed' : ''}`}
+              />
+            )}
             <p className="mt-1 text-[11px] text-muted">{FORMATI[formato].spiega}</p>
+            {formato !== 'TESTO' && (
+              <button
+                type="button"
+                onClick={mettiPulsante}
+                className="mt-1.5 rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-nvg/50 hover:text-nvg"
+              >
+                + Pulsante «Vai ai miei certificati» dove sei
+              </button>
+            )}
           </div>
 
           <div>

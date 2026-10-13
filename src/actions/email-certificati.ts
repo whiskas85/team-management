@@ -8,7 +8,7 @@ import { bool, str, type StatoForm } from '@/lib/form';
 import { indirizzi, provaEmailCertificato } from '@/lib/email-certificati';
 import { serverPosta } from '@/lib/posta';
 import { inStileSquadra } from '@/lib/email-corpo';
-import { bottonePer, stileDellaSquadra } from '@/lib/email-stile';
+import { stileDellaSquadra } from '@/lib/email-stile';
 
 const aggiorna = () => revalidatePath('/admin/certificati');
 
@@ -93,9 +93,8 @@ export async function provaEmailCertificatoAMe(_prev: StatoForm, fd: FormData): 
 
 /**
  * Tutte le email non ancora in HTML trasformate nello stile della squadra:
- * il testo (Markdown o semplice) impaginato come il gestionale, la firma col
- * logo, e — per quelle che vanno alla persona — il pulsante per la sua pagina
- * dei certificati. Quelle già in HTML restano come sono.
+ * il testo resta parola per parola quello, impaginato come il gestionale e
+ * con il logo come firma. Quelle già in HTML restano come sono.
  */
 export async function stileSquadraTutte(_prev: StatoForm, _fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
@@ -108,7 +107,7 @@ export async function stileSquadraTutte(_prev: StatoForm, _fd: FormData): Promis
       where: { id: r.id },
       data: {
         formato: 'HTML',
-        testo: inStileSquadra(r.testo, stile, bottonePer(r)),
+        testo: inStileSquadra(r.testo, r.formato, stile),
       },
     });
   }

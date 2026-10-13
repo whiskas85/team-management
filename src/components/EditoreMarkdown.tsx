@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { Icona } from './Icona';
 import { Markdown, type Menzioni } from './Markdown';
 
@@ -24,7 +24,7 @@ import { Markdown, type Menzioni } from './Markdown';
  */
 type Persona = { id: string; maniglia: string; nome: string; href?: string; persona?: boolean };
 
-type Pulsante = {
+export type Pulsante = {
   etichetta: string;
   titolo: string;
   prima: string;
@@ -82,6 +82,23 @@ const PULSANTI: Pulsante[] = [
   { etichetta: '\u2014', titolo: 'Riga di separazione', prima: '---', dopo: '', blocco: true },
 ];
 
+/**
+ * Gli strumenti per le email: solo quello che un'email sa mostrare (niente
+ * barrato, codice, caselle, foto o tabelle), più il pulsante.
+ */
+export const STRUMENTI_EMAIL = [
+  'Grassetto',
+  'Corsivo',
+  'Titolo',
+  'Sezione',
+  'Sottosezione',
+  'Citazione',
+  'Elenco puntato',
+  'Elenco numerato',
+  'Collegamento',
+  'Riga di separazione',
+];
+
 export function EditoreMarkdown({
   nome,
   valore = '',
@@ -89,6 +106,12 @@ export function EditoreMarkdown({
   segnaposto,
   persone,
   aiuto = true,
+  controllato,
+  strumenti,
+  altri,
+  senzaAnteprima = false,
+  areaRef,
+  onFocus,
 }: {
   /** Nome del campo nel form. */
   nome: string;
@@ -98,11 +121,29 @@ export function EditoreMarkdown({
   /** Se presente, la chiocciola apre l'elenco delle persone. */
   persone?: Persona[];
   aiuto?: boolean;
+  /** Il testo lo tiene chi usa la casella (per un'anteprima sua, accanto). */
+  controllato?: { valore: string; onChange: (v: string) => void };
+  /** Solo questi strumenti, per titolo (es. STRUMENTI_EMAIL). */
+  strumenti?: string[];
+  /** Strumenti in più, in fondo alla barra. */
+  altri?: Pulsante[];
+  /** Senza il pulsante Anteprima: chi la usa ne ha già una. */
+  senzaAnteprima?: boolean;
+  /** La casella, per chi deve scriverci dentro da fuori (i segnaposto). */
+  areaRef?: RefObject<HTMLTextAreaElement | null>;
+  onFocus?: () => void;
 }) {
-  const [testo, setTesto] = useState(valore);
+  const [interno, setInterno] = useState(valore);
+  const testo = controllato ? controllato.valore : interno;
+  const setTesto = controllato ? controllato.onChange : setInterno;
   const [anteprima, setAnteprima] = useState(false);
   const [cerca, setCerca] = useState<{ da: number; testo: string } | null>(null);
-  const area = useRef<HTMLTextAreaElement>(null);
+  const propria = useRef<HTMLTextAreaElement>(null);
+  const area = areaRef ?? propria;
+  const barra = [
+    ...(strumenti ? PULSANTI.filter((b) => strumenti.includes(b.titolo)) : PULSANTI),
+    ...(altri ?? []),
+  ];
 
   const menzioni: Menzioni | undefined = persone
     ? Object.fromEntries(
@@ -127,9 +168,7 @@ export function EditoreMarkdown({
       const righe = testo.slice(inizioRiga, fineRiga).split('\n');
       // premuto due volte si toglie: è il modo in cui si corregge un errore
       const gia = righe.every((r) => r.startsWith(b.prima));
-      const rifatte = righe
-        .map((r) => (gia ? r.slice(b.prima.length) : b.prima + r))
-        .join('\n');
+      const rifatte = righe.map((r) => (gia ? r.slice(b.prima.length) : b.prima + r)).join('\n');
       const nuovo = testo.slice(0, inizioRiga) + rifatte + testo.slice(fineRiga);
       setTesto(nuovo);
       // il cursore in fondo alle righe toccate, non sopra di loro selezionate:
@@ -285,14 +324,16 @@ export function EditoreMarkdown({
 
   const proposte = cerca
     ? (persone ?? [])
-        .filter((p) => p.maniglia.includes(cerca.testo) || p.nome.toLowerCase().includes(cerca.testo))
+        .filter(
+          (p) => p.maniglia.includes(cerca.testo) || p.nome.toLowerCase().includes(cerca.testo),
+        )
         .slice(0, 6)
     : [];
 
   return (
     <div>
       <div className="mb-1.5 flex flex-wrap items-center gap-1">
-        {PULSANTI.map((b) => (
+        {barra.map((b) => (
           <button
             key={b.titolo}
             type="button"
@@ -304,18 +345,20 @@ export function EditoreMarkdown({
           </button>
         ))}
 
-        <button
-          type="button"
-          onClick={() => setAnteprima((v) => !v)}
-          className={`ml-auto rounded border px-2 py-1 text-[11px] transition-colors ${
-            anteprima
-              ? 'border-nvg/50 bg-nvg/10 text-nvg'
-              : 'border-line text-muted hover:text-ink'
-          }`}
-        >
-          <Icona nome="cerca" size={13} />
-          {anteprima ? 'Torna a scrivere' : 'Anteprima'}
-        </button>
+        {!senzaAnteprima && (
+          <button
+            type="button"
+            onClick={() => setAnteprima((v) => !v)}
+            className={`ml-auto rounded border px-2 py-1 text-[11px] transition-colors ${
+              anteprima
+                ? 'border-nvg/50 bg-nvg/10 text-nvg'
+                : 'border-line text-muted hover:text-ink'
+            }`}
+          >
+            <Icona nome="cerca" size={13} />
+            {anteprima ? 'Torna a scrivere' : 'Anteprima'}
+          </button>
+        )}
       </div>
 
       {/* il testo viaggia sempre nel form, anche mentre si guarda l'anteprima */}
@@ -341,6 +384,7 @@ export function EditoreMarkdown({
               forseUnaChiocciola(e.target.value, e.target.selectionStart);
             }}
             onClick={(e) => forseUnaChiocciola(testo, e.currentTarget.selectionStart)}
+            onFocus={onFocus}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && cerca) {
                 e.preventDefault();

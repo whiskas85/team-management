@@ -216,8 +216,8 @@ export const SEGNO_STILE = '<!-- stile-squadra -->';
 
 /**
  * L'email vestita come il gestionale: fondo scuro, la scheda col filo
- * dell'accento in cima, il nome della squadra in maiuscolo spaziato, e in
- * fondo la firma col logo.
+ * dell'accento in cima, e sotto, come firma, il logo. **Nessuna parola in
+ * più**: il testo è tutto e solo quello scritto da chi gestisce.
  *
  * Tutto in tabelle e stili in linea, perché è l'unica cosa che i client di
  * posta capiscono tutti; i colori anche come `bgcolor`, che Outlook rispetta.
@@ -226,7 +226,6 @@ export const SEGNO_STILE = '<!-- stile-squadra -->';
  */
 export function paginaSquadra(corpo: string, s: StileSquadra) {
   const font = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-  const mono = "'Courier New',Courier,monospace";
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
@@ -236,17 +235,12 @@ ${SEGNO_STILE}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#050605" style="background:#050605">
 <tr><td align="center" style="padding:28px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
-<tr><td style="padding:0 4px 14px;font:bold 13px/1.4 ${mono};letter-spacing:4px;text-transform:uppercase;color:${s.accento}">${esc(s.nome)}</td></tr>
 <tr><td bgcolor="#0e110e" style="background:#0e110e;border:1px solid #232a23;border-top:3px solid ${s.accento};border-radius:10px;padding:28px 26px;color:#e7ede7;font:15px/1.6 ${font}">
 ${corpo}
 </td></tr>
 <tr><td style="padding:24px 4px 0">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-<td style="padding-right:14px;vertical-align:middle"><img src="{logoUrl}" width="56" height="56" alt="${esc(s.nome)}" style="display:block;width:56px;height:56px;border-radius:50%;border:1px solid #232a23"></td>
-<td style="vertical-align:middle;font:13px/1.5 ${font};color:#7f8a7f"><span style="font:bold 14px/1.4 ${mono};letter-spacing:2px;text-transform:uppercase;color:#e7ede7">${esc(s.nome)}</span><br>${esc(s.motto)}</td>
-</tr></table>
+<img src="{logoUrl}" width="64" height="64" alt="${esc(s.nome)}" style="display:block;width:64px;height:64px;border-radius:50%;border:1px solid #232a23">
 </td></tr>
-<tr><td style="padding:18px 4px 0;font:11px/1.5 ${font};color:#7f8a7f">Email automatica del gestionale della squadra.</td></tr>
 </table>
 </td></tr></table>
 </body></html>`;
@@ -261,35 +255,36 @@ const scura = (accento: string): Tavolozza => ({
   accento,
 });
 
+/** Un testo semplice in HTML così com'è: paragrafi e a capo, niente altro. */
+function semplice(testo: string) {
+  return esc(testo.replace(/\r\n?/g, '\n').trim())
+    .split(/\n\s*\n/)
+    .map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, '<br>')}</p>`)
+    .join('\n');
+}
+
 /**
- * Un testo (Markdown o semplice) trasformato in un'email HTML con lo stile
- * della squadra, col pulsante per la pagina in fondo se serve. Il risultato è
- * HTML normale: si può ritoccare a mano come qualunque altro.
+ * Un testo trasformato in un'email HTML con lo stile della squadra.
+ *
+ * **Il testo resta quello**, parola per parola: cambia solo come si presenta.
+ * Il Markdown diventa la sua impaginazione (grassetti, elenchi, pulsanti
+ * scritti con [[…]](…)), il testo semplice resta testo, con i suoi a capo.
+ * Il risultato è HTML normale: si può ritoccare a mano come qualunque altro.
  */
-export function inStileSquadra(
-  testo: string,
-  s: StileSquadra,
-  bottone?: { testo: string; url: string } | null,
-) {
-  const blocchi = testo
-    .replace(/\r\n?/g, '\n')
-    .trim()
-    .split(/\n\s*\n/);
-  // il nome della squadra da solo in fondo: c'è già la firma col logo
-  if (blocchi.length > 1 && blocchi[blocchi.length - 1].trim() === '{squadra}') blocchi.pop();
-  // un pulsante già scritto nel testo vale quello: non se ne aggiunge un altro
-  if (bottone && !/\[\[[^\]]+\]\]\(/.test(testo)) {
-    const riga = `[[${bottone.testo}]](${bottone.url})`;
-    const ultimo = blocchi[blocchi.length - 1] ?? '';
-    // prima dei saluti («Cordiali saluti, …»), se in fondo ci sono; se no in fondo
-    const saluti =
-      blocchi.length > 1 &&
-      ultimo.split('\n').length <= 2 &&
-      ultimo.length <= 80 &&
-      /salut|grazie|a presto|buona giornata|\{squadra\}/i.test(ultimo);
-    blocchi.splice(saluti ? blocchi.length - 1 : blocchi.length, 0, riga);
-  }
-  return paginaSquadra(markdownInHtml(blocchi.join('\n\n'), scura(s.accento)), s);
+export function inStileSquadra(testo: string, formato: string, s: StileSquadra) {
+  const corpo = formato === 'MARKDOWN' ? markdownInHtml(testo, scura(s.accento)) : semplice(testo);
+  return paginaSquadra(corpo, s);
+}
+
+/** Il pulsante per la pagina dei certificati, da inserire dove si vuole. */
+export const PULSANTE_CERTIFICATI = { testo: 'Vai ai miei certificati', url: '{linkCertificati}' };
+
+/** Lo stesso pulsante scritto nel formato dell'email. */
+export function pulsanteNelFormato(formato: string, accento: string) {
+  const { testo, url } = PULSANTE_CERTIFICATI;
+  return formato === 'HTML'
+    ? pulsante(esc(testo), url, accento)
+    : `[[${testo}]](${url})`;
 }
 
 /** Valori finti per l'anteprima: si vede com'è fatta, senza i dati di nessuno. */
