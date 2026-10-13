@@ -101,7 +101,7 @@ export async function SchedaMail() {
       )}
 
       <div className="mb-4 flex justify-end">
-        <BottoneModale etichetta="Nuova email" icona="aggiungi" titolo="Nuova email" larga>
+        <BottoneModale etichetta="Nuova email" icona="aggiungi" titolo="Nuova email" larga="molto">
           <FormAzione azione={salvaEmailCertificato}>
             <CampiEmailCertificato segnaposto={SEGNAPOSTO_CERTIFICATO} />
             <Invia icona="salva">Crea</Invia>
@@ -138,6 +138,11 @@ export async function SchedaMail() {
                                 : `${r.giorni} ${r.giorni === 1 ? 'giorno' : 'giorni'} prima`}
                             </Badge>
                           )}
+                          {r.formato !== 'TESTO' && (
+                            <Badge tono="neutro">
+                              {r.formato === 'HTML' ? 'HTML' : 'Markdown'}
+                            </Badge>
+                          )}
                           {r.allegato && <Badge tono="info">con allegato</Badge>}
                           {!r.attivo && <Badge tono="neutro">spenta</Badge>}
                           <span className="break-all">
@@ -163,7 +168,7 @@ export async function SchedaMail() {
                             icona="modifica"
                             titolo="Modifica email"
                             className="btn-ghost btn-sm"
-                            larga
+                            larga="molto"
                           >
                             <FormAzione azione={salvaEmailCertificato}>
                               <input type="hidden" name="id" value={r.id} />

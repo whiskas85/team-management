@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.52.0 — 13 ottobre 2026
+
+### Nuovo
+
+- **Email dei certificati in Markdown o HTML, con l'anteprima accanto.**
+  Sopra il testo si sceglie il formato: Markdown (il nuovo predefinito:
+  grassetto, corsivo, titoli, elenchi, link, righe), HTML (una pagina propria,
+  con la grafica che si vuole) o testo semplice come prima. A destra
+  l'anteprima si aggiorna mentre si scrive, coi segnaposto riempiti dai dati
+  di una persona d'esempio, l'oggetto e l'allegato. Passando dal Markdown
+  all'HTML il testo si converte da solo, segnaposto compresi, e si parte da
+  lì. Le email HTML partono anche in versione di solo testo per chi non
+  mostra l'HTML; i dati delle persone entrano sempre come testo, e nel
+  Markdown i link pericolosi (javascript:) non passano. La finestra di
+  modifica è più larga per far stare tutto e due colonne.
+
 ## 3.51.0 — 13 ottobre 2026
 
 ### Cambiato

@@ -36,13 +36,18 @@ export async function salvaEmailCertificato(_prev: StatoForm, fd: FormData): Pro
   const testo = str(fd, 'testo');
   if (!oggetto || !testo) return { errore: 'Scrivi oggetto e testo dell’email.' };
 
+  const f = str(fd, 'formato');
+  const formato = f === 'HTML' || f === 'MARKDOWN' ? f : 'TESTO';
+
   const dati = {
     quando,
+    formato,
     giorni,
     allInteressato,
     destinatari: scritti.join(', '),
     oggetto: oggetto.slice(0, 200),
-    testo: testo.slice(0, 10_000),
+    // una pagina HTML fatta bene pesa più di un testo
+    testo: testo.slice(0, formato === 'HTML' ? 100_000 : 10_000),
     allegato: bool(fd, 'allegato'),
     attivo: bool(fd, 'attivo'),
   };

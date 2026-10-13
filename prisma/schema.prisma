@@ -376,6 +376,8 @@ model EmailCertificato {
   /// Altri indirizzi, separati da virgola.
   destinatari    String   @default("")
   oggetto        String
+  /// TESTO, MARKDOWN o HTML: come è scritto `testo` (lib/email-corpo).
+  formato        String   @default("TESTO")
   testo          String
   /// Il file del certificato in allegato.
   allegato       Boolean  @default(true)

@@ -31,7 +31,8 @@ export function BottoneModale({
   titolo?: string;
   children: ReactNode | ((chiudi: () => void) => ReactNode);
   className?: string;
-  larga?: boolean;
+  /** «molto»: per chi scrive con l'anteprima accanto (le email HTML). */
+  larga?: boolean | 'molto';
   /**
    * Sul telefono solo l'icona, la scritta dal tablet in su.
    *
@@ -70,7 +71,9 @@ export function BottoneModale({
         <Foglio
           onChiuso={() => setAperto(false)}
           etichetta={titolo ?? etichetta}
-          foglio={larga ? 'sm:max-w-3xl' : 'sm:max-w-xl'}
+          foglio={
+            larga === 'molto' ? 'sm:max-w-6xl' : larga ? 'sm:max-w-3xl' : 'sm:max-w-xl'
+          }
           contenuto="p-5"
           testata={(chiudi) => (
             <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3 sm:pt-4">

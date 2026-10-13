@@ -4,7 +4,8 @@ import { prisma } from './db';
 import { fmtDate, giorniA, umanizza } from './format';
 import { marchio } from './mia-squadra';
 import { nomeFileCertificato } from './nome-certificato';
-import { esc, inviaEmail, serverPosta } from './posta';
+import { inviaEmail, serverPosta } from './posta';
+import { componiCorpo, riempi } from './email-corpo';
 import { percorsoAssoluto } from './storage';
 import { emailVerificata } from './verifica-email';
 
@@ -101,11 +102,6 @@ async function valori(c: Certificato): Promise<Record<string, string>> {
   };
 }
 
-/** I segnaposto riempiti. Uno conosciuto ma vuoto sparisce; uno sconosciuto resta com'è. */
-export function riempi(testo: string, v: Record<string, string>) {
-  return testo.replace(/\{(\w+)\}/g, (tutto, k: string) => (k in v ? v[k] : tutto));
-}
-
 /** Gli indirizzi scritti a mano, separati da virgole, spazi o a capo. */
 export function indirizzi(grezzo: string): string[] {
   return [
@@ -129,13 +125,13 @@ function destinatariDi(r: EmailCertificato, c: Certificato) {
 
 /** Compone e manda un'email di una regola, per un certificato, a questi indirizzi. */
 async function componiEManda(
-  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato'>,
+  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato' | 'formato'>,
   c: Certificato,
   a: string[],
 ): Promise<string | null> {
   const v = await valori(c);
   const oggetto = riempi(r.oggetto, v).replace(/\s+/g, ' ').trim();
-  const corpo = riempi(r.testo, v);
+  const corpo = componiCorpo(r.formato, r.testo, v);
 
   let allegati: { nome: string; contenuto: Buffer; tipo: string }[] | undefined;
   if (r.allegato) {
@@ -158,8 +154,8 @@ async function componiEManda(
     const esito = await inviaEmail({
       a: indirizzo,
       oggetto,
-      testo: corpo,
-      html: `<div style="white-space:pre-wrap">${esc(corpo)}</div>`,
+      testo: corpo.testo,
+      html: corpo.html,
       allegati,
     });
     if (esito.errore) errori.push(`${indirizzo}: ${esito.errore}`);
@@ -275,7 +271,7 @@ export async function emailScadenzaCertificati(): Promise<{ mandate: number }> {
  * approvato come esempio. Non va nel registro e non conta come mandata.
  */
 export async function provaEmailCertificato(
-  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato'>,
+  r: Pick<EmailCertificato, 'oggetto' | 'testo' | 'allegato' | 'formato'>,
   a: string,
 ): Promise<string | null> {
   // l'ultimo approvato il cui file c'è ancora: senza, la prova dell'allegato non prova niente
