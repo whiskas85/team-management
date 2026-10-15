@@ -753,6 +753,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/admin/messaggi', label: 'Messaggi WhatsApp', icona: 'whatsapp', gruppo: 'comando' },
       // lo stato del server: salute, disco, alleggerimento, archivio
       { href: '/admin/sistema', label: 'Stato del sistema', icona: 'grafici', gruppo: 'sistema' },
+      // le app che fanno entrare con l'account del gestionale (OpenID Connect)
+      { href: '/admin/app', label: 'App collegate', icona: 'collegamento', gruppo: 'sistema' },
       {
         href: '/admin/errori',
         label: 'Guasti',

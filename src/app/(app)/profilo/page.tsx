@@ -31,6 +31,9 @@ import { temaSquadra } from '@/lib/tema-server';
 import { eTemaPersonale } from '@/lib/tema';
 import { emailVerificata } from '@/lib/verifica-email';
 import { chiediVerifica } from '@/actions/verifica-email';
+import { togliConsenso } from '@/actions/oidc';
+import { AMBITI } from '@/lib/oidc';
+import { AzioneBottone } from '@/components/AzioneBottone';
 
 function Dato({
   etichetta,
@@ -165,6 +168,11 @@ export default async function ProfiloPage() {
     )._sum.importo ?? 0,
   );
 
+  const appCollegate = await prisma.consensoApp.findMany({
+    where: { userId: utente.id },
+    orderBy: { usatoIl: 'desc' },
+    include: { app: { select: { nome: true } } },
+  });
   const verificata = emailVerificata(utente);
   const postaAttiva = !!(await prisma.serverPosta.findFirst({
     where: { attivo: true },
@@ -639,6 +647,44 @@ export default async function ProfiloPage() {
           )}
         </div>
       </Fisarmonica>
+
+      {appCollegate.length > 0 && (
+        <Fisarmonica titolo={`App collegate · ${appCollegate.length}`}>
+          <p className="mb-3 text-xs text-muted">
+            Le app in cui entri con il tuo account del gestionale, e cosa possono sapere di te.
+            Togliendo l’accesso l’app non sa più niente; la prossima volta ti chiederà di nuovo il
+            permesso.
+          </p>
+          <ul className="space-y-2">
+            {appCollegate.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line px-3 py-2 text-sm"
+              >
+                <span className="min-w-0">
+                  <strong>{c.app.nome}</strong>
+                  <span className="block text-xs text-muted">
+                    {c.scope
+                      .split(' ')
+                      .filter((a) => a !== 'openid')
+                      .map((a) => AMBITI[a as keyof typeof AMBITI] ?? a)
+                      .join(' · ') || 'solo chi sei'}{' '}
+                    · ultimo accesso {fmtDate(c.usatoIl)}
+                  </span>
+                </span>
+                <AzioneBottone
+                  azione={togliConsenso}
+                  valori={{ appId: c.appId }}
+                  className="btn-ghost btn-sm"
+                  conferma={`Togliere l’accesso a «${c.app.nome}»?`}
+                >
+                  Togli l’accesso
+                </AzioneBottone>
+              </li>
+            ))}
+          </ul>
+        </Fisarmonica>
+      )}
 
       <Fisarmonica titolo="Cambia password">
         <FormAzione azione={cambiaPassword}>

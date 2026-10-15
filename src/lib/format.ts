@@ -138,6 +138,7 @@ export const stagioneCorrente = (ref = new Date()) => {
  * fuori è il trucco più vecchio del phishing.
  */
 export function percorsoDopo(v: unknown): string | null {
-  if (typeof v !== 'string' || v.length > 200) return null;
-  return /^\/(?![/\\])[\w\-./?=&%]*$/.test(v) ? v : null;
+  // lungo abbastanza per un accesso OpenID (/oauth/authorize?… coi suoi parametri)
+  if (typeof v !== 'string' || v.length > 2000) return null;
+  return /^\/(?![/\\])[\w\-./?=&%+~]*$/.test(v) ? v : null;
 }

@@ -5,6 +5,31 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.56.0 — 15 ottobre 2026
+
+### Nuovo
+
+- **«Accedi con il gestionale» (OpenID Connect).** Il gestionale fa da
+  fornitore di identità per le app esterne — un gioco, un sito di tornei: le
+  persone entrano con l'account che hanno già, e l'app non vede mai la
+  password. È generico: ogni gestionale lo è per i suoi.
+- **Sistema → App collegate:** si registra un'app con nome e indirizzi di
+  ritorno; si ottengono `client_id` e (per le app con un server) un
+  `client_secret` mostrato una volta sola. Si modifica, si spegne, si cambia
+  il segreto, si elimina. In pagina l'indirizzo da dare a chi programma l'app.
+- **Il permesso della persona:** la prima volta le si chiede, dicendo cosa
+  l'app saprà (nome e callsign, email, squadra, stato e ruoli: solo quello
+  che l'app chiede); dopo si torna subito all'app. Nel **profilo**, «App
+  collegate» le elenca e «Togli l'accesso» spegne anche i token già dati.
+- **Sicurezza:** codice di autorizzazione con PKCE S256 obbligatorio,
+  codici monouso da 5 minuti, indirizzi di ritorno confrontati esatti (uno
+  estraneo non viene mai seguito), id_token firmati RS256 con chiavi
+  pubblicate, segreti/codici/token salvati solo come impronta, pagina del
+  consenso non incorporabile in altri siti.
+- **Il login torna dove serve:** dopo l'accesso si arriva alla pagina
+  richiesta (anche per gli indirizzi lunghi come quelli di OpenID).
+- Guida per chi collega un'app: `docs/IDENTITA.md`.
+
 ## 3.55.0 — 13 ottobre 2026
 
 ### Nuovo

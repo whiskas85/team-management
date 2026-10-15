@@ -452,6 +452,86 @@ model FileAlleggerito {
   il       DateTime @default(now())
 }
 
+// ---------------------------------------------------------------- identità (OpenID Connect)
+
+/// Un'app esterna che fa entrare le persone con l'account del gestionale
+/// («Accedi con …»): un gioco, un sito di tornei. Il gestionale fa da
+/// fornitore di identità con OpenID Connect (lib/oidc).
+model AppCollegata {
+  id           String   @id @default(cuid())
+  nome         String
+  /// L'identificativo pubblico, quello che l'app manda (client_id).
+  clientId     String   @unique
+  /// L'impronta del segreto (client_secret): il segreto si mostra una volta
+  /// sola. Nullo per le app che girano nel browser o sul telefono, che un
+  /// segreto non lo saprebbero tenere: per loro basta PKCE.
+  segretoHash  String?
+  /// Gli indirizzi a cui si torna dopo l'accesso, esatti.
+  redirectUris String[]
+  attiva       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  creataDaId   String?
+  codici       CodiceOidc[]
+  token        TokenOidc[]
+  consensi     ConsensoApp[]
+}
+
+/// Il codice monouso fra l'accesso e la consegna dei token.
+model CodiceOidc {
+  id            String       @id @default(cuid())
+  hash          String       @unique
+  appId         String
+  app           AppCollegata @relation(fields: [appId], references: [id], onDelete: Cascade)
+  userId        String
+  redirectUri   String
+  scope         String
+  nonce         String?
+  codeChallenge String
+  scadeIl       DateTime
+  usatoIl       DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([scadeIl])
+}
+
+/// Il permesso di leggere i dati di una persona (access token), per userinfo.
+model TokenOidc {
+  id        String       @id @default(cuid())
+  hash      String       @unique
+  appId     String
+  app       AppCollegata @relation(fields: [appId], references: [id], onDelete: Cascade)
+  userId    String
+  scope     String
+  scadeIl   DateTime
+  createdAt DateTime     @default(now())
+
+  @@index([userId])
+}
+
+/// «Va bene, quest'app può sapere queste cose di me»: una volta per app, e si
+/// toglie dal profilo.
+model ConsensoApp {
+  id     String       @id @default(cuid())
+  userId String
+  appId  String
+  app    AppCollegata @relation(fields: [appId], references: [id], onDelete: Cascade)
+  scope  String
+  il     DateTime     @default(now())
+  usatoIl DateTime    @default(now())
+
+  @@unique([userId, appId])
+}
+
+/// La chiave con cui il gestionale firma gli id_token (RS256). La privata è
+/// cifrata col segreto del gestionale; la pubblica si legge da /oauth/jwks.
+model ChiaveFirma {
+  kid            String   @id
+  jwkPubblica    Json
+  privataCifrata String
+  attiva         Boolean  @default(true)
+  creataIl       DateTime @default(now())
+}
+
 // ---------------------------------------------------------------- squadre esterne
 
 /// Altri team: gestiscono campi, organizzano eventi, ci si gioca insieme.

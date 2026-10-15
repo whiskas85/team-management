@@ -9,5 +9,19 @@ const nextConfig = {
     // questo muro sta più in là di quello che controlliamo noi.
     serverActions: { bodySizeLimit: '25mb' },
   },
+  // La pagina del consenso delle app collegate non si può mettere dentro la
+  // pagina di un altro: un sito furbo la coprirebbe e farebbe premere «Va
+  // bene» a chi crede di cliccare altro.
+  async headers() {
+    return [
+      {
+        source: '/oauth/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+        ],
+      },
+    ];
+  },
 };
 export default nextConfig;
