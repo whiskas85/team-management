@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.57.0 — 15 ottobre 2026
+
+### Nuovo
+
+- **«Ti piace il portale?»** In fondo alla pagina che si condivide con le
+  altre squadre per un evento, un riquadro invita chi la guarda a chiedere una
+  demo o a provare il gestionale, con i pulsanti che aprono una email già
+  scritta e il contatto dello sviluppatore. L'indirizzo si cambia con
+  `CONTATTO_SVILUPPATORE`.
+
 ## 3.56.0 — 15 ottobre 2026
 
 ### Nuovo

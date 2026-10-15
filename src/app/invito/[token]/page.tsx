@@ -17,6 +17,7 @@ import { Icona } from '@/components/Icona';
 import { ReferentiEvento } from '@/components/ReferentiEvento';
 import { Quando } from '@/components/Quando';
 import { AvvisoLinkInvito } from '@/components/AvvisoLinkInvito';
+import { BannerPortale } from '@/components/BannerPortale';
 import { etichettaGenere, genereAllegato, peso } from '@/lib/allegati';
 
 export const dynamic = 'force-dynamic';
@@ -362,6 +363,8 @@ export default async function PaginaInvito({
           esattamente quello che non deve succedere. Il link è una chiave: chi
           ce l'ha cambia il numero di operatori di questa squadra. */}
       {!chiuso && <AvvisoLinkInvito squadra={ospite.nome} />}
+
+      <BannerPortale squadra={m.nome} />
 
       <p className="mt-6 text-center text-[11px] text-muted">
         Questa pagina è solo per questa attività.{' '}
