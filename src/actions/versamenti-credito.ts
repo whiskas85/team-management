@@ -183,18 +183,11 @@ export async function annullaVersamentoCredito(_prev: StatoForm, fd: FormData): 
   if (v.allegatoPath) await eliminaAllegato(v.allegatoPath).catch(() => null);
 
   if (!suo) {
-    const segnalato = v.quando.toLocaleDateString('it-IT');
     await avvisaPersona(v.userId, {
       titolo: 'Versamento annullato',
       testo: `Il versamento a credito di ${fmtEuro(Number(v.importo))} che avevi segnalato è stato annullato: ${motivo}.`,
       url: '/pagamenti#credito',
       tag: `versamento-credito-${v.id}`,
-      whatsapp: `Versamento a credito annullato
-
-Il versamento di ${fmtEuro(Number(v.importo))} che avevi segnalato il ${segnalato} è stato annullato.
-Motivo: ${motivo}
-
-Non è diventato credito. Se hai pagato davvero, scrivi a chi tiene la cassa.`,
     }).catch(() => null);
   }
 

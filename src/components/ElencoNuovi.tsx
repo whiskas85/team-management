@@ -30,10 +30,10 @@ export type RigaNuovo = {
   /**
    * Ha acceso le notifiche sul telefono.
    *
-   * Cambia **come lo si avvisa**: chi le ha accese riceve la notifica, agli
-   * altri parte un WhatsApp. Saperlo guardando l'elenco evita di scrivere a
-   * mano a uno che sarebbe stato avvisato da solo -- e di dare per avvisato
-   * uno che non lo e'.
+   * Cambia **se lo si avvisa**: gli avvisi automatici partono solo come
+   * notifica, e chi non le ha accese non li riceve. Saperlo guardando l'elenco
+   * evita di scrivere a mano a uno che sarebbe stato avvisato da solo -- e di
+   * dare per avvisato uno che non lo e'.
    */
   avvisi: boolean;
   /** La versione del gestionale che ha sul telefono, l'ultima volta che è passato. */
@@ -128,14 +128,14 @@ export function ElencoNuovi({
                   {n.stato !== 'NUOVO' && (
                     <Badge tono={tonoStato[n.stato]}>{etichettaStato[n.stato]}</Badge>
                   )}
-                  {/* come lo si raggiunge: campanella accesa, notifica sul
-                      telefono; spenta, WhatsApp */}
+                  {/* campanella accesa, notifica sul telefono; spenta,
+                      niente avvisi automatici */}
                   <span
                     className={n.avvisi ? 'text-nvg' : 'text-muted/40'}
                     title={
                       n.avvisi
                         ? 'Riceve le notifiche sul telefono'
-                        : 'Niente notifiche: lo si avvisa su WhatsApp'
+                        : 'Niente notifiche: gli avvisi automatici non gli arrivano'
                     }
                   >
                     <Icona nome="avvisi" size={15} />
@@ -241,8 +241,8 @@ export function ElencoNuovi({
                         {n.ultimoAccesso ?? 'mai'}
                       </td>
                       {/* La campanella accesa vuol dire che l'avviso arriva
-                          sul telefono; spenta, che partira' un WhatsApp. Non
-                          e' un difetto da correggere: e' come lo si raggiunge. */}
+                          sul telefono; spenta, che gli avvisi automatici non
+                          gli arrivano: va sentito a mano. */}
                       <td className="whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5">
                         <span
@@ -250,7 +250,7 @@ export function ElencoNuovi({
                           title={
                             n.avvisi
                               ? 'Riceve le notifiche sul telefono'
-                              : 'Niente notifiche: lo si avvisa su WhatsApp'
+                              : 'Niente notifiche: gli avvisi automatici non gli arrivano'
                           }
                         >
                           <Icona nome="avvisi" size={16} />

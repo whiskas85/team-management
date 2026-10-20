@@ -305,12 +305,14 @@ export function ElencoOperatori({
     );
 
   // La campanella accesa vuol dire che l'avviso arriva sul telefono; spenta,
-  // che partira' un WhatsApp. Non e' un difetto: e' come lo si raggiunge.
+  // che gli avvisi automatici non gli arrivano: va sentito a mano.
   const campanella = (o: RigaOperatore) => (
     <span
       className={o.avvisi ? 'text-nvg' : 'text-muted/40'}
       title={
-        o.avvisi ? 'Riceve le notifiche sul telefono' : 'Niente notifiche: lo si avvisa su WhatsApp'
+        o.avvisi
+          ? 'Riceve le notifiche sul telefono'
+          : 'Niente notifiche: gli avvisi automatici non gli arrivano'
       }
     >
       <Icona nome="avvisi" size={16} />

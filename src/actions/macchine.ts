@@ -6,11 +6,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { avvisaPersona } from '@/lib/avvisi';
-import { fmtDateTime, fmtEuro, nomeCompleto } from '@/lib/format';
+import { fmtEuro, nomeCompleto } from '@/lib/format';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
 import { caricaMacchina, casaDi, nomeDi, ruoloIn } from '@/lib/macchine';
 import { ALIMENTAZIONI, durateTratti, orariAritroso } from '@/lib/percorso';
-import { marchio } from '@/lib/mia-squadra';
 
 /**
  * Le macchinate: chi mette la macchina, chi sale, dove si passa, e quanto si è
@@ -198,9 +197,6 @@ export async function eliminaMacchina(_prev: StatoForm, fd: FormData): Promise<S
       testo: `${nome} non porta più la macchina: cerca un altro passaggio.`,
       url: `/calendario/${m.eventId}`,
       tag: `viaggio-${m.id}`,
-      whatsapp: `Niente passaggio per ${m.event.titolo}
-
-${nome} non porta più la macchina: cerca un altro passaggio.`,
     }).catch(() => null);
   }
   pagina(m.eventId);
@@ -252,17 +248,12 @@ export async function invitaPasseggeri(_prev: StatoForm, fd: FormData): Promise<
   }
 
   const nome = nomeDi(m.autista);
-  const quando = fmtDateTime(m.event.inizio);
-  const sito = (await marchio()).nomeGestionale;
   for (const u of nuovi) {
     await avvisaPersona(u, {
       titolo: `Passaggio per ${m.event.titolo}`,
       testo: `${nome} ti offre un posto in macchina. Rispondi dal gestionale.`,
       url: linkViaggio(m.eventId, m.id),
       tag: `viaggio-${m.id}`,
-      whatsapp: `${sito} — passaggio per ${m.event.titolo} (${quando})
-
-${nome} ti offre un posto in macchina. Rispondi dal gestionale, nella pagina dell'attività.`,
     }).catch(() => null);
   }
 

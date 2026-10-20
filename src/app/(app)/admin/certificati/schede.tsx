@@ -332,8 +332,8 @@ const PORTA: Record<string, string> = {
  *
  * Tre fonti messe in fila per data: le email automatiche (approvazione e
  * scadenza), i messaggi WhatsApp mandati dalla scheda WhatsApp, e gli avvisi
- * di scadenza che il gestionale manda da solo alla persona — con la porta da
- * cui sono usciti, notifica, WhatsApp o email.
+ * di scadenza che il gestionale manda da solo alla persona, come notifica
+ * (quelli più vecchi potevano essere usciti anche su WhatsApp o per email).
  */
 export async function SchedaLog({ canale, cerca }: { canale?: string; cerca?: string }) {
   const filtro: Canale = canale && canale in CANALI ? (canale as Canale) : 'tutti';
@@ -426,7 +426,7 @@ export async function SchedaLog({ canale, cerca }: { canale?: string; cerca?: st
       cosa: a.titolo,
       errore:
         a.canale === 'niente'
-          ? 'Né notifiche, né WhatsApp, né email verificata: non è arrivato.'
+          ? 'Non ha le notifiche accese: non è arrivato.'
           : null,
     })),
   ]

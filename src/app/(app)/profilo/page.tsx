@@ -632,8 +632,8 @@ export default async function ProfiloPage() {
             )}
           </p>
           <p className="text-xs text-muted">
-            Un’email verificata serve a due cose: se dimentichi la password ti arriva lì il link per
-            entrare, e se non hai le notifiche né WhatsApp gli avvisi importanti arrivano per email.
+            Un’email verificata serve se dimentichi la password: ti arriva lì il link per entrare. Gli
+            avvisi del gestionale arrivano solo come notifiche: accendile qui sopra.
           </p>
           {utente.email && !verificata && postaAttiva && (
             <FormAzione azione={chiediVerifica}>

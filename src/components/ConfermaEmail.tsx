@@ -36,8 +36,8 @@ export function ConfermaEmail({ u, s, f }: { u: string; s: string; f: string }) 
       <input type="hidden" name="s" value={s} />
       <input type="hidden" name="f" value={f} />
       <p className="text-sm text-muted">
-        Premi il pulsante per confermare che questa email è tua: gli avvisi importanti ti
-        arriveranno anche qui, se non hai le notifiche né WhatsApp.
+        Premi il pulsante per confermare che questa email è tua: se dimentichi la password, il
+        link per entrare ti arriverà qui.
       </p>
       <Invia icona="email">Confermo, è la mia email</Invia>
     </form>

@@ -1,120 +1,34 @@
 import { prisma } from './db';
 import { avvisa, type Avviso } from './push';
-import { perWhatsapp } from './telefono';
-import { inviaWhatsapp } from './whatsapp';
-import { esc, indirizzoPubblico, inviaEmail, pulsanteEmail } from './posta';
-import { emailVerificata } from './verifica-email';
 
 /**
- * Come si avvisa una persona: **una porta sola, e la sceglie il gestionale**.
+ * Come si avvisa una persona: **solo con le notifiche sul telefono**.
  *
- * La regola è una e vale per tutti gli avvisi, da qui in avanti: chi ha acceso
- * le notifiche sul telefono riceve quelle; **chi non le ha accese riceve un
- * WhatsApp**. Mai tutti e due — lo stesso avviso che arriva due volte da due
- * strade insegna a ignorarli entrambi — e mai nessuno dei due per una scelta
- * fatta mesi prima davanti a una finestra del browser.
+ * Gli avvisi automatici (polizza attivata, passaggi in macchina, pagamenti,
+ * sondaggi, certificato in scadenza…) partono in push e basta. Niente WhatsApp
+ * e niente email di ripiego: una strada sola, la nostra, che porta dove serve
+ * con un tocco e non dipende da un ponte che qualcuno deve tenere collegato.
+ * Chi le notifiche non le ha accese non riceve avvisi automatici: lo dice
+ * l'elenco delle persone, e il gestionale invita ad accenderle.
  *
- * Prima ogni avviso decideva per conto suo: la polizza attivata andava sempre
- * su WhatsApp, anche a chi aveva le notifiche; il certificato in scadenza
- * andava solo in push, e chi le notifiche non le aveva non sapeva niente. Due
- * regole diverse per la stessa domanda, e in mezzo le persone che non venivano
- * avvisate.
- *
- * **Le notifiche vincono** perché sono il canale nostro: arrivano dentro il
- * gestionale, portano dove serve con un tocco, e non dipendono da un ponte che
- * qualcuno deve tenere collegato. WhatsApp è la rete di sicurezza, non la
- * prima scelta.
- *
- * **L'email è l'ultima rete**: per chi non ha le notifiche e non è raggiungibile
- * su WhatsApp (niente numero, ponte scollegato, messaggio non partito). Solo a
- * un indirizzo verificato (lib/verifica-email), e solo se la squadra ha
- * collegato un server di posta.
+ * Restano a parte, e restano com'erano, le cose che si mandano a mano (i
+ * messaggi WhatsApp della pagina Messaggi) e le email dei certificati medici
+ * configurate nella loro pagina.
  */
 
-export type EsitoAvviso = 'push' | 'whatsapp' | 'email' | 'niente';
+export type EsitoAvviso = 'push' | 'niente';
 
-export async function avvisaPersona(
-  userId: string,
-  avviso: Avviso & {
-    /**
-     * Lo stesso avviso, ma scritto per WhatsApp.
-     *
-     * Non è lo stesso testo con un'altra confezione: una notifica si legge in
-     * due righe sulla schermata bloccata e il resto lo apre il tocco, un
-     * messaggio resta nella chat e deve bastare a sé stesso — il numero della
-     * polizza, la data, cosa farne. Senza questo testo, a chi non ha le
-     * notifiche non si manda niente: meglio niente che un messaggio monco.
-     */
-    whatsapp?: string;
-  },
-): Promise<EsitoAvviso> {
-  const persona = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      telefono: true,
-      email: true,
-      emailVerificata: true,
-      // basta una sola iscrizione: chi ha il telefono e il computer di casa
-      // riceve su tutti e due, ed è quello che si aspetta
-      _count: { select: { iscrizioniPush: true } },
-    },
-  });
-  if (!persona) return 'niente';
-
-  if (persona._count.iscrizioniPush > 0) {
-    /*
-     * Il testo per WhatsApp resta fuori dal messaggio push.
-     *
-     * Non e' un dettaglio di pulizia: il messaggio ha **quattromila byte** e
-     * basta, e il testo per WhatsApp e' quello lungo — il numero della
-     * polizza, le date, cosa farne. Attaccato a una notifica che non lo usa
-     * puo' far sforare il limite, e allora non parte niente: chi doveva essere
-     * avvisato non riceve nulla proprio perche' gli si voleva dire di piu'.
-     */
-    const { whatsapp: _, ...perPush } = avviso;
-    await avvisa([userId], perPush);
-    return 'push';
-  }
-
-  const numero = perWhatsapp(persona.telefono);
-  if (numero && avviso.whatsapp) {
-    // Il ponte può essere scollegato, il numero può non avere WhatsApp: un
-    // avviso è un di più, e non deve far fallire il gesto che l'ha generato.
-    const esito = await inviaWhatsapp(numero, avviso.whatsapp).catch(
-      () => ({ ok: false }) as const,
-    );
-    if (esito.ok) return 'whatsapp';
-  }
-
-  if (!emailVerificata(persona)) return 'niente';
-  return (await perEmail(persona.email!, avviso)) ? 'email' : 'niente';
-}
-
-/**
- * L'avviso per email: il testo lungo, quello scritto per WhatsApp, se c'è
- * (un'email come un messaggio deve bastare a sé stessa); se no titolo e testo
- * della notifica. In fondo il link a dove porterebbe il tocco.
- */
-async function perEmail(a: string, avviso: Avviso & { whatsapp?: string }) {
-  const corpo = avviso.whatsapp ?? avviso.testo;
-  const base = await indirizzoPubblico();
-  const link = base && avviso.url.startsWith('/') ? base + avviso.url : null;
-  const esito = await inviaEmail({
-    a,
-    oggetto: avviso.titolo,
-    testo: link ? `${corpo}\n\nApri nel gestionale: ${link}` : corpo,
-    html:
-      `<p style="white-space:pre-wrap">${esc(corpo)}</p>` +
-      (link ? pulsanteEmail(link, 'Apri nel gestionale') : ''),
-  }).catch((e) => ({ errore: String(e) }));
-  if (esito.errore) console.error('[avvisi] email non partita:', esito.errore);
-  return !esito.errore;
+export async function avvisaPersona(userId: string, avviso: Avviso): Promise<EsitoAvviso> {
+  // basta una sola iscrizione: chi ha il telefono e il computer di casa
+  // riceve su tutti e due, ed è quello che si aspetta
+  const iscrizioni = await prisma.iscrizionePush.count({ where: { userId } });
+  if (!iscrizioni) return 'niente';
+  await avvisa([userId], avviso);
+  return 'push';
 }
 
 /** Come si racconta a voce dove è finito l'avviso: «gliel'ho detto su…». */
 export const doveArrivato: Record<EsitoAvviso, string | null> = {
   push: 'Gli è arrivata la notifica.',
-  whatsapp: 'Gli ho mandato i dati su WhatsApp.',
-  email: 'Gli ho mandato un’email.',
   niente: null,
 };

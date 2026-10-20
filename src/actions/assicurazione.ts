@@ -1,7 +1,6 @@
 'use server';
 
 import { affiliazionePerIl } from '@/lib/affiliazioni';
-import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
@@ -166,33 +165,11 @@ async function avvisaAssicurato(dati: {
   codice: string;
   valida?: string | null;
 }): Promise<EsitoAvviso> {
-  const validita = dati.valida
-    ? `Valida fino al ${dati.valida}`
-    : 'Vale fino alle 24:00 del giorno indicato';
-
-  /*
-   * Due scritture della stessa cosa, e non è una ripetizione.
-   *
-   * La notifica si legge sulla schermata bloccata e serve a dire «sei
-   * coperto», il resto lo apre un tocco. Il messaggio invece resta nella chat
-   * ed è quello che si mostra in campo se la polizza viene chiesta: lì ci
-   * vogliono il numero, il giorno e la validità, perché nessuno andrà a
-   * cercarli nel gestionale con l'arbitro davanti.
-   */
   return avvisaPersona(dati.userId, {
     titolo: 'Sei coperto',
     testo: `Polizza giornaliera n. ${dati.codice} per ${dati.titolo}, ${dati.giorno}.`,
     url: '/profilo',
     tag: 'polizza-giornaliera',
-    whatsapp: `${(await marchio()).nomeGestionale} — sei coperto
-
-${dati.nome} ${dati.cognome}
-Attivit\u00e0: ${dati.titolo}
-Giorno: ${dati.giorno}
-Polizza giornaliera n. ${dati.codice}
-${validita}
-
-Tienila a portata: in campo pu\u00f2 essere chiesta.`,
   });
 }
 

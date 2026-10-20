@@ -13,7 +13,7 @@ import { marchio } from './mia-squadra';
  * nessuno lo dicesse.
  *
  * Non avvisa chi il credito se l'è fatto da sé: l'ha appena visto succedere.
- * La notifica a chi le ha accese, il WhatsApp agli altri (avvisaPersona).
+ * Solo come notifica, a chi le ha accese (avvisaPersona).
  * Il pallino di Miei pagamenti si accende comunque, dal registro.
  */
 export async function avvisaCreditoArrivato(p: {
@@ -38,10 +38,5 @@ export async function avvisaCreditoArrivato(p: {
     testo: `${p.perche}: ${euro} di credito presso ${dove}, da usare quando paghi le prossime quote di quella cassa.`,
     url: '/pagamenti#credito',
     tag: p.tag ?? `credito-${p.userId}-${Date.now()}`,
-    whatsapp: `Hai del credito in più
-
-${p.perche}: ora hai ${euro} di credito in più presso ${dove}.
-
-Lo usi quando paghi le prossime quote di quella cassa: te lo proponiamo per primo. Lo trovi in Miei pagamenti.`,
   }).catch(() => null);
 }

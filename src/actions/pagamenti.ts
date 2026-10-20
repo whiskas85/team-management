@@ -669,9 +669,6 @@ async function avvisaCreditoRicevuto(p: {
       testo: `${euro} presso ${dove} sono passati a ${p.nomeA}.`,
       url: '/pagamenti#credito',
       tag,
-      whatsapp: `Il tuo credito è passato
-
-${euro} presso ${dove} sono passati a ${p.nomeA}.`,
     }).catch(() => null);
   }
 }
@@ -886,12 +883,6 @@ export async function rifiutaSegnalazione(_prev: StatoForm, fd: FormData): Promi
     testo: `Il pagamento che avevi segnalato per «${pagamento.descrizione}» è stato annullato: ${motivo}. La quota è di nuovo da pagare.`,
     url: '/pagamenti',
     tag: `pagamento-${pagamento.id}`,
-    whatsapp: `${(await marchio()).nomeGestionale} — pagamento annullato
-
-Il pagamento che avevi segnalato il ${segnalato} per «${pagamento.descrizione}» (${fmtEuro(Number(pagamento.importo) - Number(pagamento.pagato))}) è stato annullato.
-Motivo: ${motivo}
-
-La quota è di nuovo da pagare: la trovi in Miei pagamenti. Se hai pagato davvero, scrivi a chi tiene la cassa.`,
   }).catch(() => null);
 
   aggiorna();

@@ -1,6 +1,5 @@
 'use server';
 
-import { marchio } from '@/lib/mia-squadra';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { diffondiEvento, ritiraEvento, segnalaNumeri } from '@/lib/eventi-condivisi';
@@ -1478,20 +1477,12 @@ export async function cediQuota(_prev: StatoForm, fd: FormData): Promise<StatoFo
     testo: `${nomeCompleto(da)} ti ha ceduto la quota di «${evento.titolo}»: i ${fmtEuro(totale)} che aveva pagato sono diventati tuo credito, e ${fmtEuro(usato)} pagano la tua quota.${racconto}`,
     url: resta > 0.001 ? '/pagamenti' : `/calendario/${eventId}`,
     tag: `quota-ceduta-${eventId}-${aId}`,
-    whatsapp: `Ti hanno ceduto una quota
-
-${nomeCompleto(da)} ti ha ceduto il suo posto a «${evento.titolo}»: i ${fmtEuro(totale)} che aveva pagato sono diventati tuo credito, e ${fmtEuro(usato)} pagano la tua quota.${racconto}
-
-Trovi tutto in Miei pagamenti.`,
   }).catch(() => null);
   await avvisaPersona(daId, {
     titolo: 'Quota ceduta',
     testo: `La tua quota di «${evento.titolo}» è passata a ${nomeCompleto(a)}: non risulti più fra i presenti.`,
     url: `/calendario/${eventId}`,
     tag: `quota-ceduta-${eventId}-${daId}`,
-    whatsapp: `Quota ceduta
-
-La tua quota di «${evento.titolo}» è passata a ${nomeCompleto(a)}: non risulti più fra i presenti.`,
   }).catch(() => null);
 
   aggiorna(eventId);
@@ -2024,9 +2015,6 @@ export async function confermaNoleggio(_prev: StatoForm, fd: FormData): Promise<
     testo: `Per «${evento.titolo}» il kit c’è: ${fmtEuro(prezzo.importo)} in più nella quota.`,
     url: `/calendario/${evento.id}`,
     tag: `noleggio-${rsvp.id}`,
-    whatsapp: `${(await marchio()).nomeGestionale} — kit a noleggio confermato
-
-Per «${evento.titolo}» il kit c'è. Alla quota si aggiungono ${fmtEuro(prezzo.importo)}: la trovi in Miei pagamenti.`,
   }).catch(() => null);
 
   aggiorna(evento.id);
@@ -2064,12 +2052,6 @@ export async function rifiutaNoleggio(_prev: StatoForm, fd: FormData): Promise<S
     testo: `Per «${rsvp.event.titolo}» il kit non c’è: ${motivo}. La tua adesione è stata tolta.`,
     url: `/calendario/${rsvp.event.id}`,
     tag: `noleggio-${rsvp.id}`,
-    whatsapp: `${(await marchio()).nomeGestionale} — kit a noleggio non disponibile
-
-Per «${rsvp.event.titolo}» il kit che avevi chiesto non c'è.
-Motivo: ${motivo}
-
-La tua adesione è stata tolta. Se hai la tua attrezzatura puoi segnarti di nuovo senza kit.`,
   }).catch(() => null);
 
   aggiorna(rsvp.event.id);

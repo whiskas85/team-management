@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.58.0 — 20 ottobre 2026
+
+### Cambiato
+
+- **Gli avvisi automatici arrivano solo come notifica.** Polizza attivata,
+  passaggi in macchina, pagamenti, quote cedute, kit a noleggio, sondaggi,
+  credito, certificato in scadenza: partono in push e basta. Niente più
+  WhatsApp al posto della notifica, e niente email di ripiego: chi non ha
+  acceso le notifiche non li riceve, e negli elenchi delle persone la
+  campanella spenta lo dice.
+- Restano come prima le cose mandate a mano (la pagina Messaggi WhatsApp, i
+  messaggi del certificato in scadenza, i link wa.me dei contatti) e le email
+  dei certificati medici configurate nella loro pagina.
+- L'email verificata ora serve al recupero della password e al link di
+  accesso: i testi del profilo, della verifica e dell'aiuto lo dicono.
+
 ## 3.57.0 — 15 ottobre 2026
 
 ### Nuovo

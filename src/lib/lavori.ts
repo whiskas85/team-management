@@ -1,5 +1,4 @@
 import { prisma } from './db';
-import { marchio } from './mia-squadra';
 import { conIdentita } from './identita';
 import { attivitaDaCoprire, costoRipiego, dataLocale } from './assicurazione';
 import { attivaGiornaliera } from '@/actions/assicurazione';
@@ -245,18 +244,6 @@ export async function avvisaCertificatiInScadenza(): Promise<{ avvisati: number 
       url: '/certificati',
       // uno solo per persona: due avvisi di scadenza non fanno due righe
       tag: 'certificato-scadenza',
-      // a chi le notifiche non le ha, lo stesso avviso arriva su WhatsApp —
-      // scritto per stare da solo in una chat, con dentro la data
-      whatsapp:
-        tappa === TAPPA_SCADUTO
-          ? `${(await marchio()).nomeGestionale} — il tuo certificato medico è scaduto il ${fmtDate(cert.scadeIl)}.
-
-Senza non si scende in campo: prenota la visita e carica il nuovo nel gestionale appena ce l'hai.${elenco ? `\n\n${elenco.trim()}` : ''}`
-          : `${(await marchio()).nomeGestionale} — il tuo certificato medico scade ${
-              giorni === 0 ? 'oggi' : `fra ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`
-            }, il ${fmtDate(cert.scadeIl)}.
-
-Prenota la visita adesso: fra il medico e l'approvazione ci vuole qualche giorno. Il nuovo si carica dal gestionale, in «Miei certificati».${elenco ? `\n\n${elenco.trim()}` : ''}`,
     });
 
     await prisma.medicalCertificate.update({

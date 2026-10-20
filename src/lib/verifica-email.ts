@@ -57,13 +57,10 @@ per confermare che questa è la tua email nel gestionale ${nomeGestionale}, apri
 
 ${link}
 
-Così, se non hai le notifiche né WhatsApp, gli avvisi importanti ti arrivano qui.
-
 Se non sai di cosa si tratta, ignora questa email.`,
     html: `<p>Ciao ${esc(u.nome)},</p>
 <p>per confermare che questa è la tua email nel gestionale <strong>${esc(nomeGestionale)}</strong>, apri questo link (vale un giorno):</p>
 ${pulsanteEmail(link, 'Confermo, è la mia email')}
-<p>Così, se non hai le notifiche né WhatsApp, gli avvisi importanti ti arrivano qui.</p>
 <p style="font-size:12px;color:#666">Se non sai di cosa si tratta, ignora questa email.</p>`,
   });
 }
