@@ -22,6 +22,7 @@ import { Invia } from '@/components/Bottone';
 import { ModuloIscrizione } from '@/components/ModuloIscrizione';
 import { FotoProfilo } from '@/components/FotoProfilo';
 import { Notifiche } from '@/components/Notifiche';
+import { InstallaApp } from '@/components/InstallaApp';
 import { GRUPPI_SANGUIGNI } from '@/lib/medico';
 import { aggiornaConsensi, aggiornaProfilo, cambiaPassword } from '@/actions/operatori';
 import { CampoTelefono } from '@/components/CampoTelefono';
@@ -380,7 +381,8 @@ export default async function ProfiloPage() {
       </div>
 
       {/* -------------------------------------------------- notifiche */}
-      <div className="mb-4">
+      <div className="mb-4 space-y-4">
+        <InstallaApp forma="scheda" />
         <Notifiche />
       </div>
 

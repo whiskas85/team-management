@@ -22,6 +22,7 @@ import { quadroPersona } from '@/lib/statistiche';
 import { CardEvento } from '@/components/CardEvento';
 import { daSaldare } from '@/lib/da-saldare';
 import { RiquadroNotifiche } from '@/components/RiquadroNotifiche';
+import { InstallaApp } from '@/components/InstallaApp';
 
 export default async function DashboardPage({
   searchParams,
@@ -182,6 +183,9 @@ export default async function DashboardPage({
         </div>
       )}
 
+      {/* dal browser del telefono: installare l'app (su iPhone è l'unica strada
+          per le notifiche) */}
+      <InstallaApp forma="riquadro" />
       {/* le notifiche spente su questo dispositivo: in cima, finché non si accendono */}
       <RiquadroNotifiche />
 

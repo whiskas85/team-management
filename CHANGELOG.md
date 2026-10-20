@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.59.0 — 20 ottobre 2026
+
+### Nuovo
+
+- **«Installa l'app».** Chi usa il gestionale dal browser del telefono trova
+  in cima alla home il riquadro per installarlo, e nel profilo la scheda
+  «L'app sul telefono».
+  - **Android:** un tocco apre la finestra d'installazione del browser; dove
+    il browser non la offre, compaiono i passaggi dal menu ⋮.
+  - **iPhone:** Apple non permette l'installazione con un tocco, quindi il
+    pulsante mostra i passaggi (Condividi → «Aggiungi alla schermata Home» →
+    Aggiungi), con i simboli che si vedono sul telefono. Su iPhone le notifiche
+    arrivano solo all'app installata: per questo lì il riquadro non si può
+    rimandare e prende il posto di quello delle notifiche.
+  - Sul computer compare solo nel profilo, e solo se il browser sa installarla.
+    Dall'app installata non compare più.
+
 ## 3.58.0 — 20 ottobre 2026
 
 ### Cambiato

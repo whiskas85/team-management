@@ -9,6 +9,7 @@ import {
   motivoUltimoErrore,
   supportate,
 } from '@/lib/push-browser';
+import { installata, telefono } from '@/lib/installa-browser';
 
 type Stato = 'ignoto' | 'accese' | 'spente' | 'negate' | 'non-supportate';
 
@@ -31,6 +32,9 @@ export function RiquadroNotifiche() {
 
   useEffect(() => {
     if (!supportate()) {
+      // iPhone dal browser: lì c'è già il riquadro «Installa l'app», che è
+      // l'unica strada per le notifiche
+      if (telefono() === 'iphone' && !installata()) return;
       setStato('non-supportate');
       return;
     }

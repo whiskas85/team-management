@@ -1,6 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ascoltaInstallazione } from '@/lib/installa-browser';
+
+// appena il codice arriva nel browser, prima ancora di disegnare: l'offerta
+// d'installazione di Android può arrivare presto, e va presa al volo
+if (typeof window !== 'undefined') ascoltaInstallazione();
 
 /**
  * Registra il service worker, che è la condizione perché telefono e computer
