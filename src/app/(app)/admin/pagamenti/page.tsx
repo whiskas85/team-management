@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AnnullaSegnalazione } from '@/components/AnnullaSegnalazione';
+import { AnnullaIncasso } from '@/components/AnnullaIncasso';
 import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { PagamentiAdAltreSquadre } from '@/components/PagamentiAdAltreSquadre';
@@ -568,8 +569,8 @@ function AzioniPagamento({
 
             <Invia icona="incassa">{rimborso ? 'Registra l’erogazione' : 'Registra l’incasso'}</Invia>
             <p className="text-xs text-muted">
-              Un importo inferiore al dovuto resta come acconto. A saldo completo il movimento non
-              sarà più modificabile.
+              Un importo inferiore al dovuto resta come acconto. Registrato per sbaglio?
+              «Annulla incasso» lo riporta indietro.
             </p>
           </FormAzione>
         </BottoneModale>
@@ -593,6 +594,8 @@ function AzioniPagamento({
           Credito
         </AzioneBottone>
       )}
+      {/* registrato per sbaglio: si torna indietro, col motivo */}
+      <AnnullaIncasso pagamento={pagamento} />
       <FuoriGestionale pagamento={pagamento} />
     </div>
   );

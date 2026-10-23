@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AnnullaSegnalazione } from '@/components/AnnullaSegnalazione';
+import { AnnullaIncasso } from '@/components/AnnullaIncasso';
 import { LinkAllegatoPagamento } from '@/components/LinkAllegatoPagamento';
 import { OspitiInCassa } from '@/components/OspitiInCassa';
 import { notFound } from 'next/navigation';
@@ -296,6 +297,7 @@ export default async function CassaPage({
                   {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
                     <AnnullaSegnalazione id={p.id} descrizione={p.descrizione} />
                   )}
+                  <AnnullaIncasso pagamento={p} />
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
               </div>
@@ -339,6 +341,7 @@ export default async function CassaPage({
                   {(p.status === 'DA_PAGARE' || p.status === 'PARZIALE') && p.dichiaratoIl && (
                     <AnnullaSegnalazione id={p.id} descrizione={p.descrizione} />
                   )}
+                  <AnnullaIncasso pagamento={p} />
                   <Incassa pagamento={p} metodi={metodi} credito={creditoDi.get(p.userId) ?? 0} />
                 </span>
                     </td>
@@ -540,8 +543,8 @@ function Incassa({
 
         <Invia icona="incassa">{rimborso ? 'Registra l’erogazione' : 'Registra l’incasso'}</Invia>
         <p className="text-xs text-muted">
-          Un importo inferiore al dovuto resta come acconto. A saldo completo il movimento non
-          sarà più modificabile.
+          Un importo inferiore al dovuto resta come acconto. Registrato per sbaglio?
+          «Annulla incasso» lo riporta indietro.
         </p>
       </FormAzione>
     </BottoneModale>

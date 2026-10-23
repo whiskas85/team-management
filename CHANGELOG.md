@@ -5,6 +5,22 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.60.0 — 23 ottobre 2026
+
+### Nuovo
+
+- **«Annulla incasso».** Un pagamento confermato per sbaglio si riporta
+  indietro, da Pagamenti (cassa del club) e da Cassa (le altre casse), su ogni
+  quota incassata o con un acconto.
+  - Si indica quanto è arrivato davvero (di solito niente) e perché: il motivo
+    resta nelle note della quota.
+  - Se la persona aveva segnalato il pagamento si sceglie: **non ha pagato**
+    (la segnalazione e la ricevuta si tolgono, e la persona riceve un avviso
+    con il motivo) o **torna da confermare** (confermato troppo presto).
+  - La parte pagata col credito torna credito della persona.
+  - Lo può fare chi può incassare quella quota: segreteria e admin per il
+    club, chi gestisce la cassa per le altre.
+
 ## 3.59.0 — 20 ottobre 2026
 
 ### Nuovo

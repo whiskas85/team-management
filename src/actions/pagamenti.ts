@@ -96,7 +96,7 @@ export async function salvaPagamento(_prev: StatoForm, fd: FormData): Promise<St
     if (esistente.status === 'PAGATO' && !isAdmin(me.roles)) {
       return {
         errore:
-          'Questo movimento è già stato incassato e non è più modificabile. Se c’è un errore, chiedi all’admin di correggerlo.',
+          'Questo movimento è già stato incassato e non si modifica. Se è un errore, «Annulla incasso» lo riporta indietro.',
       };
     }
 
@@ -250,7 +250,7 @@ export async function segnaPagato(_prev: StatoForm, fd: FormData): Promise<Stato
     ok:
       pagamento.tipo === 'RIMBORSO'
         ? 'Rimborso erogato.'
-        : 'Incasso registrato: da adesso il movimento non è più modificabile.',
+        : 'Incasso registrato. Se è un errore, «Annulla incasso» lo riporta indietro.',
   };
 }
 
@@ -288,51 +288,109 @@ export async function eliminaPagamento(_prev: StatoForm, fd: FormData): Promise<
 }
 
 /**
- * Correzione di un incasso sbagliato. Riservata all'admin e con il motivo
- * scritto in nota: senza una via d'uscita un errore resterebbe per sempre.
+ * Un incasso registrato per sbaglio si annulla.
+ *
+ * Succede: si conferma la segnalazione sbagliata, o si preme «Incassa» sulla
+ * riga accanto. Senza una via d'uscita la quota resterebbe pagata per sempre e
+ * i soldi mancherebbero dalla cassa senza che nessuno lo sappia.
+ *
+ * - Lo annulla chi può incassare quella quota (segreteria e admin per il club,
+ *   chi gestisce la cassa per le altre), con il motivo, che resta nelle note.
+ * - Si indica quanto è arrivato davvero: di solito niente, e la quota torna da
+ *   pagare; se era arrivato un acconto, resta l'acconto.
+ * - La parte pagata col credito torna credito della persona.
+ * - La segnalazione di chi aveva detto «ho pagato»: o torna da confermare (si
+ *   è confermato troppo presto), o se ne va con la ricevuta (i soldi non sono
+ *   arrivati) e la persona viene avvisata col motivo, perché crede di aver
+ *   pagato.
  */
-export async function correggiIncasso(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+export async function annullaIncasso(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!isAdmin(me.roles)) {
-    return { errore: 'Solo l’admin può correggere un incasso già registrato.' };
-  }
-
-  const id = str(fd, 'id');
-  const nuovoPagato = num(fd, 'pagato');
-  const motivo = str(fd, 'motivo');
-
-  if (nuovoPagato === null || nuovoPagato < 0) return { errore: 'Importo non valido.' };
-  if (!motivo) return { errore: 'Scrivi il motivo della correzione: resta agli atti.' };
-
-  const pagamento = await prisma.payment.findUnique({ where: { id } });
+  const pagamento = await prisma.payment.findUnique({ where: { id: str(fd, 'id') } });
   if (!pagamento) return { errore: 'Movimento non trovato.' };
-  if (pagamento.cassaId) {
-    return { errore: 'Questo incasso è di un’altra cassa: lo corregge chi la gestisce.' };
+  if (!(await puoGestireCassa(me, pagamento.cassaId))) {
+    return {
+      errore: pagamento.cassaId
+        ? 'Questo pagamento è di un’altra cassa: lo corregge chi la gestisce.'
+        : 'Solo admin e segreteria gestiscono i pagamenti del club.',
+    };
+  }
+  if (pagamento.status !== 'PAGATO' && pagamento.status !== 'PARZIALE') {
+    return { errore: 'Non c’è un incasso da annullare.' };
   }
 
-  const importo = Number(pagamento.importo);
-  if (nuovoPagato > importo + 0.001) {
-    return { errore: 'L’incassato non può superare l’importo dovuto.' };
+  const motivo = strOpt(fd, 'motivo');
+  if (!motivo) return { errore: 'Scrivi perché annulli l’incasso: resta nelle note.' };
+  const arrivato = num(fd, 'pagato') ?? 0;
+  if (arrivato < 0) return { errore: 'Importo non valido.' };
+  const prima = Number(pagamento.pagato);
+  if (arrivato >= prima - 0.001) {
+    return {
+      errore: `L’incassato è ${fmtEuro(prima)}: per annullare indica quanto è arrivato davvero, meno di così.`,
+    };
   }
+  const togliSegnalazione = !!pagamento.dichiaratoIl && str(fd, 'segnalazione') === 'togli';
 
-  const status = statoDaImporti(importo, nuovoPagato);
+  // prima il credito: torna alla persona e scala l'incassato
+  const tornato = await riprendiCredito(pagamento.id);
+  const restoPagato = Math.min(arrivato, Math.max(0, prima - tornato));
+  const status = statoDaImporti(Number(pagamento.importo), restoPagato);
   const traccia =
-    `Correzione del ${new Date().toLocaleDateString('it-IT')} ` +
-    `(${me.nome} ${me.cognome}): incassato ${Number(pagamento.pagato).toFixed(2)} → ` +
-    `${nuovoPagato.toFixed(2)} · ${motivo}`;
+    `Incasso annullato il ${new Date().toLocaleDateString('it-IT')} ` +
+    `(${me.nome} ${me.cognome}): ${fmtEuro(prima)} → ${fmtEuro(restoPagato)} · ${motivo}`;
 
   await prisma.payment.update({
-    where: { id },
+    where: { id: pagamento.id },
     data: {
-      pagato: nuovoPagato,
+      pagato: restoPagato,
       status,
-      pagatoIl: status === 'PAGATO' ? (pagamento.pagatoIl ?? new Date()) : null,
+      pagatoIl: status === 'PAGATO' ? pagamento.pagatoIl : null,
       note: [pagamento.note, traccia].filter(Boolean).join(' · '),
+      ...(togliSegnalazione
+        ? {
+            dichiaratoIl: null,
+            allegatoPath: null,
+            allegatoNome: null,
+            allegatoTipo: null,
+            allegatoTitolo: null,
+          }
+        : {}),
     },
   });
+  if (togliSegnalazione && pagamento.allegatoPath) {
+    await eliminaAllegato(pagamento.allegatoPath).catch(() => null);
+  }
+
+  if (tornato > 0) {
+    await avvisaCreditoArrivato({
+      userId: pagamento.userId,
+      importo: tornato,
+      cassaId: pagamento.cassaId,
+      perche: `L’incasso di «${pagamento.descrizione}» è stato annullato e quello che avevi pagato col credito ti torna`,
+      chiId: me.id,
+    });
+  }
+  // chi aveva detto «ho pagato» deve sapere che non risulta: crede di essere a posto
+  if (togliSegnalazione) {
+    await avvisaPersona(pagamento.userId, {
+      titolo: 'Pagamento non arrivato',
+      testo: `Il pagamento per «${pagamento.descrizione}» era stato registrato per sbaglio: ${motivo}. La quota è di nuovo da pagare.`,
+      url: '/pagamenti',
+      tag: `pagamento-${pagamento.id}`,
+    }).catch(() => null);
+  }
 
   aggiorna();
-  return { ok: 'Incasso corretto, con annotazione del motivo.' };
+  if (pagamento.eventId) revalidatePath(`/calendario/${pagamento.eventId}`);
+  if (status === 'PARZIALE') return { ok: 'Incasso annullato: resta l’acconto, il resto è da pagare.' };
+  if (pagamento.dichiaratoIl && !togliSegnalazione) {
+    return { ok: 'Incasso annullato: il pagamento torna da confermare.' };
+  }
+  return {
+    ok: togliSegnalazione
+      ? 'Incasso annullato: la quota è di nuovo da pagare, e la persona è stata avvisata.'
+      : 'Incasso annullato: la quota è di nuovo da pagare.',
+  };
 }
 
 /**
