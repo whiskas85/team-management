@@ -1,3 +1,4 @@
+import { AvvisoCambioOra } from '@/components/CambioOra';
 import Link from 'next/link';
 import { profiloDi as profiloCollegamento } from '@/lib/federazione';
 import { headers } from 'next/headers';
@@ -1445,6 +1446,11 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             {tl && ' L’appello resta aperto finché non lo chiudi.'}
           </span>
         </div>
+      )}
+
+      {/* il cambio dell'ora dentro l'attività, o la notte prima: sveglie e orari */}
+      {!conclusa && !terminata && evento.status !== 'ANNULLATA' && (
+        <AvvisoCambioOra inizio={evento.inizio} fine={evento.fine} />
       )}
 
       {/* finita ma non chiusa: resta in cima al programma finché qualcuno non

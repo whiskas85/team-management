@@ -3,6 +3,7 @@ import { marchio } from '@/lib/mia-squadra';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { fmtTime } from '@/lib/format';
+import { AvvisoCambioOra } from '@/components/CambioOra';
 import { Logo } from '@/components/Logo';
 import { Mappa } from '@/components/Mappa';
 import { MappaPunti } from '@/components/MappaPunti';
@@ -188,6 +189,11 @@ export default async function PaginaInvito({
           in grigio piccolo in coda al tipo di attività. Che sia un allenamento
           o un torneo, da fuori, non cambia niente a nessuno. */}
       <Quando inizio={e.inizio} fine={e.fine} ritrovo={e.oraRitrovo} className="card mt-4" />
+      {!finita && (
+        <div className="mt-4">
+          <AvvisoCambioOra inizio={e.inizio} fine={e.fine} />
+        </div>
+      )}
 
       {e.descrizione && (
         <p className="mt-4 whitespace-pre-wrap text-sm text-ink/90">{e.descrizione}</p>

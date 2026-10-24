@@ -5,6 +5,18 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.61.0 — 24 ottobre 2026
+
+### Nuovo
+
+- **Avviso del cambio dell'ora.** Se un'attività attraversa la notte del
+  cambio (fra sabato e domenica) o comincia la domenica stessa, la sua pagina
+  mostra in cima «Torna l'ora solare» / «Entra l'ora legale», con la notte e
+  cosa fanno le lancette. Lo stesso avviso c'è nella pagina d'invito per le
+  altre squadre, e sulla card in calendario un'etichetta «Cambio ora».
+  Un'attività del solo sabato pomeriggio non lo mostra. Le date si calcolano
+  sul fuso italiano, ogni anno da sole.
+
 ## 3.60.0 — 23 ottobre 2026
 
 ### Nuovo

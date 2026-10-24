@@ -8,6 +8,7 @@ import { AdesioneEvento } from './AdesioneEvento';
 import { fmtDateTime, fmtEuro, fmtTime, umanizza } from '@/lib/format';
 import { etichettaEvento, tonoEvento, tonoRsvp } from '@/lib/domain';
 import { BadgeOrganizzatore, type Organizzatore } from './BadgeOrganizzatore';
+import { BadgeCambioOra } from './CambioOra';
 import type { FaseAttivita } from '@/lib/giorni';
 
 /** La mia macchinata, detta nella card: guido, salgo con qualcuno, mi offrono un posto. */
@@ -288,6 +289,7 @@ export function CardEvento({
               </p>
             )}
             <p className="mt-1 text-xs text-muted num">{fmtDateTime(e.inizio)}</p>
+            {e.status !== 'ANNULLATA' && <BadgeCambioOra inizio={e.inizio} fine={e.fine} />}
             {e.campo && <p className="text-xs text-muted">{e.campo}</p>}
           </div>
           {/* una rilasciata già cominciata dice a che punto è: in corso, o
