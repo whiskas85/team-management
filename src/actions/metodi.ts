@@ -9,6 +9,7 @@ import { puoGestireCassa } from '@/lib/casse';
 import { bool, data, str, strOpt, type StatoForm } from '@/lib/form';
 import { eliminaAllegato, salvaAllegato } from '@/lib/storage';
 import { rimandaMetodiDellaCassa } from '@/lib/eventi-condivisi';
+import { avvisaPagamentoSegnalato } from '@/lib/avviso-pagamento';
 
 /**
  * Chi può toccare i metodi di questa cassa.
@@ -210,6 +211,8 @@ export async function dichiaraPagamento(_prev: StatoForm, fd: FormData): Promise
       ...allegato,
     },
   });
+  // chi incassa lo sa subito, e può confermare dalla notifica
+  await avvisaPagamentoSegnalato(id).catch(() => null);
 
   aggiorna();
   return {

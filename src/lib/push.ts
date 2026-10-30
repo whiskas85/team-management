@@ -43,6 +43,13 @@ export type Avviso = {
    * far chiamare al telefono di qualcuno un posto qualsiasi.
    */
   ricevuta?: string;
+  /**
+   * Dove mandare la risposta dei pulsanti (`azioni`), per gli avvisi che non
+   * sono sondaggi: il service worker ci fa un POST con `{ azione }`, col
+   * cookie di sessione. Anche qui solo `/api/…`. Un pulsante con id `apri`
+   * non risponde: apre la pagina.
+   */
+  rispondi?: string;
 };
 
 /** Un pulsante sotto la notifica: `id` torna indietro, `testo` si legge. */

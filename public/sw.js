@@ -21,7 +21,7 @@
  * quello vecchio le notifiche si comportano da vecchie anche se il resto del
  * gestionale e' nuovo. Chi amministra la vede in Operatori -> Avvisi.
  */
-const VERSIONE_SW = '2.83.0';
+const VERSIONE_SW = '3.62.0';
 
 const CACHE = `zero-dark-statici-${VERSIONE_SW}`;
 
@@ -123,7 +123,15 @@ self.addEventListener('push', (evento) => {
     badge: '/icona-192.png',
     tag: avviso.tag,
     actions: azioni.map((a) => ({ action: a.id, title: a.testo })),
-    data: { url: avviso.url, azioni },
+    data: {
+      url: avviso.url,
+      azioni,
+      // dove rispondono i pulsanti degli avvisi che non sono sondaggi: solo nostri
+      rispondi:
+        typeof avviso.rispondi === 'string' && avviso.rispondi.startsWith('/api/')
+          ? avviso.rispondi
+          : null,
+    },
   });
 
   /*
@@ -196,12 +204,46 @@ function rispondi(url, opzioneId) {
     .catch(() => apri(url));
 }
 
+/*
+ * I pulsanti degli altri avvisi: «Conferma» sul pagamento da confermare.
+ *
+ * Stessa regola del voto: chi preme lo dice il cookie di sessione, e se non va
+ * (sessione scaduta, già confermato da un altro, rete assente) non si finge:
+ * si apre la pagina, che sa dire cosa è successo.
+ */
+function rispondiA(indirizzo, azione, url) {
+  return fetch(indirizzo, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ azione }),
+  })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+    .then((esito) =>
+      self.registration.showNotification(esito.titolo || 'Fatto', {
+        body: esito.testo || '',
+        icon: '/icona-192.png',
+        badge: '/icona-192.png',
+        tag: esito.tag,
+        data: { url },
+      }),
+    )
+    .catch(() => apri(url));
+}
+
 self.addEventListener('notificationclick', (evento) => {
   evento.notification.close();
-  const url = evento.notification.data?.url || '/dashboard';
+  const dati = evento.notification.data || {};
+  const url = dati.url || '/dashboard';
   const azione = evento.action;
 
-  evento.waitUntil(azione ? rispondi(url, azione) : apri(url));
+  evento.waitUntil(
+    !azione || azione === 'apri'
+      ? apri(url)
+      : dati.rispondi
+        ? rispondiA(dati.rispondi, azione, url)
+        : rispondi(url, azione),
+  );
 });
 
 // a ogni versione nuova si buttano via le cache vecchie

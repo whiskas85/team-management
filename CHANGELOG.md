@@ -5,6 +5,29 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.62.0 — 30 ottobre 2026
+
+### Nuovo
+
+- **Notifica del pagamento da confermare.** Quando qualcuno segnala di aver
+  pagato, a chi gestisce quella cassa (segreteria e admin per la cassa del
+  club) arriva subito una notifica con **chi, quanto, come e quando** — per
+  esempio «Mario Rossi ha pagato 20,00 € con Satispay il 30 ott 2026 per
+  «Lezione di tiro». Ricevuta allegata. Cassa: Corso di Marco.» — e due
+  pulsanti:
+  - **✓ Conferma** registra l'incasso dalla notifica, senza aprire niente, come
+    l'ha dichiarato (importo, giorno e metodo); torna una notifica «Pagamento
+    confermato».
+  - **Controlla** apre la cassa, per guardare la ricevuta o annullare.
+- Chi conferma lo dice la sessione del telefono: serve essere entrati come chi
+  gestisce quella cassa. Se qualcun altro l'ha già confermato, il telefono apre
+  la pagina invece di fingere.
+
+### Corretto
+
+- Prima una segnalazione di pagamento non avvisava nessuno: restava in attesa
+  finché qualcuno non passava dalla cassa.
+
 ## 3.61.0 — 24 ottobre 2026
 
 ### Nuovo
