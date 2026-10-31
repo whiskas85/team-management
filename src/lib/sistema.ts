@@ -256,6 +256,7 @@ export async function alleggerisciEsistenti(opzioni: { anno?: number; secondi?: 
     (f) =>
       !DERIVATI.has(f.cartella) &&
       !f.relativo.endsWith('.mini.webp') &&
+      !f.relativo.endsWith('.avatar.jpg') &&
       ALLEGGERIBILI_EST[estensione(f.relativo)] &&
       !fatti.has(f.relativo) &&
       (opzioni.anno === undefined || f.anno === opzioni.anno),
@@ -303,10 +304,13 @@ export async function daAlleggerire(file: FileAllegato[]) {
     (f) =>
       !DERIVATI.has(f.cartella) &&
       !f.relativo.endsWith('.mini.webp') &&
+      !f.relativo.endsWith('.avatar.jpg') &&
       ALLEGGERIBILI_EST[estensione(f.relativo)] &&
       !fatti.has(f.relativo),
   );
 }
 
 export const eDerivato = (f: FileAllegato) =>
-  DERIVATI.has(f.cartella) || f.relativo.endsWith('.mini.webp');
+  DERIVATI.has(f.cartella) ||
+  f.relativo.endsWith('.mini.webp') ||
+  f.relativo.endsWith('.avatar.jpg');

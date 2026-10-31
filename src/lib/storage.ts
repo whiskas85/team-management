@@ -129,6 +129,8 @@ export async function eliminaAllegato(relativo: string) {
   }
   // e la sua miniatura, se ne ha una (foto e loghi)
   await unlink(percorsoAssoluto(`${relativo}.mini.webp`)).catch(() => null);
+  // e l'avatar quadrato per le app collegate (app/oauth/avatar)
+  await unlink(percorsoAssoluto(`${relativo}.avatar.jpg`)).catch(() => null);
 }
 
 /**

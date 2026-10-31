@@ -5,6 +5,25 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.63.0 — 31 ottobre 2026
+
+### Nuovo
+
+- **«Accedi con il gestionale»: telefono e foto profilo per le app collegate.**
+  - Nuovo ambito **`phone`**, dichiarato nella configurazione
+    (`scopes_supported`): dà `phone_number` in formato internazionale E.164
+    (`+393331234567`) e `phone_number_verified: false`, perché il gestionale
+    non verifica i numeri. Un numero che non si riesce a leggere non si manda.
+  - Con **`profile`** arriva anche **`picture`**: un indirizzo pubblico della
+    foto, quadrata 512×512 in JPEG, apribile senza accesso né cookie (la carica
+    il telefono di chi usa l'app). Non si indovina: porta una firma, e cambia
+    quando cambia la foto. Senza foto il claim non c'è.
+  - I campi arrivano nell'`id_token` e da `userinfo`, e sono in
+    `claims_supported`.
+  - Nella richiesta di permesso: «il tuo numero di telefono»; il profilo dice
+    ora «nome, cognome, callsign e foto profilo». Un'app che chiede un ambito
+    nuovo fa ripassare la persona dal permesso.
+
 ## 3.62.0 — 30 ottobre 2026
 
 ### Nuovo

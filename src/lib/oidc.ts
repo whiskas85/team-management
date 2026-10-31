@@ -1,7 +1,8 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { SignJWT, exportJWK, generateKeyPair, importPKCS8, type JWK } from 'jose';
 import { prisma } from './db';
-import { cifra, decifra } from './segreti';
+import { cifra, decifra, firma } from './segreti';
+import { perWhatsapp } from './telefono';
 import { marchio } from './mia-squadra';
 import { emailVerificata } from './verifica-email';
 
@@ -28,8 +29,9 @@ import { emailVerificata } from './verifica-email';
 
 export const AMBITI = {
   openid: 'chi sei (un identificativo)',
-  profile: 'nome, cognome e callsign',
+  profile: 'nome, cognome, callsign e foto profilo',
   email: 'la tua email',
+  phone: 'il tuo numero di telefono',
   squadra: 'la squadra, il tuo stato e i tuoi ruoli',
 } as const;
 export type Ambito = keyof typeof AMBITI;
@@ -159,6 +161,8 @@ export async function datiPersona(userId: string, ambiti: string[]) {
       callsign: true,
       email: true,
       emailVerificata: true,
+      telefono: true,
+      fotoPath: true,
       stato: true,
       roles: true,
       updatedAt: true,
@@ -174,7 +178,17 @@ export async function datiPersona(userId: string, ambiti: string[]) {
       preferred_username: u.callsign || `${u.nome} ${u.cognome}`.trim(),
       nickname: u.callsign ?? undefined,
       updated_at: Math.floor(u.updatedAt.getTime() / 1000),
+      // senza foto il claim non c'è: l'app tiene la sua
+      picture: u.fotoPath ? indirizzoAvatar(u.id, u.fotoPath) : undefined,
     });
+  }
+  if (ambiti.includes('phone')) {
+    // E.164; un numero che non si riesce a leggere non si manda
+    const cifre = perWhatsapp(u.telefono);
+    if (cifre) {
+      // il gestionale non verifica i numeri: lo si dice
+      Object.assign(dati, { phone_number: `+${cifre}`, phone_number_verified: false });
+    }
   }
   if (ambiti.includes('email')) {
     Object.assign(dati, { email: u.email, email_verified: emailVerificata(u) });
@@ -272,6 +286,9 @@ export function configurazione() {
       'nickname',
       'email',
       'email_verified',
+      'phone_number',
+      'phone_number_verified',
+      'picture',
       'squadra',
       'stato',
       'ruoli',
@@ -286,3 +303,23 @@ export const CORS = {
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   'Cache-Control': 'no-store',
 };
+
+// ------------------------------------------------------------------ avatar
+
+/**
+ * La firma dell'indirizzo pubblico della foto: dentro c'è anche il file, così
+ * a foto nuova corrisponde un indirizzo nuovo (e la vecchia non si apre più).
+ */
+export const firmaAvatar = (userId: string, fotoPath: string) =>
+  firma(`avatar:${userId}:${fotoPath}`);
+
+/**
+ * La foto profilo per le app collegate (claim `picture`).
+ *
+ * Le foto del gestionale le vede solo chi è entrato; un'app esterna invece la
+ * carica dal telefono, senza sessione. Le si dà un indirizzo pubblico ma non
+ * indovinabile: l'identificativo più una firma che solo il gestionale sa fare.
+ * Lo conosce solo chi ha ricevuto i dati della persona, col suo consenso.
+ */
+export const indirizzoAvatar = (userId: string, fotoPath: string) =>
+  `${emittente()}/oauth/avatar/${userId}/${firmaAvatar(userId, fotoPath)}.jpg`;

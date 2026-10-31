@@ -23,7 +23,7 @@ Si ottiene il `client_id` (e il `client_secret`).
 | Emittente (issuer) | l'indirizzo del gestionale, es. `https://ops.zerodarkteam.it` |
 | Configurazione | `<issuer>/.well-known/openid-configuration` |
 | Flusso | authorization code **con PKCE S256 obbligatorio** |
-| Ambiti | `openid` (sempre), `profile`, `email`, `squadra` |
+| Ambiti | `openid` (sempre), `profile`, `email`, `phone`, `squadra` |
 | Firma id_token | RS256, chiavi su `<issuer>/oauth/jwks` |
 | Autenticazione app | `client_secret_basic`, `client_secret_post` o `none` (app pubbliche) |
 
@@ -68,13 +68,25 @@ codice, `issuer` e chiavi diversi). L'identità di una persona è la coppia
   "sub": "ckx…",                          // sempre lo stesso per la stessa persona
   "name": "Mario Rossi", "given_name": "Mario", "family_name": "Rossi",
   "preferred_username": "Falco",          // il callsign, o il nome
+  "picture": "https://…/oauth/avatar/ckx…/….jpg", // solo se ha la foto
   "email": "mario@…", "email_verified": true,
+  "phone_number": "+393331234567",        // E.164, con lo scope phone
+  "phone_number_verified": false,         // il gestionale non verifica i numeri
   "squadra": { "nome": "Zero Dark Team", "gestionale": "Zero Dark Ops", "indirizzo": "https://…" },
   "stato": "SQUADRA",                     // NUOVO, SQUADRA, SOSPESO, …
   "ruoli": ["ATLETA", "TL"]
 }
 ```
 
-Solo i campi degli ambiti chiesti, e solo dopo il consenso della persona. Dal
+Solo i campi degli ambiti chiesti, e solo dopo il consenso della persona.
+Gli stessi dati arrivano nell'`id_token` e da `userinfo`.
+
+- **`picture`** (con `profile`) è un indirizzo pubblico, apribile senza
+  accesso né cookie: la foto quadrata, 512×512, JPEG. Non si indovina (porta
+  una firma) e cambia quando cambia la foto; senza foto il claim non c'è.
+- **`phone_number`** (con `phone`) è in formato E.164. Se il numero scritto
+  nel profilo non si riesce a leggere, il claim non c'è.
+
+ Dal
 suo profilo («App collegate») la persona toglie l'accesso quando vuole: i token
 già dati smettono di valere.
