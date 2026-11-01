@@ -5,6 +5,16 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.65.1 — 1 novembre 2026
+
+### Corretto
+
+- **A giornata terminata l'appello si legge nella fascia «TERMINATA»**, dove si
+  decide di chiudere: «✓ Appello fatto il 1 nov 2026, 17:11 da whiskas (7/7
+  presenti): concludi l'attività», con il pulsante Concludi accanto. Prima la
+  fascia diceva ancora «fai l'appello» anche ad appello fatto. In quel caso
+  l'etichetta nell'intestazione non si ripete.
+
 ## 3.65.0 — 1 novembre 2026
 
 ### Corretto

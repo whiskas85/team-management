@@ -1286,7 +1286,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             )}
 
             {/* l'appello, in testa: fatto (quando, chi, quanti) o da fare */}
-            {evento.appelloIl ? (
+            {terminata ? null : evento.appelloIl ? (
               <Badge tono="ok">
                 ✓ Appello fatto · <span className="num">{fmtTime(evento.appelloIl)}</span>
                 {evento.appelloDa &&
@@ -1475,10 +1475,26 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       {terminata && (
         <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-warn">
           <span className="text-base font-semibold">TERMINATA</span>
+          {/* Con l'appello fatto lo si dice qui, dove si decide di chiudere:
+              quando, chi, quanti — e il pulsante per concludere accanto. */}
           <span className="min-w-0 flex-1 text-sm">
-            {tl
-              ? 'La giornata è finita: fai l’appello per chiuderla.'
-              : 'La giornata è finita: manca solo che venga chiusa.'}
+            {evento.appelloIl ? (
+              <>
+                <strong>✓ Appello fatto</strong> il{' '}
+                <span className="num">{fmtDateTime(evento.appelloIl)}</span>
+                {evento.appelloDa &&
+                  ` da ${comeChiamare(evento.appelloDa, { incarico: false, diSquadra: true }).nome}`}{' '}
+                (<span className="num">
+                  {daAppello.filter((r) => r.presente).length}/{daAppello.length}
+                </span>{' '}
+                presenti):{' '}
+                {admin ? 'concludi l’attività.' : 'manca solo che un admin concluda l’attività.'}
+              </>
+            ) : inMano ? (
+              'La giornata è finita: fai l’appello per chiuderla.'
+            ) : (
+              'La giornata è finita: manca solo che venga chiusa.'
+            )}
           </span>
           {/* il gesto che manca, dentro al messaggio che lo chiede */}
           {admin && evento.status === 'RILASCIATA' && (
