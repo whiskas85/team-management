@@ -15,6 +15,8 @@ export type EsitoMfaForm = StatoForm & {
   /** Preparazione: il QR da inquadrare e il segreto da scrivere a mano. */
   qr?: string;
   segreto?: string;
+  /** L'indirizzo otpauth://: dallo stesso telefono si tocca e apre l'app. */
+  link?: string;
   /** I codici di recupero appena creati: si vedono una volta sola. */
   codici?: string[];
 };
@@ -38,11 +40,9 @@ export async function preparaMfa(): Promise<EsitoMfaForm> {
     data: { mfaSegreto: cifraSegreto(segreto), mfaUltimoPasso: null, mfaFalliti: 0 },
   });
   const m = await marchio();
-  const qr = await QRCode.toDataURL(
-    indirizzoOtpauth(segreto, u?.callsign || u?.email || me.id, m.nomeGestionale),
-    { margin: 1, width: 240 },
-  );
-  return { qr, segreto: segretoLeggibile(segreto) };
+  const link = indirizzoOtpauth(segreto, u?.callsign || u?.email || me.id, m.nomeGestionale);
+  const qr = await QRCode.toDataURL(link, { margin: 1, width: 240 });
+  return { qr, segreto: segretoLeggibile(segreto), link };
 }
 
 /** Secondo passo: il codice dall'app dice che il QR è andato a buon fine. */

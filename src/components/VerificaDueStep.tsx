@@ -68,30 +68,47 @@ export function VerificaDueStep({
           </>
         ) : (
           <form action={attiva} className="space-y-3">
-            <ol className="list-decimal space-y-2 pl-5">
-              <li>
-                Apri l’app e aggiungi un account (in Google Authenticator: <strong>+</strong> →{' '}
-                <strong>Scansiona un codice QR</strong>).
-              </li>
-              <li>
-                Inquadra questo codice:
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={preparazione.qr}
-                  alt="Codice QR da inquadrare con l’app di autenticazione"
-                  width={200}
-                  height={200}
-                  className="mt-2 rounded-md bg-white p-2"
-                />
-                <span className="mt-2 block text-xs text-muted">
-                  Non riesci a inquadrarlo? Scegli «Inserisci una chiave di configurazione» e
-                  scrivi:{' '}
-                  <span className="num select-all break-all text-ink">{preparazione.segreto}</span>{' '}
-                  (basato sul tempo).
-                </span>
-              </li>
-              <li>Scrivi qui il codice di sei cifre che l’app ti mostra.</li>
-            </ol>
+            {/* Dallo stesso telefono il QR non si inquadra: c'è il link che
+                apre l'app direttamente, e la chiave da copiare e incollare. */}
+            <div className="space-y-2 rounded-md border border-line bg-surface2 p-3">
+              <p className="font-medium">Sei sul telefono dove hai l’app?</p>
+              <div className="flex flex-wrap gap-2">
+                <a href={preparazione.link} className="btn-primary btn-sm">
+                  <Icona nome="apri" size={15} /> Aggiungi all’app di autenticazione
+                </a>
+                <CopiaChiave chiave={preparazione.segreto ?? ''} />
+              </div>
+              <p className="text-xs text-muted">
+                Il primo pulsante apre Google Authenticator con l’account già pronto. Se non succede
+                niente, copia la chiave e in Google Authenticator tocca <strong>+</strong> →{' '}
+                <strong>Inserisci una chiave di configurazione</strong>: un nome a piacere, incolla
+                la chiave, tipo <strong>Basata sull’ora</strong> → Aggiungi. Poi torna qui.
+              </p>
+            </div>
+
+            <div className="space-y-2 rounded-md border border-line p-3">
+              <p className="font-medium">Oppure da un altro schermo</p>
+              <p className="text-xs text-muted">
+                Con il gestionale aperto sul computer: in Google Authenticator <strong>+</strong> →{' '}
+                <strong>Scansiona un codice QR</strong> e inquadra questo.
+              </p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={preparazione.qr}
+                alt="Codice QR da inquadrare con l’app di autenticazione"
+                width={180}
+                height={180}
+                className="rounded-md bg-white p-2"
+              />
+              <p className="text-xs text-muted">
+                Chiave per inserirla a mano:{' '}
+                <span className="num select-all break-all text-ink">{preparazione.segreto}</span>
+              </p>
+            </div>
+
+            <p className="font-medium">
+              Poi scrivi qui il codice di sei cifre che l’app ti mostra:
+            </p>
             {attivazione.errore && <Esito errore={attivazione.errore} />}
             <div className="flex flex-wrap gap-2">
               <input
@@ -180,6 +197,25 @@ export function VerificaDueStep({
         </form>
       )}
     </div>
+  );
+}
+
+/** La chiave negli appunti, senza spazi: si incolla nell'app così com'è. */
+function CopiaChiave({ chiave }: { chiave: string }) {
+  const [copiata, setCopiata] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn-ghost btn-sm"
+      onClick={() =>
+        navigator.clipboard
+          ?.writeText(chiave.replace(/\s/g, ''))
+          .then(() => setCopiata(true))
+          .catch(() => {})
+      }
+    >
+      <Icona nome="chiave" size={15} /> {copiata ? 'Chiave copiata' : 'Copia la chiave'}
+    </button>
   );
 }
 

@@ -89,13 +89,15 @@ export function verificaCodice(
 /** L'indirizzo che il QR consegna all'app: nome del gestionale e account. */
 export function indirizzoOtpauth(segreto: string, account: string, emittente: string) {
   const etichetta = encodeURIComponent(`${emittente}:${account}`);
-  const q = new URLSearchParams({
-    secret: segreto,
-    issuer: emittente,
-    algorithm: 'SHA1',
-    digits: String(CIFRE),
-    period: String(PASSO),
-  });
+  // %20 e non «+» per gli spazi: alcune app (Google Authenticator fra
+  // queste) mostrerebbero «Zero+Dark+Ops»
+  const q = [
+    `secret=${segreto}`,
+    `issuer=${encodeURIComponent(emittente)}`,
+    'algorithm=SHA1',
+    `digits=${CIFRE}`,
+    `period=${PASSO}`,
+  ].join('&');
   return `otpauth://totp/${etichetta}?${q}`;
 }
 

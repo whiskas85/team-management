@@ -5,6 +5,21 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.66.1 — 1 novembre 2026
+
+### Corretto
+
+- **Verifica in due passaggi dallo stesso telefono.** Il QR non si può
+  inquadrare con il telefono su cui lo si sta guardando: ora, attivandola, c'è
+  prima «Sei sul telefono dove hai l'app?» con
+  - **Aggiungi all'app di autenticazione**, che apre Google Authenticator con
+    l'account già pronto (link `otpauth://`);
+  - **Copia la chiave**, da incollare in Google Authenticator con + →
+    «Inserisci una chiave di configurazione», se il link non apre niente.
+  Il QR resta sotto, per chi ha il gestionale aperto sul computer.
+- Nel nome dell'account nell'app gli spazi restano spazi (prima alcune app
+  avrebbero mostrato «Zero+Dark+Ops»).
+
 ## 3.66.0 — 1 novembre 2026
 
 ### Nuovo
