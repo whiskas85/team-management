@@ -5,6 +5,27 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.66.0 — 1 novembre 2026
+
+### Nuovo
+
+- **Verifica in due passaggi (facoltativa), con Google Authenticator.** Dal
+  profilo, «Verifica in due passaggi» → **Attiva**: un codice QR da inquadrare
+  con Google Authenticator (o Microsoft Authenticator, 1Password, Aegis…), la
+  chiave da scrivere a mano se la fotocamera non collabora, e il primo codice
+  per confermare. Solo allora si accende.
+  - All'accesso, dopo la password, si chiede il codice di sei cifre dell'app.
+    Vale anche per il link di accesso mandato dall'admin.
+  - **Dieci codici di recupero**, mostrati una volta: ognuno fa entrare al
+    posto del codice, una volta sola. Dal profilo se ne fanno di nuovi.
+  - Spegnerla, o rifare i codici, chiede un codice dell'app.
+  - Cinque codici sbagliati di fila e si aspettano dieci minuti; lo stesso
+    codice non vale due volte.
+  - Chi perde telefono e codici: l'admin la spegne dalla scheda della persona
+    («Spegni la verifica in due passaggi»).
+  - Codici standard TOTP (SHA-1, 6 cifre, 30 secondi); il segreto è salvato
+    cifrato, i codici di recupero solo come impronta.
+
 ## 3.65.1 — 1 novembre 2026
 
 ### Corretto

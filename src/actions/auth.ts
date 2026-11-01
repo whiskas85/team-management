@@ -3,7 +3,16 @@
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { CALLSIGN_PRESO, callsignOccupato } from '@/lib/callsign';
-import { createSession, destroySession, hashPassword, verifyPassword } from '@/lib/auth';
+import {
+  apriAttesaMfa,
+  chiudiAttesaMfa,
+  createSession,
+  destroySession,
+  hashPassword,
+  leggiAttesaMfa,
+  verifyPassword,
+} from '@/lib/auth';
+import { controllaCodice, mfaAttiva } from '@/lib/mfa';
 import { VERSIONE_PRIVACY } from '@/lib/gdpr';
 // la data si legge con l'aiuto di sempre e non con `new Date`: "2004-05-15"
 // letta come mezzanotte UTC, a est di Greenwich, diventa il giorno prima
@@ -77,10 +86,43 @@ export async function accedi(_prev: StatoForm, fd: FormData): Promise<StatoForm>
     return { errore: 'Account disabilitato. Contatta l’amministrazione del team.' };
   }
 
+  // verifica in due passaggi: la password da sola non basta, manca il codice
+  if (user.mfaAttivoIl) {
+    await apriAttesaMfa(user.id, flag(fd, 'ricordami'), percorsoDopo(fd.get('dopo')));
+    redirect('/login/codice');
+  }
+
   await prisma.user.update({ where: { id: user.id }, data: { ultimoAccesso: new Date() } });
   await createSession(user.id, flag(fd, 'ricordami'));
   // arrivato da un link verso una pagina precisa: si va lì
   redirect(percorsoDopo(fd.get('dopo')) ?? '/dashboard');
+}
+
+/**
+ * Il secondo passaggio dell'accesso: il codice dell'app (o uno di recupero).
+ * Chi sta entrando lo dice il cookie d'attesa, che vale cinque minuti.
+ */
+export async function confermaCodiceAccesso(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
+  const attesa = await leggiAttesaMfa();
+  if (!attesa) return { errore: 'È passato troppo tempo: rientra con la password.' };
+
+  const esito = await controllaCodice(attesa.userId, testo(fd, 'codice'));
+  if (!esito.ok) return { errore: esito.errore };
+
+  const user = await prisma.user.findUnique({
+    where: { id: attesa.userId },
+    select: { stato: true },
+  });
+  if (!user || user.stato === 'DISABILITATO') {
+    await chiudiAttesaMfa();
+    return { errore: 'Account disabilitato. Contatta l’amministrazione del team.' };
+  }
+
+  await prisma.user.update({ where: { id: attesa.userId }, data: { ultimoAccesso: new Date() } });
+  await createSession(attesa.userId, attesa.ricordami);
+  await chiudiAttesaMfa();
+  // entrato con un codice di recupero: gliene restano meno, glielo si dice nel profilo
+  redirect(esito.recupero ? '/profilo?mfa=recupero' : (attesa.dopo ?? '/dashboard'));
 }
 
 /**
@@ -249,6 +291,18 @@ export async function entraConGettone(fd: FormData): Promise<void> {
   const { getCurrentUser } = await import('@/lib/auth');
   const chiSta = await getCurrentUser();
   if (chiSta && chiSta.id !== esito.userId) redirect('/dashboard');
+
+  // Con la verifica in due passaggi accesa il link non basta: serve anche il
+  // codice. Il link si spegne adesso, l'accesso lo completa la pagina del codice.
+  if (await mfaAttiva(esito.userId)) {
+    await prisma.user.update({
+      where: { id: esito.userId },
+      data: { deveCambiarePassword: true },
+    });
+    await bruciaGettone(esito.gettoneId);
+    await apriAttesaMfa(esito.userId, false, '/cambia-password');
+    redirect('/login/codice');
+  }
 
   // chi entra così deve comunque scegliersi una password: il link consegna le
   // chiavi, non tiene il posto di una password

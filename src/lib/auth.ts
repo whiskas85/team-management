@@ -49,6 +49,55 @@ export async function createSession(userId: string, ricordami = false) {
   });
 }
 
+/*
+ * L'accesso a metà: password giusta, manca il codice della verifica in due
+ * passaggi. Un cookie a parte, firmato, che vale cinque minuti e non apre
+ * niente: serve solo alla pagina del codice per sapere chi sta entrando, se
+ * aveva chiesto «ricordami» e dove voleva andare.
+ */
+const COOKIE_MFA = 'zd_mfa';
+const DURATA_MFA = 5 * 60;
+
+export async function apriAttesaMfa(userId: string, ricordami: boolean, dopo: string | null) {
+  const token = await new SignJWT({ sub: userId, scopo: 'mfa', ricordami, dopo })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${DURATA_MFA}s`)
+    .sign(secret());
+  const store = await cookies();
+  store.set(COOKIE_MFA, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.COOKIE_SECURE === '1',
+    path: '/',
+    maxAge: DURATA_MFA,
+  });
+}
+
+export async function leggiAttesaMfa(): Promise<{
+  userId: string;
+  ricordami: boolean;
+  dopo: string | null;
+} | null> {
+  const token = (await cookies()).get(COOKIE_MFA)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    if (payload.scopo !== 'mfa' || typeof payload.sub !== 'string') return null;
+    return {
+      userId: payload.sub,
+      ricordami: payload.ricordami === true,
+      dopo: typeof payload.dopo === 'string' ? payload.dopo : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function chiudiAttesaMfa() {
+  (await cookies()).delete(COOKIE_MFA);
+}
+
 export async function destroySession() {
   const store = await cookies();
   store.delete(COOKIE);

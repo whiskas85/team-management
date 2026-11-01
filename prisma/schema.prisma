@@ -150,6 +150,18 @@ model User {
   /// nessuna parte se non a cambiarla. Serve perche' non si mandano email:
   /// la password viaggia a voce, e a voce non deve restare.
   deveCambiarePassword Boolean        @default(false)
+  /// Verifica in due passaggi (TOTP, Google Authenticator e simili), facoltativa.
+  /// Il segreto è cifrato (lib/segreti); finché mfaAttivoIl è vuoto è solo
+  /// in preparazione e all'accesso non si chiede niente.
+  mfaSegreto           String?
+  mfaAttivoIl          DateTime?
+  /// I codici di recupero non ancora usati, come impronta: valgono una volta.
+  mfaRecupero          String[]       @default([])
+  /// L'ultimo passo di 30 secondi accettato: lo stesso codice non vale due volte.
+  mfaUltimoPasso       Int?
+  /// Tentativi sbagliati di fila; oltre il limite si aspetta mfaBloccatoFino.
+  mfaFalliti           Int            @default(0)
+  mfaBloccatoFino      DateTime?
   /// Una riga scelta dall'operatore, sotto al nome: motto, ruolo in squadra,
   /// quello che vuole. Serve solo a farsi riconoscere, non a nient'altro.
   frase                String?

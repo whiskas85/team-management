@@ -26,6 +26,7 @@ import { Partecipazioni } from '@/components/Partecipazioni';
 import { Avatar, Badge, Campo, Dato, Intestazione, Statistica, Vuoto } from '@/components/ui';
 import { Anello, Barre, mesiRecenti } from '@/components/Grafico';
 import { Conferma, Fisarmonica, FormAzione } from '@/components/Form';
+import { azzeraMfa } from '@/actions/mfa';
 import { Invia } from '@/components/Bottone';
 import { SceltaRuoli, SceltaStato } from '@/components/FormOperatore';
 import { AzioniContatto } from '@/components/AzioniContatto';
@@ -466,6 +467,25 @@ export default async function SchedaOperatorePage({ params }: { params: Promise<
                     <Invia icona="email" className="btn-ghost btn-sm">
                       Manda il link di accesso per email
                     </Invia>
+                  </FormAzione>
+                )}
+
+                {/* chi ha perso telefono e codici di recupero resterebbe fuori */}
+                {admin && utente.mfaAttivoIl && (
+                  <FormAzione azione={azzeraMfa}>
+                    <input type="hidden" name="userId" value={utente.id} />
+                    <p className="mb-2 text-xs text-muted">
+                      Ha la verifica in due passaggi attiva dal {fmtDate(utente.mfaAttivoIl)}. Se
+                      ha perso il telefono e i codici di recupero, spegnila: entrerà con la sola
+                      password e potrà riattivarla dal profilo.
+                    </p>
+                    <Conferma
+                      className="btn-ghost btn-sm"
+                      icona="scudo"
+                      messaggio={`Spegnere la verifica in due passaggi di ${utente.nome} ${utente.cognome}? Fallo solo se sei sicuro che sia lui a chiederlo.`}
+                    >
+                      Spegni la verifica in due passaggi
+                    </Conferma>
                   </FormAzione>
                 )}
 

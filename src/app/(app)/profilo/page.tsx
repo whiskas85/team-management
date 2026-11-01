@@ -22,6 +22,7 @@ import { Invia } from '@/components/Bottone';
 import { ModuloIscrizione } from '@/components/ModuloIscrizione';
 import { FotoProfilo } from '@/components/FotoProfilo';
 import { Notifiche } from '@/components/Notifiche';
+import { VerificaDueStep } from '@/components/VerificaDueStep';
 import { InstallaApp } from '@/components/InstallaApp';
 import { GRUPPI_SANGUIGNI } from '@/lib/medico';
 import { aggiornaConsensi, aggiornaProfilo, cambiaPassword } from '@/actions/operatori';
@@ -53,8 +54,14 @@ function Dato({
   );
 }
 
-export default async function ProfiloPage() {
+export default async function ProfiloPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mfa?: string }>;
+}) {
   const me = await requireUser();
+  // entrato con un codice di recupero: la sezione si apre e lo dice
+  const conRecupero = (await searchParams).mfa === 'recupero';
 
   const utente = await prisma.user.findUniqueOrThrow({
     where: { id: me.id },
@@ -687,6 +694,17 @@ export default async function ProfiloPage() {
           </ul>
         </Fisarmonica>
       )}
+
+      <Fisarmonica
+        titolo={`Verifica in due passaggi${utente.mfaAttivoIl ? ' · attiva' : ''}`}
+        apertoIniziale={conRecupero}
+      >
+        <VerificaDueStep
+          attivaIl={utente.mfaAttivoIl}
+          recuperoRimasti={utente.mfaRecupero.length}
+          entratoConRecupero={conRecupero}
+        />
+      </Fisarmonica>
 
       <Fisarmonica titolo="Cambia password">
         <FormAzione azione={cambiaPassword}>
