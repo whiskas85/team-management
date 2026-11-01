@@ -14,8 +14,9 @@ accanto a ZERO DARK.
   prima «Sei sul telefono dove hai l'app?» con
   - **Aggiungi all'app di autenticazione**, che apre Google Authenticator con
     l'account già pronto (link `otpauth://`);
-  - **Copia la chiave**, da incollare in Google Authenticator con + →
-    «Inserisci una chiave di configurazione», se il link non apre niente.
+  - **la chiave in verde: toccandola si copia**, da incollare in Google
+    Authenticator con + → «Inserisci una chiave di configurazione», se il link
+    non apre niente.
   Il QR resta sotto, per chi ha il gestionale aperto sul computer.
 - Nel nome dell'account nell'app gli spazi restano spazi (prima alcune app
   avrebbero mostrato «Zero+Dark+Ops»).

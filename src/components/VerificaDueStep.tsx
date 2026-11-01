@@ -76,8 +76,10 @@ export function VerificaDueStep({
                 <a href={preparazione.link} className="btn-primary btn-sm">
                   <Icona nome="apri" size={15} /> Aggiungi all’app di autenticazione
                 </a>
-                <CopiaChiave chiave={preparazione.segreto ?? ''} />
               </div>
+              <p className="text-sm">
+                La chiave: <ChiaveDaToccare chiave={preparazione.segreto ?? ''} />
+              </p>
               <p className="text-xs text-muted">
                 Il primo pulsante apre Google Authenticator con l’account già pronto. Se non succede
                 niente, copia la chiave e in Google Authenticator tocca <strong>+</strong> →{' '}
@@ -101,8 +103,7 @@ export function VerificaDueStep({
                 className="rounded-md bg-white p-2"
               />
               <p className="text-xs text-muted">
-                Chiave per inserirla a mano:{' '}
-                <span className="num select-all break-all text-ink">{preparazione.segreto}</span>
+                Chiave per inserirla a mano: <ChiaveDaToccare chiave={preparazione.segreto ?? ''} />
               </p>
             </div>
 
@@ -200,21 +201,25 @@ export function VerificaDueStep({
   );
 }
 
-/** La chiave negli appunti, senza spazi: si incolla nell'app così com'è. */
-function CopiaChiave({ chiave }: { chiave: string }) {
+/** La chiave scritta in verde: toccandola si copia. */
+function ChiaveDaToccare({ chiave }: { chiave: string }) {
   const [copiata, setCopiata] = useState(false);
   return (
     <button
       type="button"
-      className="btn-ghost btn-sm"
+      title="Tocca per copiare"
       onClick={() =>
         navigator.clipboard
           ?.writeText(chiave.replace(/\s/g, ''))
           .then(() => setCopiata(true))
           .catch(() => {})
       }
+      className="num inline break-all text-left font-semibold text-nvg underline decoration-dotted underline-offset-4 hover:text-nvg/80"
     >
-      <Icona nome="chiave" size={15} /> {copiata ? 'Chiave copiata' : 'Copia la chiave'}
+      {chiave}
+      <span className="ml-1.5 whitespace-nowrap text-xs font-normal no-underline">
+        {copiata ? '✓ copiata' : '· tocca per copiare'}
+      </span>
     </button>
   );
 }
