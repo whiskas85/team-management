@@ -52,6 +52,7 @@ import {
   puoSchierare,
   schierato,
   serveCertificato,
+  tieneInMano,
   vedeAttivitaSquadra,
 } from '@/lib/domain';
 import { data, enumOpt, enumVal, intOpt, num, str, strOpt, type StatoForm } from '@/lib/form';
@@ -1597,7 +1598,6 @@ export async function creaRiunione(_prev: StatoForm, fd: FormData): Promise<Stat
 /** Appello a evento concluso. */
 export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<StatoForm> {
   const me = await requireUser();
-  if (!puoSchierare(me.roles)) return { errore: 'Non hai i permessi per registrare le presenze.' };
 
   const eventId = str(fd, 'eventId');
   const presenti = new Set(fd.getAll('presenti').map((v) => v.toString()));
@@ -1608,9 +1608,15 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
       tipo: {
         select: { riserve: true, certMedico: true, certAgonistico: true, ripiegoPolizza: true },
       },
+      referenti: { select: { userId: true } },
     },
   });
   if (!evento) return { errore: 'Attività non trovata.' };
+  // l'appello lo fa chi tiene in mano l'attività: admin, team leader e i
+  // suoi referenti, anche senza un ruolo
+  if (!tieneInMano(me, evento.referenti)) {
+    return { errore: 'L’appello lo fanno admin, team leader e i referenti di questa attività.' };
+  }
 
   // Dove c'è una formazione l'appello riguarda solo chi era atteso: titolari,
   // convocati e sala controllo. Spuntare anche le riserve vorrebbe dire
@@ -1684,7 +1690,9 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
     };
   }
   return {
-    ok: 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiudi tu quando è il momento.',
+    ok: isAdmin(me.roles)
+      ? 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiudi tu quando è il momento.'
+      : 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiude un admin quando è il momento.',
   };
 }
 

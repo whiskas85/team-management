@@ -5,6 +5,17 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.64.0 — 1 novembre 2026
+
+### Cambiato
+
+- **L'appello lo fanno anche i referenti dell'attività.** Chi è referente di
+  un'attività vede la scheda «Appello» e salva le presenze anche senza essere
+  team leader: le stesse regole di prima (chi non è assicurato resta in rosso
+  e non si segna presente). Solo per le attività di cui è referente.
+  Iscrivere altre persone dall'appello e chiudere l'attività restano di team
+  leader e admin.
+
 ## 3.63.0 — 31 ottobre 2026
 
 ### Nuovo

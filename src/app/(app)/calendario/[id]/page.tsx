@@ -1443,7 +1443,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             {evento.fine
               ? `Fino ${piuGiorni ? 'a ' + fmtDateTime(finestra.a) : 'alle ' + fmtTime(finestra.a)}.`
               : 'Fino a fine giornata.'}
-            {tl && ' L’appello resta aperto finché non lo chiudi.'}
+            {inMano && ' L’appello resta aperto finché non lo chiudi.'}
           </span>
         </div>
       )}
@@ -1967,7 +1967,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               apre se serve. Agli altri resta com'è. */}
           {!bozza && (
           <Ripiegabile
-            chiuso={tl && terminata && iniziata}
+            chiuso={inMano && terminata && iniziata}
             titolo={`Risposte, quote e assicurazioni · ${evento.rsvps.length}`}
           >
           <div id="partecipanti" className="scroll-mt-24">
@@ -2741,15 +2741,16 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           )}
 
           {/* l'appello si fa dal ritrovo in poi, e resta finché non lo si
-              chiude: prima non c'è ancora nessuno da spuntare */}
-          {tl && iniziata && (
+              chiude: prima non c'è ancora nessuno da spuntare. Lo fa chi
+              tiene in mano l'attività: admin, team leader e i suoi referenti */}
+          {inMano && iniziata && (
             <>
               <div className="card">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <p className="titolo-sezione">Appello</p>
                   {/* chi è arrivato senza essersi segnato si aggiunge da qui,
-                      e entra già spuntato */}
-                  {aggiungiPartecipanti(true)}
+                      e entra già spuntato (iscrivere altri resta del TL) */}
+                  {tl && aggiungiPartecipanti(true)}
                 </div>
                 <FormAzione azione={registraPresenze} className="space-y-3">
                   <input type="hidden" name="eventId" value={evento.id} />
@@ -2896,8 +2897,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           tutto alle otto del mattino. */}
                       <Invia className="btn-ghost w-full btn-sm">Salva presenze</Invia>
                       <p className="text-[11px] text-muted">
-                        Si può rifare per chi arriva dopo. L’attività la chiudi tu, in fondo alla
-                        pagina, quando la giornata è finita davvero.
+                        Si può rifare per chi arriva dopo.{' '}
+                        {admin
+                          ? 'L’attività la chiudi tu, in fondo alla pagina, quando la giornata è finita davvero.'
+                          : 'L’attività la chiude un admin, quando la giornata è finita davvero.'}
                       </p>
                     </>
                   )}
