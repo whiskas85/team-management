@@ -1666,6 +1666,12 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
     ),
   );
   const respinti = daSpuntare.filter((r) => presenti.has(r.id) && senzaCert.has(r.id));
+  // quando e da chi: in cima alla scheda si legge che l'appello c'è
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { appelloIl: new Date(), appelloDaId: me.id },
+  });
+  const quanti = daSpuntare.filter((r) => presenti.has(r.id) && !senzaCert.has(r.id)).length;
 
   /*
    * L'appello registra chi c'è. **Chiudere è un'altra cosa, e la fa una persona.**
@@ -1690,9 +1696,7 @@ export async function registraPresenze(_prev: StatoForm, fd: FormData): Promise<
     };
   }
   return {
-    ok: isAdmin(me.roles)
-      ? 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiudi tu quando è il momento.'
-      : 'Presenze registrate. L’attività resta aperta: l’appello si può rifare, e la chiude un admin quando è il momento.',
+    ok: `✓ Appello salvato: ${quanti} present${quanti === 1 ? 'e' : 'i'} su ${daSpuntare.length}.`,
   };
 }
 

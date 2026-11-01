@@ -7,6 +7,7 @@ import { Credenziali } from './Credenziali';
 import { mostraBenvenuto } from './Benvenuto';
 import { ChiaveMcp } from './ChiaveMcp';
 import { ChiaveSito } from './ChiaveSito';
+import { mostraToast } from './Toast';
 import type { StatoForm } from '@/lib/form';
 
 type Azione = (prev: StatoForm, fd: FormData) => Promise<StatoForm>;
@@ -21,6 +22,7 @@ export function FormAzione({
   className = 'space-y-4',
   restaAperto = false,
   indirizzo,
+  toast = false,
 }: {
   azione: Azione;
   children: ReactNode;
@@ -29,6 +31,11 @@ export function FormAzione({
   restaAperto?: boolean;
   /** Indirizzo del gestionale, da mettere nel messaggio delle credenziali. */
   indirizzo?: string;
+  /**
+   * L'esito anche in un avviso a comparsa: per i moduli lunghi, dove il
+   * pulsante sta in fondo e il riquadro dell'esito in cima, fuori vista.
+   */
+  toast?: boolean;
 }) {
   // Il benvenuto a una persona appena creata si consegna al contenitore del
   // guscio **qui**, appena arriva la risposta: il modulo che l'ha chiesto può
@@ -39,6 +46,10 @@ export function FormAzione({
     return esito;
   }, {} as StatoForm);
   const modale = useModale();
+
+  useEffect(() => {
+    if (toast && stato.ok) mostraToast(stato.ok, 'ok');
+  }, [stato, toast]);
 
   // L'errore si scrive in cima al modulo, ma il pulsante premuto sta in fondo:
   // in una finestra lunga finiva fuori dallo schermo e sembrava che il
@@ -67,7 +78,7 @@ export function FormAzione({
           {stato.errore}
         </div>
       )}
-      {stato.ok && (
+      {stato.ok && !toast && (
         <div className="rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2 text-sm text-nvg">
           {stato.ok}
         </div>

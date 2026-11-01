@@ -297,6 +297,7 @@ model User {
   casseGestite          Cassa[]                 @relation("GestoriCassa")
   rifiutiDecisi         RifiutoRegistrazione[]  @relation("RifiutiDecisi")
   attivitaDaReferente   ReferenteEvento[]       @relation("ReferenteDi")
+  appelliFatti          Event[]                 @relation("AppelloDi")
   iscrizioniPush        IscrizionePush[]        @relation("PushDi")
   referenteSquadra      ReferenteMiaSquadra[]
   linkCollegamento      LinkCollegamento[]
@@ -1273,6 +1274,11 @@ model Event {
   /// guardando una stagione intera. Si svuota se l'attività viene riaperta:
   /// quel motivo riguardava l'annullamento di allora, non quello che verrà.
   motivoAnnullamento    String?
+  /// L'ultimo appello salvato: quando e da chi. Serve a dire, in cima alla
+  /// scheda, che è stato fatto — prima non lo si capiva.
+  appelloIl             DateTime?
+  appelloDaId           String?
+  appelloDa             User?             @relation("AppelloDi", fields: [appelloDaId], references: [id], onDelete: SetNull)
   inizio                DateTime
   fine                  DateTime?
   /// Dove ci si trova prima di partire: il testo che si legge, e le coordinate

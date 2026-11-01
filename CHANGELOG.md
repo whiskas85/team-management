@@ -5,6 +5,23 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.65.0 — 1 novembre 2026
+
+### Corretto
+
+- **Si capisce che l'appello è stato fatto e salvato.** Prima la conferma
+  compariva in cima a un elenco lungo, con il pulsante in fondo, e non si
+  vedeva.
+  - **Nell'intestazione** dell'attività, accanto alla propria risposta:
+    «✓ Appello fatto · 16:01 · Falco · 8/10», oppure, per chi lo fa,
+    «Appello da fare».
+  - **In cima alla scheda Appello** resta scritto «Appello salvato alle 16:01
+    da Falco · 8 presenti su 10», o «Appello da fare».
+  - Al salvataggio compare un avviso «✓ Appello salvato: 8 presenti su 10».
+  - Il pulsante è in evidenza e dice «Salva l'appello», poi «Aggiorna
+    l'appello»; accanto a ogni nome c'è com'è registrato («✓ c'era» o
+    «assente»).
+
 ## 3.64.0 — 1 novembre 2026
 
 ### Cambiato

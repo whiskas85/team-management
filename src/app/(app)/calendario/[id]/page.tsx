@@ -156,6 +156,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         orderBy: [{ ordine: 'asc' }, { creatoIl: 'asc' }],
         include: { caricatoDa: { select: { nome: true, cognome: true, callsign: true } } },
       },
+      // chi ha salvato l'ultimo appello: si scrive in cima alla scheda
+      appelloDa: { select: { nome: true, cognome: true, callsign: true } },
       // chi tiene in mano l'attività: di loro serve il solo callsign
       referenti: {
         include: {
@@ -1281,6 +1283,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               <Badge tono={tonoRsvp[mio.status]}>{etichettaRisposta[mio.status]}</Badge>
             ) : (
               !chiuso && <Badge tono="warn">Non hai risposto</Badge>
+            )}
+
+            {/* l'appello, in testa: fatto (quando, chi, quanti) o da fare */}
+            {evento.appelloIl ? (
+              <Badge tono="ok">
+                ✓ Appello fatto · <span className="num">{fmtTime(evento.appelloIl)}</span>
+                {evento.appelloDa &&
+                  ` · ${comeChiamare(evento.appelloDa, { incarico: false, diSquadra: true }).nome}`}
+                {' · '}
+                <span className="num">
+                  {daAppello.filter((r) => r.presente).length}/{daAppello.length}
+                </span>
+              </Badge>
+            ) : (
+              inMano && iniziata && <Badge tono="warn">Appello da fare</Badge>
             )}
 
             {/* quanto manca per decidere: una data costringe a fare il conto a
@@ -2752,7 +2769,32 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                       e entra già spuntato (iscrivere altri resta del TL) */}
                   {tl && aggiungiPartecipanti(true)}
                 </div>
-                <FormAzione azione={registraPresenze} className="space-y-3">
+                {/* Fatto o da fare: si legge prima di tutto, e resta scritto.
+                    Prima la conferma compariva in cima a un elenco lungo, col
+                    pulsante in fondo, e non si capiva se fosse salvato. */}
+                {evento.appelloIl ? (
+                  <div className="mb-3 flex items-start gap-2 rounded-md border border-nvg/40 bg-nvg/10 px-3 py-2 text-sm text-nvg">
+                    <Icona nome="approva" size={16} />
+                    <span>
+                      <strong>Appello salvato</strong> alle{' '}
+                      <span className="num">{fmtTime(evento.appelloIl)}</span>
+                      {fmtDate(evento.appelloIl) !== fmtDate(new Date()) &&
+                        ` del ${fmtDate(evento.appelloIl)}`}
+                      {evento.appelloDa &&
+                        ` da ${comeChiamare(evento.appelloDa, { incarico: false, diSquadra: true }).nome}`}
+                      {' · '}
+                      <span className="num">
+                        {daAppello.filter((r) => r.presente).length} presenti su {daAppello.length}
+                      </span>
+                      . Si può rifare per chi arriva dopo.
+                    </span>
+                  </div>
+                ) : (
+                  <p className="mb-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+                    Appello da fare: spunta chi c’è e premi «Salva l’appello».
+                  </p>
+                )}
+                <FormAzione azione={registraPresenze} className="space-y-3" toast>
                   <input type="hidden" name="eventId" value={evento.id} />
                   {daAppello.length === 0 ? (
                     <p className="text-sm text-muted">
@@ -2885,6 +2927,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                                       className="h-4 w-4 shrink-0 accent-[color:var(--nvg)]"
                                     />
                                     <span className="break-words">{nomeDi(r.user)}</span>
+                                    {/* com'è registrato adesso, dopo l'ultimo salvataggio */}
+                                    {r.presente !== null && (
+                                      <span
+                                        className={`ml-auto shrink-0 text-[11px] ${r.presente ? 'text-nvg' : 'text-muted'}`}
+                                      >
+                                        {r.presente ? '✓ c’era' : 'assente'}
+                                      </span>
+                                    )}
                                   </label>
                                 ))}
                               </div>
@@ -2895,9 +2945,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
                           gesto a parte, in fondo alla pagina. Dirlo sul
                           pulsante evita di non premerlo per paura di chiudere
                           tutto alle otto del mattino. */}
-                      <Invia className="btn-ghost w-full btn-sm">Salva presenze</Invia>
+                      <Invia icona="approva" className="btn-primary w-full btn-sm">
+                        {evento.appelloIl ? 'Aggiorna l’appello' : 'Salva l’appello'}
+                      </Invia>
                       <p className="text-[11px] text-muted">
-                        Si può rifare per chi arriva dopo.{' '}
                         {admin
                           ? 'L’attività la chiudi tu, in fondo alla pagina, quando la giornata è finita davvero.'
                           : 'L’attività la chiude un admin, quando la giornata è finita davvero.'}
