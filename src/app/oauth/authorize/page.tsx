@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { marchio } from '@/lib/mia-squadra';
-import { AMBITI, creaCodice } from '@/lib/oidc';
+import { AMBITI, creaCodice, puoUsareAppCollegate } from '@/lib/oidc';
 import { controllaRichiesta, ritorno } from '@/lib/oidc-richiesta';
 import { Logo } from '@/components/Logo';
 import { consentiApp, rifiutaApp } from '@/actions/oidc';
@@ -51,6 +51,37 @@ export default async function AutorizzaPage({
   }
   if (me.stato === 'DISABILITATO') {
     redirect(ritorno(richiesta.redirectUri, { error: 'access_denied', state: richiesta.state }));
+  }
+  // «Accedi con …» è per chi è della squadra. Un account appena registrato,
+  // in attesa o rifiutato non entra nelle app collegate: lo si dice, e si
+  // torna all'app con un rifiuto.
+  if (!puoUsareAppCollegate(me.stato)) {
+    if (richiesta.prompt === 'none') {
+      redirect(ritorno(richiesta.redirectUri, { error: 'access_denied', state: richiesta.state }));
+    }
+    return (
+      <Cornice titolo={`Accedi a «${app.nome}»`} nome={m.nomeGestionale}>
+        <p className="text-sm">
+          Il tuo account di <strong>{m.nomeGestionale}</strong> non è ancora della squadra: con
+          questo account non si entra in <strong>{app.nome}</strong>.
+        </p>
+        <p className="mt-2 text-xs text-muted">
+          Quando la squadra ti avrà accolto potrai entrare. Per domande, chiedi a chi segue i nuovi.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <a
+            href={ritorno(richiesta.redirectUri, {
+              error: 'access_denied',
+              error_description: 'Account non ancora della squadra',
+              state: richiesta.state,
+            })}
+            className="btn-ghost"
+          >
+            Torna a {app.nome}
+          </a>
+        </div>
+      </Cornice>
+    );
   }
 
   // già detto di sì a tutto quello che chiede: si torna subito

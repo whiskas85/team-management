@@ -78,6 +78,13 @@ codice, `issuer` e chiavi diversi). L'identità di una persona è la coppia
 }
 ```
 
+**Chi entra.** «Accedi con …» identifica chi è già della squadra (stato
+`SQUADRA`, `SOSPESO` o `DA_RICONFERMARE`): non crea account. Dalla pagina di
+accesso aperta da un'app non si può registrarsi, e un account appena
+registrato, in attesa, rifiutato o disabilitato viene rimandato all'app con
+`error=access_denied`. Chi esce dalla squadra perde subito anche l'accesso:
+`userinfo` risponde 401 e i codici non si scambiano più.
+
 Solo i campi degli ambiti chiesti, e solo dopo il consenso della persona.
 Gli stessi dati arrivano nell'`id_token` e da `userinfo`.
 

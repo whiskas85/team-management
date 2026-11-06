@@ -5,6 +5,8 @@ import { cifra, decifra, firma } from './segreti';
 import { perWhatsapp } from './telefono';
 import { marchio } from './mia-squadra';
 import { emailVerificata } from './verifica-email';
+import { vedeAttivitaSquadra } from './domain';
+import type { StatoOperatore } from '@prisma/client';
 
 /**
  * Il gestionale come fornitore di identità, con OpenID Connect.
@@ -35,6 +37,14 @@ export const AMBITI = {
   squadra: 'la squadra, il tuo stato e i tuoi ruoli',
 } as const;
 export type Ambito = keyof typeof AMBITI;
+
+/**
+ * Chi può entrare nelle app collegate: chi è della squadra (anche in attesa di
+ * riconferma a inizio stagione). Non un account appena registrato, in attesa,
+ * rifiutato o disabilitato: «Accedi con …» identifica la squadra, non crea
+ * account.
+ */
+export const puoUsareAppCollegate = (stato: StatoOperatore) => vedeAttivitaSquadra(stato);
 
 export const impronta = (t: string) => createHash('sha256').update(t).digest('hex');
 const casuale = (n = 32) => randomBytes(n).toString('base64url');
@@ -254,6 +264,12 @@ export async function tokenValido(accesso: string | null) {
     include: { app: { select: { attiva: true } } },
   });
   if (!t || t.scadeIl < new Date() || !t.app.attiva) return null;
+  // uscito dalla squadra (o mai entrato): i token già dati smettono di valere
+  const persona = await prisma.user.findUnique({
+    where: { id: t.userId },
+    select: { stato: true },
+  });
+  if (!persona || !puoUsareAppCollegate(persona.stato)) return null;
   // il consenso tolto dal profilo spegne anche i token già dati
   const consenso = await prisma.consensoApp.findUnique({
     where: { userId_appId: { userId: t.userId, appId: t.appId } },

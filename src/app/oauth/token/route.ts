@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { CORS, appDa, emettiToken, impronta, pkceGiusto, segretoGiusto } from '@/lib/oidc';
+import {
+  CORS,
+  appDa,
+  emettiToken,
+  impronta,
+  pkceGiusto,
+  puoUsareAppCollegate,
+  segretoGiusto,
+} from '@/lib/oidc';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +64,11 @@ export async function POST(req: Request) {
     data: { usatoIl: new Date() },
   });
   if (bruciato.count === 0) return errore('invalid_grant', 'Codice già usato.');
+  // chi non è (più) della squadra non riceve token, anche con un codice valido
+  const persona = await prisma.user.findUnique({ where: { id: c.userId }, select: { stato: true } });
+  if (!persona || !puoUsareAppCollegate(persona.stato)) {
+    return errore('invalid_grant', 'Account non della squadra.');
+  }
 
   const token = await emettiToken({
     appId: app.id,

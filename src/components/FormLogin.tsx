@@ -22,7 +22,20 @@ export type RigaTerminale = {
  * apre il gestionale dal telefono della squadra non vuole riscrivere la
  * password ogni sabato.
  */
-export function FormLogin({ righe, dopo }: { righe: RigaTerminale[]; dopo?: string | null }) {
+export function FormLogin({
+  righe,
+  dopo,
+  perApp,
+}: {
+  righe: RigaTerminale[];
+  dopo?: string | null;
+  /**
+   * Si entra per conto di un'app collegata («Accedi con …»): qui ci si
+   * identifica e basta. Niente «Registrati»: un account non nasce da un'app
+   * esterna, si chiede alla squadra passando dal portale.
+   */
+  perApp?: string | null;
+}) {
   const [stato, azione] = useActionState(accedi, {} as StatoForm);
 
   return (
@@ -102,17 +115,25 @@ export function FormLogin({ righe, dopo }: { righe: RigaTerminale[]; dopo?: stri
         )}
       </form>
 
-      {/* Chi non ha ancora un account deve trovare la porta subito: in fondo,
+      {perApp ? (
+        <p className="login-terminale mt-[clamp(0.75rem,2dvh,2rem)] border-t border-nvg/15 pt-[clamp(0.75rem,2dvh,1.5rem)] text-center text-[0.85rem] tracking-[0.08em] text-nvg/75 sm:text-[0.95rem]">
+          &gt; STAI ENTRANDO IN «{perApp.toUpperCase()}» CON IL TUO ACCOUNT DELLA SQUADRA.
+          <br />
+          &gt; NON HAI UN ACCOUNT? DA QUI NON SI CREA: CHIEDI ALLA SQUADRA.
+        </p>
+      ) : (
+        /* Chi non ha ancora un account deve trovare la porta subito: in fondo,
           scritta come le righe del terminale, sembrava una scritta di contorno.
-          Adesso ha un pulsante suo, secondo solo ad «Autenticazione». */}
-      <div className="mt-[clamp(0.75rem,2dvh,2rem)] flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-nvg/15 pt-[clamp(0.75rem,2dvh,1.5rem)] sm:gap-4">
-        <span className="login-terminale text-[0.85rem] tracking-[0.1em] text-nvg/75 sm:text-[1.05rem] sm:tracking-[0.14em]">
-          &gt; NUOVO OPERATORE?
-        </span>
-        <Link href="/register" className="login-pulsante-secondario">
-          [ REGISTRATI ]
-        </Link>
-      </div>
+          Adesso ha un pulsante suo, secondo solo ad «Autenticazione». */
+        <div className="mt-[clamp(0.75rem,2dvh,2rem)] flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-nvg/15 pt-[clamp(0.75rem,2dvh,1.5rem)] sm:gap-4">
+          <span className="login-terminale text-[0.85rem] tracking-[0.1em] text-nvg/75 sm:text-[1.05rem] sm:tracking-[0.14em]">
+            &gt; NUOVO OPERATORE?
+          </span>
+          <Link href="/register" className="login-pulsante-secondario">
+            [ REGISTRATI ]
+          </Link>
+        </div>
+      )}
 
       {/* la password dimenticata: un link per entrare, per email */}
       <p className="login-terminale mt-3 text-center text-[0.85rem] tracking-[0.1em] sm:text-[0.95rem]">

@@ -8,6 +8,7 @@ import { inTest } from '@/lib/ambiente';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { percorsoDopo } from '@/lib/format';
+import { appDa } from '@/lib/oidc';
 
 // Tre caratteri, e solo qui. Il resto del gestionale il monospazio non ce l'ha,
 // ed è voluto: si legge per ore e deve stancare poco. La porta d'ingresso
@@ -114,6 +115,11 @@ export default async function LoginPage({
   // già dentro ci va dritto, gli altri ci arrivano appena entrati
   const dopo = percorsoDopo(chiesto);
   if (dopo && (await getCurrentUser().catch(() => null))) redirect(dopo);
+  // arrivato da «Accedi con …» di un'app collegata: il nome dell'app, e niente registrazione
+  const perApp = dopo?.startsWith('/oauth/authorize')
+    ? ((await appDa(new URL(dopo, 'http://x').searchParams.get('client_id')))?.nome ??
+      'un’app collegata')
+    : null;
   const avvisoLink = {
     usato: 'Quel link era già stato usato: vale una volta sola. Entra con la tua password, o fattene mandare un altro.',
     scaduto: 'Quel link è scaduto. Entra con la tua password, o fattene mandare un altro.',
@@ -183,7 +189,7 @@ export default async function LoginPage({
               : 'mx-auto max-w-xl'
           }
         >
-          <FormLogin righe={righe} dopo={dopo} />
+          <FormLogin righe={righe} dopo={dopo} perApp={perApp} />
           {debug && <AccessoRapido figure={FIGURE} />}
         </div>
       </div>

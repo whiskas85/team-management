@@ -5,6 +5,24 @@ quando cambia il modo di lavorare, **minor** per funzioni nuove, **patch** per
 correzioni. Il numero vive in `package.json` ed è quello che si legge nel badge
 accanto a ZERO DARK.
 
+## 3.67.0 — 6 novembre 2026
+
+### Corretto
+
+- **«Accedi con …» non crea più account.** Un esterno, dal pulsante «Accedi
+  con» del gioco, arrivava al login, si registrava ed entrava nel gioco da
+  nuovo. Ora:
+  - la pagina di accesso aperta da un'app collegata **non mostra
+    «Registrati»**: dice in che app si sta entrando e che l'account da lì non
+    si crea;
+  - nelle app collegate entra **solo chi è della squadra** (in rosa, sospeso o
+    in attesa di riconferma). Un account appena registrato, nuovo, in attesa,
+    rifiutato o disabilitato vede «non sei ancora della squadra» e torna
+    all'app con un rifiuto (`access_denied`);
+  - chi esce dalla squadra perde subito l'accesso anche ai token già dati, e un
+    codice già emesso non si scambia più.
+- La registrazione resta dal portale, come sempre.
+
 ## 3.66.1 — 1 novembre 2026
 
 ### Corretto
